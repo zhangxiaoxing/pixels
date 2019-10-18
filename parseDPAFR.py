@@ -70,14 +70,14 @@ def plotOne(data,delay,ax,ylbl):
     
     
     if delay==6:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [4.5,6.5,18.5,20.5]]
-        ax.set_xticks([4.5,14.5,24.5])
+        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [3.5,5.5,17.5,19.5]]
+        ax.set_xticks([3.5,13.5,23.5])
         ax.set_xticklabels([0,5,10])
         ax.set_xlabel('Time (s)')
         
     elif delay==3:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [4.5,6.5,12.5,14.5]]
-        ax.set_xticks([4.5,14.5])
+        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [3.5,5.5,11.5,13.5]]
+        ax.set_xticks([3.5,13.5])
         ax.set_xticklabels([0,5])
     
     if ylbl:

@@ -112,15 +112,15 @@ def parseDPAEvents(events):
             and (events[eidx][1] & 0x03)>0):
             rsps=1
         
-        if sample > 0 and test >0:
-            trials.append([sampleTS,\
-                           testTS,\
-                           np.round(sampleTS/s1s,decimals=3),\
-                           np.round(testTS/s1s,decimals=3),\
-                           sample,\
-                           test,\
-                           rsps,\
-                           np.round((testTS-sampleTS)/s1s)-1])
+    if sample > 0 and test >0:
+        trials.append([sampleTS,\
+                       testTS,\
+                       np.round(sampleTS/s1s,decimals=3),\
+                       np.round(testTS/s1s,decimals=3),\
+                       sample,\
+                       test,\
+                       rsps,\
+                       np.round((testTS-sampleTS)/s1s)-1])
         
         
     return trials
