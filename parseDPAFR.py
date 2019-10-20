@@ -25,19 +25,22 @@ def trialAlign(trials, oneTS):
             tIdx+=1
     return (oneTS,tsId)
         
-def baselineVector(oneTS,tsId):
-    tIdices=np.unique(tsId)
+def baselineVector(oneTS,tsId,trials):
+    tIdices=range(trials.shape[0])
     base=[]
     for tIdx in tIdices:
-        base.append(np.sum(np.bitwise_and(np.bitwise_and(tsId==tIdx, oneTS>=-60000), oneTS<0))/4) #500ms bin
+        for binCount in np.histogram(oneTS[tsId==tIdx],bins=4,range=(-60000,-30000))[0]:
+            base.append(binCount)
+    
     if len(base)>0 and np.std(base):
         return (np.mean(base), np.std(base))
     else:
+        print('Error calculating base vector unit#%d' % (tsId,))
         return (0,32767)
 
 def toHist(trials,oneTS,tsId,sample,delay,baseVector=(0,1)):
     sel=np.nonzero(np.bitwise_and(trials[:,4]==sample , trials[:,7]==delay))[0]
-    return ((np.histogram(oneTS[np.isin(tsId,sel)],np.linspace(-60000,30000*(delay+6),num=(delay+8)*2+1))[0])/len(sel)-baseVector[0])/baseVector[1]
+    return (np.histogram(oneTS[np.isin(tsId,sel)],np.linspace(-60000,30000*(delay+6),num=(delay+8)*4+1))[0])/len(sel)
 
            
 
@@ -48,10 +51,7 @@ def alignHeatmap(spkTS,spkCluster,unitInfo,trials):
     heat83Raw=[]
     heat86Raw=[]
     
-    heat43=[]
-    heat46=[]
-    heat83=[]
-    heat86=[]
+    baseVecAll=[]
     depth=[]
     
     spkNThresh=spkTS[-1]/s1s*2    
@@ -63,35 +63,26 @@ def alignHeatmap(spkTS,spkCluster,unitInfo,trials):
         if spkCount>spkNThresh and wf:
             oneTSAll=(spkTS[spkCluster==spkIdx]).astype('int64')
             (oneTS,tsId)=trialAlign(trials,oneTSAll)
-            baseVec=baselineVector(oneTS,tsId)
-#            sel=np.nonzero(np.bitwise_and(trials[:,4]==4 , trials[:,7]==3))[0]
+            baseVec=baselineVector(oneTS,tsId,trials)
+            baseVecAll.append(baseVec)
+
             heat43Raw.append(toHist(trials,oneTS,tsId,4,3))
             heat46Raw.append(toHist(trials,oneTS,tsId,4,6))
             heat83Raw.append(toHist(trials,oneTS,tsId,8,3))
             heat86Raw.append(toHist(trials,oneTS,tsId,8,6))
 
-
-            heat43.append(toHist(trials,oneTS,tsId,4,3,baseVec))
-            heat46.append(toHist(trials,oneTS,tsId,4,6,baseVec))
-            heat83.append(toHist(trials,oneTS,tsId,8,3,baseVec))
-            heat86.append(toHist(trials,oneTS,tsId,8,6,baseVec))
             depth.append(unitInfo['depth'][infoIdx])
             
     depth=np.array(depth)
+    baseVecAll=np.array(baseVecAll)
     dIdx=np.argsort(depth)
-    
-    heat43=np.array(heat43)
-    heat46=np.array(heat46)
-    heat83=np.array(heat83)
-    heat86=np.array(heat86)
-            
+     
     heat43Raw=np.array(heat43Raw)
     heat46Raw=np.array(heat46Raw)
     heat83Raw=np.array(heat83Raw)
     heat86Raw=np.array(heat86Raw)
 
-
-    return ((heat43Raw[dIdx,:],heat46Raw[dIdx,:],heat83Raw[dIdx,:],heat86Raw[dIdx,:]),(heat43[dIdx,:],heat46[dIdx,:],heat83[dIdx,:],heat86[dIdx,:]),depth[dIdx])
+    return ((heat43Raw[dIdx,:],heat46Raw[dIdx,:],heat83Raw[dIdx,:],heat86Raw[dIdx,:]),baseVecAll[dIdx],depth[dIdx])
 
 def plotOne(data,delay,ax,ylbl):
     
@@ -99,14 +90,14 @@ def plotOne(data,delay,ax,ylbl):
     
     
     if delay==6:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [3.5,5.5,17.5,19.5]]
-        ax.set_xticks([3.5,13.5,23.5])
+        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,9,10])*4-0.5]
+        ax.set_xticks(np.array([2,7,12])*4-0.5)
         ax.set_xticklabels([0,5,10])
 #        ax.set_xlabel('Time (s)')
         
     elif delay==3:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [3.5,5.5,11.5,13.5]]
-        ax.set_xticks([3.5,13.5])
+        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,6,7])*4-0.5]
+        ax.set_xticks(np.array([2,7])*4-0.5)
         ax.set_xticklabels([0,5])
     
     if ylbl:
@@ -118,14 +109,14 @@ def plotOneSel(A,B,delay,ax,ylbl):
     plt.imshow((B-A)/(B+A),cmap='jet',aspect='auto',vmin=-1,vmax=1)
 
     if delay==6:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [3.5,5.5,17.5,19.5]]
-        ax.set_xticks([3.5,13.5,23.5])
+        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,9,10])*4-0.5]
+        ax.set_xticks(np.array([2,7,10])*4-0.5)
         ax.set_xticklabels([0,5,10])
         
         
     elif delay==3:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in [3.5,5.5,11.5,13.5]]
-        ax.set_xticks([3.5,13.5])
+        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,6,7])*4-0.5]
+        ax.set_xticks(np.array([2,7])*4-0.5)
         ax.set_xticklabels([0,5])
     
     if ylbl:
@@ -133,7 +124,7 @@ def plotOneSel(A,B,delay,ax,ylbl):
 
     ax.set_xlabel('Time (s)')
 
-def plotHeatmap(raw,normed,depth):
+def plotHeatmap(raw,base,depth):
     import os
     import re
     cwd=os.getcwd();
@@ -142,16 +133,16 @@ def plotHeatmap(raw,normed,depth):
     
     fh=plt.figure(3,figsize=[7.5,10])
     ax=plt.subplot(3,3,1)
-    plotOne(normed[0],3,ax,True)
+    plotOne(((raw[0].transpose()-base[:,0])/base[:,1]).transpose(),3,ax,True)
     ax.set_title('S1 3s delay')
     ax=plt.subplot(3,3,2)
-    plotOne(normed[2],3,ax,False)
+    plotOne(((raw[2].transpose()-base[:,0])/base[:,1]).transpose(),3,ax,False)
     ax.set_title('S2 3s delay')
     ax=plt.subplot(3,3,4)
-    plotOne(normed[1],6,ax,True)
+    plotOne(((raw[1].transpose()-base[:,0])/base[:,1]).transpose(),6,ax,True)
     ax.set_title('S1 6s delay')
     ax=plt.subplot(3,3,5)
-    plotOne(normed[3],6,ax,False)
+    plotOne(((raw[3].transpose()-base[:,0])/base[:,1]).transpose(),6,ax,False)
     ax.set_title('S2 6s delay')
     #depth plot
     ax=plt.subplot(1,3,3)
@@ -180,6 +171,9 @@ def plotHeatmap(raw,normed,depth):
 
 
 if __name__=="__main__":
+#    import os
+#    os.chdir('D:\Data\\191018-DPA-Learning5_28_g1\\191018-DPA-Learning5_28_g1_imec1_cleaned')
+    
     s1s=30000
     spkTS=np.load("spike_times.npy")
     spkCluster=np.load("spike_clusters.npy")
@@ -190,5 +184,5 @@ if __name__=="__main__":
     with h5py.File('events.hdf5','r') as fe:
         dset=fe['trials']
         trials=np.array(dset,dtype='int64')    
-    (raw,normed,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
-    (fh,ax)=plotHeatmap(raw,normed,depth)
+    (raw,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
+    (fh,ax)=plotHeatmap(raw,baseVec,depth)
