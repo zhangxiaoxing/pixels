@@ -126,16 +126,19 @@ def plotOneSel(A,B,delay,ax,ylbl):
     
     plt.imshow((B-A)/(B+A),cmap='jet',aspect='auto',vmin=-1,vmax=1)
 
-    if delay==6:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,9,10])*4-0.5]
-        ax.set_xticks(np.array([2,7,12])*4-0.5)
-        ax.set_xticklabels([0,5,10])
-        
-        
-    elif delay==3:
-        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,6,7])*4-0.5]
-        ax.set_xticks(np.array([2,7])*4-0.5)
-        ax.set_xticklabels([0,5])
+#    if delay==6:
+#        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,9,10])*4-0.5]
+#        ax.set_xticks(np.array([2,7,12])*4-0.5)
+#        ax.set_xticklabels([0,5,10])
+#        
+#        
+#    elif delay==3:
+#        [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3,6,7])*4-0.5]
+#        ax.set_xticks(np.array([2,7])*4-0.5)
+#        ax.set_xticklabels([0,5])
+    [plt.plot([x,x],ax.get_ylim(),'-w') for x in np.array([2,3])*4-0.5]
+    ax.set_xticks(np.array([2,6])*4-0.5)
+    ax.set_xticklabels(['S+0','S+4'])
     
     if ylbl:
         ax.set_ylabel('Unit #')    
@@ -178,7 +181,7 @@ def plotHeatmap(raw,byPaired,base,depth):
     plt.colorbar(im,ticks=[-3,0,3],format='%d')
     ax.set_title('S2 6s delay')
     #depth plot
-    ax=plt.subplot(3,3,3)
+    ax=plt.subplot(1,3,3)
     plt.plot(3840-depth)
     ax.set_ylabel('depth (um)')
     ax.set_xlabel('unit #')
@@ -186,17 +189,17 @@ def plotHeatmap(raw,byPaired,base,depth):
     plt.grid(b=True,which='both')
     
     #selectivity
-    ax=plt.subplot(3,3,7)
-    plotOneSel(raw[0],raw[2],3,ax,True)
-    ax.set_title('3s sample selectivity')    
+#    ax=plt.subplot(3,3,7)
+#    plotOneSel(raw[0],raw[2],3,ax,True)
+#    ax.set_title('3s sample selectivity')    
 
-    ax=plt.subplot(3,3,8)
-    im=plotOneSel(raw[1],raw[3],6,ax,False)
-    ax.set_title('6s sample selectivity')        
-    plt.colorbar(im,ticks=[-1,0,1],format='%d')
+    ax=plt.subplot(3,3,7)
+    im=plotOneSel(raw[0][:,0:24]+raw[1][:,0:24],raw[2][:,0:24]+raw[3][:,0:24],6,ax,False)
+    ax.set_title('sample selectivity')        
+#    plt.colorbar(im,ticks=[-1,0,1],format='%d')
 
     
-    ax=plt.subplot(3,3,9)
+    ax=plt.subplot(3,3,8)
     im=plotOneSelByPair(byPaired[0],byPaired[1],ax)
     ax.set_title('pair/non-pair selectivity')        
     plt.colorbar(im,ticks=[-1,0,1],format='%d')
@@ -213,8 +216,8 @@ def plotHeatmap(raw,byPaired,base,depth):
 
 if __name__=="__main__":
 #    import os
-#    os.chdir('D:\Data\\191018-DPA-Learning5_28_g1\\191018-DPA-Learning5_28_g1_imec1_cleaned')
-    
+#    os.chdir('J:/neuropixel/191017-DPA-Learning4_33_g0/191017-DPA-Learning4_33_g0_imec0_cleaned')
+#    
     s1s=30000
     spkTS=np.load("spike_times.npy")
     spkCluster=np.load("spike_clusters.npy")
