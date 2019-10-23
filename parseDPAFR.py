@@ -159,13 +159,19 @@ def plotOneSelByPair(A,B,ax):
 
 def plotBehavior(trials, ax):
     correct=np.bitwise_xor(trials[:,4]==trials[:,5],trials[:,6]==1)
-    perf=[];
+    licks=trials[:,6]==1
+    perf=[]
+    lickPct=[]
     for ubound in range(16,len(correct),16):
         perf.append(np.mean(correct[ubound-16:ubound]))
-    plt.plot(perf,'-k') 
-    ax.set_ylim(0.25,1.0)
-    ax.set_ylabel('correct rate %')
+        lickPct.append(np.mean(licks[ubound-16:ubound]))
+    plt.plot(perf,'-k',label='correct rate')
+    plt.plot(lickPct,'--r',label='lick rate')
+    ax.legend();
+    ax.set_ylim(0,1.0)
+    ax.set_ylabel('correct rate, lick rate')
     ax.set_xlabel('block of 16 trials')
+    ax.set_title('behavior performance')
 
 
 def plotHeatmap(trials,raw,byPaired,base,depth):

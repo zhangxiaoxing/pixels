@@ -19,6 +19,10 @@ def run(command):
 if __name__=="__main__":
     status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
 if status==0:
+    import os
+    cwd=os.getcwd()
+    cleanDir=cwd+'_cleaned'
+    os.chdir(cleanDir)
     import sys
     sys.path.insert(1,'D:/code/')
     import sync
