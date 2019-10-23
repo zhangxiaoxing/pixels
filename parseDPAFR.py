@@ -60,7 +60,7 @@ def alignHeatmap(spkTS,spkCluster,unitInfo,trials):
     
     baseVecAll=[]
     depth=[]
-    
+    s1s=30000
     spkNThresh=spkTS[-1]/s1s*2    
     
     for infoIdx in range(len(unitInfo)):
@@ -212,6 +212,20 @@ def plotHeatmap(raw,byPaired,base,depth):
     return (fh,ax)
 
 
+def runParse():
+    s1s=30000
+    spkTS=np.load("spike_times.npy")
+    spkCluster=np.load("spike_clusters.npy")
+    
+    unitInfo=phyutil.read_tsv('cluster_info.tsv')
+    
+    trials=np.empty([0])
+    with h5py.File('events.hdf5','r') as fe:
+        dset=fe['trials']
+        trials=np.array(dset,dtype='int64')    
+    (raw,byPaired,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
+    (fh,ax)=plotHeatmap(raw,byPaired,baseVec,depth)
+    
 
 if __name__=="__main__":
 #    import os

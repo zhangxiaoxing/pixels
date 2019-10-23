@@ -13,5 +13,9 @@ def phyProcess(params_path, **kwargs):
     controller._save_cluster_info();
     controller.model.close()
 
+def runPhy():
+    phyProcess("params.py")
+
+
 if __name__=="__main__":
     phyProcess("params.py")

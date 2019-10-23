@@ -171,6 +171,11 @@ def writeEvents(events,trials):
         tDset=fw.create_dataset('trials',data=np.array(trials,dtype='i4'))
             
 
+def runsync():
+    events=getEvents()            
+    trials=parseDPAEvents(events)
+    writeEvents(events,trials)    
+
 
 if __name__=="__main__":
     events=getEvents()            
