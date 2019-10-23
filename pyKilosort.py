@@ -17,7 +17,7 @@ def run(command):
     
     
 if __name__=="__main__":
-    status, out=run('matlab -batch "lwd=pwd();run D:\code\zxSort.m"')
+    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
 if status==0:
     import sys
     sys.path.insert(1,'D:/code/')

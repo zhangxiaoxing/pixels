@@ -157,14 +157,25 @@ def plotOneSelByPair(A,B,ax):
     return im
 
 
-def plotHeatmap(raw,byPaired,base,depth):
+def plotBehavior(trials, ax):
+    correct=np.bitwise_xor(trials[:,4]==trials[:,5],trials[:,6]==1)
+    perf=[];
+    for ubound in range(16,len(correct),16):
+        perf.append(np.mean(correct[ubound-16:ubound]))
+    plt.plot(perf,'-k') 
+    ax.set_ylim(0.25,1.0)
+    ax.set_ylabel('correct rate %')
+    ax.set_xlabel('block of 16 trials')
+
+
+def plotHeatmap(trials,raw,byPaired,base,depth):
     import os
     import re
     cwd=os.getcwd();
     grps=re.search('19.*(?=_cleaned)',cwd)
+    fh=plt.figure(3,figsize=[7.5,10])
 
     
-    fh=plt.figure(3,figsize=[7.5,10])
     ax=plt.subplot(3,3,1)
     plotOne(((raw[0].transpose()-base[:,0])/base[:,1]).transpose(),3,ax,True)
     ax.set_title('S1 3s delay')
@@ -180,17 +191,14 @@ def plotHeatmap(raw,byPaired,base,depth):
     plt.colorbar(im,ticks=[-3,0,3],format='%d')
     ax.set_title('S2 6s delay')
     #depth plot
-    ax=plt.subplot(1,3,3)
+    ax=plt.subplot(3,3,6)
     plt.plot(3840-depth)
     ax.set_ylabel('depth (um)')
     ax.set_xlabel('unit #')
     plt.minorticks_on();
     plt.grid(b=True,which='both')
     
-    #selectivity
-#    ax=plt.subplot(3,3,7)
-#    plotOneSel(raw[0],raw[2],3,ax,True)
-#    ax.set_title('3s sample selectivity')    
+
 
     ax=plt.subplot(3,3,7)
     im=plotOneSel(raw[0][:,0:24]+raw[1][:,0:24],raw[2][:,0:24]+raw[3][:,0:24],6,ax,False)
@@ -203,6 +211,9 @@ def plotHeatmap(raw,byPaired,base,depth):
     ax.set_title('pair/non-pair selectivity')        
     plt.colorbar(im,ticks=[-1,0,1],format='%d')
     
+    ax=plt.subplot(3,3,3)
+    plotBehavior(trials,ax)
+
     
     fh.suptitle(grps.group().replace('_cleaned',''))
     plt.tight_layout(rect=[0,0,1,0.95])
@@ -211,9 +222,10 @@ def plotHeatmap(raw,byPaired,base,depth):
     fh.savefig('heatmap.png',dpi=300,bbox_inches='tight')
     return (fh,ax)
 
+    
 
 def runParse():
-    s1s=30000
+#    s1s=30000
     spkTS=np.load("spike_times.npy")
     spkCluster=np.load("spike_clusters.npy")
     
@@ -228,8 +240,8 @@ def runParse():
     
 
 if __name__=="__main__":
-#    import os
-#    os.chdir('K:/neupix/191015-DPA-Learning2_29_g0_imec0_cleaned')
+    import os
+    os.chdir('K:/neupix/191015-DPA-Learning2_29_g0_imec0_cleaned')
 #    
     s1s=30000
     spkTS=np.load("spike_times.npy")
@@ -242,4 +254,4 @@ if __name__=="__main__":
         dset=fe['trials']
         trials=np.array(dset,dtype='int64')    
     (raw,byPaired,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
-    (fh,ax)=plotHeatmap(raw,byPaired,baseVec,depth)
+    (fh,ax)=plotHeatmap(trials,raw,byPaired,baseVec,depth)
