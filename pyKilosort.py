@@ -17,10 +17,10 @@ def run(command):
     
     
 if __name__=="__main__":
-    status, out=run('matlab -batch "run K:\code\zxSort.m"')
-if status!=0:
+    status, out=run('matlab -batch "lwd=pwd();run D:\code\zxSort.m"')
+if status==0:
     import sys
-    sys.path.insert(1,'K:/code/')
+    sys.path.insert(1,'D:/code/')
     import sync
     import zxPhy
     import parseDPAFR

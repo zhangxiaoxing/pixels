@@ -3,7 +3,8 @@ addpath('D:\code\neuropixel-utils')
 addpath('D:\code\npy-matlab\npy-matlab\')
 addpath(genpath('D:\code\Kilosort2'))
 channelMapFile='D:\code\neuropixel-utils\map_files\neuropixPhase3B2_kilosortChanMap.mat';
-lwd=pwd();
+%lwd=pwd();
+cd(lwd);
 fn=ls('*.ap.bin');
 imec=Neuropixel.ImecDataset(fullfile(lwd,fn),'ChannelMap',channelMapFile);
 rmsBadChannels=imec.markBadChannelsByRMS('rmsRange',[3 100]);
