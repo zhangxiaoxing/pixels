@@ -6,9 +6,8 @@ Created on Wed Oct 16 17:24:12 2019
 """
 
 import numpy as np
-import pandas as pd
+import phylib.utils._misc as phyutil
 import h5py
-import math
 import matplotlib.pyplot as plt
 
 def trialAlign(trials, oneTS):
@@ -64,10 +63,10 @@ def alignHeatmap(spkTS,spkCluster,unitInfo,trials):
     
     spkNThresh=spkTS[-1]/s1s*2    
     
-    for infoIdx in range(unitInfo.shape[0]):
-        spkIdx=unitInfo['id'][infoIdx]
-        wf=unitInfo.iloc[infoIdx,8]=='good' or (math.isnan(unitInfo.iloc[infoIdx,8]) and unitInfo.iloc[infoIdx,3]=='good')
-        spkCount=unitInfo.iloc[infoIdx,9]
+    for infoIdx in range(len(unitInfo)):
+        spkIdx=unitInfo[infoIdx]['id']
+        wf=unitInfo[infoIdx].get('group')=='good' or ((unitInfo[infoIdx].get('group') is None) and unitInfo[infoIdx].get('KSLabel')=='good')
+        spkCount=unitInfo[infoIdx]['n_spikes']
         if spkCount>spkNThresh and wf:
             oneTSAll=(spkTS[spkCluster==spkIdx]).astype('int64')
             (oneTS,tsId)=trialAlign(trials,oneTSAll)
@@ -85,7 +84,7 @@ def alignHeatmap(spkTS,spkCluster,unitInfo,trials):
             (n6,tn6)=toHistByPair(trials,oneTS,tsId,False,6)
             nonpaired.append((np.array(n3)+np.array(n6))/(tn3+tn6))
 
-            depth.append(unitInfo['depth'][infoIdx])
+            depth.append(unitInfo[infoIdx]['depth'])
             
     depth=np.array(depth)
     baseVecAll=np.array(baseVecAll)
@@ -216,13 +215,13 @@ def plotHeatmap(raw,byPaired,base,depth):
 
 if __name__=="__main__":
 #    import os
-#    os.chdir('J:/neuropixel/191017-DPA-Learning4_33_g0/191017-DPA-Learning4_33_g0_imec0_cleaned')
+#    os.chdir('K:/neupix/191015-DPA-Learning2_29_g0_imec0_cleaned')
 #    
     s1s=30000
     spkTS=np.load("spike_times.npy")
     spkCluster=np.load("spike_clusters.npy")
     
-    unitInfo=pd.read_csv('cluster_info.tsv',sep='\t')
+    unitInfo=phyutil.read_tsv('cluster_info.tsv')
     
     trials=np.empty([0])
     with h5py.File('events.hdf5','r') as fe:
