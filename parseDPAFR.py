@@ -242,7 +242,7 @@ def runParse():
         dset=fe['trials']
         trials=np.array(dset,dtype='int64')    
     (raw,byPaired,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
-    (fh,ax)=plotHeatmap(raw,byPaired,baseVec,depth)
+    (fh,ax)=plotHeatmap(trials,raw,byPaired,baseVec,depth)
     
 
 if __name__=="__main__":
