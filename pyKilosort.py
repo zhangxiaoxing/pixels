@@ -7,6 +7,7 @@ Created on Wed Oct 23 14:45:30 2019
 
 import shlex
 import subprocess
+import os
 
 def run(command):
     try:
@@ -14,21 +15,39 @@ def run(command):
         return 0,result
     except subprocess.CalledProcessError as e:
         return e.returncode, e.output
-    
+
+def runInDir(path):
+    os.chdir(path)
+    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
+    if status==0:
+        cwd=os.getcwd()
+        cleanDir=cwd+'_cleaned'
+        os.chdir(cleanDir)
+        import sys
+        sys.path.insert(1,'D:/code/')
+        import sync
+        import zxPhy
+        import parseDPAFR
+        
+        sync.runsync()
+        zxPhy.runPhy()
+        parseDPAFR.runParse()    
+
+
+
     
 if __name__=="__main__":
     status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
-if status==0:
-    import os
-    cwd=os.getcwd()
-    cleanDir=cwd+'_cleaned'
-    os.chdir(cleanDir)
-    import sys
-    sys.path.insert(1,'D:/code/')
-    import sync
-    import zxPhy
-    import parseDPAFR
-    
-    sync.runsync()
-    zxPhy.runPhy()
-    parseDPAFR.runParse()
+    if status==0:
+        cwd=os.getcwd()
+        cleanDir=cwd+'_cleaned'
+        os.chdir(cleanDir)
+        import sys
+        sys.path.insert(1,'D:/code/')
+        import sync
+        import zxPhy
+        import parseDPAFR
+        
+        sync.runsync()
+        zxPhy.runPhy()
+        parseDPAFR.runParse()
