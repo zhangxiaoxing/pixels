@@ -226,7 +226,8 @@ def plotHeatmap(trials,raw,byPaired,base,depth):
     plt.show();
     
     fh.savefig('heatmap.png',dpi=300,bbox_inches='tight')
-    return (fh,ax)
+    plt.close('all')
+#    return (fh,ax)
 
     
 
@@ -242,7 +243,7 @@ def runParse():
         dset=fe['trials']
         trials=np.array(dset,dtype='int64')    
     (raw,byPaired,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
-    (fh,ax)=plotHeatmap(trials,raw,byPaired,baseVec,depth)
+    plotHeatmap(trials,raw,byPaired,baseVec,depth)
     
 
 if __name__=="__main__":
@@ -260,4 +261,4 @@ if __name__=="__main__":
         dset=fe['trials']
         trials=np.array(dset,dtype='int64')    
     (raw,byPaired,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
-    (fh,ax)=plotHeatmap(trials,raw,byPaired,baseVec,depth)
+    plotHeatmap(trials,raw,byPaired,baseVec,depth)
