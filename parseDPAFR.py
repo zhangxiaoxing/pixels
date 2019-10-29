@@ -10,6 +10,9 @@ import phylib.utils._misc as phyutil
 import h5py
 import matplotlib.pyplot as plt
 
+FR_Th=1.0
+
+
 def trialAlign(trials, oneTS):
     oneTS=oneTS[np.bitwise_and(oneTS>=trials[0,0]-30000*5, oneTS<=(trials[-1,0]+30000*10))]
     TSidx=0
@@ -61,7 +64,7 @@ def alignHeatmap(spkTS,spkCluster,unitInfo,trials):
     baseVecAll=[]
     depth=[]
     s1s=30000
-    spkNThresh=spkTS[-1]/s1s*2    
+    spkNThresh=spkTS[-1]/s1s*FR_Th  
     
     for infoIdx in range(len(unitInfo)):
         spkIdx=unitInfo[infoIdx]['id']
@@ -176,9 +179,8 @@ def plotBehavior(trials, ax):
 
 def plotHeatmap(trials,raw,byPaired,base,depth):
     import os
-    import re
     cwd=os.getcwd();
-    grps=re.search('19.*(?=_cleaned)',cwd)
+    leafPath=os.path.split(cwd)[1]
     fh=plt.figure(3,figsize=[7.5,10])
 
     
@@ -198,8 +200,8 @@ def plotHeatmap(trials,raw,byPaired,base,depth):
     ax.set_title('S2 6s delay')
     #depth plot
     ax=plt.subplot(3,3,6)
-    plt.plot(3840-depth)
-    ax.set_ylabel('depth (um)')
+    plt.plot(depth)
+    ax.set_ylabel('distance from tip (um)')
     ax.set_xlabel('unit #')
     plt.minorticks_on();
     plt.grid(b=True,which='both')
@@ -221,11 +223,11 @@ def plotHeatmap(trials,raw,byPaired,base,depth):
     plotBehavior(trials,ax)
 
     
-    fh.suptitle(grps.group().replace('_cleaned',''))
+    fh.suptitle(leafPath.replace('_cleaned',''))
     plt.tight_layout(rect=[0,0,1,0.95])
     plt.show();
     
-    fh.savefig('heatmap.png',dpi=300,bbox_inches='tight')
+    fh.savefig(leafPath.replace('_cleaned','')+'.png',dpi=300,bbox_inches='tight')
     plt.close('all')
 #    return (fh,ax)
 
@@ -247,8 +249,8 @@ def runParse():
     
 
 if __name__=="__main__":
-    import os
-    os.chdir('K:/neupix/191015-DPA-Learning2_29_g0_imec0_cleaned')
+#    import os
+#    os.chdir('K:/neupix/191015-DPA-Learning2_29_g0_imec0_cleaned')
 #    
     s1s=30000
     spkTS=np.load("spike_times.npy")
