@@ -8,6 +8,7 @@ Created on Wed Oct 23 14:45:30 2019
 import shlex
 import subprocess
 import os
+import time
 
 def run(command):
     try:
@@ -18,36 +19,41 @@ def run(command):
 
 def runInDir(path):
     os.chdir(path)
-    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
-    if status==0:
-        cwd=os.getcwd()
-        cleanDir=cwd+'_cleaned'
-        os.chdir(cleanDir)
-        import sys
-        sys.path.insert(1,'D:/code/')
-        import sync
-        import zxPhy
-        import parseDPAFR
-        
-        sync.runsync()
-        zxPhy.runPhy()
-        parseDPAFR.runParse()    
+    status=1
+    while (status!=0):
+        status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
+        if status!=0:
+            time.sleep(60)
 
-
-
+    cwd=os.getcwd()
+    cleanDir=cwd+'_cleaned'
+    os.chdir(cleanDir)
+    import sys
+    sys.path.insert(1,'D:/code/')
+    import sync
+    import zxPhy
+    import parseDPAFR
     
-if __name__=="__main__":
-    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
-    if status==0:
-        cwd=os.getcwd()
-        cleanDir=cwd+'_cleaned'
-        os.chdir(cleanDir)
-        import sys
-        sys.path.insert(1,'D:/code/')
-        import sync
-        import zxPhy
-        import parseDPAFR
-        
-        sync.runsync()
-        zxPhy.runPhy()
-        parseDPAFR.runParse()
+    sync.runsync()
+    zxPhy.runPhy()
+    parseDPAFR.runParse()
+    return out
+
+
+#
+#    
+#if __name__=="__main__":
+#    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
+#    if status==0:
+#        cwd=os.getcwd()
+#        cleanDir=cwd+'_cleaned'
+#        os.chdir(cleanDir)
+#        import sys
+#        sys.path.insert(1,'D:/code/')
+#        import sync
+#        import zxPhy
+#        import parseDPAFR
+#        
+#        sync.runsync()
+#        zxPhy.runPhy()
+#        parseDPAFR.runParse()
