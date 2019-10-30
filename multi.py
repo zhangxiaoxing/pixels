@@ -7,5 +7,5 @@ Created on Thu Oct 24 21:56:58 2019
 
 import pyKilosort
 
-pyKilosort.runInDir('E:/Data/M27_learning4_20191024_g0/M27_learning4_20191024_g0/M27_learning4_20191024_g0_imec1/')
-pyKilosort.runInDir('E:/Data/M27_learning4_20191024_g0/M27_learning4_20191024_g0/M27_learning4_20191024_g0_imec0/')
+pyKilosort.runInDir('E:/Data/M25_20191029_g0/M25_20191029_g0_imec1')
+pyKilosort.runInDir('E:/Data/M25_20191029_g0/M25_20191029_g0_imec0')

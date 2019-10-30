@@ -20,10 +20,14 @@ def run(command):
 def runInDir(path):
     os.chdir(path)
     status=1
+    count=0
     while (status!=0):
+        count+=1
+        print(count)
         status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
         if status!=0:
             time.sleep(60)
+            print(out)
 
     cwd=os.getcwd()
     cleanDir=cwd+'_cleaned'
