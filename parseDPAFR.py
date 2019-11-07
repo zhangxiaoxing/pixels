@@ -243,7 +243,7 @@ def runParse():
     trials=np.empty([0])
     with h5py.File('events.hdf5','r') as fe:
         dset=fe['trials']
-        trials=np.array(dset,dtype='int64')    
+        trials=np.array(dset,dtype='int32')
     (raw,byPaired,baseVec,depth)=alignHeatmap(spkTS,spkCluster,unitInfo,trials)
     plotHeatmap(trials,raw,byPaired,baseVec,depth)
     

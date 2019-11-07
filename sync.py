@@ -167,7 +167,7 @@ def getEvents():
 
 def writeEvents(events,trials):
     with h5py.File('events.hdf5','w') as fw:
-        evtDset=fw.create_dataset('events',data=np.array(events,dtype='i1'))
+        evtDset=fw.create_dataset('events',data=np.array(events,dtype='i4'))
         tDset=fw.create_dataset('trials',data=np.array(trials,dtype='i4'))
             
 
