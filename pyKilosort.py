@@ -17,14 +17,17 @@ def run(command):
     except subprocess.CalledProcessError as e:
         return e.returncode, e.output
 
-def runInDir(path):
+def runInDir(path,cleaned=False):
     os.chdir(path)
 #    status=1
 #    count=0
 #    while (status!=0):
 #        count+=1
 #        print(count)
-    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
+    if cleaned:
+        status, out=run('matlab -noFigureWindows -batch "lwd=pwd();cleaned=true;run D:\code\zxSort.m"')
+    else:
+        status, out=run('matlab -noFigureWindows -batch "lwd=pwd();cleaned=false;run D:\code\zxSort.m"')
     print(out)
     if status==0:
 #            time.sleep(60)
