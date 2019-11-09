@@ -7,5 +7,11 @@ Created on Thu Oct 24 21:56:58 2019
 
 import pyKilosort
 
-pyKilosort.runInDir('E:/Data/M25_20191029_g0/M25_20191029_g0_imec1')
-pyKilosort.runInDir('E:/Data/M25_20191029_g0/M25_20191029_g0_imec0')
+outs=[]
+sessions=[]
+(out,session)=pyKilosort.runInDir('D:/Data/M35_20191107_g0/M35_20191107_g0_imec0')
+outs.append(out)
+sessions.append(session)
+(out,session)=pyKilosort.runInDir('D:/Data/M35_20191107_g0/M35_20191107_g0_imec0')
+outs.append(out)
+sessions.append(session)

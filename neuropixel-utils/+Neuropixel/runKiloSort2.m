@@ -73,11 +73,11 @@ function rez = runKiloSort2(imec, varargin)
     fprintf('Kilosort2: Merging clusters\n');
     rez = find_merges(rez, 1);
 
-    tdWU=gather(rez.dWU);
-    tnsp=gather(rez.nsp);
+    rez.dWU=gather(rez.dWU);
+    rez.nsp=gather(rez.nsp);
     reset(gpuDevice());
-    rez.dWU=gpuArray(tdWU);
-    rez.nsp=gpuArray(tnsp);
+    rez.dWU=gpuArray(rez.dWU);
+    rez.nsp=gpuArray(rez.nsp);
     
     % final splits by SVD
     fprintf('Kilosort2: Final splits by SVD\n');
@@ -114,7 +114,7 @@ end
 function ops = defaultConfig() %#ok<STOUT>
     configFile = getenv('KILOSORT_CONFIG_FILE');
     if isempty(configFile)
-        configFile = 'D:\code\Kilosort2\configFiles\config2b.m';
+        configFile = 'D:\code\config2b.m';
     end
     if ~exist(configFile, 'file')
         error('Could not find Kilosort2 config file %s', configFile);

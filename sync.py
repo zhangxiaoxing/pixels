@@ -174,7 +174,8 @@ def writeEvents(events,trials):
 def runsync():
     events=getEvents()            
     trials=parseDPAEvents(events)
-    writeEvents(events,trials)    
+    writeEvents(events,trials)
+    return trials
 
 
 if __name__=="__main__":

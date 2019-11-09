@@ -40,10 +40,10 @@ def runInDir(path,cleaned=False):
         import zxPhy
         import parseDPAFR
         
-        sync.runsync()
+        trials=sync.runsync()
         zxPhy.runPhy()
         parseDPAFR.runParse()
-    return out
+    return (out,trials)
 
 
 #
