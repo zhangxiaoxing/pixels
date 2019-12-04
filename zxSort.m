@@ -30,7 +30,11 @@ toc
 tic
 sync6=imec.readSync();
 % save('sync.mat','sync6');
-syncH5=fullfile([lwd,'_cleaned'],'sync.hdf5');
+if cleaned
+    syncH5=fullfile(lwd,'sync.hdf5');
+else
+    syncH5=fullfile([lwd,'_cleaned'],'sync.hdf5');
+end
 h5create(syncH5,'/sync',size(sync6),'Datatype','int8')
 h5write(syncH5,'/sync',int8(sync6))
 
