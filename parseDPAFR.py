@@ -36,9 +36,9 @@ def baselineVector(oneTS,tsId,trials):
 
     if len(base)>0 and np.std(base):
         return (np.mean(base), np.std(base))
-    else:
-        print('Error calculating base vector unit#%d' % (tsId,))
-        return (0,32767)
+    
+    print('Error calculating base vector unit#%d' % (tsId,))
+    return (0,32767)
 
 def toHist(trials,oneTS,tsId,sample,delay):
     sel=np.nonzero(np.bitwise_and(trials[:,4]==sample , trials[:,7]==delay))[0]
