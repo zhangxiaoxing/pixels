@@ -32,24 +32,24 @@ def runInDir(path,cleaned=False):
     if status==0:
 #            time.sleep(60)
         cwd=os.getcwd()
-        cleanDir=cwd+'_cleaned'
-        os.chdir(cleanDir)
+        if not cleaned:
+            os.chdir(cwd+'_cleaned')
         import sys
         sys.path.insert(1,'D:/code/')
         import sync
         import zxPhy
         import parseDPAFR
-        
+
         trials=sync.runsync()
         zxPhy.runPhy()
         parseDPAFR.runParse()
     os.chdir('d:/code/')
     return (out,trials)
-    
+
 
 
 #
-#    
+#
 #if __name__=="__main__":
 #    status, out=run('matlab -noFigureWindows -batch "lwd=pwd();run D:\code\zxSort.m"')
 #    if status==0:
@@ -61,7 +61,7 @@ def runInDir(path,cleaned=False):
 #        import sync
 #        import zxPhy
 #        import parseDPAFR
-#        
+#
 #        sync.runsync()
 #        zxPhy.runPhy()
 #        parseDPAFR.runParse()
