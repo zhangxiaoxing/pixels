@@ -43,8 +43,11 @@ def runInDir(path,cleaned=False):
         trials=sync.runsync()
         zxPhy.runPhy()
         parseDPAFR.runParse()
+        return (out,trials)
+    else:
+        return (out,[])
     os.chdir('d:/code/')
-    return (out,trials)
+    
 
 
 
