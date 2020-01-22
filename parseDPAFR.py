@@ -207,7 +207,7 @@ def plotOneSelByPair(A, B, ax):
 
 
 def plotBehavior(trials, ax):
-    correct = np.bitwise_xor(trials[:, 4] == trials[:, 5], trials[:, 6] == 1)
+    correct = np.logical_xor(trials[:, 4] == trials[:, 5], trials[:, 6] == 1)
     licks = trials[:, 6] == 1
     perf = []
     lickPct = []

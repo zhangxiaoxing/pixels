@@ -35,7 +35,7 @@ def countNeurons():
 
 def judgePerformance(trials):
     if trials.shape[0]>=40:
-        correctResp=np.bitwise_xor(trials[:,4]==trials[:,5],trials[:,6]==1)
+        correctResp=np.logical_xor(trials[:,4]==trials[:,5],trials[:,6]==1)
         inWindow=np.zeros((trials.shape[0],),dtype='bool')
         i=40;
         while i<trials.shape[0]:

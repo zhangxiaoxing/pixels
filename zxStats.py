@@ -18,21 +18,26 @@ class zxStats:
         self.regionName = ""
         self.heatmapL = []
         self.heatmapR = []
+
+        self.test_heatmapL = []
+        self.test_heatmapR = []
+        
+        
         self.selectivity = []
 
-        self.statistical_selective_3 = []
-        self.statistical_selective_6 = []
+        self.statistical_sample_selective = []
+
         
-        self.statistical_selective_scale = []
+        self.statistical_test_selective = []
 
         self.statistical_pair_selective = []
 
         self.statistical_hitMiss_selective = []
+        self.statistical_CRFalse_selective = []
         
         self.modulation = []
         
-        self.auroc_3=[]
-        self.auroc_6=[]
+        self.auroc=[]
 
         self.pair_heatmapL = []
         self.pair_heatmapR = []
@@ -66,8 +71,13 @@ class zxStats:
         print("Constant baseline")
         return (np.mean(base), 0.5)
 
-    def addTrialFRs(self, trial_FR, trials, su_sel, perf_sel):
-        trial_FR_sel = trial_FR[:, :, su_sel]
+    def addTrialFRs(self, trial_FR, trials, su_sel=[], welltrain_window=[],correctResp=[]):
+        if su_sel:
+            trial_FR_sel = trial_FR[:, :, su_sel]
+        else:
+            trial_FR_sel=trial_FR
+            
+        perf_sel=np.logical_and(correctResp, welltrain_window)
         trial_sel = trials[perf_sel, :]
         trial_FR_perf_sel = trial_FR_sel[:, perf_sel, :]
 
@@ -75,31 +85,33 @@ class zxStats:
 
         self.addPairSelect(trial_FR_perf_sel, trial_sel)
 
-        self.addStatisticalSel(trial_FR_perf_sel, trial_sel)
+        self.addStatisticalSampleSel(trial_FR_perf_sel, trial_sel)
+        
+        self.addStatisticalTestSel(trial_FR_perf_sel, trial_sel)
 
         self.addHitMissSel(trial_FR, trials, su_sel, perf_sel)
-
+        self.addCRFalseSel(trial_FR, trials, su_sel, perf_sel)
+        
+        
     def addHitMissSel(self, trial_FR, trials, su_sel, perf_sel):
         trial_FR_sel = trial_FR[:, :, su_sel]
-        # trial_sel = trials[perf_sel, :] #Correct, in window trials
-        # trial_FR_perf_sel = trial_FR_sel[:, perf_sel, :]
 
-        trial_sel_hit_3 = np.bitwise_and(
-            perf_sel, np.bitwise_and(trials[:, 2] != trials[:, 3], trials[:, 5] == 3)
+        trial_sel_hit_3 = np.logical_and(
+            perf_sel, np.logical_and(trials[:, 2] != trials[:, 3], trials[:, 5] == 3)
         )
-        trial_sel_hit_6 = np.bitwise_and(
-            perf_sel, np.bitwise_and(trials[:, 2] != trials[:, 3], trials[:, 5] == 6)
+        trial_sel_hit_6 = np.logical_and(
+            perf_sel, np.logical_and(trials[:, 2] != trials[:, 3], trials[:, 5] == 6)
         )
 
 
         # Miss
-        trial_sel_miss_3 = np.bitwise_and(
-            np.bitwise_and(trials[:, 2] != trials[:, 3], trials[:, 4] < 0),
+        trial_sel_miss_3 = np.logical_and(
+            np.logical_and(trials[:, 2] != trials[:, 3], trials[:, 4] < 0),
             trials[:, 5] == 3,
         )
 
-        trial_sel_miss_6 = np.bitwise_and(
-            np.bitwise_and(trials[:, 2] != trials[:, 3], trials[:, 4] < 0),
+        trial_sel_miss_6 = np.logical_and(
+            np.logical_and(trials[:, 2] != trials[:, 3], trials[:, 4] < 0),
             trials[:, 5] == 6,
         )
 
@@ -127,94 +139,184 @@ class zxStats:
                 except ValueError:
                     bins[bin_idx] = 0
             self.statistical_hitMiss_selective.append(bins)
+            
+    def addCRFalseSel(self, trial_FR, trials, su_sel, perf_sel):
+        trial_FR_sel = trial_FR[:, :, su_sel]
 
-    def addStatisticalSel(self, trial_FR, trial_sel):
-        trial_sel_left_3 = np.bitwise_and(trial_sel[:, 2] == 4, trial_sel[:, 5] == 3)
-        trial_sel_left_6 = np.bitwise_and(trial_sel[:, 2] == 4, trial_sel[:, 5] == 6)
-        trial_sel_right_3 = np.bitwise_and(trial_sel[:, 2] == 8, trial_sel[:, 5] == 3)
-        trial_sel_right_6 = np.bitwise_and(trial_sel[:, 2] == 8, trial_sel[:, 5] == 6)
+        trial_sel_CR_3 = np.logical_and(
+            perf_sel, np.logical_and(trials[:, 2] == trials[:, 3], trials[:, 5] == 3)
+        )
+        trial_sel_CR_6 = np.logical_and(
+            perf_sel, np.logical_and(trials[:, 2] == trials[:, 3], trials[:, 5] == 6)
+        )
+
+
+        # Miss
+        trial_sel_false_3 = np.logical_and(
+            np.logical_and(trials[:, 2] == trials[:, 3], trials[:, 4] > 0),
+            trials[:, 5] == 3,
+        )
+
+        trial_sel_false_6 = np.logical_and(
+            np.logical_and(trials[:, 2] == trials[:, 3], trials[:, 4] > 0),
+            trials[:, 5] == 6,
+        )
+        if trial_sel_false_3.sum()+trial_sel_false_6.sum()<10:
+            return
+        
+        
+        for su_idx in range(trial_FR_sel.shape[2]):
+            onesu = np.squeeze(trial_FR_sel[:, :, su_idx]).T
+            CR_trials_3 = onesu[trial_sel_CR_3, :][:, self.row_sel_3]
+            false_trials_3 = onesu[trial_sel_false_3, :][:, self.row_sel_3]
+            # scaled to 3s delay, e.g. 56 bins
+            CR_trials_6 = onesu[trial_sel_CR_6, :][:, self.row_sel_6]  
+            
+            false_trials_6 = onesu[trial_sel_false_6, :][:, self.row_sel_6]
+
+            left_trials = np.concatenate((CR_trials_3, CR_trials_6))
+            right_trials = np.concatenate((false_trials_3, false_trials_6))
+
+            bins = np.ones(left_trials.shape[1])
+            for bin_idx in range(left_trials.shape[1]):
+                try:
+                    (stat, p) = stats.mannwhitneyu(
+                        left_trials[:, bin_idx].flatten(),
+                        right_trials[:, bin_idx].flatten(),
+                        alternative="two-sided",
+                    )
+                    bins[bin_idx] = p < 0.05
+                except ValueError:
+                    bins[bin_idx] = 0
+            self.statistical_CRFalse_selective.append(bins)            
+
+    def addStatisticalSampleSel(self, trial_FR, trial_sel):
+        trial_sel_left_3 = np.logical_and(trial_sel[:, 2] == 4, trial_sel[:, 5] == 3)
+        trial_sel_left_6 = np.logical_and(trial_sel[:, 2] == 4, trial_sel[:, 5] == 6)
+        trial_sel_right_3 = np.logical_and(trial_sel[:, 2] == 8, trial_sel[:, 5] == 3)
+        trial_sel_right_6 = np.logical_and(trial_sel[:, 2] == 8, trial_sel[:, 5] == 6)
 
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(trial_FR[:, :, su_idx]).T
 
-            left_trials_3 = onesu[trial_sel_left_3, :]
-            right_trials_3 = onesu[trial_sel_right_3, :]
+            left_trials_3 = onesu[trial_sel_left_3,:][:, self.row_sel_3]
+            right_trials_3 = onesu[trial_sel_right_3, :][:, self.row_sel_3]
 
-            left_trials_6 = onesu[trial_sel_left_6, :]
-            right_trials_6 = onesu[trial_sel_right_6, :]
+            left_trials_6 = onesu[trial_sel_left_6, :][:, self.row_sel_6]
+            right_trials_6 = onesu[trial_sel_right_6, :][:, self.row_sel_6]
 
-            bins_3 = np.ones(left_trials_3.shape[1])
-            bins_6 = np.ones(left_trials_3.shape[1])
-
-            auc_3 = np.zeros(left_trials_3.shape[1])
-            auc_6 = np.zeros(left_trials_3.shape[1])
+            left_trials=np.concatenate((left_trials_3,left_trials_6))
             
-            for bin_idx in range(left_trials_3.shape[1]):
+            right_trials=np.concatenate((right_trials_3,right_trials_6))
+
+            bins = np.ones(56)
+
+            auc = np.zeros(56)
+            
+            for bin_idx in range(left_trials.shape[1]):
                 try:
                     (stat, p) = stats.mannwhitneyu(
-                        left_trials_3[:, bin_idx].flatten(),
-                        right_trials_3[:, bin_idx].flatten(),
+                        left_trials[:, bin_idx].flatten(),
+                        right_trials[:, bin_idx].flatten(),
                         alternative="two-sided",
                     )
-                    bins_3[bin_idx] = p < 0.05
-                    # TODO
-                    auc_3[bin_idx]=metrics.roc_auc_score(
-                        np.concatenate((
-                            np.zeros(left_trials_3.shape[0]),
-                            np.ones(right_trials_3.shape[0])
-                            )),
-                        np.concatenate((
-                            left_trials_3[:,bin_idx].flatten(),
-                            right_trials_3[:,bin_idx].flatten(),
-                            ))
-                        )
-                    
+                    bins[bin_idx] = p < 0.05
                     
                 except ValueError:
-                    bins_3[bin_idx] = 0
-                    auc_3[bin_idx]=0.5
+                    bins[bin_idx] = 0
+
+                try:
+                    auc[bin_idx]=metrics.roc_auc_score(
+                            np.concatenate((
+                                np.zeros(left_trials.shape[0]),
+                                np.ones(right_trials.shape[0])
+                                )),
+                            np.concatenate((
+                                left_trials[:,bin_idx].flatten(),
+                                right_trials[:,bin_idx].flatten(),
+                                ))
+                            )
+                except ValueError:
+                    auc[bin_idx] =0.5
+
+            self.statistical_sample_selective.append(bins)
+
+            self.auroc.append(self.gauss_average(auc))
+
+    def addStatisticalTestSel(self, trial_FR, trial_sel):
+        trial_sel_left_3 = np.logical_and(trial_sel[:, 3] == 4, trial_sel[:, 5] == 3)
+        trial_sel_left_6 = np.logical_and(trial_sel[:, 3] == 4, trial_sel[:, 5] == 6)
+        trial_sel_right_3 = np.logical_and(trial_sel[:, 3] == 8, trial_sel[:, 5] == 3)
+        trial_sel_right_6 = np.logical_and(trial_sel[:, 3] == 8, trial_sel[:, 5] == 6)
+
+        for su_idx in range(trial_FR.shape[2]):
+            onesu = np.squeeze(trial_FR[:, :, su_idx]).T
+
+            left_trials_3 = onesu[trial_sel_left_3,:][:, self.row_sel_3]
+            right_trials_3 = onesu[trial_sel_right_3, :][:, self.row_sel_3]
+
+            left_trials_6 = onesu[trial_sel_left_6, :][:, self.row_sel_6]
+            right_trials_6 = onesu[trial_sel_right_6, :][:, self.row_sel_6]
+
+            left_trials=np.concatenate((left_trials_3,left_trials_6))
+            
+            right_trials=np.concatenate((right_trials_3,right_trials_6))
+
+            bins = np.ones(56)
+            
+            for bin_idx in range(left_trials.shape[1]):
                 try:
                     (stat, p) = stats.mannwhitneyu(
-                        left_trials_6[:, bin_idx].flatten(),
-                        right_trials_6[:, bin_idx].flatten(),
+                        left_trials[:, bin_idx].flatten(),
+                        right_trials[:, bin_idx].flatten(),
                         alternative="two-sided",
                     )
-                    bins_6[bin_idx] = p < 0.05
+                    bins[bin_idx] = p < 0.05
                     
-                    auc_6[bin_idx]=metrics.roc_auc_score(
-                        np.concatenate((
-                            np.zeros(left_trials_6.shape[0]),
-                            np.ones(right_trials_6.shape[0])
-                            )),
-                        np.concatenate((
-                            left_trials_6[:,bin_idx].flatten(),
-                            right_trials_6[:,bin_idx].flatten(),
-                            ))
-                        )
                 except ValueError:
-                    bins_6[bin_idx] = 0
-                    auc_6[bin_idx]=0.5
+                    bins[bin_idx] = 0
 
-            self.statistical_selective_3.append(bins_3)
-            self.statistical_selective_6.append(bins_6)
-            
-            self.auroc_3.append(auc_3)
-            self.auroc_6.append(auc_6)
+
+
+            self.statistical_test_selective.append(bins)
+
+
+
 
     def addSampleSelect(self, trial_FR, trial_sel):
         trial_sel_left = trial_sel[:, 2] == 4
         trial_sel_right = trial_sel[:, 2] == 8
 
+        trial_sel_test_left = trial_sel[:, 3] == 4
+        trial_sel_test_right = trial_sel[:, 3] == 8
+
         trial_sel_3 = trial_sel[:, 5] == 3
         trial_sel_6 = trial_sel[:, 5] == 6
-
 
 
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(trial_FR[:, :, su_idx]).T
             (base_mean, base_std) = self.baselineVector(onesu)
-            left_trials = onesu[trial_sel_left, :]
-            right_trials = onesu[trial_sel_right, :]
+            
+            left_3_trials=onesu[np.logical_and(trial_sel_left,trial_sel_3),:][:,self.row_sel_3]
+            left_6_trials=onesu[np.logical_and(trial_sel_left,trial_sel_6),:][:,self.row_sel_6]
+
+            right_3_trials=onesu[np.logical_and(trial_sel_right,trial_sel_3),:][:,self.row_sel_3]
+            right_6_trials=onesu[np.logical_and(trial_sel_right,trial_sel_6),:][:,self.row_sel_6]
+            
+            left_trials = np.concatenate((left_3_trials,left_6_trials))
+            right_trials = np.concatenate((right_3_trials,right_6_trials))
+            
+
+            left_3_test_trials=onesu[np.logical_and(trial_sel_test_left,trial_sel_3),:][:,self.row_sel_3]
+            left_6_test_trials=onesu[np.logical_and(trial_sel_test_left,trial_sel_6),:][:,self.row_sel_6]
+
+            right_3_test_trials=onesu[np.logical_and(trial_sel_test_right,trial_sel_3),:][:,self.row_sel_3]
+            right_6_test_trials=onesu[np.logical_and(trial_sel_test_right,trial_sel_6),:][:,self.row_sel_6]
+            
+            left_test_trials = np.concatenate((left_3_test_trials,left_6_test_trials))
+            right_test_trials = np.concatenate((right_3_test_trials,right_6_test_trials))
+            
 
             delay_3s_trials = onesu[trial_sel_3, :][:, self.row_sel_3]
             delay_6s_trials = onesu[trial_sel_6, :][:, self.row_sel_6]
@@ -227,6 +329,9 @@ class zxStats:
 
             self.heatmapL.append(np.mean((left_trials - base_mean) / base_std, axis=0))
             self.heatmapR.append(np.mean((right_trials - base_mean) / base_std, axis=0))
+
+            self.test_heatmapL.append(np.mean((left_test_trials - base_mean) / base_std, axis=0))
+            self.test_heatmapR.append(np.mean((right_test_trials - base_mean) / base_std, axis=0))
 
             self.selectivity.append(
                 self.gauss_average(
@@ -241,17 +346,17 @@ class zxStats:
 
     def addPairSelect(self, trial_FR, trial_sel):
 
-        trial_sel_left_3 = np.bitwise_and(
+        trial_sel_left_3 = np.logical_and(
             trial_sel[:, 2] != trial_sel[:, 3], trial_sel[:, 5] == 3
         )
-        trial_sel_right_3 = np.bitwise_and(
+        trial_sel_right_3 = np.logical_and(
             trial_sel[:, 2] == trial_sel[:, 3], trial_sel[:, 5] == 3
         )
 
-        trial_sel_left_6 = np.bitwise_and(
+        trial_sel_left_6 = np.logical_and(
             trial_sel[:, 2] != trial_sel[:, 3], trial_sel[:, 5] == 6
         )
-        trial_sel_right_6 = np.bitwise_and(
+        trial_sel_right_6 = np.logical_and(
             trial_sel[:, 2] == trial_sel[:, 3], trial_sel[:, 5] == 6
         )
 
@@ -401,23 +506,22 @@ class zxStats:
 
     def plotFracSampleSel(self, gs_outer_id, fh):
         ax = fh.add_subplot(gs_outer_id)
-        m3 = self.gauss_average(np.mean(self.statistical_selective_3, axis=0))
-        m6 = self.gauss_average(np.mean(self.statistical_selective_6, axis=0))
-
-        plt.plot(m3[8:52])
-        plt.plot(m6[8:52])
-        yspan = (0, 0.2)
+        ms = self.gauss_average(np.mean(self.statistical_sample_selective, axis=0))
+        mt = self.gauss_average(np.mean(self.statistical_test_selective, axis=0))
+        plt.plot(ms[8:52])
+        plt.plot(mt[8:52])
+        yspan = (0, 0.3)
         [
             plt.plot([x, x], yspan, "--", color="gray")
-            for x in np.array([1, 2, 5, 8]) * 4 - 0.5
+            for x in np.array([1, 2, 5, 6]) * 4 - 0.5
         ]
-        plt.legend(("3s delay", "6s delay"))
-        ax.set_ylim((0, 0.2))
-        ax.set_xticks([3.5, 23.5])
-        ax.set_xticklabels(["0", "5"])
+        ax.set_ylim(yspan)
+        ax.set_xticks([3.5, 7.5, 19.5, 23.5])
+        ax.set_xticklabels(["S", '+1','T', "+1"])
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Fraction of selective SU")
-        ax.set_title("Sample selectivity")
+        plt.legend(['sample','test'])
+        ax.set_title("Cue selectivity")
 
     def plotFracPairSel(self, gs_outer_id, fh):
         ax = fh.add_subplot(gs_outer_id)
@@ -439,7 +543,7 @@ class zxStats:
 
     def plotOverallModulation(self, gs_outer_id, fh):
         ax = fh.add_subplot(gs_outer_id)
-        mm = np.mean(self.modulation, axis=0)
+        mm = self.gauss_average(np.mean(self.modulation, axis=0))
 
         plt.plot(mm[8:])
 
@@ -457,9 +561,12 @@ class zxStats:
 
     def plotFracHitMissSel(self, gs_outer_id, fh):
         ax = fh.add_subplot(gs_outer_id)
-        mm = self.gauss_average(np.mean(self.statistical_hitMiss_selective, axis=0))
-
-        plt.plot(mm[8:])
+        mHM = self.gauss_average(np.mean(self.statistical_hitMiss_selective, axis=0))
+        plt.plot(mHM[8:])
+        if len(self.statistical_CRFalse_selective)>0:
+            mCF = self.gauss_average(np.mean(self.statistical_CRFalse_selective, axis=0))
+            plt.plot(mCF[8:])
+            plt.legend(['Hit-Miss','CR-False'])
 
         yspan = (0, 1)
         [
@@ -476,27 +583,18 @@ class zxStats:
         
     def plotAvgAuroc(self, gs_outer_id, fh):
         ax = fh.add_subplot(gs_outer_id)
-        if np.mean(self.auroc_3)<0.5:
-            self.auroc_3=1-np.array(self.auroc_3)
-            self.auroc_6=1-np.array(self.auroc_6)
-        
-        m3 = self.gauss_average(np.mean(self.auroc_3, axis=0))
-        m6 = self.gauss_average(np.mean(self.auroc_6, axis=0))
-
-        plt.plot(m3[8:52])
-        plt.plot(m6[8:52])
-        yspan = (0.4, 1)
-        [
-            plt.plot([x, x], yspan, "--", color="gray")
-            for x in np.array([1, 2, 5, 8]) * 4 - 0.5
-        ]
-        plt.legend(("3s delay", "6s delay"))
-        ax.set_ylim(yspan)
-        ax.set_xticks([3.5, 23.5])
-        ax.set_xticklabels(["0", "5"])
+        data = np.array(self.auroc)[:, 8:44]
+        sort_idx = np.flip(np.argsort(np.mean(data[:, 4:20], axis=1)))
+        im = plt.imshow(
+            data[sort_idx, :], cmap="jet", aspect="auto", vmin=0.5, vmax=0.7
+        )
+        [plt.plot([x, x], ax.get_ylim(), "-w") for x in np.array([1, 2, 5, 6]) * 4 - 0.5]
+        ax.set_xticks(np.array([1,2,5,6]) * 4 - 0.5)
+        ax.set_xticklabels(['S', '+1', 'T', '+1'])
+        ax.set_ylabel("Unit #")
+        ax.set_title("AUROC for sample")
         ax.set_xlabel("Time (s)")
-        ax.set_ylabel("Average AUROC")
-        ax.set_title("Sample selectivity")
+        plt.colorbar(im, ticks=[0.5, 0.6, 0.7], format="%0.1f")
         
 
     def plotSummary(self):
@@ -527,12 +625,23 @@ class zxStats:
     def getFeatureVector(self):
         return np.concatenate(
             (
-                np.mean(self.statistical_selective_3, axis=0)[8:40],
-                np.mean(self.statistical_selective_6, axis=0)[8:52],
+                np.mean(self.statistical_sample_selective, axis=0)[8:44],
+                np.mean(self.statistical_test_selective, axis=0)[24:44],
                 np.mean(self.statistical_pair_selective, axis=0),
                 np.mean(self.statistical_hitMiss_selective, axis=0)[8:],
-                np.mean(self.modulation[8:], axis=0),
+                np.mean(self.statistical_CRFalse_selective, axis=0)[8:],
+                np.mean(self.modulation[8:], axis=0)
             )
         )
+    
+    def getPerSUFeatureVector(self):
+        
+        return np.concatenate((self.heatmapL,
+                        self.heatmapR,
+                        self.test_heatmapL,
+                        self.test_heatmapL,
+                        self.pair_heatmapL,
+                        self.pair_heatmapR,
+                        self.modulation),axis=1)
 
-    # 32, 44, 32 ,48, 48
+    # 36, 20, 32 ,48, 48, 48
