@@ -9,6 +9,7 @@ Created on Sun Jan 26 15:48:09 2020
 import os
 import h5py
 import re
+import nonneg_tca
 import numpy as np
 import selectivity as zpy
 import pandas as pd
@@ -86,53 +87,50 @@ def normalize(all_sess_arr): # SU,trials, bins
     return np.moveaxis(all_sess_arr,2,0)
     
     
+def run_tca(R):    
+    ntrialsCount = []
+    all_sess_list = []
     
-ntrialsCount = []
-all_sess_list = []
-
-for path in zpy.traverse("K:/neupix/DataSum/"):
-    print(path)
-    SU_ids = []
-    trial_FR = []
-    trials = []
-    with h5py.File(os.path.join(path, "FR_All.hdf5")) as ffr:
-        # print(list(ffr.keys()))
-        if not "SU_id" in ffr.keys():
-            print("missing su_id key in path ", path)
+    for path in zpy.traverse("K:/neupix/DataSum/"):
+        print(path)
+        SU_ids = []
+        trial_FR = []
+        trials = []
+        with h5py.File(os.path.join(path, "FR_All.hdf5")) as ffr:
+            # print(list(ffr.keys()))
+            if not "SU_id" in ffr.keys():
+                print("missing su_id key in path ", path)
+                continue
+            dset = ffr["SU_id"]
+            SU_ids = np.array(dset, dtype="uint16")
+            dset = ffr["FR_All"]
+            trial_FR = np.array(dset, dtype="double")
+            dset = ffr["Trials"]
+            trials = np.array(dset, dtype="double").T
+    
+        (perf_desc, perf_code, inWindow, correct_resp) = zpy.judgePerformance(trials)
+        #  toReturn.extend(["wellTrained", 3, correctResp,welltrain_window])
+    
+        if perf_code != 3:
             continue
-        dset = ffr["SU_id"]
-        SU_ids = np.array(dset, dtype="uint16")
-        dset = ffr["FR_All"]
-        trial_FR = np.array(dset, dtype="double")
-        dset = ffr["Trials"]
-        trials = np.array(dset, dtype="double").T
-
-    (perf_desc, perf_code, inWindow, correct_resp) = zpy.judgePerformance(trials)
-    #  toReturn.extend(["wellTrained", 3, correctResp,welltrain_window])
-
-    if perf_code != 3:
-        continue
-    ntrialsCount.append(trials.shape[0])
-    
-    if trials.shape[0] < 200:
-        continue
-
-    
-    
-    (reg_all, matched_index) = rearrange_block(trials,200)
-
-    if reg_all:
-        merged=rearrange_row(trials,trial_FR)
-        # onesession=merged[:,matched_index,:].reshape((merged.shape[0],-1))
-        onesession=merged[:,matched_index,:]
-        all_sess_list.append(onesession)
+        ntrialsCount.append(trials.shape[0])
         
-all_sess_arr=np.concatenate(tuple(all_sess_list),axis=0)        
-del all_sess_list
-import gc
-gc.collect()
-
-all_sess_arr=normalize(all_sess_arr)
+        if trials.shape[0] < 200:
+            continue
+    
+        
+        
+        (reg_all, matched_index) = rearrange_block(trials,200)
+    
+        if reg_all:
+            merged=rearrange_row(trials,trial_FR)
+            # onesession=merged[:,matched_index,:].reshape((merged.shape[0],-1))
+            onesession=merged[:,matched_index,:]
+            all_sess_list.append(onesession)
+            
+    all_sess_arr=np.concatenate(tuple(all_sess_list),axis=0)        
+    all_sess_arr=normalize(all_sess_arr)
+    nonneg_tca.nonneg_tca(all_sess_arr,R)
 
 
 
