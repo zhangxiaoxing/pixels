@@ -280,9 +280,6 @@ class zxStats:
 
             self.statistical_test_selective.append(bins)
 
-
-
-
     def addSampleSelect(self, trial_FR, trial_sel):
         trial_sel_left = trial_sel[:, 2] == 4
         trial_sel_right = trial_sel[:, 2] == 8
@@ -580,7 +577,6 @@ class zxStats:
         ax.set_ylabel("Fraction of selective SU")
         ax.set_title("Hit v.s. Miss")
         
-        
     def plotAvgAuroc(self, gs_outer_id, fh):
         ax = fh.add_subplot(gs_outer_id)
         data = np.array(self.auroc)[:, 8:44]
@@ -595,7 +591,6 @@ class zxStats:
         ax.set_title("AUROC for sample")
         ax.set_xlabel("Time (s)")
         plt.colorbar(im, ticks=[0.5, 0.6, 0.7], format="%0.1f")
-        
 
     def plotSummary(self):
         fh = plt.figure(figsize=[7.5, 10])

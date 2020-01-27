@@ -23,6 +23,9 @@ errorStats = zxStats()
 currStats.regionName='All'
 features_per_su=[]
 error_features_per_su=[]
+
+ntrialsCount=[]
+
 for path in zpy.traverse("K:/neupix/DataSum/"):
     
     SU_ids = []
@@ -47,22 +50,30 @@ for path in zpy.traverse("K:/neupix/DataSum/"):
     if perf_code!=3:
         continue
     
-    currStats.addTrialFRs(trial_FR, trials, [], inWindow, correct_resp)
-    errorStats.addTrialFRs(trial_FR, trials, [], inWindow, np.logical_not(correct_resp))
+    if trials.shape[0]!=240:
+        continue
+    
+    breakpoint()
+    ntrialsCount.append(trials.shape[0])    
     
     
-    features_per_su.append(currStats.getPerSUFeatureVector())    
-    error_features_per_su.append(errorStats.getPerSUFeatureVector())    
+    
+#     currStats.addTrialFRs(trial_FR, trials, [], inWindow, correct_resp)
+#     errorStats.addTrialFRs(trial_FR, trials, [], inWindow, np.logical_not(correct_resp))
+    
+    
+#     features_per_su.append(currStats.getPerSUFeatureVector())    
+#     error_features_per_su.append(errorStats.getPerSUFeatureVector())    
     
 
-    # if os.path.split(path)[0]==last_path:
-    #     su_hist[-1]=su_hist[-1]+SU_ids.size
-    # else:
-    #     su_hist.append(SU_ids.size)
-feat_per_su_arr = np.concatenate(tuple(features_per_su))
-error_per_su_arr = np.concatenate(tuple(error_features_per_su))  
+#     # if os.path.split(path)[0]==last_path:
+#     #     su_hist[-1]=su_hist[-1]+SU_ids.size
+#     # else:
+#     #     su_hist.append(SU_ids.size)
+# feat_per_su_arr = np.concatenate(tuple(features_per_su))
+# error_per_su_arr = np.concatenate(tuple(error_features_per_su))  
 
-combinedFeatures=np.concatenate((feat_per_su_arr,error_per_su_arr),axis=1)
+# combinedFeatures=np.concatenate((feat_per_su_arr,error_per_su_arr),axis=1)
         
         
         
