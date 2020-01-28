@@ -87,7 +87,7 @@ def normalize(all_sess_arr): # SU,trials, bins
     return np.moveaxis(all_sess_arr,2,0)
     
     
-def run_tca(R):    
+def run_tca(trial_target):    
     ntrialsCount = []
     all_sess_list = []
     
@@ -115,12 +115,12 @@ def run_tca(R):
             continue
         ntrialsCount.append(trials.shape[0])
         
-        if trials.shape[0] < 200:
+        if trials.shape[0] < trial_target:
             continue
     
         
         
-        (reg_all, matched_index) = rearrange_block(trials,200)
+        (reg_all, matched_index) = rearrange_block(trials,trial_target)
     
         if reg_all:
             merged=rearrange_row(trials,trial_FR)
@@ -130,7 +130,11 @@ def run_tca(R):
             
     all_sess_arr=np.concatenate(tuple(all_sess_list),axis=0)        
     all_sess_arr=normalize(all_sess_arr)
-    nonneg_tca.nonneg_tca(all_sess_arr,R)
-
+    opti_param=[]
+    for R in range(2,20):
+        (objU,objV,sim)=nonneg_tca.nonneg_tca(all_sess_arr,R)
+        opti_param.append([R,objU,objV,sim])
+    np.save('trials'+str(trial_target)+'_opti_params.npy',np.array(opti_param))
+            
 
 
