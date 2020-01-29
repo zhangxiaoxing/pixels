@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # Make synthetic dataset.
 
 
-def nonneg_tca(X, R):
+def nonneg_tca(X, R, prefix=''):
 
     # Fit CP tensor decomposition (two times).
     U = tt.ncp_bcd(X, rank=R, verbose=True)
@@ -39,7 +39,7 @@ def nonneg_tca(X, R):
     fig.set_size_inches(40, 40)
     fig.set_dpi(300)
     fig.savefig(
-        "nonneg_TCA_trial_" + str(X.shape[1]) + "_R" + str(R) + ".png",
+        prefix+"nonneg_TCA_trial_" + str(X.shape[1]) + "_R" + str(R) + ".png",
         dpi=300,
         bbox_inches="tight",
     )

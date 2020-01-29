@@ -180,8 +180,8 @@ def run_tca(trial_target, sep_blocks=False):
     opti_param = []
     
     sep_str='sepblock_' if sep_blocks else 'consec_'
-    for R in range(2, 20):
-        (objU, objV, sim) = nonneg_tca.nonneg_tca(all_sess_arr, R)
+    for R in range(2, 21):
+        (objU, objV, sim) = nonneg_tca.nonneg_tca(all_sess_arr, R, prefix=sep_str)
         opti_param.append([R, objU, objV, sim])
     np.save(
         sep_str+"nonneg_trials" + str(trial_target) + "_opti_params.npy", np.array(opti_param)
