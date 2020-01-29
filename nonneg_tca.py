@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 def nonneg_tca(X, R):
     
     # Fit CP tensor decomposition (two times).
-    U = tt.ncp_bcd(X, rank=R, verbose=True,negative_modes=[1,2])
-    V = tt.ncp_bcd(X, rank=R, verbose=True,negative_modes=[1,2])
+    U = tt.ncp_bcd(X, rank=R, verbose=True)
+    V = tt.ncp_bcd(X, rank=R, verbose=True)
     
     # Compare the low-dimensional factors from the two fits.
     # fig, ax, po = tt.plot_factors(U.factors)
@@ -37,5 +37,5 @@ def nonneg_tca(X, R):
     plt.show()
     fig.set_size_inches(40,40)
     fig.set_dpi(300)
-    fig.savefig('TCR_trial_'+str(X.shape[1])+'_R'+str(R)+'.png',dpi=300,bbox_inches='tight')
+    fig.savefig('nonneg_TCA_trial_'+str(X.shape[1])+'_R'+str(R)+'.png',dpi=300,bbox_inches='tight')
     return (U.obj, V.obj, sim)

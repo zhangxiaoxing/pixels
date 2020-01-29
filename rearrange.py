@@ -134,7 +134,7 @@ def run_tca(trial_target):
     for R in range(2,20):
         (objU,objV,sim)=nonneg_tca.nonneg_tca(all_sess_arr,R)
         opti_param.append([R,objU,objV,sim])
-    np.save('trials'+str(trial_target)+'_opti_params.npy',np.array(opti_param))
+    np.save('nonneg_trials'+str(trial_target)+'_opti_params.npy',np.array(opti_param))
             
 
 
