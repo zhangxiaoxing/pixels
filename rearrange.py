@@ -162,10 +162,10 @@ def run_tca(trial_target, sep_blocks=False):
 
         if trials.shape[0] < trial_target:
             continue
-        sep_str=''
+        
         if sep_blocks:
             (reg_all, matched_index) = rearrange_sep_block(trials, trial_target)
-            sep_str='sepblock_'
+            
         else:
             (reg_all, matched_index) = rearrange_block(trials, trial_target)
 
@@ -178,6 +178,8 @@ def run_tca(trial_target, sep_blocks=False):
     all_sess_arr = np.concatenate(tuple(all_sess_list), axis=0)
     all_sess_arr = normalize(all_sess_arr)
     opti_param = []
+    
+    sep_str='sepblock_' if sep_blocks else 'consec_'
     for R in range(2, 20):
         (objU, objV, sim) = nonneg_tca.nonneg_tca(all_sess_arr, R)
         opti_param.append([R, objU, objV, sim])
