@@ -8,12 +8,12 @@ Created on Sun Jan 26 15:48:09 2020
 
 import os
 import h5py
-import re
+# import re
 import nonneg_tca
 import numpy as np
 import selectivity as zpy
-import pandas as pd
-import matplotlib.pyplot as plt
+# import pandas as pd
+# import matplotlib.pyplot as plt
 
 
 def rearrange_row(trials, trial_FR):
@@ -138,7 +138,7 @@ def run_tca(trial_target, sep_blocks=False):
 
     for path in zpy.traverse("K:/neupix/DataSum/"):
         print(path)
-        SU_ids = []
+        # SU_ids = []
         trial_FR = []
         trials = []
         with h5py.File(os.path.join(path, "FR_All.hdf5")) as ffr:
@@ -146,8 +146,8 @@ def run_tca(trial_target, sep_blocks=False):
             if not "SU_id" in ffr.keys():
                 print("missing su_id key in path ", path)
                 continue
-            dset = ffr["SU_id"]
-            SU_ids = np.array(dset, dtype="uint16")
+            # dset = ffr["SU_id"]
+            # SU_ids = np.array(dset, dtype="uint16")
             dset = ffr["FR_All"]
             trial_FR = np.array(dset, dtype="double")
             dset = ffr["Trials"]
@@ -162,14 +162,14 @@ def run_tca(trial_target, sep_blocks=False):
 
         if trials.shape[0] < trial_target:
             continue
-
+        sep_str=''
         if sep_blocks:
             (reg_all, matched_index) = rearrange_sep_block(trials, trial_target)
+            sep_str='sepblock_'
         else:
             (reg_all, matched_index) = rearrange_block(trials, trial_target)
 
         if reg_all:
-            breakpoint()
             merged = rearrange_row(trials, trial_FR)
             # onesession=merged[:,matched_index,:].reshape((merged.shape[0],-1))
             onesession = merged[:, matched_index, :]
@@ -182,5 +182,5 @@ def run_tca(trial_target, sep_blocks=False):
         (objU, objV, sim) = nonneg_tca.nonneg_tca(all_sess_arr, R)
         opti_param.append([R, objU, objV, sim])
     np.save(
-        "nonneg_trials" + str(trial_target) + "_opti_params.npy", np.array(opti_param)
+        sep_str+"nonneg_trials" + str(trial_target) + "_opti_params.npy", np.array(opti_param)
     )
