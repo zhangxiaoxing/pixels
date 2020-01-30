@@ -8,12 +8,10 @@ Created on Sun Jan 26 15:48:09 2020
 
 import os
 import h5py
-# import re
-import nonneg_tca
 import numpy as np
 import selectivity as zpy
-# import pandas as pd
-# import matplotlib.pyplot as plt
+import tensortools as tt
+import matplotlib.pyplot as plt
 
 
 def rearrange_row(trials, trial_FR):
@@ -27,7 +25,6 @@ def rearrange_row(trials, trial_FR):
             row_arr_out.append(trial_FR[row_sel_6, i, :])
         else:
             print("Error delay duration")
-            breakpoint()
 
     return np.moveaxis(np.array(row_arr_out), 2, 0)
 
@@ -132,6 +129,51 @@ def normalize(all_sess_arr):  # SU,trials, bins
     return np.moveaxis(all_sess_arr, 2, 0)
 
 
+def nonneg_tca(X, R, prefix='',max_iter=500):
+
+    # Fit CP tensor decomposition (two times).
+    U = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter,tol=1E-6)
+    V = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter,tol=1E-6)
+    
+    # Compare the low-dimensional factors from the two fits.
+    # fig, ax, po = tt.plot_factors(U.factors)
+    # tt.plot_factors(V.factors, fig=fig)
+    # fig.suptitle("raw models")
+    # fig.tight_layout()
+
+    # Align the two fits and print a similarity score.
+    sim = tt.kruskal_align(U.factors, V.factors, permute_U=True, permute_V=True)
+    print(sim)
+
+    
+    
+    
+    # Plot the results again to see alignment.
+    fig, ax, po = tt.plot_factors(U.factors, plots=["scatter", "scatter", "line"])
+    tt.plot_factors(V.factors, plots=["scatter", "scatter", "line"], fig=fig)
+    [x.set_xticks([11.5, 15.5, 27.5, 31.5]) for x in ax[:, 2]]
+
+    ax[-1, 0].set_xlabel("SU #")
+    ax[-1, 1].set_xlabel("Trial #")
+    ax[-1, 2].set_xlabel("Time (s)")
+    ax[-1, 2].set_xticklabels(["S", "+1", "T", "+1"])
+
+    fig.suptitle("aligned models")
+    fig.tight_layout()
+
+    # Show plots.
+    plt.show()
+    fig.set_size_inches(40, 40)
+    fig.set_dpi(300)
+    fig.savefig(
+        prefix+"nonneg_TCA_trial_" + str(X.shape[1]) + "_R" + str(R) + ".png",
+        dpi=300,
+        bbox_inches="tight",
+    )
+    return (U, V, sim)
+
+
+
 def run_tca(trial_target, sep_blocks=False):
     ntrialsCount = []
     all_sess_list = []
@@ -180,9 +222,13 @@ def run_tca(trial_target, sep_blocks=False):
     opti_param = []
     
     sep_str='sepblock_' if sep_blocks else 'consec_'
-    for R in range(2, 21):
-        (objU, objV, sim) = nonneg_tca.nonneg_tca(all_sess_arr, R, prefix=sep_str)
-        opti_param.append([R, objU, objV, sim])
+    for R in range(5, 16):
+        (U, V, sim) = nonneg_tca(all_sess_arr, R, prefix=sep_str,max_iter=1000)
+        np.savez_compressed(sep_blocks+"tensor_comp_trial" + str(all_sess_arr.shape[1]) + "_R" + str(R) + ".npz",
+                            SU=U.factors.factors[0],
+                            cross_trial=U.factors.factors[1],
+                            in_trial=U.factors.factors[2])
+        opti_param.append([R, U.obj, V.obj, sim])
     np.save(
         sep_str+"nonneg_trials" + str(trial_target) + "_opti_params.npy", np.array(opti_param)
     )
