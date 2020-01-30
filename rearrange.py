@@ -8,6 +8,7 @@ Created on Sun Jan 26 15:48:09 2020
 
 import os
 import h5py
+import csv
 import numpy as np
 import selectivity as zpy
 import tensortools as tt
@@ -177,7 +178,7 @@ def nonneg_tca(X, R, prefix='',max_iter=500):
 def run_tca(trial_target, sep_blocks=False):
     ntrialsCount = []
     all_sess_list = []
-
+    reg_list=[]
     for path in zpy.traverse("K:/neupix/DataSum/"):
         print(path)
         # SU_ids = []
@@ -194,6 +195,21 @@ def run_tca(trial_target, sep_blocks=False):
             trial_FR = np.array(dset, dtype="double")
             dset = ffr["Trials"]
             trials = np.array(dset, dtype="double").T
+        
+        if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
+            continue
+        
+        # su_ids=[]
+        # with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
+        #     dset = ffr["SU_id"]
+        #     su_ids = np.squeeze(np.array(dset, dtype="uint16"))    
+
+        suid_reg=[]
+        with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
+            l = list(csv.reader(csvfile))[1:]
+            suid_reg=[list(i) for i in zip(*l)]
+            # print(res)
+
 
         (perf_desc, perf_code, inWindow, correct_resp) = zpy.judgePerformance(trials)
         #  toReturn.extend(["wellTrained", 3, correctResp,welltrain_window])
@@ -216,18 +232,21 @@ def run_tca(trial_target, sep_blocks=False):
             # onesession=merged[:,matched_index,:].reshape((merged.shape[0],-1))
             onesession = merged[:, matched_index, :]
             all_sess_list.append(onesession)
-
+            reg_list.extend(suid_reg[1])
+    
     all_sess_arr = np.concatenate(tuple(all_sess_list), axis=0)
     all_sess_arr = normalize(all_sess_arr)
     opti_param = []
-    
+    suid_reg_arr=np.array(reg_list,dtype='|S10')
+    breakpoint()
     sep_str='sepblock_' if sep_blocks else 'consec_'
     for R in range(5, 16):
         (U, V, sim) = nonneg_tca(all_sess_arr, R, prefix=sep_str,max_iter=1000)
-        np.savez_compressed(sep_blocks+"tensor_comp_trial" + str(all_sess_arr.shape[1]) + "_R" + str(R) + ".npz",
+        np.savez_compressed(sep_str+"tensor_comp_trial" + str(all_sess_arr.shape[1]) + "_R" + str(R) + ".npz",
                             SU=U.factors.factors[0],
                             cross_trial=U.factors.factors[1],
-                            in_trial=U.factors.factors[2])
+                            in_trial=U.factors.factors[2],
+                            reg_list=suid_reg_arr)
         opti_param.append([R, U.obj, V.obj, sim])
     np.save(
         sep_str+"nonneg_trials" + str(trial_target) + "_opti_params.npy", np.array(opti_param)
