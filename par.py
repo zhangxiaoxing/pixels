@@ -6,6 +6,7 @@ Created on Fri Feb  7 14:17:25 2020
 """
 import multiprocessing
 import per_su_tca
+import time
 
 if __name__ == "__main__":
     process_list = []
@@ -24,4 +25,5 @@ if __name__ == "__main__":
                 )
                 process.start()
                 process_list.append(process)
+                time.sleep(5)
     [process.join() for process in process_list]

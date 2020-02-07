@@ -237,18 +237,26 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
         # SU_ids = []
         trial_FR = []
         trials = []
-        with h5py.File(os.path.join(path, "FR_All.hdf5")) as ffr:
-            # print(list(ffr.keys()))
-            if not "SU_id" in ffr.keys():
-                print("missing su_id key in path ", path)
-                continue
-            # dset = ffr["SU_id"]
-            # SU_ids = np.array(dset, dtype="uint16")
-            dset = ffr["FR_All"]
-            trial_FR = np.array(dset, dtype="double")
-            dset = ffr["Trials"]
-            trials = np.array(dset, dtype="double").T
-
+        done_read=False
+        while not done_read:
+            try:
+                with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
+                    # print(list(ffr.keys()))
+                    if not "SU_id" in ffr.keys():
+                        print("missing su_id key in path ", path)
+                        continue
+                    # dset = ffr["SU_id"]
+                    # SU_ids = np.array(dset, dtype="uint16")
+                    dset = ffr["FR_All"]
+                    trial_FR = np.array(dset, dtype="double")
+                    dset = ffr["Trials"]
+                    trials = np.array(dset, dtype="double").T
+                done_read=True
+            except OSError:
+                print("h5py read error handled")
+            
+            
+            
         if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
             continue
 
