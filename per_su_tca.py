@@ -335,13 +335,3 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
         np.array(opti_param),
     )
 
-def run_parallel():
-    import multiprocessing
-    process_list=[]
-    for epoc in ('DM','ED','LD'):
-        for effect in ('impair','improve')
-            for non_neg in (True,False):
-                process=multiprocessing.Process(target=run_tca,args=(160,non_neg,False,epoc,effect))
-                process.start()
-                process_list.append(process)
-    [process.join() for process in process_list]
