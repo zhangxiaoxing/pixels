@@ -6,9 +6,11 @@ Created on Wed Oct 16 17:24:12 2019
 """
 
 import numpy as np
-import phylib.utils._misc as phyutil
+# import phylib.utils._misc as phyutil
+import pandas as pd
 import h5py
 import matplotlib.pyplot as plt
+import matplotlib
 
 FR_Th = 1.0
 
@@ -91,13 +93,13 @@ def alignHeatmap(spkTS, spkCluster, unitInfo, trials):
     s1s = 30000
     spkNThresh = spkTS[-1] / s1s * FR_Th
 
-    for infoIdx in range(len(unitInfo)):
-        SU_id = unitInfo[infoIdx]["id"]
-        wf = unitInfo[infoIdx].get("group") == "good" or (
-            (unitInfo[infoIdx].get("group") is None)
-            and unitInfo[infoIdx].get("KSLabel") == "good"
+    for SU_id in unitInfo.index:
+        # breakpoint()
+        wf = unitInfo.loc[SU_id].get("group") == "good" or (
+            np.isnan(unitInfo.loc[SU_id]['group'])
+            and unitInfo.loc[SU_id]["KSLabel"] == "good"
         )
-        spkCount = unitInfo[infoIdx]["n_spikes"]
+        spkCount = unitInfo.loc[SU_id]["n_spikes"]
         if spkCount > spkNThresh and wf:
             oneTSAll = (spkTS[spkCluster == SU_id]).astype(
                 "int64"
@@ -117,7 +119,7 @@ def alignHeatmap(spkTS, spkCluster, unitInfo, trials):
             (n6, tn6) = toHistByPair(trials, oneTS, trial_id, False, 6)
             nonpaired.append((np.array(n3) + np.array(n6)) / (tn3 + tn6))
 
-            depth.append(unitInfo[infoIdx]["depth"])
+            depth.append(unitInfo.loc[SU_id]["depth"])
 
     depth = np.array(depth)
     if depth.shape[0] > 0:
@@ -278,8 +280,12 @@ def plotHeatmap(trials, raw, byPaired, base, depth):
     fh.suptitle(leafPath.replace("_cleaned", ""))
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.show()
-
+    
+    # breakpoint()
     fh.savefig(leafPath.replace("_cleaned", "") + ".png", dpi=300, bbox_inches="tight")
+    # matplotlib.rcParams['pdf.fonttype'] = 42
+    # matplotlib.rcParams['ps.fonttype'] = 42
+    # fh.savefig(leafPath.replace("_cleaned", "") + ".pdf", dpi=300, bbox_inches="tight")
     plt.close("all")
 
 
@@ -291,8 +297,8 @@ def runParse():
     spkTS = np.load("spike_times.npy")
     spkCluster = np.load("spike_clusters.npy")
 
-    unitInfo = phyutil.read_tsv("cluster_info.tsv")
-
+    unitInfo = pd.read_csv("cluster_info.tsv",sep='\t',index_col='id')
+    
     trials = np.empty([0])
     with h5py.File("events.hdf5", "r") as fe:
         dset = fe["trials"]
@@ -312,7 +318,7 @@ if __name__ == "__main__":
     spkTS = np.load("spike_times.npy")
     spkCluster = np.load("spike_clusters.npy")
 
-    unitInfo = phyutil.read_tsv("cluster_info.tsv")
+    unitInfo = pd.read_csv("cluster_info.tsv",sep='\s+',index_col='id')
 
     trials = np.empty([0])
     with h5py.File("events.hdf5", "r") as fe:

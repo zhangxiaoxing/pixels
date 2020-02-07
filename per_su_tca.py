@@ -9,6 +9,7 @@ Created on Sun Jan 26 15:48:09 2020
 import os
 import h5py
 import csv
+import itertools
 import numpy as np
 import selectivity as zpy
 import tensortools as tt
@@ -130,12 +131,12 @@ def normalize(all_sess_arr):  # SU,trials, bins
     return np.moveaxis(all_sess_arr, 2, 0)
 
 
-def nonneg_tca(X, R, prefix='',max_iter=500):
+def nonneg_tca(X, R, prefix="", max_iter=500, epoc="all", effect="all"):
 
     # Fit CP tensor decomposition (two times).
-    U = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter,tol=1E-6)
-    V = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter,tol=1E-6)
-    
+    U = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
+    V = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
+
     # Compare the low-dimensional factors from the two fits.
     # fig, ax, po = tt.plot_factors(U.factors)
     # tt.plot_factors(V.factors, fig=fig)
@@ -146,9 +147,6 @@ def nonneg_tca(X, R, prefix='',max_iter=500):
     sim = tt.kruskal_align(U.factors, V.factors, permute_U=True, permute_V=True)
     print(sim)
 
-    
-    
-    
     # Plot the results again to see alignment.
     fig, ax, po = tt.plot_factors(U.factors, plots=["scatter", "scatter", "line"])
     tt.plot_factors(V.factors, plots=["scatter", "scatter", "line"], fig=fig)
@@ -167,18 +165,65 @@ def nonneg_tca(X, R, prefix='',max_iter=500):
     fig.set_size_inches(40, 40)
     fig.set_dpi(300)
     fig.savefig(
-        prefix+"nonneg_TCA_trial_" + str(X.shape[1]) + "_R" + str(R) + ".png",
+        prefix
+        + "nonneg_TCA_trial_"
+        + epoc
+        + "_"
+        + effect
+        + "_"
+        + str(X.shape[1])
+        + "_R"
+        + str(R)
+        + ".png",
         dpi=300,
         bbox_inches="tight",
     )
     return (U, V, sim)
 
 
+def isin(A, epoc, eff):
+    cluster_dict = {
+        "DM": {
+            "impair": frozenset(
+                [
+                    "TU",
+                    "ORBm",
+                    "AId",
+                    "ORBl",
+                    "AUDd",
+                    "ILA",
+                    "AON",
+                    "AIp",
+                    "TTd",
+                    "PL",
+                    "ACAd",
+                    "DP",
+                    "ORBvl",
+                    "PIR",
+                    "PERI",
+                    "DG-mo",
+                    "CA3",
+                ]
+            ),
+            "improve": frozenset(["SSp-bfd", "NLOT"]),
+        },
+        "ED": {
+            "impair": frozenset(["PERI", "AUDd", "AON"]),
+            "improve": frozenset(["AId", "MOp", "TU", "SSp-bfd", "COAp", "GU"]),
+        },
+        "LD": {
+            "impair": frozenset(["AUDd", "PTLp", "AON"]),
+            "improve": frozenset(["NLOT", "AId", "COAp", "DG-mo"]),
+        },
+    }
 
-def run_tca(trial_target, sep_blocks=False):
+    return [one_a in cluster_dict[epoc][eff] for one_a in A]
+
+
+def run_tca(trial_target, sep_blocks=False, epoc=[], effect=[]):
     ntrialsCount = []
     all_sess_list = []
-    reg_list=[]
+    reg_list = []
     for path in zpy.traverse("K:/neupix/DataSum/"):
         print(path)
         # SU_ids = []
@@ -195,21 +240,20 @@ def run_tca(trial_target, sep_blocks=False):
             trial_FR = np.array(dset, dtype="double")
             dset = ffr["Trials"]
             trials = np.array(dset, dtype="double").T
-        
+
         if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
             continue
-        
+
         # su_ids=[]
         # with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
         #     dset = ffr["SU_id"]
-        #     su_ids = np.squeeze(np.array(dset, dtype="uint16"))    
+        #     su_ids = np.squeeze(np.array(dset, dtype="uint16"))
 
-        suid_reg=[]
+        suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
             l = list(csv.reader(csvfile))[1:]
-            suid_reg=[list(i) for i in zip(*l)]
+            suid_reg = [list(i) for i in zip(*l)]
             # print(res)
-
 
         (perf_desc, perf_code, inWindow, correct_resp) = zpy.judgePerformance(trials)
         #  toReturn.extend(["wellTrained", 3, correctResp,welltrain_window])
@@ -220,34 +264,62 @@ def run_tca(trial_target, sep_blocks=False):
 
         if trials.shape[0] < trial_target:
             continue
-        
-        if sep_blocks:
-            (reg_all, matched_index) = rearrange_sep_block(trials, trial_target)
-            
-        else:
-            (reg_all, matched_index) = rearrange_block(trials, trial_target)
 
-        if reg_all:
+        if sep_blocks:
+            (aligned_all, matched_index) = rearrange_sep_block(trials, trial_target)
+
+        else:
+            (aligned_all, matched_index) = rearrange_block(trials, trial_target)
+
+        if aligned_all:
             merged = rearrange_row(trials, trial_FR)
             # onesession=merged[:,matched_index,:].reshape((merged.shape[0],-1))
+            #%% TODO
+            # select region here
+            if epoc and effect:
+                su_sel = isin(suid_reg[1], epoc, effect)
+                if not any(su_sel):
+                    continue
+                else:
+                    merged = merged[su_sel, :, :]
+
             onesession = merged[:, matched_index, :]
             all_sess_list.append(onesession)
-            reg_list.extend(suid_reg[1])
-    
+            reg_list.extend(itertools.compress(suid_reg[1], su_sel))
+
     all_sess_arr = np.concatenate(tuple(all_sess_list), axis=0)
     all_sess_arr = normalize(all_sess_arr)
     opti_param = []
-    suid_reg_arr=np.array(reg_list,dtype='|S10')
-    breakpoint()
-    sep_str='sepblock_' if sep_blocks else 'consec_'
+    suid_reg_arr = np.array(reg_list, dtype="|S10")
+    sep_str = "sepblock_" if sep_blocks else "consec_"
+
     for R in range(5, 16):
-        (U, V, sim) = nonneg_tca(all_sess_arr, R, prefix=sep_str,max_iter=1000)
-        np.savez_compressed(sep_str+"tensor_comp_trial" + str(all_sess_arr.shape[1]) + "_R" + str(R) + ".npz",
-                            SU=U.factors.factors[0],
-                            cross_trial=U.factors.factors[1],
-                            in_trial=U.factors.factors[2],
-                            reg_list=suid_reg_arr)
+        (U, V, sim) = nonneg_tca(all_sess_arr, R, prefix=sep_str, max_iter=1000)
+        np.savez_compressed(
+            sep_str
+            + "tensor_comp_trial"
+            + str(all_sess_arr.shape[1])
+            + "_R"
+            + str(R)
+            + "_"
+            + epoc
+            + "_"
+            + effect
+            + +".npz",
+            SU=U.factors.factors[0],
+            cross_trial=U.factors.factors[1],
+            in_trial=U.factors.factors[2],
+            reg_list=suid_reg_arr,
+        )
         opti_param.append([R, U.obj, V.obj, sim])
     np.save(
-        sep_str+"nonneg_trials" + str(trial_target) + "_opti_params.npy", np.array(opti_param)
+        sep_str
+        + "nonneg_trials_"
+        + epoc
+        + "_"
+        + effect
+        + "_"
+        + str(trial_target)
+        + "_opti_params.npy",
+        np.array(opti_param),
     )
