@@ -131,12 +131,19 @@ def normalize(all_sess_arr):  # SU,trials, bins
     return np.moveaxis(all_sess_arr, 2, 0)
 
 
-def nonneg_tca(X, R, prefix="", max_iter=500, epoc="all", effect="all"):
+def tca(X, non_neg=True, R=10, prefix="", max_iter=500, epoc="all", effect="all"):
 
     # Fit CP tensor decomposition (two times).
-    U = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
-    V = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
-
+    U=None
+    V=None
+    opti_str='ncp_bcd_'
+    if non_neg:
+        U = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
+        V = tt.ncp_bcd(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
+    else:
+        U = tt.cp_als(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
+        V = tt.cp_als(X, rank=R, verbose=True, max_iter=max_iter, tol=1e-6)
+        opti_str='cp_als_'
     # Compare the low-dimensional factors from the two fits.
     # fig, ax, po = tt.plot_factors(U.factors)
     # tt.plot_factors(V.factors, fig=fig)
@@ -165,8 +172,9 @@ def nonneg_tca(X, R, prefix="", max_iter=500, epoc="all", effect="all"):
     fig.set_size_inches(40, 40)
     fig.set_dpi(300)
     fig.savefig(
-        prefix
-        + "nonneg_TCA_trial_"
+        opti_str
+        + prefix
+        + "tca_trial_"
         + epoc
         + "_"
         + effect
@@ -220,7 +228,7 @@ def isin(A, epoc, eff):
     return [one_a in cluster_dict[epoc][eff] for one_a in A]
 
 
-def run_tca(trial_target, sep_blocks=False, epoc=[], effect=[]):
+def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
     ntrialsCount = []
     all_sess_list = []
     reg_list = []
@@ -292,11 +300,13 @@ def run_tca(trial_target, sep_blocks=False, epoc=[], effect=[]):
     opti_param = []
     suid_reg_arr = np.array(reg_list, dtype="|S10")
     sep_str = "sepblock_" if sep_blocks else "consec_"
-
+    opti_str = 'ncp_bcd_' if non_neg else 'cp_als'
     for R in range(5, 16):
-        (U, V, sim) = nonneg_tca(all_sess_arr, R, prefix=sep_str, max_iter=1000)
+        (U, V, sim) = tca(all_sess_arr, non_neg, R, prefix=sep_str, max_iter=1000, epoc=epoc, effect=effect)
         np.savez_compressed(
-            sep_str
+            
+            opti_str
+            + sep_str
             + "tensor_comp_trial"
             + str(all_sess_arr.shape[1])
             + "_R"
@@ -305,7 +315,7 @@ def run_tca(trial_target, sep_blocks=False, epoc=[], effect=[]):
             + epoc
             + "_"
             + effect
-            + +".npz",
+            + ".npz",
             SU=U.factors.factors[0],
             cross_trial=U.factors.factors[1],
             in_trial=U.factors.factors[2],
@@ -313,7 +323,8 @@ def run_tca(trial_target, sep_blocks=False, epoc=[], effect=[]):
         )
         opti_param.append([R, U.obj, V.obj, sim])
     np.save(
-        sep_str
+        opti_str
+        + sep_str
         + "nonneg_trials_"
         + epoc
         + "_"
@@ -323,3 +334,14 @@ def run_tca(trial_target, sep_blocks=False, epoc=[], effect=[]):
         + "_opti_params.npy",
         np.array(opti_param),
     )
+
+def run_parallel():
+    import multiprocessing
+    process_list=[]
+    for epoc in ('DM','ED','LD'):
+        for effect in ('impair','improve')
+            for non_neg in (True,False):
+                process=multiprocessing.Process(target=run_tca,args=(160,non_neg,False,epoc,effect))
+                process.start()
+                process_list.append(process)
+    [process.join() for process in process_list]
