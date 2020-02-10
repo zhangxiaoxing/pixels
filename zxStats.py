@@ -70,7 +70,7 @@ class zxStats:
             return (np.mean(base), np.std(base))
         print("Constant baseline")
         return (np.mean(base), 0.5)
-
+    # %% Raw data entry point
     def addTrialFRs(self, trial_FR, trials, su_sel=[], welltrain_window=[],correctResp=[]):
         if su_sel:
             trial_FR_sel = trial_FR[:, :, su_sel]
@@ -91,6 +91,27 @@ class zxStats:
 
         self.addHitMissSel(trial_FR, trials, su_sel, perf_sel)
         self.addCRFalseSel(trial_FR, trials, su_sel, perf_sel)
+        
+    def addTrialFRs_GLM(self, trial_FR, trials, su_sel=[], welltrain_window=[],correctResp=[]):
+        if su_sel:
+            trial_FR_sel = trial_FR[:, :, su_sel]
+        else:
+            trial_FR_sel=trial_FR
+            
+        perf_sel=np.logical_and(correctResp, welltrain_window)
+        trial_sel = trials[perf_sel, :]
+        trial_FR_perf_sel = trial_FR_sel[:, perf_sel, :]
+
+        self.addSampleSelect(trial_FR_perf_sel, trial_sel)
+
+        self.addPairSelect(trial_FR_perf_sel, trial_sel)
+
+        self.addStatisticalSampleSel(trial_FR_perf_sel, trial_sel)
+        
+        self.addStatisticalTestSel(trial_FR_perf_sel, trial_sel)
+
+        self.addHitMissSel(trial_FR, trials, su_sel, perf_sel)
+        self.addCRFalseSel(trial_FR, trials, su_sel, perf_sel)    
         
         
     def addHitMissSel(self, trial_FR, trials, su_sel, perf_sel):

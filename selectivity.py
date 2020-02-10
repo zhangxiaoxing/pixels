@@ -489,6 +489,10 @@ if __name__ == "__main__":
         for row in testStat:
             if row[3] >= 30 and row[4] >= 30:
                 cwriter.writerow([row[0], row[1] / row[3], row[2] / row[4]])
+                
+    with open("unlabeled.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(unlabledRecord)
 
 # count=np.zeros((len(regionSet),4))
 #
@@ -506,3 +510,9 @@ if __name__ == "__main__":
 #    mUSum.append(mU)
 #    paths.append(path)
 #    return (goodSum,mUSum,paths)
+
+
+
+with open("out.csv", "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerows(a)

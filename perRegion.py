@@ -18,7 +18,7 @@ from scipy.cluster.hierarchy import dendrogram, ward
 
 
 #%% setup
-
+plot_figures=False
 # rois = ["PIR"]
 rois = [
     "ACAd",
@@ -132,7 +132,8 @@ for target in rois:
         currStats.addTrialFRs(trial_FR, trials, su_sel, inWindow, correct_resp)
 
     #%% plot actual figure
-    # currStats.plotSummary()
+    if plot_figures:
+        currStats.plotSummary()
     features.append(currStats.getFeatureVector())
     features_per_su.append(currStats.getPerSUFeatureVector())
     featured_rois.append(target)
