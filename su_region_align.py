@@ -12,7 +12,7 @@ import pandas as pd
 import selectivity as zpy
 
 
-#%% Walk through
+### Walk through
 
 regionL=zpy.getRegionList();
 
@@ -36,7 +36,7 @@ for path in zpy.traverse("K:/neupix/DataSum/"):
         
     unitInfo = pd.read_csv(os.path.join(path, "cluster_info.tsv"), sep="\t")
     
-    
+    ### su ids match reg in sequence
     for one_su in su_ids:
         depth=unitInfo.loc[unitInfo['id']==one_su,['depth']].iat[0,0]
         reg=zpy.matchDepth(depth,depthL, date, mice_id, imec_no)

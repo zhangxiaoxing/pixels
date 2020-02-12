@@ -290,7 +290,7 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
         if aligned_all:
             merged = rearrange_row(trials, trial_FR)
             # onesession=merged[:,matched_index,:].reshape((merged.shape[0],-1))
-            #%% TODO
+            ### TODO
             # select region here
             if epoc and effect:
                 su_sel = isin(suid_reg[1], epoc, effect)

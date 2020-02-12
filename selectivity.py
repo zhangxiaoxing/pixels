@@ -510,9 +510,3 @@ if __name__ == "__main__":
 #    mUSum.append(mU)
 #    paths.append(path)
 #    return (goodSum,mUSum,paths)
-
-
-
-with open("out.csv", "w", newline="") as f:
-    writer = csv.writer(f)
-    writer.writerows(a)

@@ -26,12 +26,12 @@ error_features_per_su=[]
 
 ntrialsCount=[]
 
-for path in zpy.traverse("K:/neupix/DataSum/"):
+for path in zpy.traverse("D:/neupix/DataSum/"):
     
     SU_ids = []
     trial_FR = []
     trials = []
-    with h5py.File(os.path.join(path, "FR_All.hdf5")) as ffr:
+    with h5py.File(os.path.join(path, "FR_All.hdf5"),'r') as ffr:
         # print(list(ffr.keys()))
         if not 'SU_id' in ffr.keys():
             print('missing su_id key in path ',path)
@@ -53,8 +53,9 @@ for path in zpy.traverse("K:/neupix/DataSum/"):
     if trials.shape[0]!=240:
         continue
     
-    breakpoint()
     ntrialsCount.append(trials.shape[0])    
+    if len(ntrialsCount)>10:
+        break
     
     
     

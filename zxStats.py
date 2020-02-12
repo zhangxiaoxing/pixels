@@ -51,15 +51,10 @@ class zxStats:
         )
 
         self.row_sel_3 = np.arange(56)
+        
+        self.use_ranksum=True
+        
 
-    def exact_mc_perm_test(self, xs, ys, nmc):
-        n, k = len(xs), 0
-        diff = np.abs(np.mean(xs) - np.mean(ys))
-        zs = np.concatenate([xs, ys])
-        for j in range(nmc):
-            np.random.shuffle(zs)
-            k += diff < np.abs(np.mean(zs[:n]) - np.mean(zs[n:]))
-        return k / nmc
 
     def gauss_average(self, x):
         return np.convolve(x, [0.1968, 0.6063, 0.1968], "same")
@@ -70,9 +65,10 @@ class zxStats:
             return (np.mean(base), np.std(base))
         print("Constant baseline")
         return (np.mean(base), 0.5)
-    # %% Raw data entry point
+    
+    
     def addTrialFRs(self, trial_FR, trials, su_sel=[], welltrain_window=[],correctResp=[]):
-        if su_sel:
+        if isinstance(su_sel, np.ndarray):
             trial_FR_sel = trial_FR[:, :, su_sel]
         else:
             trial_FR_sel=trial_FR
@@ -92,28 +88,9 @@ class zxStats:
         self.addHitMissSel(trial_FR, trials, su_sel, perf_sel)
         self.addCRFalseSel(trial_FR, trials, su_sel, perf_sel)
         
-    def addTrialFRs_GLM(self, trial_FR, trials, su_sel=[], welltrain_window=[],correctResp=[]):
-        if su_sel:
-            trial_FR_sel = trial_FR[:, :, su_sel]
-        else:
-            trial_FR_sel=trial_FR
+
             
-        perf_sel=np.logical_and(correctResp, welltrain_window)
-        trial_sel = trials[perf_sel, :]
-        trial_FR_perf_sel = trial_FR_sel[:, perf_sel, :]
-
-        self.addSampleSelect(trial_FR_perf_sel, trial_sel)
-
-        self.addPairSelect(trial_FR_perf_sel, trial_sel)
-
-        self.addStatisticalSampleSel(trial_FR_perf_sel, trial_sel)
-        
-        self.addStatisticalTestSel(trial_FR_perf_sel, trial_sel)
-
-        self.addHitMissSel(trial_FR, trials, su_sel, perf_sel)
-        self.addCRFalseSel(trial_FR, trials, su_sel, perf_sel)    
-        
-        
+            
     def addHitMissSel(self, trial_FR, trials, su_sel, perf_sel):
         trial_FR_sel = trial_FR[:, :, su_sel]
 
