@@ -18,9 +18,9 @@ from scipy.cluster.hierarchy import dendrogram, ward
 
 
 ### setup
-plot_figures=False
+plot_figures=True
 calc_cluster=False
-GLM=True
+GLM=False
 rois = ["PIR"]
 # rois = [
 #     "ACAd",
@@ -186,7 +186,8 @@ if calc_cluster:
     # scaler.fit_transform(feat_arr[:, 32:64])
     # scaler.fit_transform(feat_arr[:, 64:112])
     # scaler.fit_transform(feat_arr[:, 112:])
-
+    
+    breakpoint()
     #### Feature Matrix
     fh = plt.figure(figsize=(10, 7.5), dpi=300)
     plt.imshow(feat_arr.T, cmap="jet", aspect="auto", vmin=0, vmax=1)

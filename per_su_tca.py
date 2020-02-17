@@ -232,7 +232,7 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
     ntrialsCount = []
     all_sess_list = []
     reg_list = []
-    for path in zpy.traverse("K:/neupix/DataSum/"):
+    for path in zpy.traverse("D:/neupix/DataSum/"):
         print(path)
         # SU_ids = []
         trial_FR = []
@@ -244,6 +244,7 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
                     # print(list(ffr.keys()))
                     if not "SU_id" in ffr.keys():
                         print("missing su_id key in path ", path)
+                        done_read=True
                         continue
                     # dset = ffr["SU_id"]
                     # SU_ids = np.array(dset, dtype="uint16")
@@ -259,11 +260,7 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
             
         if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
             continue
-
-        # su_ids=[]
-        # with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
-        #     dset = ffr["SU_id"]
-        #     su_ids = np.squeeze(np.array(dset, dtype="uint16"))
+        ### It is the logic of the matlab code that suid to brain region is in identical sequence
 
         suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
@@ -296,14 +293,20 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
                 su_sel = isin(suid_reg[1], epoc, effect)
                 if not any(su_sel):
                     continue
-                else:
-                    merged = merged[su_sel, :, :]
+                reg_list.extend(itertools.compress(suid_reg[1], su_sel))
+                merged = merged[su_sel, :, :]
+            else:
+                reg_list.extend(suid_reg[1])
 
             onesession = merged[:, matched_index, :]
             all_sess_list.append(onesession)
-            reg_list.extend(itertools.compress(suid_reg[1], su_sel))
+            
 
     all_sess_arr = np.concatenate(tuple(all_sess_list), axis=0)
+    ### Aligned activity profile of all neurons with brain region labeling can be saved HERE
+    # np.save('all_sess_arr_160.npy',all_sess_arr)
+    # np.save('reg_list_160.npy',np.array(reg_list))
+    #breakpoint()
     all_sess_arr = normalize(all_sess_arr)
     opti_param = []
     suid_reg_arr = np.array(reg_list, dtype="|S10")

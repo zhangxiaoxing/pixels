@@ -61,7 +61,8 @@ class GLM_stats:
         FR_scale=np.concatenate((trial_FR[:,(trials[:,5]==3) & welltrain_window & correct_resp ,:][self.row_sel_3,:,:],
         trial_FR[:,(trials[:,5]==6) & welltrain_window & correct_resp,:][self.row_sel_6,:,:]),axis=1)
         
-        trial_perf_sel=trials[((trials[:,5]==3) | (trials[:,5]==6)) & welltrain_window & correct_resp,:]
+        trial_perf_sel=np.concatenate((trials[(trials[:,5]==3) & welltrain_window & correct_resp,:],
+                                       trials[(trials[:,5]==6) & welltrain_window & correct_resp,:]),axis=0)
         
         trial_sel_left = trial_perf_sel[:, 2] == 4
  

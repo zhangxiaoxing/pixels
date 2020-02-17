@@ -614,6 +614,11 @@ class zxStats:
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.show()
         fh.savefig(self.regionName + ".png", dpi=300, bbox_inches="tight")
+        
+    def plot_3_vs_6(self):
+        # fh = plt.figure(figsize=[7.5, 10])
+        # gs_outer = gridspec.GridSpec(3, 3, figure=fh)
+        pass
 
     def getFeatureVector(self):
         return np.concatenate(

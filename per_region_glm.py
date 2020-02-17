@@ -22,6 +22,8 @@ def prepare_GLM():
         # SU_ids = []
         trial_FR = []
         trials = []
+        if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
+            continue
         done_read=False
         while not done_read:
             try:
@@ -40,11 +42,6 @@ def prepare_GLM():
                 done_read=True
             except OSError:
                 print("h5py read error handled")
-            
-            
-        if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
-            continue
-
 
         suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
@@ -92,7 +89,10 @@ if __name__=='__main__'    :
         'unmodulated']
     
     
-    
+    np.count_nonzero(all_sess_arr[10,:])/all_sess_arr.shape[1] # unmodulateda    np.count_nonzero(np.logical_or(  all_sess_arr[0,:] , all_sess_arr[1,:]))/all_sess_arr.shape[1] # sample
+    np.count_nonzero(np.logical_or(  all_sess_arr[2,:] , all_sess_arr[4,:]))/all_sess_arr.shape[1] # sample
+    np.count_nonzero(np.logical_and(  all_sess_arr[0,:] , all_sess_arr[4,:]))/all_sess_arr.shape[1] # sample S AND DM
+    np.count_nonzero(all_sess_arr[6,:])/all_sess_arr.shape[1] # pair_DM
     
     
 

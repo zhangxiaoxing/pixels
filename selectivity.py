@@ -59,7 +59,7 @@ def imecNo2side(who_did, date, imecNo, mid):
     if date == "191101" and mid == "26":
         return "R"
 
-    if who_did == "HRM" and (int(date)) >= 191028:
+    if who_did == "HEM" and (int(date)) >= 191028:
         if imecNo == "1":
             return "R"
         elif imecNo == "0":
@@ -92,7 +92,7 @@ def get_bsid_duration_who(path):
     if bs_id == "350":
         who_did = "ZHA"
     elif bs_id == "142":
-        who_did = "HRM"
+        who_did = "HEM"
     else:
         who_did = "UNKNOWN"
         print("Unknown BS id!")
