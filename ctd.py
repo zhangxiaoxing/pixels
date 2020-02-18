@@ -17,9 +17,6 @@ import matplotlib.pyplot as plt
 import selectivity as zpy
 
 
-denovo=False
-
-
 class ctd_stats:
     def __init__(self):
         self.su_list = []
@@ -181,7 +178,7 @@ class ctd_stats:
 
 ### Main program entry point
 
-if __name__ == "__main__":
+def same_time_decoding(denovo, n_sel):
     features_per_su = []
     reg_list = []
     if denovo:
@@ -254,27 +251,46 @@ if __name__ == "__main__":
     
     ### decoding accuracy
     scaler=MinMaxScaler()
-    avail_sel=[(x['S1_3'].shape[1]>=20 and x['S2_3'].shape[1]>=20) for x in features_per_su]
+    avail_sel=[(x['S1_3'].shape[1]>=n_sel and x['S2_3'].shape[1]>=n_sel) for x in features_per_su]
     clf=LinearSVC()
     ### TODO: X, y
     # bins, trials
     one_dir=[]
-    for bin_idx in range(0,40,4):
-        X1=np.vstack(tuple([su['S1_3'][bin_idx,:20] for (su, tf) in zip(features_per_su,avail_sel) if tf])).T
-        X2=np.vstack(tuple([su['S2_3'][bin_idx,:20] for (su, tf) in zip(features_per_su,avail_sel) if tf])).T
+    rng = np.random.default_rng()
+    
+    for bin_idx in range(features_per_su[0]['S1_3'].shape[0]):
+        X1=np.vstack(tuple([su['S1_3'][bin_idx,:n_sel] for (su, tf) in zip(features_per_su,avail_sel) if tf])).T
+        X2=np.vstack(tuple([su['S2_3'][bin_idx,:n_sel] for (su, tf) in zip(features_per_su,avail_sel) if tf])).T
         y1=np.ones((X1.shape[0]))
         y2=np.zeros_like(y1)
+        y=np.hstack((y1,y2))
+        y_shuf=y.copy()
+        rng.shuffle(y_shuf)
         X=scaler.fit_transform(np.vstack((X1,X2)))
-        scores=cross_val_score(clf, X, np.hstack((y1,y2)), cv=20)
-        one_dir.append([np.mean(scores),np.std(scores)])
+        scores=cross_val_score(clf, X, y, cv=n_sel)*100
+        scores_shuffled=cross_val_score(clf, X, y_shuf, cv=n_sel)*100
+        one_dir.append([np.mean(scores),np.std(scores),np.mean(scores_shuffled),np.std(scores_shuffled)])
         
         
         
     
-    plt.figure()
-    plt.plot(np.array(one_dir)[:,0])
+    mm=np.array(one_dir)[:,0]
+    sem=np.array(one_dir)[:,1]/np.sqrt(scores.shape[0]-1)
+    mm_shuf=np.array(one_dir)[:,2]
+    sem_shuf=np.array(one_dir)[:,3]/np.sqrt(scores.shape[0]-1)
+    fh=plt.figure()
+    (lh,)=plt.plot(mm,color='r')
+    plt.fill_between(np.arange(mm.shape[0]),mm-sem,mm+sem,color='r',alpha=0.2)
+    (lhs,)=plt.plot(mm_shuf,color='k')
+    plt.fill_between(np.arange(mm.shape[0]),mm_shuf-sem_shuf,mm_shuf+sem_shuf,color='k',alpha=0.2)
     ax=plt.gca()
     [ax.axvline(x,lw=0.5,ls=':',c='k') for x in [12.5,16.5,28.5,32.5]]
+    ax.set_xticks([12.5,32.5])
+    ax.set_xticklabels([0, 5])
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('classification accuracy')
+    ax.legend((lh,lhs),('experiment','shuffled'))
+
     ### disabled due to missing trials
     # availErrTrials=[]
     # for su in features_per_su:
