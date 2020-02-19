@@ -5,6 +5,8 @@ Created on Mon Feb 17 14:49:17 2020
 @author: Libra
 """
 import os
+
+# import sys
 import csv
 import h5py
 import numpy as np
@@ -182,11 +184,11 @@ def get_dataset(denovo):
     features_per_su = []
     reg_list = []
     if denovo:
-        dpath=None
-        if os.path.exists('/gpfsdata/home/zhangxiaoxing/pixels/DataSum/'):
-            dpath='/gpfsdata/home/zhangxiaoxing/pixels/DataSum/'
+        dpath = None
+        if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
+            dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
         else:
-            dpath='D:/neupix/DataSum/'
+            dpath = "D:/neupix/DataSum/"
         for path in zpy.traverse(dpath):
             print(path)
 
@@ -254,7 +256,7 @@ def get_dataset(denovo):
 
 def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
 
-    (features_per_su, reg_list) = get_dataset(denovo)
+    (features_per_su, _reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
     avail_sel = [
@@ -323,7 +325,7 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     )
     ax = plt.gca()
 
-    if delay==3:
+    if delay == 3:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
     else:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
@@ -335,10 +337,11 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     fh.savefig("same_time_decoding.png", dpi=300, bbox_inches="tight")
 
 
-def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
+def cross_time_decoding(
+    features_per_su, n_sel, delay=3, limit_bins=None, reg_name="All"
+):
 
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
-    (features_per_su, reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
     avail_sel = [
@@ -402,32 +405,87 @@ def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
             test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
             score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
 
-    score_mat=score_mat*100
-    (fh,ax) = plt.subplots()
-    im=plt.imshow(score_mat, cmap="jet", aspect="auto", origin='lower', vmin=50, vmax=100)
+    score_mat = score_mat * 100
+    (fh, ax) = plt.subplots()
+    im = plt.imshow(
+        score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100
+    )
     plt.colorbar(im, ticks=[50, 75, 100], format="%d")
-    suffix=None
-    if delay==3:
+    suffix = None
+    if delay == 3:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
         [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
-        suffix='3S'
+        suffix = "3S"
     else:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
         [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
-        suffix='6S'
-        
+        suffix = "6S"
+
     ax.set_xticks([11.5, 31.5, 51.5])
     ax.set_xticklabels([0, 5, 10])
     ax.set_xlabel("Time (s)")
     ax.set_yticks([11.5, 31.5, 51.5])
     ax.set_yticklabels([0, 5, 10])
     ax.set_ylabel("Time (s)")
-    ax.set_title(f"cross temporal decoding {suffix} delay")
-    fh.savefig(f"cross_time_decoding_{suffix}.png", dpi=300, bbox_inches="tight")
-    np.save(f"score_mat_{suffix}.npy",score_mat)
+    ax.set_title(f"{reg_name} CTD {suffix} delay")
+    fh.savefig(
+        f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight"
+    )
+    np.save(f"score_mat_{suffix}_{reg_name}.npy", score_mat)
     return score_mat
 
     ### disabled due to missing trials
     # availErrTrials=[]
     # for su in features_per_su:
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
+
+
+def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, proc_n=10):
+    breakpoint()
+    (features_per_su, reg_list) = get_dataset(denovo)
+    if reg_onset is None:
+        cross_time_decoding(features_per_su, n_sel, delay=3, limit_bins=None)
+    else:
+        from multiprocessing import Pool
+
+        reg_set = sorted(set(reg_list))
+        reg_count = [reg_list.count(x) for x in reg_set]
+        reg_set = [reg for (reg, count) in zip(reg_set, reg_count) if count >= 48]
+
+        curr_pool = Pool(processes=proc_n)
+
+        if reg_onset < len(reg_set):
+            all_proc = []
+            reg_offset = (
+                (reg_onset + proc_n) if (reg_onset <= len(reg_set) - proc_n) else len(reg_set)
+            )
+            for reg_idx in range(reg_onset, reg_offset):
+                curr_feat_su = [
+                    f
+                    for (f, reg) in zip(features_per_su, reg_list)
+                    if reg == reg_set[reg_idx]
+                ]
+
+                all_proc.append(
+                    curr_pool.apply_async(
+                        cross_time_decoding,
+                        args=(curr_feat_su, n_sel),
+                        kwds={
+                            "delay": delay,
+                            "limit_bins": limit_bins,
+                            "reg_name": reg_set[reg_idx],
+                        },
+                    )
+                )
+
+                print('set')
+
+            for one_proc in all_proc:
+                one_proc.get()
+                print('get')
+
+            curr_pool.close()
+            curr_pool.join()
+
+        else:
+            print("index exceeded number of regions")
