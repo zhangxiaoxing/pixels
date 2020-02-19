@@ -337,7 +337,7 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
 
 def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
 
-    keys = ["S1_3", "FS2_3"] if delay == 3 else ["S1_6", "S2_6"]
+    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     (features_per_su, reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
@@ -402,19 +402,19 @@ def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
             test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
             score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
 
-    (fh,ax) = plt.subplots()
     score_mat=score_mat*100
-    im=plt.imshow(score_mat, cmap="jet", aspect="auto", vmin=0, vmax=100)
-    plt.colorbar(im, ticks=[0, 50, 100], format="%d")
+    (fh,ax) = plt.subplots()
+    im=plt.imshow(score_mat, cmap="jet", aspect="auto", origin='lower', vmin=50, vmax=100)
+    plt.colorbar(im, ticks=[50, 75, 100], format="%d")
     suffix=None
     if delay==3:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
         [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
-        suffix='_D3'
+        suffix='3S'
     else:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
         [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
-        suffix='_D6'
+        suffix='6S'
         
     ax.set_xticks([11.5, 31.5, 51.5])
     ax.set_xticklabels([0, 5, 10])
@@ -422,9 +422,9 @@ def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     ax.set_yticks([11.5, 31.5, 51.5])
     ax.set_yticklabels([0, 5, 10])
     ax.set_ylabel("Time (s)")
-    ax.set_ylabel("Time (s)")
-    fh.savefig(f"cross_time_decoding{suffix}.png", dpi=300, bbox_inches="tight")
-    np.save(f"score_mat{suffix}.png",score_mat)
+    ax.set_title(f"cross temporal decoding {suffix} delay")
+    fh.savefig(f"cross_time_decoding_{suffix}.png", dpi=300, bbox_inches="tight")
+    np.save(f"score_mat_{suffix}.npy",score_mat)
     return score_mat
 
     ### disabled due to missing trials
