@@ -215,7 +215,7 @@ def get_dataset(denovo):
                     print("h5py read error handled")
 
             (
-                perf_desc,
+                _perf_desc,
                 perf_code,
                 welltrain_window,
                 correct_resp,
@@ -337,19 +337,19 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
 
 def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
 
+    keys = ["S1_3", "FS2_3"] if delay == 3 else ["S1_6", "S2_6"]
     (features_per_su, reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
     avail_sel = [
-        (x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
+        (x[keys[0]].shape[1] >= n_sel and x[keys[1]].shape[1] >= n_sel)
         for x in features_per_su
     ]
     clf = LinearSVC()
     # bins, trials
-    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
 
     if limit_bins is None:
-        limit_bins = features_per_su[0]["S1_3"].shape[0]
+        limit_bins = features_per_su[0][keys[0]].shape[0]
 
     score_mat = np.zeros((limit_bins, limit_bins))
     for template_bin_idx in range(limit_bins):
@@ -403,8 +403,9 @@ def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
             score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
 
     (fh,ax) = plt.subplots()
-    im=plt.imshow(score_mat, cmap="jet", aspect="auto", vmin=-0.75, vmax=0.75)
-    plt.colorbar(im, ticks=[-0.5, 0, 0.5], format="%.1f")
+    score_mat=score_mat*100
+    im=plt.imshow(score_mat, cmap="jet", aspect="auto", vmin=0, vmax=100)
+    plt.colorbar(im, ticks=[0, 50, 100], format="%d")
     suffix=None
     if delay==3:
         [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
@@ -423,6 +424,8 @@ def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     ax.set_ylabel("Time (s)")
     ax.set_ylabel("Time (s)")
     fh.savefig(f"cross_time_decoding{suffix}.png", dpi=300, bbox_inches="tight")
+    np.save(f"score_mat{suffix}.png",score_mat)
+    return score_mat
 
     ### disabled due to missing trials
     # availErrTrials=[]
