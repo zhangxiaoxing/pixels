@@ -6,7 +6,6 @@ Created on Mon Feb 17 14:49:17 2020
 """
 import os
 import csv
-# import pickle
 import h5py
 import numpy as np
 import scipy.stats as stats
@@ -178,14 +177,20 @@ class ctd_stats:
 
 ### Main program entry point
 
-def same_time_decoding(denovo, n_sel):
+
+def get_dataset(denovo):
     features_per_su = []
     reg_list = []
     if denovo:
-        for path in zpy.traverse("D:/neupix/DataSum/"):
+        dpath=None
+        if os.path.exists('/gpfsdata/home/zhangxiaoxing/pixels/DataSum/'):
+            dpath='/gpfsdata/home/zhangxiaoxing/pixels/DataSum/'
+        else:
+            dpath='D:/neupix/DataSum/'
+        for path in zpy.traverse(dpath):
             print(path)
-    
-            SU_ids = []
+
+            # SU_ids = []
             trial_FR = []
             trials = []
             if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
@@ -208,88 +213,216 @@ def same_time_decoding(denovo, n_sel):
                     done_read = True
                 except OSError:
                     print("h5py read error handled")
-    
-            (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(
-                trials
-            )
-    
+
+            (
+                perf_desc,
+                perf_code,
+                welltrain_window,
+                correct_resp,
+            ) = zpy.judgePerformance(trials)
+
             if perf_code != 3:
                 continue
-    
+
             suid_reg = []
             with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
                 l = list(csv.reader(csvfile))[1:]
                 suid_reg = [list(i) for i in zip(*l)]
-    
+
             currStats = ctd_stats()
             currStats.processCTDStats(trial_FR, trials, welltrain_window, correct_resp)
             features_per_su.extend(currStats.get_features())
             reg_list.extend(suid_reg[1])
-    
+
             ### DEBUG in small subsets
             # if len(features_per_su)>50:
             #     break
-    
-    ### save to pickle file
-    # with open('ctd.pickle','wb') as fh:
-    #     pickle.dump({'features_per_su':features_per_su, 'reg_list':reg_list},fh)
-    
-    ### load from pickle file
-    # dstr=None
-    # with open('ctd.pickle','rb') as fh:
-    #     dstr=pickle.load(fh)
-    
-    ### save to npz file
-    # np.savez_compressed('ctd.npz',features_per_su=features_per_su,reg_list=reg_list)
-    
+
+        ### save to npz file
+        np.savez_compressed(
+            "ctd.npz", features_per_su=features_per_su, reg_list=reg_list
+        )
+
     ### load from npz file
     else:
-        fstr=np.load('ctd.npz',allow_pickle=True)
-        features_per_su=fstr['features_per_su'].tolist()
-        reg_list=fstr['reg_list'].tolist()
-    
-    
-    ### decoding accuracy
-    scaler=MinMaxScaler()
-    avail_sel=[(x['S1_3'].shape[1]>=n_sel and x['S2_3'].shape[1]>=n_sel) for x in features_per_su]
-    clf=LinearSVC()
-    ### TODO: X, y
+        fstr = np.load("ctd.npz", allow_pickle=True)
+        features_per_su = fstr["features_per_su"].tolist()
+        reg_list = fstr["reg_list"].tolist()
+
+    return (features_per_su, reg_list)
+
+
+def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
+
+    (features_per_su, reg_list) = get_dataset(denovo)
+
+    scaler = MinMaxScaler()
+    avail_sel = [
+        (x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
+        for x in features_per_su
+    ]
+    clf = LinearSVC()
     # bins, trials
-    one_dir=[]
+    one_dir = []
     rng = np.random.default_rng()
-    
-    for bin_idx in range(features_per_su[0]['S1_3'].shape[0]):
-        X1=np.vstack(tuple([su['S1_3'][bin_idx,:n_sel] for (su, tf) in zip(features_per_su,avail_sel) if tf])).T
-        X2=np.vstack(tuple([su['S2_3'][bin_idx,:n_sel] for (su, tf) in zip(features_per_su,avail_sel) if tf])).T
-        y1=np.ones((X1.shape[0]))
-        y2=np.zeros_like(y1)
-        y=np.hstack((y1,y2))
-        y_shuf=y.copy()
+    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
+
+    if limit_bins is None:
+        limit_bins = features_per_su[0]["S1_3"].shape[0]
+
+    for bin_idx in range(limit_bins):
+        X1 = np.vstack(
+            tuple(
+                [
+                    su[keys[0]][bin_idx, :n_sel]
+                    for (su, tf) in zip(features_per_su, avail_sel)
+                    if tf
+                ]
+            )
+        ).T
+        X2 = np.vstack(
+            tuple(
+                [
+                    su[keys[1]][bin_idx, :n_sel]
+                    for (su, tf) in zip(features_per_su, avail_sel)
+                    if tf
+                ]
+            )
+        ).T
+        y1 = np.ones((X1.shape[0]))
+        y2 = np.zeros_like(y1)
+        y = np.hstack((y1, y2))
+        y_shuf = y.copy()
         rng.shuffle(y_shuf)
-        X=scaler.fit_transform(np.vstack((X1,X2)))
-        scores=cross_val_score(clf, X, y, cv=n_sel)*100
-        scores_shuffled=cross_val_score(clf, X, y_shuf, cv=n_sel)*100
-        one_dir.append([np.mean(scores),np.std(scores),np.mean(scores_shuffled),np.std(scores_shuffled)])
+        X = scaler.fit_transform(np.vstack((X1, X2)))
+        scores = cross_val_score(clf, X, y, cv=n_sel) * 100
+        scores_shuffled = cross_val_score(clf, X, y_shuf, cv=n_sel) * 100
+        one_dir.append(
+            [
+                np.mean(scores),
+                np.std(scores),
+                np.mean(scores_shuffled),
+                np.std(scores_shuffled),
+            ]
+        )
+
+    mm = np.array(one_dir)[:, 0]
+    sem = np.array(one_dir)[:, 1] / np.sqrt(scores.shape[0] - 1)
+    mm_shuf = np.array(one_dir)[:, 2]
+    sem_shuf = np.array(one_dir)[:, 3] / np.sqrt(scores.shape[0] - 1)
+    fh = plt.figure()
+    (lh,) = plt.plot(mm, color="r")
+    plt.fill_between(np.arange(mm.shape[0]), mm - sem, mm + sem, color="r", alpha=0.2)
+    (lhs,) = plt.plot(mm_shuf, color="k")
+    plt.fill_between(
+        np.arange(mm.shape[0]),
+        mm_shuf - sem_shuf,
+        mm_shuf + sem_shuf,
+        color="k",
+        alpha=0.2,
+    )
+    ax = plt.gca()
+
+    if delay==3:
+        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+    else:
+        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+    ax.set_xticks([11.5, 31.5, 51.5])
+    ax.set_xticklabels([0, 5, 10])
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("classification accuracy")
+    ax.legend((lh, lhs), ("experiment", "shuffled"))
+    fh.savefig("same_time_decoding.png", dpi=300, bbox_inches="tight")
+
+
+def cross_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
+
+    (features_per_su, reg_list) = get_dataset(denovo)
+
+    scaler = MinMaxScaler()
+    avail_sel = [
+        (x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
+        for x in features_per_su
+    ]
+    clf = LinearSVC()
+    # bins, trials
+    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
+
+    if limit_bins is None:
+        limit_bins = features_per_su[0]["S1_3"].shape[0]
+
+    score_mat = np.zeros((limit_bins, limit_bins))
+    for template_bin_idx in range(limit_bins):
+        X1 = np.vstack(
+            tuple(
+                [
+                    su[keys[0]][template_bin_idx, :n_sel]
+                    for (su, tf) in zip(features_per_su, avail_sel)
+                    if tf
+                ]
+            )
+        ).T
+        X2 = np.vstack(
+            tuple(
+                [
+                    su[keys[1]][template_bin_idx, :n_sel]
+                    for (su, tf) in zip(features_per_su, avail_sel)
+                    if tf
+                ]
+            )
+        ).T
+        y1 = np.ones((X1.shape[0]))
+        y2 = np.zeros_like(y1)
+        y = np.hstack((y1, y2))
+        # y_shuf=y.copy()
+        # rng.shuffle(y_shuf)
+        template_X = scaler.fit_transform(np.vstack((X1, X2)))
+        clf.fit(template_X, y)
+        for test_bin_idx in range(limit_bins):
+
+            XX1 = np.vstack(
+                tuple(
+                    [
+                        su[keys[0]][test_bin_idx, :n_sel]
+                        for (su, tf) in zip(features_per_su, avail_sel)
+                        if tf
+                    ]
+                )
+            ).T
+            XX2 = np.vstack(
+                tuple(
+                    [
+                        su[keys[1]][test_bin_idx, :n_sel]
+                        for (su, tf) in zip(features_per_su, avail_sel)
+                        if tf
+                    ]
+                )
+            ).T
+
+            test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
+            score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
+
+    (fh,ax) = plt.subplots()
+    im=plt.imshow(score_mat, cmap="jet", aspect="auto", vmin=-0.75, vmax=0.75)
+    plt.colorbar(im, ticks=[-0.5, 0, 0.5], format="%.1f")
+    suffix=None
+    if delay==3:
+        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+        suffix='_D3'
+    else:
+        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+        suffix='_D6'
         
-        
-        
-    
-    mm=np.array(one_dir)[:,0]
-    sem=np.array(one_dir)[:,1]/np.sqrt(scores.shape[0]-1)
-    mm_shuf=np.array(one_dir)[:,2]
-    sem_shuf=np.array(one_dir)[:,3]/np.sqrt(scores.shape[0]-1)
-    fh=plt.figure()
-    (lh,)=plt.plot(mm,color='r')
-    plt.fill_between(np.arange(mm.shape[0]),mm-sem,mm+sem,color='r',alpha=0.2)
-    (lhs,)=plt.plot(mm_shuf,color='k')
-    plt.fill_between(np.arange(mm.shape[0]),mm_shuf-sem_shuf,mm_shuf+sem_shuf,color='k',alpha=0.2)
-    ax=plt.gca()
-    [ax.axvline(x,lw=0.5,ls=':',c='k') for x in [12.5,16.5,28.5,32.5]]
-    ax.set_xticks([12.5,32.5])
-    ax.set_xticklabels([0, 5])
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('classification accuracy')
-    ax.legend((lh,lhs),('experiment','shuffled'))
+    ax.set_xticks([11.5, 31.5, 51.5])
+    ax.set_xticklabels([0, 5, 10])
+    ax.set_xlabel("Time (s)")
+    ax.set_yticks([11.5, 31.5, 51.5])
+    ax.set_yticklabels([0, 5, 10])
+    ax.set_ylabel("Time (s)")
+    ax.set_ylabel("Time (s)")
+    fh.savefig(f"cross_time_decoding{suffix}.png", dpi=300, bbox_inches="tight")
 
     ### disabled due to missing trials
     # availErrTrials=[]
