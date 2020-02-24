@@ -348,6 +348,11 @@ def cross_time_decoding(
         (x[keys[0]].shape[1] >= n_sel and x[keys[1]].shape[1] >= n_sel)
         for x in features_per_su
     ]
+
+    if sum(avail_sel)<10:
+        print('Not enough SU with suffcient trials')
+        return None
+
     clf = LinearSVC()
     # bins, trials
 

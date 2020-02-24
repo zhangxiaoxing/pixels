@@ -134,7 +134,7 @@ class GLM_stats:
                 not sample_sel_DM)
             self.sample_sel_only_LD[0, su_idx] = sample_sel_LD and (not sample_sel_ED) and (not sample_sel_SP) and (
                 not sample_sel_DM)
-            self.sample_sel_only_DM[0, su_idx] = sample_sel_SP and (not sample_sel_ED) and (not sample_sel_LD) and (
+            self.sample_sel_only_DM[0, su_idx] = sample_sel_DM and (not sample_sel_ED) and (not sample_sel_LD) and (
                 not sample_sel_SP)
             self.sample_sel_ED_LD[0, su_idx] = sample_sel_ED and sample_sel_LD and (not sample_sel_DM)
             self.sample_sel_LD_DM[0, su_idx] = sample_sel_LD and sample_sel_DM and (not sample_sel_ED)
@@ -194,7 +194,12 @@ def prepare_GLM():
     curr_stats = GLM_stats()
     all_sess_list = []
     reg_list = []
-    for path in zpy.traverse("D:/neupix/DataSum/"):
+    dpath = None
+    if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
+        dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
+    else:
+        dpath = "D:/neupix/DataSum/"
+    for path in zpy.traverse(dpath):
         print(path)
         # SU_ids = []
         trial_FR = []
@@ -285,7 +290,7 @@ def process_all(denovo=False):
         import matplotlib.pyplot as plt
         fh = plt.figure(figsize=(11.34, 40), dpi=300)
 
-    for feature in range(11):
+    for feature in range(all_sess_arr.shape[0]):
         per_region_su_factor = np.zeros_like(reg_set, dtype=np.float64)
         for i in range(len(reg_set)):
             per_region_su_factor[i] = np.mean(all_sess_arr[feature, reg_arr == reg_set[i]])
