@@ -17,26 +17,22 @@ class GLM_stats:
         self.sample_sel_only_sample = None
         self.sample_sel_only_ED = None
         self.sample_sel_only_LD = None
-        self.sample_sel_only_DM = None
+        self.sample_sel_SP_ED = None
         self.sample_sel_ED_LD = None
-        self.sample_sel_LD_DM = None
-        self.sample_sel_ED_LD_DM = None
+        self.sample_sel_SP_ED_LD = None
 
-        self.test_sel_dur_DM = None
-        self.pair_sel_dur_DM = None
-
+        self.non_sel_mod_only_SP = None
         self.non_sel_mod_only_ED = None
         self.non_sel_mod_only_LD = None
-        self.non_sel_mod_only_DM = None
+        self.non_sel_mod_SP_ED = None
         self.non_sel_mod_ED_LD = None
-        self.non_sel_mod_LD_DM = None
-        self.non_sel_mod_ED_LD_DM = None
+        self.non_sel_mod_SP_ED_LD = None
         self.non_mod = None
 
-        self.row_sel_6 = np.concatenate(
-            (np.arange(16), np.arange(16, 40, 2), np.arange(40, 68))
-        )
-        self.row_sel_3 = np.arange(56)
+        # self.row_sel_6 = np.concatenate(
+        #     (np.arange(16), np.arange(16, 40, 2), np.arange(40, 68))
+        # )
+        # self.row_sel_3 = np.arange(56)
 
         self.use_ranksum = True
 
@@ -44,6 +40,8 @@ class GLM_stats:
         ### TODO alternative use of perm_test
         if self.use_ranksum:
             try:
+                # flatten is used instead of mean to control for variance
+                # ranksum is supposedly insensitive to length of data
                 (stat, p) = stats.mannwhitneyu(
                     A.flatten(),
                     B.flatten(),
@@ -84,20 +82,16 @@ class GLM_stats:
         self.sample_sel_only_sample = np.zeros((1, trial_FR.shape[2]))
         self.sample_sel_only_ED = np.zeros_like(self.sample_sel_only_sample)
         self.sample_sel_only_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.sample_sel_only_DM = np.zeros_like(self.sample_sel_only_sample)
+        self.sample_sel_SP_ED = np.zeros_like(self.sample_sel_only_sample)
         self.sample_sel_ED_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.sample_sel_LD_DM = np.zeros_like(self.sample_sel_only_sample)
-        self.sample_sel_ED_LD_DM = np.zeros_like(self.sample_sel_only_sample)
+        self.sample_sel_SP_ED_LD = np.zeros_like(self.sample_sel_only_sample)
 
-        self.test_sel_dur_DM = np.zeros_like(self.sample_sel_only_sample)
-        self.pair_sel_dur_DM = np.zeros_like(self.sample_sel_only_sample)
-
+        self.non_sel_mod_only_SP = np.zeros_like(self.sample_sel_only_sample)
         self.non_sel_mod_only_ED = np.zeros_like(self.sample_sel_only_sample)
         self.non_sel_mod_only_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_only_DM = np.zeros_like(self.sample_sel_only_sample)
+        self.non_sel_mod_SP_ED = np.zeros_like(self.sample_sel_only_sample)
         self.non_sel_mod_ED_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_LD_DM = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_ED_LD_DM = np.zeros_like(self.sample_sel_only_sample)
+        self.non_sel_mod_SP_ED_LD = np.zeros_like(self.sample_sel_only_sample)
         self.non_mod = np.zeros_like(self.sample_sel_only_sample)
 
         ### TODO: selective only during sample
@@ -110,60 +104,44 @@ class GLM_stats:
             left_test_trials = onesu[trial_sel_test_left, :]
             right_test_trials = onesu[~trial_sel_test_left, :]
 
-            pair_trials = onesu[pair_sel, :]
-            nonpair_trials = onesu[~pair_sel, :]
-
             # 3d delay trials sample 12:16, Delay 16:28, ED 18:22, LD 22:26, DM 28:36, reward 32:36
             # 6d delay trials sample 12:16, Delay 16:40, ED 18:22, LD 34:38, DM 40:48, reward 44:48
 
-            BS = np.arange(4, 8)
+            BS = np.arange(0, 10)
             SP = np.arange(12, 16)
-            ED = np.arange(18, 22)
-            LD = np.arange(34, 38)
-            DM = np.arange(40, 48)
-            # RW = np.arange(44, 48)
+            ED = np.arange(18, 28)
+            LD = np.arange(28, 38)
 
             sample_sel_SP = self.bool_stats_test(left_trials[:, SP], right_trials[:, SP])
             sample_sel_ED = self.bool_stats_test(left_trials[:, ED], right_trials[:, ED])
             sample_sel_LD = self.bool_stats_test(left_trials[:, LD], right_trials[:, LD])
-            sample_sel_DM = self.bool_stats_test(left_trials[:, DM], right_trials[:, DM])
 
-            self.sample_sel_only_sample[0, su_idx] = sample_sel_SP and (not sample_sel_ED) and (not sample_sel_LD) and (
-                not sample_sel_DM)
-            self.sample_sel_only_ED[0, su_idx] = sample_sel_ED and (not sample_sel_SP) and (not sample_sel_LD) and (
-                not sample_sel_DM)
-            self.sample_sel_only_LD[0, su_idx] = sample_sel_LD and (not sample_sel_ED) and (not sample_sel_SP) and (
-                not sample_sel_DM)
-            self.sample_sel_only_DM[0, su_idx] = sample_sel_DM and (not sample_sel_ED) and (not sample_sel_LD) and (
-                not sample_sel_SP)
-            self.sample_sel_ED_LD[0, su_idx] = sample_sel_ED and sample_sel_LD and (not sample_sel_DM)
-            self.sample_sel_LD_DM[0, su_idx] = sample_sel_LD and sample_sel_DM and (not sample_sel_ED)
-            self.sample_sel_ED_LD_DM[0, su_idx] = sample_sel_ED and sample_sel_LD and sample_sel_DM
+            self.sample_sel_only_sample[0, su_idx] = sample_sel_SP and (not sample_sel_ED) and (not sample_sel_LD)
+            self.sample_sel_only_ED[0, su_idx] = sample_sel_ED and (not sample_sel_SP) and (not sample_sel_LD)
+            self.sample_sel_only_LD[0, su_idx] = sample_sel_LD and (not sample_sel_ED) and (not sample_sel_SP)
+            self.sample_sel_SP_ED[0, su_idx] = sample_sel_SP and sample_sel_ED and (not sample_sel_LD)
+            self.sample_sel_ED_LD[0, su_idx] = (not sample_sel_SP) and sample_sel_ED and sample_sel_LD
+            self.sample_sel_SP_ED_LD[0, su_idx] = sample_sel_SP and sample_sel_ED and sample_sel_LD
 
-            self.test_sel_dur_DM[0, su_idx] = self.bool_stats_test(left_test_trials[:, DM],
-                                                                   right_test_trials[:, DM])
-
-            self.pair_sel_dur_DM[0, su_idx] = self.bool_stats_test(pair_trials[:, DM], nonpair_trials[:, DM])
-
+            nsm_SP = ((not sample_sel_SP) and
+                      self.bool_stats_test(onesu[:, BS], onesu[:, SP]))
             nsm_ED = ((not sample_sel_ED) and
                       self.bool_stats_test(onesu[:, BS], onesu[:, ED]))
             nsm_LD = ((not sample_sel_LD) and
                       self.bool_stats_test(onesu[:, BS], onesu[:, LD]))
-            nsm_DM = ((not (sample_sel_DM or self.test_sel_dur_DM[0, su_idx] or self.pair_sel_dur_DM[0, su_idx])) and
-                      self.bool_stats_test(onesu[:, BS], onesu[:, DM]))
 
-            self.non_sel_mod_only_ED[0, su_idx] = nsm_ED and (not nsm_LD) and (not nsm_DM)
-            self.non_sel_mod_only_LD[0, su_idx] = nsm_LD and (not nsm_ED) and (not nsm_DM)
-            self.non_sel_mod_only_DM[0, su_idx] = nsm_DM and (not nsm_LD) and (not nsm_ED)
 
-            self.non_sel_mod_ED_LD[0, su_idx] = nsm_ED and nsm_LD and (not nsm_DM)
-            self.non_sel_mod_LD_DM[0, su_idx] = nsm_LD and nsm_DM and (not nsm_ED)
-            self.non_sel_mod_ED_LD_DM[0, su_idx] = nsm_ED and nsm_LD and nsm_DM
+            self.non_sel_mod_only_SP[0, su_idx] = nsm_SP and (not nsm_ED) and (not nsm_LD)
+            self.non_sel_mod_only_ED[0, su_idx] = nsm_ED and (not nsm_LD) and (not nsm_SP)
+            self.non_sel_mod_only_LD[0, su_idx] = nsm_LD and (not nsm_ED) and (not nsm_SP)
+
+            self.non_sel_mod_SP_ED[0, su_idx] = nsm_ED and nsm_SP and (not nsm_LD)
+            self.non_sel_mod_ED_LD[0, su_idx] = nsm_ED and nsm_LD and (not nsm_SP)
+            self.non_sel_mod_SP_ED_LD[0, su_idx] = nsm_LD and nsm_ED and nsm_SP
 
             self.non_mod[0, su_idx] = not (self.bool_stats_test(onesu[:, BS], onesu[:, SP]) or
                                            self.bool_stats_test(onesu[:, BS], onesu[:, ED]) or
-                                           self.bool_stats_test(onesu[:, BS], onesu[:, LD]) or
-                                           self.bool_stats_test(onesu[:, BS], onesu[:, DM]))
+                                           self.bool_stats_test(onesu[:, BS], onesu[:, LD]))
 
             ### TODO: selective only during sample
 
@@ -171,22 +149,17 @@ class GLM_stats:
         return np.concatenate((self.sample_sel_only_sample,
                                self.sample_sel_only_ED,
                                self.sample_sel_only_LD,
-                               self.sample_sel_only_DM,
+                               self.sample_sel_SP_ED,
                                self.sample_sel_ED_LD,
-                               self.sample_sel_LD_DM,
-                               self.sample_sel_ED_LD_DM,
+                               self.sample_sel_SP_ED_LD,
 
-                               self.test_sel_dur_DM,
-                               self.pair_sel_dur_DM,
-
+                               self.non_sel_mod_only_SP,
                                self.non_sel_mod_only_ED,
                                self.non_sel_mod_only_LD,
-                               self.non_sel_mod_only_DM,
+                               self.non_sel_mod_SP_ED,
                                self.non_sel_mod_ED_LD,
-                               self.non_sel_mod_LD_DM,
-                               self.non_sel_mod_ED_LD_DM,
+                               self.non_sel_mod_SP_ED_LD,
                                self.non_mod))
-
 
 
 ### all brain region entry point
@@ -202,8 +175,8 @@ def prepare_GLM():
     for path in zpy.traverse(dpath):
         print(path)
         # SU_ids = []
-        trial_FR = []
-        trials = []
+        trial_FR = None
+        trials = None
         if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
             continue
         done_read = False
@@ -224,7 +197,8 @@ def prepare_GLM():
                 done_read = True
             except OSError:
                 print("h5py read error handled")
-
+        if trials is None:
+            continue
         suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
             l = list(csv.reader(csvfile))[1:]
@@ -247,6 +221,7 @@ def prepare_GLM():
 def plot_features():
     # TODO: move figure plot here
     pass
+
 
 # %% main
 def process_all(denovo=False):
@@ -317,4 +292,3 @@ def process_all(denovo=False):
         cwriter = csv.writer(cf, dialect="excel")
         for row in su_factors:
             cwriter.writerow(row)
-

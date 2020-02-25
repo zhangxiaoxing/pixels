@@ -10,30 +10,9 @@ import re
 import h5py
 import pandas as pd
 import numpy as np
+import su_region_align as align
 
 # import scipy.stats as sp
-
-
-unlabledRecord = []
-
-
-def getRegionList():
-    site_file = r"D:\neupix\meta\NP tracks coarsely labelled depth20.1.15.csv"
-    regionL = pd.read_csv(site_file).astype(
-        {"mice_id": "str", "implanting_date": "str"}
-    )[
-        [
-            "mice_id",
-            "implanting_date",
-            "side",
-            "acronym",
-            "distance2tipHigh",
-            "distance2tipLow",
-        ]
-    ]
-
-    regionL["acronym"] = regionL["acronym"].apply(combineSubRegion)
-    return regionL
 
 
 def exact_mc_perm_test(x, xall, y, yall, nmc):
@@ -41,7 +20,7 @@ def exact_mc_perm_test(x, xall, y, yall, nmc):
     diff = np.abs(x / xall - y / yall)
     for j in range(nmc):
         a = np.random.permutation(xall + yall)
-        newx = np.sum(a[0 : (x + y)] < xall)
+        newx = np.sum(a[0: (x + y)] < xall)
         k += diff <= np.abs(newx / xall - (x + y - newx) / yall)
     return k / nmc
 
@@ -101,31 +80,6 @@ def get_bsid_duration_who(path):
     return (bs_id, time_s, who_did)
 
 
-def getTrackRegion(regionL, mice_id, date, imecNo, who_did):
-    depthL = regionL.loc[
-        (regionL["mice_id"] == mice_id)
-        & (regionL["implanting_date"] == "20" + date)
-        & (regionL["side"] == "R"),
-        ["acronym", "distance2tipLow", "distance2tipHigh"],
-    ]
-    # depthL.loc[:, ["distance2tipLow", "distance2tipHigh"]] -= depthL[
-    #     "distance2tipLow"
-    # ].min()
-    return depthL
-
-
-def matchDepth(depth, depthL, date, mice_id, imec_no):
-    if not depthL.empty:
-        label = depthL.loc[
-            (depthL["distance2tipLow"] <= depth) & (depth < depthL["distance2tipHigh"]),
-            ["acronym"],
-        ]
-        if len(label.index) == 1:
-            return label.iloc[0, 0]
-    unlabledRecord.append([date, mice_id, imec_no, depth])
-    return "Unlabeled"
-
-
 def judgePerformance(trials):
     """
 
@@ -144,46 +98,36 @@ def judgePerformance(trials):
         if well-trained, the trials in the engaging window, all trials otherwise.
 
     """
-    sample_loc=4 if trials.shape[1]>6 else 2
-    test_loc=5 if trials.shape[1]>6 else 3
-    lick_loc=6 if trials.shape[1]>6 else 4
-    
+    sample_loc = 4 if trials.shape[1] > 6 else 2
+    test_loc = 5 if trials.shape[1] > 6 else 3
+    lick_loc = 6 if trials.shape[1] > 6 else 4
+
     if trials.shape[0] >= 40:
         correctResp = np.bitwise_xor(trials[:, sample_loc] == trials[:, test_loc], trials[:, lick_loc] == 1)
         inWindow = np.zeros((trials.shape[0],), dtype="bool")
         i = 40
         while i < trials.shape[0]:
             #            if np.sum(correctResp[i-40:i])>=32:
-            if np.sum(correctResp[i - 40 : i]) >= 32:
-                inWindow[i - 40 : i] = 1
+            if np.sum(correctResp[i - 40: i]) >= 32:
+                inWindow[i - 40: i] = 1
             i += 1
         if np.sum(inWindow) >= 40:  # Well Trained
-            return ("wellTrained", 3, inWindow,correctResp)
+            return ("wellTrained", 3, inWindow, correctResp)
 
         else:
             inWindow = np.zeros((trials.shape[0],), dtype="bool")
             licks = trials[:, lick_loc] == 1
             i = 40
             while i < trials.shape[0]:
-                if np.sum(licks[i - 40 : i]) >= 16:  # Learning
-                    inWindow[i - 40 : i] = 1
+                if np.sum(licks[i - 40: i]) >= 16:  # Learning
+                    inWindow[i - 40: i] = 1
                 i += 1
             if np.sum(inWindow) >= 40:
-                return ("learning", 2, inWindow,correctResp)
+                return ("learning", 2, inWindow, correctResp)
             elif np.sum(licks) <= trials.shape[0] // 10:  # Passive
-                return ("passive", 0, np.ones_like(inWindow),correctResp)
+                return ("passive", 0, np.ones_like(inWindow), correctResp)
             else:
-                return ("transition", 1, np.ones_like(inWindow),correctResp) 
-
-
-def combineSubRegion(r):
-    if re.match("CA[13]", r):
-        return r
-    if re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r):
-        g = re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r)
-        return g.group(1)
-    else:
-        return r
+                return ("transition", 1, np.ones_like(inWindow), correctResp)
 
 
 def plotOneBar(stats, label, filename):
@@ -315,12 +259,12 @@ def get_trials(path):
 
 
 if __name__ == "__main__":
-    #%% setup
+    # %% setup
 
     FR_Th = 1.0
 
     regionMatched = []
-    regionL = getRegionList()
+    regionL = align.getRegionList()
     # conversion = []
 
     # %% main loop
@@ -348,13 +292,13 @@ if __name__ == "__main__":
 
         (bs_id, time_s, who_did) = get_bsid_duration_who(path)
         (mice_id, date, imec_no) = get_miceid_date_imecno(path)
-        
+
         if not (mice_id and date and imec_no):
             print("failed extraction metadata from ", path)
-            input("press Enter to continue")     
+            input("press Enter to continue")
             continue
-        
-        depthL = getTrackRegion(regionL, mice_id, date, imec_no, who_did)
+
+        depthL = align.getTrackRegion(regionL, mice_id, date, imec_no, who_did)
 
         unitInfo = pd.read_csv(os.path.join(path, "cluster_info.tsv"), sep="\t")
 
@@ -369,7 +313,7 @@ if __name__ == "__main__":
             suDepth = row["depth"]
             # fullR = matchDepth(suDepth, depthL)
             # reg = combineSubRegion(fullR)
-            reg = matchDepth(suDepth, depthL, date, mice_id, imec_no)
+            reg = align.matchDepth(suDepth, depthL, date, mice_id, imec_no)
             # conversion.append([fullR, reg])
 
             if np.isin(np.double(row["id"]), sampSel[:, 0]):
@@ -477,7 +421,7 @@ if __name__ == "__main__":
             regionSet[row[0]], ", learning n = ", row[1], ", welltrained n = ", row[2]
         )
 
-    #%% write csv for correlation with opto_gene
+    # %% write csv for correlation with opto_gene
     with open("delayStats.csv", "w", newline="") as cf:
         cwriter = csv.writer(cf, dialect="excel")
         for row in delayStat:
@@ -489,10 +433,6 @@ if __name__ == "__main__":
         for row in testStat:
             if row[3] >= 30 and row[4] >= 30:
                 cwriter.writerow([row[0], row[1] / row[3], row[2] / row[4]])
-                
-    with open("unlabeled.csv", "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerows(unlabledRecord)
 
 # count=np.zeros((len(regionSet),4))
 #
