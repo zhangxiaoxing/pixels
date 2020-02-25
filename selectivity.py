@@ -18,7 +18,7 @@ unlabledRecord = []
 
 
 def getRegionList():
-    site_file = "K:\\neupix\\meta\\NP tracks coarsely labelled depth20.1.15.csv"
+    site_file = r"D:\neupix\meta\NP tracks coarsely labelled depth20.1.15.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mice_id": "str", "implanting_date": "str"}
     )[
