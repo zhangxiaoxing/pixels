@@ -17,6 +17,28 @@ import pandas as pd
 import selectivity as zpy
 
 
+def imecNo2side(who_did, date, imecNo, mid):
+    if date == "191130" and mid == "49":
+        return "L"
+
+    if date == "191101" and mid == "26":
+        return "R"
+
+    if who_did == "HEM" and (int(date)) >= 191028:
+        if imecNo == "1":
+            return "R"
+        elif imecNo == "0":
+            return "L"
+    else:
+        if imecNo == "1":
+            return "L"
+        elif imecNo == "0":
+            return "R"
+
+    print("Error parsing imec No")
+    return "X"
+
+
 def matchDepth(depth, depthL, date, mice_id, imec_no, unlabeledRecord):
     if not depthL.empty:
         label = depthL.loc[
@@ -33,7 +55,7 @@ def getTrackRegion(regionL, mice_id, date, imecNo, who_did):
     depthL = regionL.loc[
         (regionL["mouse_id"] == mice_id)
         & (regionL["implanting_date"] == "20" + date)
-        & (regionL["side"] == "R"),
+        & (regionL["side"] == imecNo2side(who_did, date, imecNo, mice_id)),
         ["acronym", "distance2tipLow", "distance2tipHigh"],
     ]
     return depthL
@@ -52,7 +74,7 @@ def combineSubRegion(r):
 
 
 def getRegionList():
-    site_file = r"D:\neupix\meta\NP tracks validatedFeb19.csv"
+    site_file = r"D:\neupix\meta\NP tracks validatedFeb26.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mouse_id": "str", "implanting_date": "str"}
     )[
