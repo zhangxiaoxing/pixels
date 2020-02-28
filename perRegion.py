@@ -117,7 +117,7 @@ for target in rois:
         SU_ids = []
         trial_FR = []
         trials = []
-        with h5py.File(os.path.join(path, "FR_All.hdf5"),"r") as ffr:
+        with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
             # print(list(ffr.keys()))
             dset = ffr["SU_id"]
             SU_ids = np.array(dset, dtype="uint16")

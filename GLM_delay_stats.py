@@ -170,7 +170,7 @@ def prepare_GLM():
     if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
         dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
     else:
-        dpath = "D:/neupix/DataSum/"
+        dpath = r"K:\neupix\DataSum"
     for path in zpy.traverse(dpath):
         print(path)
         # SU_ids = []

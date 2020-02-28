@@ -21,16 +21,13 @@ import selectivity as zpy
 class ctd_stats:
     def __init__(self):
         self.su_list = []
-
         self.use_ranksum = True
 
     def bool_stats_test(self, A, B):
         ### TODO alternative use of perm_test
         if self.use_ranksum:
             try:
-                (_stat, p) = stats.mannwhitneyu(
-                    A.flatten(), B.flatten(), alternative="two-sided"
-                )
+                (_stat, p) = stats.mannwhitneyu(A.flatten(), B.flatten(), alternative="two-sided")
                 return p < 0.001
 
             except ValueError:
@@ -50,113 +47,37 @@ class ctd_stats:
     ### unprocessed data entry point
 
     def processCTDStats(
-        self, trial_FR, trials, welltrain_window=None, correct_resp=None
+            self, trial_FR, trials, welltrain_window=None, correct_resp=None
     ):
 
         ### TODO: when variables are empty
         # [bin:trial:SU]
         # breakpoint()
-        FR_D3_S1 = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (
-                        trials[:, 5] == 3,
-                        trials[:, 2] == 4,
-                        welltrain_window,
-                        correct_resp,
-                    )
-                ),
-                axis=0,
-            ),
-            :,
-        ]
-        FR_D3_S2 = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (
-                        trials[:, 5] == 3,
-                        trials[:, 2] == 8,
-                        welltrain_window,
-                        correct_resp,
-                    )
-                ),
-                axis=0,
-            ),
-            :,
-        ]
-        FR_D6_S1 = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (
-                        trials[:, 5] == 6,
-                        trials[:, 2] == 4,
-                        welltrain_window,
-                        correct_resp,
-                    )
-                ),
-                axis=0,
-            ),
-            :,
-        ]
-        FR_D6_S2 = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (
-                        trials[:, 5] == 6,
-                        trials[:, 2] == 8,
-                        welltrain_window,
-                        correct_resp,
-                    )
-                ),
-                axis=0,
-            ),
-            :,
-        ]
+        FR_D3_S1 = trial_FR[:,
+                   np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 4, welltrain_window, correct_resp,)), axis=0, ),
+                   :, ]
+        FR_D3_S2 = trial_FR[:,
+                   np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 8, welltrain_window, correct_resp,)), axis=0, ),
+                   :, ]
+        FR_D6_S1 = trial_FR[:,
+                   np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 4, welltrain_window, correct_resp,)), axis=0, ),
+                   :, ]
+        FR_D6_S2 = trial_FR[:,
+                   np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 8, welltrain_window, correct_resp,)), axis=0, ),
+                   :, ]
 
-        FR_D3_S1_ERR = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (trials[:, 5] == 3, trials[:, 2] == 4, np.logical_not(correct_resp))
-                ),
-                axis=0,
-            ),
-            :,
-        ]
-        FR_D3_S2_ERR = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (trials[:, 5] == 3, trials[:, 2] == 8, np.logical_not(correct_resp))
-                ),
-                axis=0,
-            ),
-            :,
-        ]
-        FR_D6_S1_ERR = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (trials[:, 5] == 6, trials[:, 2] == 4, np.logical_not(correct_resp))
-                ),
-                axis=0,
-            ),
-            :,
-        ]
-        FR_D6_S2_ERR = trial_FR[
-            :,
-            np.all(
-                np.vstack(
-                    (trials[:, 5] == 6, trials[:, 2] == 8, np.logical_not(correct_resp))
-                ),
-                axis=0,
-            ),
-            :,
-        ]
+        FR_D3_S1_ERR = trial_FR[:,
+                       np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 4, np.logical_not(correct_resp))),
+                              axis=0, ), :, ]
+        FR_D3_S2_ERR = trial_FR[:,
+                       np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 8, np.logical_not(correct_resp))),
+                              axis=0, ), :, ]
+        FR_D6_S1_ERR = trial_FR[:,
+                       np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 4, np.logical_not(correct_resp))),
+                              axis=0, ), :, ]
+        FR_D6_S2_ERR = trial_FR[:,
+                       np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 8, np.logical_not(correct_resp))),
+                              axis=0, ), :, ]
 
         for su_idx in range(trial_FR.shape[2]):
             self.su_list.append(
@@ -255,7 +176,6 @@ def get_dataset(denovo):
 
 
 def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
-
     (features_per_su, _reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
@@ -338,9 +258,8 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
 
 
 def cross_time_decoding(
-    features_per_su, n_sel, delay=3, limit_bins=None, reg_name="All"
+        features_per_su, n_sel, delay=3, limit_bins=None, reg_name="All"
 ):
-
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
 
     scaler = MinMaxScaler()
@@ -349,7 +268,7 @@ def cross_time_decoding(
         for x in features_per_su
     ]
 
-    if sum(avail_sel)<10:
+    if sum(avail_sel) < 10:
         print('Not enough SU with suffcient trials')
         return None
 
@@ -362,23 +281,9 @@ def cross_time_decoding(
     score_mat = np.zeros((limit_bins, limit_bins))
     for template_bin_idx in range(limit_bins):
         X1 = np.vstack(
-            tuple(
-                [
-                    su[keys[0]][template_bin_idx, :n_sel]
-                    for (su, tf) in zip(features_per_su, avail_sel)
-                    if tf
-                ]
-            )
-        ).T
+            tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
         X2 = np.vstack(
-            tuple(
-                [
-                    su[keys[1]][template_bin_idx, :n_sel]
-                    for (su, tf) in zip(features_per_su, avail_sel)
-                    if tf
-                ]
-            )
-        ).T
+            tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
         y1 = np.ones((X1.shape[0]))
         y2 = np.zeros_like(y1)
         y = np.hstack((y1, y2))
@@ -387,25 +292,10 @@ def cross_time_decoding(
         template_X = scaler.fit_transform(np.vstack((X1, X2)))
         clf.fit(template_X, y)
         for test_bin_idx in range(limit_bins):
-
             XX1 = np.vstack(
-                tuple(
-                    [
-                        su[keys[0]][test_bin_idx, :n_sel]
-                        for (su, tf) in zip(features_per_su, avail_sel)
-                        if tf
-                    ]
-                )
-            ).T
+                tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
             XX2 = np.vstack(
-                tuple(
-                    [
-                        su[keys[1]][test_bin_idx, :n_sel]
-                        for (su, tf) in zip(features_per_su, avail_sel)
-                        if tf
-                    ]
-                )
-            ).T
+                tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
 
             test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
             score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
@@ -471,17 +361,9 @@ def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, pr
                     if reg == reg_set[reg_idx]
                 ]
 
-                all_proc.append(
-                    curr_pool.apply_async(
-                        cross_time_decoding,
-                        args=(curr_feat_su, n_sel),
-                        kwds={
-                            "delay": delay,
-                            "limit_bins": limit_bins,
-                            "reg_name": reg_set[reg_idx],
-                        },
-                    )
-                )
+                all_proc.append(curr_pool.apply_async(cross_time_decoding, args=(curr_feat_su, n_sel),
+                                                      kwds={"delay": delay, "limit_bins": limit_bins,
+                                                            "reg_name": reg_set[reg_idx], }, ))
 
                 print('set')
 

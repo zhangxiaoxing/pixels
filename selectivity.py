@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np
 import su_region_align as align
 
+
 # import scipy.stats as sp
 
 
@@ -58,7 +59,7 @@ def get_bsid_duration_who(path):
     return (bs_id, time_s, who_did)
 
 
-def judgePerformance(trials):
+def judgePerformance(trials, criteria=75):
     """
 
     Parameters
@@ -86,7 +87,7 @@ def judgePerformance(trials):
         i = 40
         while i < trials.shape[0]:
             #            if np.sum(correctResp[i-40:i])>=32:
-            if np.sum(correctResp[i - 40: i]) >= 30:
+            if np.sum(correctResp[i - 40: i]) >= criteria * 40 / 100:
                 inWindow[i - 40: i] = 1
             i += 1
         if np.sum(inWindow) >= 40:  # Well Trained

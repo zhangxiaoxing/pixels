@@ -47,7 +47,8 @@ def matchDepth(depth, depthL, date, mice_id, imec_no, unlabeledRecord):
         ]
         if len(label.index) == 1:
             return label.iloc[0, 0]
-    unlabeledRecord.append([date, mice_id, imec_no, depth])
+    if unlabeledRecord is not None:
+        unlabeledRecord.append([date, mice_id, imec_no, depth])
     return "Unlabeled"
 
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
     regionL = getRegionList()
     unlabeledRecord = []
 
-    for path in zpy.traverse("D:/neupix/DataSum/"):
+    for path in zpy.traverse(r"K:\neupix\DataSum"):
 
         # if os.path.isfile(os.path.join(path, 'su_id2reg.csv')):
         #     continue
