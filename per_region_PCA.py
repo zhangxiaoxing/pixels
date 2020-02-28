@@ -19,18 +19,25 @@ def prepare_GLM():
     curr_stats=GLM_PCA_stats()
     all_sess_list = []
     reg_list = []
-    for path in zpy.traverse("D:/neupix/DataSum/"):
+    dpath = None
+    if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
+        dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
+    else:
+        dpath = "D:/neupix/DataSum/"
+    for path in zpy.traverse(dpath):
         print(path)
         # SU_ids = []
-        trial_FR = []
-        trials = []
-        done_read=False
+        trial_FR = None
+        trials = None
+        if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
+            continue
+        done_read = False
         while not done_read:
             try:
                 with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
                     # print(list(ffr.keys()))
                     if not "SU_id" in ffr.keys():
-                        done_read=True
+                        done_read = True
                         print("missing su_id key in path ", path)
                         continue
                     # dset = ffr["SU_id"]
@@ -39,15 +46,11 @@ def prepare_GLM():
                     trial_FR = np.array(dset, dtype="double")
                     dset = ffr["Trials"]
                     trials = np.array(dset, dtype="double").T
-                done_read=True
+                done_read = True
             except OSError:
                 print("h5py read error handled")
-            
-            
-        if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
+        if trials is None:
             continue
-
-
         suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
             l = list(csv.reader(csvfile))[1:]
@@ -57,7 +60,7 @@ def prepare_GLM():
 
         if perf_code != 3:
             continue
-        
+
         curr_stats.processGLMStats(trial_FR, trials, welltrain_window,correct_resp)
 
         onesession = curr_stats.getFeatures()
@@ -72,13 +75,13 @@ if __name__=='__main__'    :
     ### save raw data file
     all_sess_arr=np.concatenate(tuple(all_sess_list),axis=1)
     reg_arr=np.array(reg_list)
-    np.savez_compressed('GLM_PCA_FR.npz',all_sess_arr=all_sess_arr,reg_arr=reg_arr)
-    
-    
-    ### load back saved raw data
-    fstr=np.load('GLM_PCA_FR.npz')
-    reg_arr=fstr['reg_arr']
-    all_sess_arr=fstr['all_sess_arr']
+    # np.savez_compressed('GLM_PCA_FR.npz',all_sess_arr=all_sess_arr,reg_arr=reg_arr)
+    #
+    #
+    # ### load back saved raw data
+    # fstr=np.load('GLM_PCA_FR.npz')
+    # reg_arr=fstr['reg_arr']
+    # all_sess_arr=fstr['all_sess_arr']
     
     pca=PCA(n_components=20)
     comp=pca.fit_transform(all_sess_arr)
@@ -103,11 +106,9 @@ if __name__=='__main__'    :
     #     'unmodulated']
     
     
-    
-    
-    
 
-    plot_figure=True
+
+    plot_figure=False
     
     reg_set=list(set(reg_arr.tolist()))
     reg_n=[]
@@ -120,6 +121,11 @@ if __name__=='__main__'    :
         fh=plt.figure(figsize=(10,22),dpi=300)
     su_factors=[]
     su_factors.append(reg_set)
+
+    reg_count = []
+    for reg in reg_set:
+        reg_count.append(np.count_nonzero(reg_arr == reg))
+    su_factors.append(reg_count)
     
     for sub in range(11):
         per_region_su_factor=np.zeros_like(reg_set,dtype=np.float64)
