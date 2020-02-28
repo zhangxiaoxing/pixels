@@ -130,7 +130,6 @@ class GLM_stats:
             nsm_LD = ((not sample_sel_LD) and
                       self.bool_stats_test(onesu[:, BS], onesu[:, LD]))
 
-
             self.non_sel_mod_only_SP[0, su_idx] = nsm_SP and (not nsm_ED) and (not nsm_LD)
             self.non_sel_mod_only_ED[0, su_idx] = nsm_ED and (not nsm_LD) and (not nsm_SP)
             self.non_sel_mod_only_LD[0, su_idx] = nsm_LD and (not nsm_ED) and (not nsm_SP)
@@ -243,9 +242,8 @@ def process_all(denovo=False):
         reg_arr = fstr['reg_arr']
         all_sess_arr = fstr['all_sess_arr']
 
-    su_factors = []
     reg_set = list(set(reg_arr.tolist()))
-    su_factors.append(reg_set)
+
     plot_figure = False
     if plot_figure:
         reg_n = []
@@ -264,6 +262,15 @@ def process_all(denovo=False):
                        'unmodulated']
         import matplotlib.pyplot as plt
         fh = plt.figure(figsize=(11.34, 40), dpi=300)
+
+
+    su_factors = []
+    su_factors.append(reg_set)
+
+    reg_count = []
+    for reg in reg_set:
+        reg_count.append(np.count_nonzero(reg_arr == reg))
+    su_factors.append(reg_count)
 
     for feature in range(all_sess_arr.shape[0]):
         per_region_su_factor = np.zeros_like(reg_set, dtype=np.float64)
@@ -292,3 +299,6 @@ def process_all(denovo=False):
         cwriter = csv.writer(cf, dialect="excel")
         for row in su_factors:
             cwriter.writerow(row)
+
+if __name__=="__main__":
+    process_all(True)

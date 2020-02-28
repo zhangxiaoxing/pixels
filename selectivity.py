@@ -31,28 +31,6 @@ def traverse(path):
             yield basepath
 
 
-def imecNo2side(who_did, date, imecNo, mid):
-    if date == "191130" and mid == "49":
-        return "L"
-
-    if date == "191101" and mid == "26":
-        return "R"
-
-    if who_did == "HEM" and (int(date)) >= 191028:
-        if imecNo == "1":
-            return "R"
-        elif imecNo == "0":
-            return "L"
-    else:
-        if imecNo == "1":
-            return "L"
-        elif imecNo == "0":
-            return "R"
-
-    print("Error parsing imec No")
-    return "X"
-
-
 def get_bsid_duration_who(path):
     bs_id = 0
     time_s = 0
@@ -108,7 +86,7 @@ def judgePerformance(trials):
         i = 40
         while i < trials.shape[0]:
             #            if np.sum(correctResp[i-40:i])>=32:
-            if np.sum(correctResp[i - 40: i]) >= 32:
+            if np.sum(correctResp[i - 40: i]) >= 30:
                 inWindow[i - 40: i] = 1
             i += 1
         if np.sum(inWindow) >= 40:  # Well Trained
