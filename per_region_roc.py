@@ -258,3 +258,10 @@ def process_all(denovo=False):
 
 if __name__ == "__main__":
     process_all(True)
+
+
+
+    # with open("reg.csv", "w", newline="") as cf:
+    #     cwriter = csv.writer(cf, dialect="excel")
+    #     for row in reg_list:
+    #         cwriter.writerow(row)
