@@ -11,16 +11,7 @@ import matplotlib.pyplot as plt
 import selectivity as zpy
 
 
-dpath = None
-if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-    dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-elif os.path.exists(r"K:\neupix\DataSum"):
-    dpath = r"K:\neupix\DataSum"
-else:
-    dpath = r"D:\neupix\DataSum"
-for path in zpy.traverse(dpath):
-    print(path)
-
+def process_one_path(path):
     unitInfo = pd.read_csv(os.path.join(path, "cluster_info.tsv"), sep="\t")
 
     su_ids = np.load(os.path.join(path, 'spike_clusters.npy'))
@@ -43,3 +34,26 @@ for path in zpy.traverse(dpath):
         ys = np.ones_like(xs) * depth
         plt.scatter(xs, ys, s=8, c='k', marker='|', edgecolors='none', alpha=0.002)
     fh.savefig(os.path.join(path, 'scale.png'), dpi=300, bbox_inches="tight")
+
+
+if __name__ == "__main__":
+    from multiprocessing import Pool
+
+    curr_pool = Pool(processes=12)
+
+    dpath = None
+    if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
+        dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
+    elif os.path.exists(r"K:\neupix\DataSum"):
+        dpath = r"K:\neupix\DataSum"
+    else:
+        dpath = r"D:\neupix\DataSum"
+
+    all_proc = []
+    for path in zpy.traverse(dpath):
+        print(path)
+        all_proc.append(curr_pool.apply_async(process_one_path, args=(path)))
+
+    for one_proc in all_proc:
+        one_proc.get()
+        print('get')
