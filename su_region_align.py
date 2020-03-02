@@ -16,6 +16,32 @@ import numpy as np
 import pandas as pd
 import selectivity as zpy
 
+def get_bsid_duration_who(path):
+    bs_id = 0
+    time_s = 0
+    files = os.listdir(path)
+    for f in files:
+        if f.endswith("ap.meta"):
+            with open(os.path.join(path, f), "r") as file:
+                for line in file:
+                    bs_id_grps = re.match("imDatBsc_sn=(\\d{1,3})", line)
+                    if bs_id_grps:
+                        bs_id = bs_id_grps.group(1)
+                    fs_grps = re.match("fileSizeBytes=(\\d+)", line)
+                    if fs_grps:
+                        time_s = int(fs_grps.group(1)) / 385 / 2 / 30000
+
+    if bs_id == "350":
+        who_did = "ZHA"
+    elif bs_id == "142":
+        who_did = "HEM"
+    else:
+        who_did = "UNKNOWN"
+        print("Unknown BS id!")
+        input("press Enter to continue")
+
+    return (bs_id, time_s, who_did)
+
 
 def imecNo2side(who_did, date, imecNo, mid):
     if date == "191130" and mid == "49":
@@ -106,7 +132,7 @@ if __name__ == "__main__":
             print("missing one FR_All file, path: ", path)
             continue
 
-        (bs_id, time_s, who) = zpy.get_bsid_duration_who(path)
+        (bs_id, time_s, who) = get_bsid_duration_who(path)
         (mice_id, date, imec_no) = zpy.get_miceid_date_imecno(path)
         depthL = getTrackRegion(regionL, mice_id, date, imec_no, who)
         su_ids = None
