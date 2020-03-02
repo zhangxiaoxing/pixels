@@ -22,15 +22,21 @@ import selectivity as zpy
 import sklearn.metrics as metrics
 
 
-class auc_stats:
+class Auc_stats:
     def __init__(self):
         self.auc_SP = []
         self.auc_ED = []
         self.auc_LD = []
-
         self.selectivity_SP = []
         self.selectivity_ED = []
         self.selectivity_LD = []
+
+        self.auc_SP_Err = []
+        self.auc_ED_Err = []
+        self.auc_LD_Err = []
+        self.selectivity_SP_Err = []
+        self.selectivity_ED_Err = []
+        self.selectivity_LD_Err = []
 
     def selectivity(self, A, B):
         mA = np.mean(A)
@@ -60,9 +66,14 @@ class auc_stats:
         pass
 
     def one_class(self, trial_FR, trials, delay, sample, welltrain_window, correct_resp):
-        rtn = trial_FR[:,
-              np.all(np.vstack((trials[:, 5] == delay, trials[:, 2] == sample, welltrain_window, correct_resp,)),
-                     axis=0, ), :, ]
+        if welltrain_window is not None:
+            rtn = trial_FR[:,
+                  np.all(np.vstack((trials[:, 5] == delay, trials[:, 2] == sample, welltrain_window, correct_resp,)),
+                         axis=0, ), :, ]
+        else:
+            rtn = trial_FR[:,
+                  np.all(np.vstack((trials[:, 5] == delay, trials[:, 2] == sample, correct_resp,)),
+                         axis=0, ), :, ]
         return rtn
 
     # unprocessed data entry point
@@ -76,6 +87,10 @@ class auc_stats:
         # FR_D3_S2 = self.one_class(trial_firing_rate, trials, 3, 8, welltrain_window, correct_resp)
         FR_D6_S1 = self.one_class(trial_firing_rate, trials, 6, 4, welltrain_window, correct_resp)
         FR_D6_S2 = self.one_class(trial_firing_rate, trials, 6, 8, welltrain_window, correct_resp)
+
+        FR_D6_S1_Err = self.one_class(trial_firing_rate, trials, 6, 8, None, ~correct_resp)
+        FR_D6_S2_Err = self.one_class(trial_firing_rate, trials, 6, 8, None, ~correct_resp)
+
         # (bin, trial, su), e.g.(68, 39, 274)
 
         BS = np.arange(0, 10)
@@ -90,6 +105,15 @@ class auc_stats:
             self.auc_SP.append(self.auroc(FR_D6_S1[SP, :, su_idx], FR_D6_S2[SP, :, su_idx]))
             self.auc_ED.append(self.auroc(FR_D6_S1[ED, :, su_idx], FR_D6_S2[ED, :, su_idx]))
             self.auc_LD.append(self.auroc(FR_D6_S1[LD, :, su_idx], FR_D6_S2[LD, :, su_idx]))
+
+            ### TODO: handle empty trials
+
+            # self.selectivity_SP_Err.append(self.selectivity(FR_D6_S1[SP, :, su_idx], FR_D6_S2[SP, :, su_idx]))
+            # self.selectivity_ED_Err.append(self.selectivity(FR_D6_S1[ED, :, su_idx], FR_D6_S2[ED, :, su_idx]))
+            # self.selectivity_LD_Err.append(self.selectivity(FR_D6_S1[LD, :, su_idx], FR_D6_S2[LD, :, su_idx]))
+            # self.auc_SP_Err.append(self.auroc(FR_D6_S1[SP, :, su_idx], FR_D6_S2[SP, :, su_idx]))
+            # self.auc_ED_Err.append(self.auroc(FR_D6_S1[ED, :, su_idx], FR_D6_S2[ED, :, su_idx]))
+            # self.auc_LD_Err.append(self.auroc(FR_D6_S1[LD, :, su_idx], FR_D6_S2[LD, :, su_idx]))
 
     def get_features(self):
         return np.vstack((self.auc_SP,
@@ -147,7 +171,7 @@ def get_dataset(denovo):
             if perf_code != 3:
                 continue
 
-            curr_stats = auc_stats()
+            curr_stats = Auc_stats()
             curr_stats.process_auc_stats(trial_firing_rate, trials, welltrain_window, correct_resp)
             features_per_su.append(curr_stats.get_features())
             reg_list.extend(suid_reg[1])
@@ -258,8 +282,6 @@ def process_all(denovo=False):
 
 if __name__ == "__main__":
     process_all(True)
-
-
 
     # with open("reg.csv", "w", newline="") as cf:
     #     cwriter = csv.writer(cf, dialect="excel")
