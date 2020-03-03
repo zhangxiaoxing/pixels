@@ -132,7 +132,8 @@ for target in rois:
         su_sel = np.squeeze(np.isin(SU_ids, su_id_list, assume_unique=True))
         ### call external function to process all SUs
         if GLM:
-            currStats.processGLMStats(trial_FR, trials,inWindow, correct_resp)
+            # currStats.processGLMStats(trial_FR, trials,inWindow, correct_resp)
+            print('Error processing GLM stats')
         else:
             currStats.addTrialFRs(trial_FR, trials, su_sel, inWindow, correct_resp)
 
