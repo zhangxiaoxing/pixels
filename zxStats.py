@@ -85,11 +85,13 @@ class zxStats:
 
         ### TODO: get normalized FR for epys scaling
         for su_idx in range(trial_FR.shape[2]):
-            onesu = np.squeeze(trial_FR[:, (welltrain_window & correctResp), su_idx]).T
+            onesu = np.squeeze(trial_FR[:, (welltrain_window
+                                            & correctResp
+                                            & (trials[:, 5] == 6)), su_idx]).T
             (base_mean, base_std) = self.baselineVector(onesu)
             allbins = np.mean((onesu - base_mean) / base_std, axis=0)
             self.modulation.append(
-                np.abs([np.mean(allbins[i:i+4]) for i in np.arange(4,56,4)])
+                np.abs([np.mean(allbins[i:i + 4]) for i in np.arange(4, 56, 4)])
             )
         return np.array(self.modulation).T
 

@@ -124,10 +124,10 @@ def process_one_path(path):
     ax3.set_yticks([])
     fh.set_size_inches((4.8, 9.6))
     fh.savefig(os.path.join(path, 'scale.png'), dpi=300, bbox_inches="tight")
-
+    plt.close(fh)
 
 if __name__ == "__main__":
-    DEBUGGING = True
+    DEBUGGING = False
 
     if DEBUGGING:
         path = r'K:\neupix\DataSum\191015-DPA-Learning2_29_g0\191015-DPA-Learning2_29_g0_imec0_cleaned'
