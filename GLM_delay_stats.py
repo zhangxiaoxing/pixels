@@ -138,12 +138,12 @@ class GLM_delay_stats:
             self.non_sel_mod_ED_LD[0, su_idx] = nsm_ED and nsm_LD and (not nsm_SP)
             self.non_sel_mod_SP_ED_LD[0, su_idx] = nsm_LD and nsm_ED and nsm_SP
 
-            self.non_mod[0, su_idx] = not (self.bool_stats_test(left_trials[:, BS], left_trials[:, SP]) or
-                                           self.bool_stats_test(right_trials[:, BS], right_trials[:, SP]) or
-                                           self.bool_stats_test(left_trials[:, BS], left_trials[:, ED]) or
-                                           self.bool_stats_test(right_trials[:, BS], right_trials[:, ED]) or
-                                           self.bool_stats_test(left_trials[:, BS], left_trials[:, LD]) or
-                                           self.bool_stats_test(right_trials[:, BS], right_trials[:, LD]))
+            self.non_mod[0, su_idx] = not (sample_sel_SP or
+                                           sample_sel_ED or
+                                           sample_sel_LD or
+                                           nsm_SP or
+                                           nsm_ED or
+                                           nsm_LD)
 
             ### TODO: selective only during sample
 
