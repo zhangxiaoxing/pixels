@@ -9,7 +9,7 @@ import h5py
 import csv
 import numpy as np
 import scipy.stats as stats
-import selectivity as zpy
+import su_region_align as align
 
 
 class GLM_delay_stats:
@@ -101,8 +101,8 @@ class GLM_delay_stats:
             left_trials = onesu[trial_sel_left, :]
             right_trials = onesu[~trial_sel_left, :]
 
-            left_test_trials = onesu[trial_sel_test_left, :]
-            right_test_trials = onesu[~trial_sel_test_left, :]
+            # left_test_trials = onesu[trial_sel_test_left, :]
+            # right_test_trials = onesu[~trial_sel_test_left, :]
 
             # 3d delay trials sample 12:16, Delay 16:28, ED 18:22, LD 22:26, DM 28:36, reward 32:36
             # 6d delay trials sample 12:16, Delay 16:40, ED 18:22, LD 34:38, DM 40:48, reward 44:48
@@ -138,9 +138,12 @@ class GLM_delay_stats:
             self.non_sel_mod_ED_LD[0, su_idx] = nsm_ED and nsm_LD and (not nsm_SP)
             self.non_sel_mod_SP_ED_LD[0, su_idx] = nsm_LD and nsm_ED and nsm_SP
 
-            self.non_mod[0, su_idx] = not (self.bool_stats_test(onesu[:, BS], onesu[:, SP]) or
-                                           self.bool_stats_test(onesu[:, BS], onesu[:, ED]) or
-                                           self.bool_stats_test(onesu[:, BS], onesu[:, LD]))
+            self.non_mod[0, su_idx] = not (self.bool_stats_test(left_trials[:, BS], left_trials[:, SP]) or
+                                           self.bool_stats_test(right_trials[:, BS], right_trials[:, SP]) or
+                                           self.bool_stats_test(left_trials[:, BS], left_trials[:, ED]) or
+                                           self.bool_stats_test(right_trials[:, BS], right_trials[:, ED]) or
+                                           self.bool_stats_test(left_trials[:, BS], left_trials[:, LD]) or
+                                           self.bool_stats_test(right_trials[:, BS], right_trials[:, LD]))
 
             ### TODO: selective only during sample
 
@@ -166,12 +169,8 @@ def prepare_GLM():
     curr_stats = GLM_delay_stats()
     all_sess_list = []
     reg_list = []
-    dpath = None
-    if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-        dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-    else:
-        dpath = r"K:\neupix\DataSum"
-    for path in zpy.traverse(dpath):
+    dpath = align.get_root_path()
+    for path in align.traverse(dpath):
         print(path)
         # SU_ids = []
         trial_FR = None
@@ -203,7 +202,7 @@ def prepare_GLM():
             l = list(csv.reader(csvfile))[1:]
             suid_reg = [list(i) for i in zip(*l)]
 
-        (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(trials)
+        (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
 
         if perf_code != 3:
             continue
@@ -263,7 +262,6 @@ def process_all(denovo=False):
         import matplotlib.pyplot as plt
         fh = plt.figure(figsize=(11.34, 40), dpi=300)
 
-
     su_factors = []
     su_factors.append(reg_set)
 
@@ -300,5 +298,6 @@ def process_all(denovo=False):
         for row in su_factors:
             cwriter.writerow(row)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     process_all(True)

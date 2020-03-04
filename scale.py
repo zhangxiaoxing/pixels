@@ -13,6 +13,7 @@ import h5py
 from per_region_roc import Auc_stats
 from GLM_delay_stats import GLM_delay_stats
 from zxStats import zxStats
+import su_region_align as align
 
 
 # we got min=20 max=3840
@@ -54,7 +55,7 @@ def process_one_path(path):
     if trials is None:
         return
 
-    (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(trials)
+    (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
     # trial_FR [68,241,157] trials[241,6] w_w,c_r [241,]
 
     pct_stats = GLM_delay_stats()
@@ -126,6 +127,7 @@ def process_one_path(path):
     fh.savefig(os.path.join(path, 'scale.png'), dpi=300, bbox_inches="tight")
     plt.close(fh)
 
+
 if __name__ == "__main__":
     DEBUGGING = False
 
@@ -138,13 +140,7 @@ if __name__ == "__main__":
 
         curr_pool = Pool(processes=12)
 
-        dpath = None
-        if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-            dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-        elif os.path.exists(r"K:\neupix\DataSum"):
-            dpath = r"K:\neupix\DataSum"
-        else:
-            dpath = r"D:\neupix\DataSum"
+        dpath = align.get_root_path()
 
         all_proc = []
         for path in zpy.traverse(dpath):

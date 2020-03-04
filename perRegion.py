@@ -8,12 +8,11 @@ Created on Fri Dec 13 17:29:29 2019
 import os
 import h5py
 import numpy as np
-import selectivity as zpy
 import pandas as pd
 import matplotlib.pyplot as plt
 from zxStats import zxStats
 from scipy.cluster.hierarchy import dendrogram, ward
-
+import su_region_align as align
 # from sklearn.preprocessing import MinMaxScaler
 
 
@@ -94,7 +93,7 @@ for target in rois:
 
     ### loop through path
     debugCount = 0
-    for path in zpy.traverse("D:/neupix/DataSum/"):
+    for path in align.traverse(align.get_root_path()):
 
         debugCount += 1
         # if debugCount>50:
@@ -126,7 +125,7 @@ for target in rois:
             dset = ffr["Trials"]
             trials = np.array(dset, dtype="double").T
 
-        (perf_desc, perf_code, inWindow, correct_resp) = zpy.judgePerformance(trials)
+        (perf_desc, perf_code, inWindow, correct_resp) = align.judgePerformance(trials)
         if perf_code != 3:
             continue
         su_sel = np.squeeze(np.isin(SU_ids, su_id_list, assume_unique=True))

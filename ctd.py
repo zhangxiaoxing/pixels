@@ -15,7 +15,7 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
-import selectivity as zpy
+import su_region_align as align
 
 
 class ctd_stats:
@@ -105,12 +105,8 @@ def get_dataset(denovo):
     features_per_su = []
     reg_list = []
     if denovo:
-        dpath = None
-        if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-            dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-        else:
-            dpath = "D:/neupix/DataSum/"
-        for path in zpy.traverse(dpath):
+        dpath = align.get_root_path()
+        for path in align.traverse(dpath):
             print(path)
 
             # SU_ids = []
@@ -137,12 +133,7 @@ def get_dataset(denovo):
                 except OSError:
                     print("h5py read error handled")
 
-            (
-                _perf_desc,
-                perf_code,
-                welltrain_window,
-                correct_resp,
-            ) = zpy.judgePerformance(trials)
+            (_perf_desc, perf_code, welltrain_window, correct_resp,) = align.judgePerformance(trials)
 
             if perf_code != 3:
                 continue

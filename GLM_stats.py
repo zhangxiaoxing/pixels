@@ -9,7 +9,7 @@ import h5py
 import csv
 import numpy as np
 import scipy.stats as stats
-import selectivity as zpy
+import su_region_align as align
 
 
 class GLM_stats:
@@ -188,18 +188,13 @@ class GLM_stats:
                                self.non_mod))
 
 
-
 ### all brain region entry point
 def prepare_GLM():
     curr_stats = GLM_stats()
     all_sess_list = []
     reg_list = []
-    dpath = None
-    if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-        dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-    else:
-        dpath = "D:/neupix/DataSum/"
-    for path in zpy.traverse(dpath):
+    dpath = align.get_root_path()
+    for path in align.traverse(dpath):
         print(path)
         # SU_ids = []
         trial_FR = []
@@ -230,7 +225,7 @@ def prepare_GLM():
             l = list(csv.reader(csvfile))[1:]
             suid_reg = [list(i) for i in zip(*l)]
 
-        (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(trials)
+        (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
 
         if perf_code != 3:
             continue
@@ -247,6 +242,7 @@ def prepare_GLM():
 def plot_features():
     # TODO: move figure plot here
     pass
+
 
 # %% main
 def process_all(denovo=False):
@@ -317,4 +313,3 @@ def process_all(denovo=False):
         cwriter = csv.writer(cf, dialect="excel")
         for row in su_factors:
             cwriter.writerow(row)
-

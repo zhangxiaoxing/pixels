@@ -18,9 +18,8 @@ import scipy.stats as stats
 from sklearn.model_selection import cross_val_score
 # from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
-import selectivity as zpy
 import sklearn.metrics as metrics
-
+import su_region_align as align
 
 class Auc_stats:
     def __init__(self):
@@ -129,12 +128,8 @@ def get_dataset(denovo):
     if denovo:
         features_per_su = []
         reg_list = []
-        dpath = None
-        if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-            dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-        else:
-            dpath = r"D:\neupix\DataSum"
-        for path in zpy.traverse(dpath):
+        dpath=align.get_root_path()
+        for path in align.traverse(dpath):
             print(path)
             # SU_ids = []
             trial_firing_rate = None
@@ -166,7 +161,7 @@ def get_dataset(denovo):
                 l = list(csv.reader(csvfile))[1:]
                 suid_reg = [list(i) for i in zip(*l)]
 
-            (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(trials)
+            (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
 
             if perf_code != 3:
                 continue

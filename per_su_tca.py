@@ -11,10 +11,9 @@ import h5py
 import csv
 import itertools
 import numpy as np
-import selectivity as zpy
 import tensortools as tt
 import matplotlib.pyplot as plt
-
+import su_region_align as align
 
 def rearrange_row(trials, trial_FR):
     row_sel_6 = np.concatenate((np.arange(16), np.arange(16, 40, 2), np.arange(40, 68)))
@@ -232,7 +231,7 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
     ntrialsCount = []
     all_sess_list = []
     reg_list = []
-    for path in zpy.traverse("D:/neupix/DataSum/"):
+    for path in align.traverse(align.get_root_path()):
         print(path)
         # SU_ids = []
         trial_FR = []
@@ -268,7 +267,7 @@ def run_tca(trial_target, non_neg=True, sep_blocks=False, epoc=[], effect=[]):
             suid_reg = [list(i) for i in zip(*l)]
             # print(res)
 
-        (perf_desc, perf_code, inWindow, correct_resp) = zpy.judgePerformance(trials)
+        (perf_desc, perf_code, inWindow, correct_resp) = align.judgePerformance(trials)
         #  toReturn.extend(["wellTrained", 3, correctResp,welltrain_window])
 
         if perf_code != 3:

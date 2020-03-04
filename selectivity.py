@@ -26,65 +26,6 @@ def exact_mc_perm_test(x, xall, y, yall, nmc):
     return k / nmc
 
 
-def traverse(path):
-    for (basepath, dirs, files) in os.walk(path):
-        if "cluster_info.tsv" in files:
-            yield basepath
-
-
-
-
-
-def judgePerformance(trials, criteria=75):
-    """
-
-    Parameters
-    ----------
-    trials : TYPE
-        behaviral trials array.
-
-    Returns
-    -------
-    str
-        readable description of the learning stage.
-    int
-        single integer code for the learning stage.
-    trials
-        if well-trained, the trials in the engaging window, all trials otherwise.
-
-    """
-    sample_loc = 4 if trials.shape[1] > 6 else 2
-    test_loc = 5 if trials.shape[1] > 6 else 3
-    lick_loc = 6 if trials.shape[1] > 6 else 4
-
-    if trials.shape[0] >= 40:
-        correctResp = np.bitwise_xor(trials[:, sample_loc] == trials[:, test_loc], trials[:, lick_loc] == 1)
-        inWindow = np.zeros((trials.shape[0],), dtype="bool")
-        i = 40
-        while i < trials.shape[0]:
-            #            if np.sum(correctResp[i-40:i])>=32:
-            if np.sum(correctResp[i - 40: i]) >= criteria * 40 / 100:
-                inWindow[i - 40: i] = 1
-            i += 1
-        if np.sum(inWindow) >= 40:  # Well Trained
-            return ("wellTrained", 3, inWindow, correctResp)
-
-        else:
-            inWindow = np.zeros((trials.shape[0],), dtype="bool")
-            licks = trials[:, lick_loc] == 1
-            i = 40
-            while i < trials.shape[0]:
-                if np.sum(licks[i - 40: i]) >= 16:  # Learning
-                    inWindow[i - 40: i] = 1
-                i += 1
-            if np.sum(inWindow) >= 40:
-                return ("learning", 2, inWindow, correctResp)
-            elif np.sum(licks) <= trials.shape[0] // 10:  # Passive
-                return ("passive", 0, np.ones_like(inWindow), correctResp)
-            else:
-                return ("transition", 1, np.ones_like(inWindow), correctResp)
-
-
 def plotOneBar(stats, label, filename):
     import matplotlib.pyplot as plt
 
@@ -223,7 +164,7 @@ if __name__ == "__main__":
     # conversion = []
 
     # %% main loop
-    for path in traverse("K:/neupix/DataSum/"):
+    for path in align.traverse("K:/neupix/DataSum/"):
 
         sampSel = []
         pairSel = []
@@ -243,7 +184,7 @@ if __name__ == "__main__":
         if trials is None:
             continue
 
-        (perfType, perfIdx, inWindow, correctResp) = judgePerformance(trials)
+        (perfType, perfIdx, inWindow, correctResp) = align.judgePerformance(trials)
 
         (bs_id, time_s, who_did) = align.get_bsid_duration_who(path)
         (mice_id, date, imec_no) = get_miceid_date_imecno(path)

@@ -10,19 +10,15 @@ import csv
 # import itertools
 from GLM_stats import GLM_stats
 import numpy as np
-import selectivity as zpy
+import su_region_align as align
 
 
 def prepare_GLM():
     curr_stats = GLM_stats()
     all_sess_list = []
     reg_list = []
-    dpath = None
-    if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-        dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-    else:
-        dpath = "D:/neupix/DataSum/"
-    for path in zpy.traverse(dpath):
+    dpath = align.get_root_path()
+    for path in align.traverse(dpath):
         print(path)
         trial_FR = None
         trials = None
@@ -50,7 +46,7 @@ def prepare_GLM():
             lines = list(csv.reader(csvfile))[1:]
             suid_reg = [list(line) for line in zip(*lines)]
 
-        (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(trials)
+        (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
 
         if perf_code != 3:
             continue

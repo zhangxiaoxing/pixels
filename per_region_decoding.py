@@ -16,6 +16,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import selectivity as zpy
+import su_region_align as align
 
 
 class ctd_stats:
@@ -105,14 +106,9 @@ def get_dataset(denovo):
     features_per_su = []
     reg_list = []
     if denovo:
-        dpath = None
-        if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
-            dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-        else:
-            dpath = r"K:\neupix\DataSum"
-        for path in zpy.traverse(dpath):
+        dpath = align.get_root_path()
+        for path in align.traverse(dpath):
             print(path)
-
             trial_FR = None
             trials = None
             if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
@@ -135,8 +131,7 @@ def get_dataset(denovo):
 
             if (trial_FR is None) or (trials is None):
                 continue
-
-            (_perf_desc, perf_code, welltrain_window, correct_resp,) = zpy.judgePerformance(trials, 75)
+            (_perf_desc, perf_code, welltrain_window, correct_resp,) = align.judgePerformance(trials, 75)
 
             if perf_code != 3:
                 continue
@@ -148,6 +143,10 @@ def get_dataset(denovo):
 
             currStats = ctd_stats()
             currStats.processCTDStats(trial_FR, trials, welltrain_window, correct_resp)
+            # as decoding is population non-linear statistic, will not calculate per neuron stats and average
+            # will have to extract per neuron per trial stats and run population stats later
+            # first get all neuron 25+25 trial
+            # will need resample neurons later
             features_per_su.extend(currStats.get_features())
             reg_list.extend(suid_reg[1])
 

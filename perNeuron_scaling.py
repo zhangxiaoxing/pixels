@@ -15,13 +15,12 @@ import h5py
 import scaling_stats
 import numpy as np
 import csv
-import selectivity as zpy
 import matplotlib.pyplot as plt
-
+import su_region_align as align
 
 features_per_su=[]
 reg_list=[]
-for path in zpy.traverse("D:/neupix/DataSum/"):
+for path in align.traverse(align.get_root_path()):
     print(path)
     
     SU_ids = []
@@ -49,7 +48,7 @@ for path in zpy.traverse("D:/neupix/DataSum/"):
             print("h5py read error handled")
         
     
-    (perf_desc, perf_code, welltrain_window, correct_resp)=zpy.judgePerformance(trials)
+    (perf_desc, perf_code, welltrain_window, correct_resp)=align.judgePerformance(trials)
     
     if perf_code!=3:
         continue
