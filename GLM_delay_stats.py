@@ -12,7 +12,7 @@ import scipy.stats as stats
 import selectivity as zpy
 
 
-class GLM_stats:
+class GLM_delay_stats:
     def __init__(self):
         self.sample_sel_only_sample = None
         self.sample_sel_only_ED = None
@@ -163,7 +163,7 @@ class GLM_stats:
 
 ### all brain region entry point
 def prepare_GLM():
-    curr_stats = GLM_stats()
+    curr_stats = GLM_delay_stats()
     all_sess_list = []
     reg_list = []
     dpath = None
@@ -229,7 +229,7 @@ def process_all(denovo=False):
     if denovo:
         ### save raw data file
         (all_sess_list, reg_list) = prepare_GLM()
-        all_sess_arr = np.concatenate(tuple(all_sess_list), axis=1)
+        all_sess_arr = np.hstack(all_sess_list)
         reg_arr = np.array(reg_list)
         np.savez_compressed('GLM_stats.npz', all_sess_arr=all_sess_arr, reg_arr=reg_arr)
     else:

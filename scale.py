@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import selectivity as zpy
 import h5py
 from per_region_roc import Auc_stats
-from GLM_delay_stats import GLM_stats
+from GLM_delay_stats import GLM_delay_stats
 from zxStats import zxStats
 
 
@@ -57,7 +57,7 @@ def process_one_path(path):
     (perf_desc, perf_code, welltrain_window, correct_resp) = zpy.judgePerformance(trials)
     # trial_FR [68,241,157] trials[241,6] w_w,c_r [241,]
 
-    pct_stats = GLM_stats()
+    pct_stats = GLM_delay_stats()
     auc_stats = Auc_stats()
     mod_stats = zxStats()
 
