@@ -170,10 +170,8 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     (features_per_su, _reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
-    avail_sel = [
-        (x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
-        for x in features_per_su
-    ]
+    avail_sel = [(x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
+                 for x in features_per_su]
     clf = LinearSVC()
     # bins, trials
     one_dir = []
