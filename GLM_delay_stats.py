@@ -236,7 +236,6 @@ def process_all(denovo=False):
         if not os.path.isfile("GLM_stats.npz"):
             print('missing data file!')
             return
-        np.load('GLM_stats.npz')
         fstr = np.load('GLM_stats.npz')
         reg_arr = fstr['reg_arr']
         all_sess_arr = fstr['all_sess_arr']

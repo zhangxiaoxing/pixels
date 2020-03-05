@@ -8,7 +8,6 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import selectivity as zpy
 import h5py
 from per_region_roc import Auc_stats
 from GLM_delay_stats import GLM_delay_stats
@@ -143,7 +142,7 @@ if __name__ == "__main__":
         dpath = align.get_root_path()
 
         all_proc = []
-        for path in zpy.traverse(dpath):
+        for path in align.traverse(dpath):
             print(path)
             all_proc.append(curr_pool.apply_async(process_one_path, args=(path,)))
 
