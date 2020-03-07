@@ -62,7 +62,7 @@ class per_sec_stats:
         self.per_sec_prefS1 = np.zeros((7, trial_FR.shape[2]))
         self.per_sec_prefS2 = np.zeros((7, trial_FR.shape[2]))
         self.non_sel_mod = np.zeros_like(self.per_sec_sel)
-        self.non_mod = np.zeros_like(self.per_sec_sel)
+        # self.non_mod = np.zeros_like(self.per_sec_sel)
 
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(firing_rate_6[:, :, su_idx]).T
@@ -83,13 +83,13 @@ class per_sec_stats:
                 self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
                                                      self.bool_stats_test(onesu[:, bins],
                                                                           onesu[:, 6:10]))
-                self.non_mod[bin_idx, su_idx] = not (
-                        self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
+                # self.non_mod[bin_idx, su_idx] = not (
+                #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
 
     def getFeatures(self):
-        return (self.per_sec_sel, self.non_sel_mod, self.non_mod, self.per_sec_prefS1, self.per_sec_prefS2)
-        ### all brain region entry point
+        return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2)
 
+### all brain region entry point
 
 def prepare_data():
     curr_stats = per_sec_stats()
@@ -97,7 +97,7 @@ def prepare_data():
     non_sel_mod_list = []
     perfS1_list = []
     perfS2_list = []
-    non_mod_list = []
+    # non_mod_list = []
     reg_list = []
     dpath = align.get_root_path()
     for path in align.traverse(dpath):
@@ -139,14 +139,14 @@ def prepare_data():
 
         curr_stats.processGLMStats(trial_FR, trials, welltrain_window, correct_resp)
 
-        (per_sec_sel, non_sel_mod, non_mode, perfS1, perfS2) = curr_stats.getFeatures()
+        (per_sec_sel, non_sel_mod, perfS1, perfS2) = curr_stats.getFeatures()
         per_sec_sel_list.append(per_sec_sel)
         non_sel_mod_list.append(non_sel_mod)
-        non_mod_list.append(non_sel_mod)
+        # non_mod_list.append(non_sel_mod)
         perfS1_list.append(perfS1)
         perfS2_list.append(perfS2)
         reg_list.extend(suid_reg[1])
-    return (per_sec_sel_list, non_sel_mod_list, non_mod_list, perfS1_list, perfS2_list, reg_list)
+    return (per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list)
 
 
 def plot_features():
@@ -158,22 +158,20 @@ def plot_features():
 def process_all(denovo=False):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
-    non_mod_arr = None
     perfS1_arr = None
     perfS2_arr = None
     reg_arr = None
     if denovo:
         ### save raw data file
-        (per_sec_list, non_sel_mod_list, non_mod_list, perfS1_list, perfS2_list, reg_list) = prepare_data()
+        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list) = prepare_data()
         per_sec_sel_arr = np.hstack(per_sec_list)
         non_sel_mod_arr = np.hstack(non_sel_mod_list)
-        non_mod_arr = np.hstack(non_mod_list)
         perfS1_arr = np.hstack(perfS1_list)
         perfS2_arr = np.hstack(perfS2_list)
 
         np.savez_compressed('per_sec_sel.npz', per_sec_sel_arr=per_sec_sel_arr,
                             non_sel_mod_arr=non_sel_mod_arr,
-                            non_mod_arr=non_mod_arr,
+                            # non_mod_arr=non_mod_arr,
                             perfS1_arr=perfS1_arr,
                             perfS2_arr=perfS2_arr,
                             reg_arr=reg_list)
@@ -185,7 +183,6 @@ def process_all(denovo=False):
         fstr = np.load('per_sec_sel.npz')
         per_sec_sel_arr = fstr['per_sec_sel_arr']
         non_sel_mod_arr = fstr['non_sel_mod_arr']
-        non_mod_arr = fstr['non_mod_arr']
         perfS1_arr = fstr['perfS1_arr']
         perfS2_arr = fstr['perfS2_arr']
         reg_arr = fstr['reg_arr']
@@ -219,6 +216,15 @@ def process_all(denovo=False):
     axes[0].set_xlim((-1.25, 1.25))
     axes[1].set_xlim((-1.25, 1.25))
     plt.show()
+
+
+# TODO:
+# get per su per trial fr -> better load ctd data
+# run
+
+fstr = np.load("ctd.npz", allow_pickle=True)
+features_per_su = fstr["features_per_su"].tolist()
+reg_list = fstr["reg_list"].tolist()
 
 
 if __name__ == "__main__":
