@@ -326,9 +326,12 @@ def cross_time_decoding(
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
 
-def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, proc_n=10):
+def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, proc_n=2):
     breakpoint()
+    # be noted n_sel was not used until later stage, e.g. saved dataset is complete
     (features_per_su, reg_list) = get_dataset(denovo)
+
+
     if reg_onset is None:
         cross_time_decoding(features_per_su, n_sel, delay=3, limit_bins=None)
     else:
