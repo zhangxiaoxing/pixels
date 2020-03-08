@@ -110,8 +110,8 @@ def get_dataset(denovo):
             print(path)
 
             # SU_ids = []
-            trial_FR = []
-            trials = []
+            trial_FR = None
+            trials = None
             if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
                 continue
             done_read = False
@@ -132,6 +132,9 @@ def get_dataset(denovo):
                     done_read = True
                 except OSError:
                     print("h5py read error handled")
+
+            if trials is None:
+                continue
 
             (_perf_desc, perf_code, welltrain_window, correct_resp,) = align.judgePerformance(trials)
 

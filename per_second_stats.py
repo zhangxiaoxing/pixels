@@ -7,6 +7,7 @@ Created on Wed Feb 12 00:14:22 2020
 import os
 import h5py
 import csv
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
@@ -89,6 +90,7 @@ class per_sec_stats:
     def getFeatures(self):
         return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2)
 
+
 ### all brain region entry point
 
 def prepare_data():
@@ -149,13 +151,64 @@ def prepare_data():
     return (per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list)
 
 
+def prepare_data_sync():
+    dpath = align.get_root_path()
+    syncdata = []
+    for path in align.traverse(dpath):
+        print(path)
+        SU_ids = []
+        trials = None
+        if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
+            continue
+        done_read = False
+        while not done_read:
+            try:
+                with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
+                    # print(list(ffr.keys()))
+                    if not "SU_id" in ffr.keys():
+                        done_read = True
+                        print("missing su_id key in path ", path)
+                        continue
+                    dset = ffr["SU_id"]
+                    SU_ids = np.array(dset, dtype="uint16")
+                    dset = ffr["Trials"]
+                    trials = np.array(dset, dtype="double").T
+                done_read = True
+            except OSError:
+                print("h5py read error handled")
+        if trials is None:
+            continue
+        suid_reg = []
+        with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
+            l = list(csv.reader(csvfile))[1:]
+            suid_reg = [list(i) for i in zip(*l)]
+
+        (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
+
+        if perf_code != 3:
+            continue
+        ### TODO: export per su per file alignment file
+
+        for one_su in SU_ids.flatten():
+            # breakpoint()
+            # print(path+','+one_su.astype(np.str))
+            syncdata.append([path, one_su])
+
+    with open("su_list.csv", "w", newline="") as cf:
+        cwriter = csv.writer(cf, dialect="excel")
+        for row in syncdata:
+            cwriter.writerow(row)
+
+    return syncdata
+
+
 def plot_features():
     # TODO: move figure plot here
     pass
 
 
 # %% main
-def process_all(denovo=False):
+def process_all(denovo=False, toPlot=False, toExport=False):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
     perfS1_arr = None
@@ -191,41 +244,74 @@ def process_all(denovo=False):
     delay_sel = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0))
     non_sel_mod = np.count_nonzero(np.any(non_sel_mod_arr[1:7, :], axis=0) & ~np.any(per_sec_sel_arr[1:7, :], axis=0))
     non_mod = per_sec_sel_arr.shape[1] - sample_only - delay_sel - non_sel_mod
+    ### TODO: load transient permute result
+
+    if not os.path.isfile("per_sec_sel.npz"):
+        print('missing data file!')
+        sys.exit(0)
+    fstr = np.load('per_sec_sel.npz')
+    per_sec_sel_arr = fstr['per_sec_sel_arr']
+    non_sel_mod_arr = fstr['non_sel_mod_arr']
+    perfS1_arr = fstr['perfS1_arr']
+    perfS2_arr = fstr['perfS2_arr']
+    # reg_arr = fstr['reg_arr']
+    transient6 = None
+    transient3 = None
+    with h5py.File(os.path.join('transient', 'CQ_transient.hdf5'), 'r') as fr:
+        transient6 = np.array(fr["transient6"]).T
+        transient3 = np.array(fr["transient3"]).T
 
     frac = [delay_sel, sample_only, non_sel_mod, non_mod]
-    explode = (0.2, 0.2, 0, 0)
+    explode = (0.1, 0.1, 0, 0)
     labels = ('selective during delay', 'selective only during sample', 'Non-selective modulation', 'Unmodulated')
+    fh = None
+    axes = None
+    if toPlot:
+        (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=96)
+        axes[0].pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True)
+        axes[0].axis('equal')
 
-    (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=96)
-    axes[0].pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True)
-    axes[0].axis('equal')
+        explode = (0.1, 0, 0, 0)
+        labels = ('sustained', 'transient', 'transient-switched', 'unclassified')
 
-    explode = (0.2, 0, 0)
-    labels = ('sustained', 'transient', 'transient-switched')
+    switched = np.any(perfS1_arr[1:7, :], axis=0) & np.any(perfS2_arr[1:7, :], axis=0) & transient6.astype(
+        np.bool).flatten()
 
-    switched = np.any(perfS1_arr[1:7, :], axis=0) & np.any(perfS2_arr[1:7, :], axis=0)
     sust = np.count_nonzero(np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched)
     transient = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                                 & (~np.all(per_sec_sel_arr[1:7, :], axis=0)))
+                                 & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient6.astype(np.bool))
     switched_count = np.count_nonzero(switched)
 
-    axes[1].pie([sust, transient, switched_count], explode=explode, labels=labels,
-                autopct=lambda p: '{:.1f}%'.format(p * delay_sel / switched.shape[0]),
-                radius=np.sqrt(delay_sel / per_sec_sel_arr.shape[1]), shadow=True)
-    axes[1].axis('equal')
-    axes[0].set_xlim((-1.25, 1.25))
-    axes[1].set_xlim((-1.25, 1.25))
-    plt.show()
+    unclassified = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
+                                    & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient6.astype(np.bool))
+    if toPlot:
+        axes[1].pie([sust, transient, switched_count, unclassified], explode=explode, labels=labels,
+                    autopct=lambda p: '{:.1f}%'.format(p * delay_sel / switched.shape[0]),
+                    radius=np.sqrt(delay_sel / per_sec_sel_arr.shape[1]), shadow=True)
+        axes[1].axis('equal')
+        axes[0].set_xlim((-1.25, 1.25))
+        axes[1].set_xlim((-1.25, 1.25))
+        fh.savefig('sus_trans_pie.png')
+        plt.show()
 
 
-# TODO:
-# get per su per trial fr -> better load ctd data
-# run
+    ### export list
+    sust_list = np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched
+    transient_list = (np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
+                      & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient6.astype(np.bool).flatten())
+    switched_list = switched
+    unclassified_list = (np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
+                         & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient6.astype(np.bool).flatten())
 
-fstr = np.load("ctd.npz", allow_pickle=True)
-features_per_su = fstr["features_per_su"].tolist()
-reg_list = fstr["reg_list"].tolist()
+    export_arr = np.vstack((sust_list, transient_list, switched_list, unclassified_list)).T.astype(np.int8)
+    if toExport:
+        np.savetxt('transient.csv', export_arr, fmt='%d', delimiter=',',
+                   header='Sustained,transient,switched,unclassified')
+    return export_arr
+
+
 
 
 if __name__ == "__main__":
-    process_all(False)
+    # prepare_data_sync()
+    process_all(False,True,False)
