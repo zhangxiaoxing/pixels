@@ -1,12 +1,14 @@
+import sys
 import per_second_stats
 import numpy as np
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 
 
-def decoding():
+def last_bin_decoding():
     fstr = np.load("ctd.npz", allow_pickle=True)
     features_per_su = fstr["features_per_su"].tolist()
     # reg_list = fstr["reg_list"].tolist()
@@ -23,15 +25,9 @@ def decoding():
     return (sust_sum, trans_sum)
 
 
-def same_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bin_range=None, repeat=10):
+def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None, repeat=10):
     if bin_range is None:
         bin_range = np.arange(36, 40)
-
-    if n_neuron is None:
-        n_neuron = 300
-
-    if n_trial is None:
-        n_trial = (20, 25)
 
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     concurrent_time = []
@@ -72,48 +68,83 @@ def same_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bi
     return concurrent_time
 
 
-def cross_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bin_range=None, repeat=10):
+def cross_time_decoding():
+    fstr = np.load("ctd.npz", allow_pickle=True)
+    features_per_su = fstr["features_per_su"].tolist()
+    # reg_list = fstr["reg_list"].tolist()
+    sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+    sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
+    trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+    repeats = 3
+    sust100 = cross_time_decoding_calc(sus_feat, 100, (20, 25), 6, np.arange(4, 52), repeats)
+    trans100 = cross_time_decoding_calc(trans_feat, 100, (20, 25), 6, np.arange(4, 52), repeats)
+    trans1000 = cross_time_decoding_calc(trans_feat, 1000, (20, 25), 6, np.arange(4, 52), repeats)
+    return (sust100, trans100, trans1000)
+
+
+def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None, repeat=10):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
+    if bin_range is None:
+        bin_range = np.arange(36, 40)
+    avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
 
-    scaler = MinMaxScaler()
-    avail_sel = [
-        (x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1])
-        for x in features_per_su
-    ]
-
-    if sum(avail_sel) < 10:
+    if sum(avail_sel) < n_neuron:
         print('Not enough SU with suffcient trials')
         return None
 
-    clf = LinearSVC()
     # bins, trials
+    if bin_range is None:
+        bin_range = np.arange(features_per_su[0][keys[0]].shape[0])
 
-    if limit_bins is None:
-        limit_bins = features_per_su[0][keys[0]].shape[0]
+    mat_list = []
+    score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
 
-    score_mat = np.zeros((limit_bins, limit_bins))
-    for template_bin_idx in range(limit_bins):
-        X1 = np.vstack(
-            tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
-        X2 = np.vstack(
-            tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
-        y1 = np.ones((X1.shape[0]))
-        y2 = np.zeros_like(y1)
-        y = np.hstack((y1, y2))
-        # y_shuf=y.copy()
-        # rng.shuffle(y_shuf)
-        template_X = scaler.fit_transform(np.vstack((X1, X2)))
-        clf.fit(template_X, y)
-        for test_bin_idx in range(limit_bins):
-            XX1 = np.vstack(
-                tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
-            XX2 = np.vstack(
-                tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+    scaler = MinMaxScaler()
+    clf = LinearSVC()
+    kf = KFold(10)
+    for rIdx in np.arange(repeat):
+        su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
+        su_selected_features = [features_per_su[i] for i in su_index]
+        X1 = []
+        X2 = []
+        for one_su in su_selected_features:
+            trial_to_select1 = np.random.choice(one_su[keys[0]].shape[1], n_trial[0], replace=False)
+            X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select1])
+            trial_to_select2 = np.random.choice(one_su[keys[1]].shape[1], n_trial[0], replace=False)
+            X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select2])
 
-            test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
-            score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
 
-    score_mat = score_mat * 100
+
+        for template_bin_idx in np.arange(X1[0][0].shape[0]):
+            kf.split(X)
+            for test_bin_idx in np.arange(X1[0][0].shape[0]):
+                # TODO: proper 10 fold
+                X1 = np.vstack(
+                    tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
+                           tf])).T
+                X2 = np.vstack(
+                    tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
+                           tf])).T
+                y1 = np.ones((X1.shape[0]))
+                y2 = np.zeros_like(y1)
+                y = np.hstack((y1, y2))
+                # y_shuf=y.copy()
+                # rng.shuffle(y_shuf)
+                template_X = scaler.fit_transform(np.vstack((X1, X2)))
+                clf.fit(template_X, y)
+                for test_bin_idx in range(limit_bins):
+                    XX1 = np.vstack(
+                        tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
+                               tf])).T
+                    XX2 = np.vstack(
+                        tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
+                               tf])).T
+
+                    test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
+                    score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
+
+        score_mat = score_mat * 100
+        mat_list.append(score_mat)
     (fh, ax) = plt.subplots()
     im = plt.imshow(
         score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100
@@ -149,7 +180,9 @@ def cross_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, b
 
 
 if __name__ == "__main__":
-    (sus, trans) = decoding()
+    (sus100, trans100, trans1000) = cross_time_decoding()
+    sys.exit()
+    (sus, trans) = last_bin_decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
     sus_per_count = []
     for count_bin in sus:
