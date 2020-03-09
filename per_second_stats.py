@@ -267,7 +267,7 @@ def process_all(denovo=False, toPlot=False, toExport=False):
     fh = None
     axes = None
     if toPlot:
-        (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=96)
+        (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=150)
         axes[0].pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True)
         axes[0].axis('equal')
 
@@ -286,14 +286,14 @@ def process_all(denovo=False, toPlot=False, toExport=False):
                                     & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient6.astype(np.bool))
     if toPlot:
         axes[1].pie([sust, transient, switched_count, unclassified], explode=explode, labels=labels,
-                    autopct=lambda p: '{:.1f}%'.format(p * delay_sel / switched.shape[0]),
+                    # autopct=lambda p: '{:.1f}%'.format(p * delay_sel / switched.shape[0]),
+                    autopct='%1.1f%%',
                     radius=np.sqrt(delay_sel / per_sec_sel_arr.shape[1]), shadow=True)
         axes[1].axis('equal')
         axes[0].set_xlim((-1.25, 1.25))
         axes[1].set_xlim((-1.25, 1.25))
         fh.savefig('sus_trans_pie.png')
         plt.show()
-
 
     ### export list
     sust_list = np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched
@@ -310,8 +310,6 @@ def process_all(denovo=False, toPlot=False, toExport=False):
     return export_arr
 
 
-
-
 if __name__ == "__main__":
     # prepare_data_sync()
-    process_all(False,True,False)
+    process_all(False, True, False)

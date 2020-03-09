@@ -1,3 +1,13 @@
+"""
+Created on Wed Mar 05 00:14:22 2020
+
+@author: Libra
+
+Generate data set for CQ's time permute transient coding algorithm (transient\transient.m)
+Only produce intermediate data
+
+"""
+
 import numpy as np
 import h5py
 import sys

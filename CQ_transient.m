@@ -2,12 +2,12 @@ function CQ_transient(nPool)
 addpath('CQDecoding')
 datapath='su_trials_fr_6.hdf5';
 count=h5read(datapath,'/count');
-parpool(nPool);
+%parpool(nPool);
 
 batchLen=ceil(count/nPool);
 batchStart=1:batchLen:count;
 
-futures=parallel.FevalFuture.empty(nPool);
+futures=parallel.FevalFuture.empty(0,nPool);
 for batchIdx=1:nPool
     batchEnd=batchStart(batchIdx)+batchLen-1;
     if batchEnd>count
@@ -27,13 +27,14 @@ end
 function onebatch(ubegin,uend)
 addpath('CQDecoding')
 datapath='su_trials_fr_6.hdf5';
+count=h5read(datapath,'/count');
 transient=zeros(1,count);
 for i=ubegin:uend
     tic
     disp(i);
     S1_trials=h5read(datapath,['/',num2str(i-1),'/S1']);
     S2_trials=h5read(datapath,['/',num2str(i-1),'/S2']);
-    [~,~,transient(i),~,~,~]=TestSecondSelectivityChange_lite(S1_trials,S2_trials,1,2000,1:6,1:6);
+    [~,~,transient(i),~,~,~]=TestSecondSelectivityChange_lite(S1_trials,S2_trials,2000,1:6,1:6);
     save(['transient_6_',num2str(ubegin),'_',num2str(uend),'.mat'],'transient','i','ubegin','uend')
     toc
 end
@@ -71,8 +72,12 @@ ZStatistics=zeros(BinNum,BinNum);
 for i=1:BinNum
     for j=1:BinNum
         if j~=i
-            [~,~,stats] =ranksum(Sam1DiffScore(:,i,j),Sam2DiffScore(:,i,j));
-            ZStatistics(i,j)=stats.zval;
+            [~,~,stats] =ranksum(Sam1DiffScore(:,i,j),Sam2DiffScore(:,i,j),'method','approximate');
+            if isfield(stats,'zval') && ~isnan(stats.zval)
+                ZStatistics(i,j)=stats.zval;
+            else
+                ZStatistics(i,j)=0; 
+            end
         end
     end
 end

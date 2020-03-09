@@ -14,11 +14,11 @@ def decoding():
     sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
     trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
     sust_sum = []
-    repeats = 10
+    repeats = 1000
     for n_neuron in np.arange(25, 126, 25):
         sust_sum.append(same_time_decoding(sus_feat, n_neuron, (20, 25), 6, np.arange(36, 40), repeats))
     trans_sum = []
-    for n_neuron in np.arange(25, 1001, 25):
+    for n_neuron in np.arange(25, 2001, 25):
         trans_sum.append(same_time_decoding(trans_feat, n_neuron, (20, 25), 6, np.arange(36, 40), repeats))
     return (sust_sum, trans_sum)
 
@@ -74,6 +74,7 @@ def same_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bi
 
 if __name__ == "__main__":
     (sus, trans) = decoding()
+    np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
     sus_per_count = []
     for count_bin in sus:
         mm = np.mean([x[0] for x in count_bin])
