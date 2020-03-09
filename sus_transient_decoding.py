@@ -59,8 +59,8 @@ def same_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bi
         scaler = MinMaxScaler()
         X = scaler.fit_transform(np.vstack((X1, X2)))
         clf = LinearSVC()
-        scores = cross_val_score(clf, X, y, cv=n_trial[0]) * 100
-        scores_shuffled = cross_val_score(clf, X, y_shuf, cv=n_trial[0]) * 100
+        scores = cross_val_score(clf, X, y, cv=10, n_jobs=-1) * 100
+        scores_shuffled = cross_val_score(clf, X, y_shuf, cv=10, n_jobs=-1) * 100
         concurrent_time.append(
             [
                 np.mean(scores),
