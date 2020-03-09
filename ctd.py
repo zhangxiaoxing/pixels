@@ -185,24 +185,8 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
         limit_bins = features_per_su[0]["S1_3"].shape[0]
 
     for bin_idx in range(limit_bins):
-        X1 = np.vstack(
-            tuple(
-                [
-                    su[keys[0]][bin_idx, :n_sel]
-                    for (su, tf) in zip(features_per_su, avail_sel)
-                    if tf
-                ]
-            )
-        ).T
-        X2 = np.vstack(
-            tuple(
-                [
-                    su[keys[1]][bin_idx, :n_sel]
-                    for (su, tf) in zip(features_per_su, avail_sel)
-                    if tf
-                ]
-            )
-        ).T
+        X1 = np.vstack(tuple([su[keys[0]][bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+        X2 = np.vstack(tuple([su[keys[1]][bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
         y1 = np.ones((X1.shape[0]))
         y2 = np.zeros_like(y1)
         y = np.hstack((y1, y2))
@@ -331,7 +315,6 @@ def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, pr
     breakpoint()
     # be noted n_sel was not used until later stage, e.g. saved dataset is complete
     (features_per_su, reg_list) = get_dataset(denovo)
-
 
     if reg_onset is None:
         cross_time_decoding(features_per_su, n_sel, delay=3, limit_bins=None)

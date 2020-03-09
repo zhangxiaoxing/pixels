@@ -72,6 +72,82 @@ def same_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bi
     return concurrent_time
 
 
+def cross_time_decoding(features_per_su, n_neuron=None, n_trial=None, delay=6, bin_range=None, repeat=10):
+    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
+
+    scaler = MinMaxScaler()
+    avail_sel = [
+        (x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1])
+        for x in features_per_su
+    ]
+
+    if sum(avail_sel) < 10:
+        print('Not enough SU with suffcient trials')
+        return None
+
+    clf = LinearSVC()
+    # bins, trials
+
+    if limit_bins is None:
+        limit_bins = features_per_su[0][keys[0]].shape[0]
+
+    score_mat = np.zeros((limit_bins, limit_bins))
+    for template_bin_idx in range(limit_bins):
+        X1 = np.vstack(
+            tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+        X2 = np.vstack(
+            tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+        y1 = np.ones((X1.shape[0]))
+        y2 = np.zeros_like(y1)
+        y = np.hstack((y1, y2))
+        # y_shuf=y.copy()
+        # rng.shuffle(y_shuf)
+        template_X = scaler.fit_transform(np.vstack((X1, X2)))
+        clf.fit(template_X, y)
+        for test_bin_idx in range(limit_bins):
+            XX1 = np.vstack(
+                tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+            XX2 = np.vstack(
+                tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+
+            test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
+            score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
+
+    score_mat = score_mat * 100
+    (fh, ax) = plt.subplots()
+    im = plt.imshow(
+        score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100
+    )
+    plt.colorbar(im, ticks=[50, 75, 100], format="%d")
+    suffix = None
+    if delay == 3:
+        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+        suffix = "3S"
+    else:
+        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+        suffix = "6S"
+
+    ax.set_xticks([11.5, 31.5, 51.5])
+    ax.set_xticklabels([0, 5, 10])
+    ax.set_xlabel("Time (s)")
+    ax.set_yticks([11.5, 31.5, 51.5])
+    ax.set_yticklabels([0, 5, 10])
+    ax.set_ylabel("Time (s)")
+    ax.set_title(f"{reg_name} CTD {suffix} delay")
+    fh.savefig(
+        f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight"
+    )
+    np.save(f"score_mat_{suffix}_{reg_name}.npy", score_mat)
+    return score_mat
+
+    ### disabled due to missing trials
+    # availErrTrials=[]
+    # for su in features_per_su:
+    #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
+
+
 if __name__ == "__main__":
     (sus, trans) = decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
