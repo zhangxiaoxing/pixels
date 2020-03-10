@@ -5,6 +5,7 @@ from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
+from multiprocessing import Pool
 import matplotlib.pyplot as plt
 
 
@@ -75,14 +76,38 @@ def cross_time_decoding():
     sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
     sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
     trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
-    repeats = 3
-    sust100 = cross_time_decoding_calc(sus_feat, 100, (20, 25), 6, np.arange(4, 52), repeats)
-    trans100 = cross_time_decoding_calc(trans_feat, 100, (20, 25), 6, np.arange(4, 52), repeats)
-    trans1000 = cross_time_decoding_calc(trans_feat, 1000, (20, 25), 6, np.arange(4, 52), repeats)
-    return (sust100, trans100, trans1000)
+    repeats = 1000
+    curr_pool = Pool(processes=24)
+    sust_list = []
+    trans100_list = []
+    trans1000_list = []
+    sust_proc = []
+    trans100_proc = []
+    trans1000_proc = []
+    for i in range(repeats):
+        sust_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(sus_feat,),
+                                               kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": 6,
+                                                     "bin_range": np.arange(4, 52)}))
+
+        trans100_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
+                                                   kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": 6,
+                                                         "bin_range": np.arange(4, 52)}))
+        trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
+                                                    kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": 6,
+                                                          "bin_range": np.arange(4, 52)}))
+    for one_proc in sust_proc:
+        sust_list.append(one_proc.get())
+
+    for one_proc in trans100_proc:
+        trans100_list.append(one_proc.get())
+
+    for one_proc in trans1000_proc:
+        trans1000_list.append(one_proc.get())
+
+    return (sust_list, trans100_list, trans1000_list)
 
 
-def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None, repeat=10):
+def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     if bin_range is None:
         bin_range = np.arange(36, 40)
@@ -96,82 +121,72 @@ def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), de
     if bin_range is None:
         bin_range = np.arange(features_per_su[0][keys[0]].shape[0])
 
-    mat_list = []
-    score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
-
     scaler = MinMaxScaler()
     clf = LinearSVC()
     kf = KFold(10)
-    for rIdx in np.arange(repeat):
-        su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
-        su_selected_features = [features_per_su[i] for i in su_index]
-        X1 = []
-        X2 = []
-        for one_su in su_selected_features:
-            trial_to_select1 = np.random.choice(one_su[keys[0]].shape[1], n_trial[0], replace=False)
-            X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select1])
-            trial_to_select2 = np.random.choice(one_su[keys[1]].shape[1], n_trial[0], replace=False)
-            X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select2])
+    su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
+    su_selected_features = [features_per_su[i] for i in su_index]
+    X1 = []
+    X2 = []
+    for one_su in su_selected_features:
+        trial_to_select1 = np.random.choice(one_su[keys[0]].shape[1], n_trial[0], replace=False)
+        X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select1])
+        trial_to_select2 = np.random.choice(one_su[keys[1]].shape[1], n_trial[0], replace=False)
+        X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select2])
 
+    X1 = np.array(X1).transpose((1, 0, 2))
+    X2 = np.array(X2).transpose((1, 0, 2))  # trial, SU, bin
 
-
-        for template_bin_idx in np.arange(X1[0][0].shape[0]):
-            kf.split(X)
-            for test_bin_idx in np.arange(X1[0][0].shape[0]):
-                # TODO: proper 10 fold
-                X1 = np.vstack(
-                    tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
-                           tf])).T
-                X2 = np.vstack(
-                    tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
-                           tf])).T
-                y1 = np.ones((X1.shape[0]))
-                y2 = np.zeros_like(y1)
-                y = np.hstack((y1, y2))
+    y1 = np.ones((X1.shape[0]))
+    y2 = np.zeros_like(y1)
+    y = np.hstack((y1, y2))
+    one_cv = []
+    for (templates, tests) in kf.split(X1):
+        score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
+        for template_bin_idx in np.arange(bin_range.shape[0]):
+            X_templates = np.vstack((X1[templates, :, template_bin_idx], X2[templates, :, template_bin_idx]))
+            y_templates = np.hstack((np.zeros_like(templates), np.ones_like(templates))).T
+            scaler = scaler.fit(X_templates)
+            X_templates = scaler.transform(X_templates)
+            for test_bin_idx in np.arange(bin_range.shape[0]):
+                X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
+                y_test = np.hstack((np.zeros_like(tests), np.ones_like(tests))).T
                 # y_shuf=y.copy()
                 # rng.shuffle(y_shuf)
-                template_X = scaler.fit_transform(np.vstack((X1, X2)))
-                clf.fit(template_X, y)
-                for test_bin_idx in range(limit_bins):
-                    XX1 = np.vstack(
-                        tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
-                               tf])).T
-                    XX2 = np.vstack(
-                        tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if
-                               tf])).T
-
-                    test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
-                    score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
+                clf.fit(X_templates, y_templates)
+                X_test = scaler.transform(X_test)
+                score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
 
         score_mat = score_mat * 100
-        mat_list.append(score_mat)
-    (fh, ax) = plt.subplots()
-    im = plt.imshow(
-        score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100
-    )
-    plt.colorbar(im, ticks=[50, 75, 100], format="%d")
-    suffix = None
-    if delay == 3:
-        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
-        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
-        suffix = "3S"
-    else:
-        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
-        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
-        suffix = "6S"
+        one_cv.append(score_mat)
 
-    ax.set_xticks([11.5, 31.5, 51.5])
-    ax.set_xticklabels([0, 5, 10])
-    ax.set_xlabel("Time (s)")
-    ax.set_yticks([11.5, 31.5, 51.5])
-    ax.set_yticklabels([0, 5, 10])
-    ax.set_ylabel("Time (s)")
-    ax.set_title(f"{reg_name} CTD {suffix} delay")
-    fh.savefig(
-        f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight"
-    )
-    np.save(f"score_mat_{suffix}_{reg_name}.npy", score_mat)
-    return score_mat
+    # (fh, ax) = plt.subplots()
+    # im = plt.imshow(
+    #     score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100
+    # )
+    # plt.colorbar(im, ticks=[50, 75, 100], format="%d")
+    # suffix = None
+    # if delay == 3:
+    #     [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+    #     [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
+    #     suffix = "3S"
+    # else:
+    #     [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+    #     [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
+    #     suffix = "6S"
+    #
+    # ax.set_xticks([11.5, 31.5, 51.5])
+    # ax.set_xticklabels([0, 5, 10])
+    # ax.set_xlabel("Time (s)")
+    # ax.set_yticks([11.5, 31.5, 51.5])
+    # ax.set_yticklabels([0, 5, 10])
+    # ax.set_ylabel("Time (s)")
+    # ax.set_title(f"{reg_name} CTD {suffix} delay")
+    # fh.savefig(
+    #     f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight"
+    # )
+    # np.save(f"score_mat_{suffix}_{reg_name}.npy", score_mat)
+    return one_cv
 
     ### disabled due to missing trials
     # availErrTrials=[]
@@ -181,6 +196,7 @@ def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), de
 
 if __name__ == "__main__":
     (sus100, trans100, trans1000) = cross_time_decoding()
+    np.savez_compressed('sus_trans_ctd.npz', sus100=sus100, trans100=trans100, trans1000=trans1000)
     sys.exit()
     (sus, trans) = last_bin_decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
