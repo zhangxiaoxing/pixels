@@ -6,6 +6,9 @@ Created on Wed Mar 05 00:14:22 2020
 Generate data set for CQ's time permute transient coding algorithm (transient\transient.m)
 Only produce intermediate data
 
+For transient sustained percentage pie chart, use per_second_stats.py
+For 1D and 2D decoding, use sus_transient_decoding.py
+
 """
 
 import numpy as np

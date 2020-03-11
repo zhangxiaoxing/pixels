@@ -49,41 +49,64 @@ class per_sec_stats:
             k += diff < np.abs(np.mean(zs[:n]) - np.mean(zs[n:]))
         return k / nmc
 
-    def processGLMStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None):
+    def processGLMStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None, delay=6):
 
         # trial_FR [bin, trial, SU]
         ### TODO: when variables are none
 
-        firing_rate_6 = trial_FR[:, (trials[:, 5] == 6) & welltrain_window & correct_resp, :]
-        trial_perf_sel = trials[(trials[:, 5] == 6) & welltrain_window & correct_resp, :]
+        ### TODO: 3s delay branch
 
-        trial_sel_left = trial_perf_sel[:, 2] == 4
+        firing_rate_6 = trial_FR[:, (trials[:, 5] == 6) & welltrain_window & correct_resp, :]
+        firing_rate_3 = trial_FR[:, (trials[:, 5] == 3) & welltrain_window & correct_resp, :]
+        trial_perf_sel_6 = trials[(trials[:, 5] == 6) & welltrain_window & correct_resp, :]
+        trial_perf_sel_3 = trials[(trials[:, 5] == 3) & welltrain_window & correct_resp, :]
+
+        trial_sel_left_6 = trial_perf_sel_6[:, 2] == 4
+        trial_sel_left_3 = trial_perf_sel_3[:, 2] == 4
 
         self.per_sec_sel = np.zeros((7, trial_FR.shape[2]))
-        self.per_sec_prefS1 = np.zeros((7, trial_FR.shape[2]))
-        self.per_sec_prefS2 = np.zeros((7, trial_FR.shape[2]))
+        self.per_sec_prefS1 = np.zeros_like(self.per_sec_sel)
+        self.per_sec_prefS2 = np.zeros_like(self.per_sec_sel)
         self.non_sel_mod = np.zeros_like(self.per_sec_sel)
-        # self.non_mod = np.zeros_like(self.per_sec_sel)
 
         for su_idx in range(trial_FR.shape[2]):
-            onesu = np.squeeze(firing_rate_6[:, :, su_idx]).T
-            left_trials = onesu[trial_sel_left, :]
-            right_trials = onesu[~trial_sel_left, :]
+            onesu_6 = np.squeeze(firing_rate_6[:, :, su_idx]).T
+            onesu_3 = np.squeeze(firing_rate_3[:, :, su_idx]).T
+            left_trials_6 = onesu_6[trial_sel_left_6, :]
+            right_trials_6 = onesu_6[~trial_sel_left_6, :]
+
+            left_trials_3 = onesu_3[trial_sel_left_3, :]
+            right_trials_3 = onesu_3[~trial_sel_left_3, :]
 
             # SP = np.arange(12, 16) ED = np.arange(18, 28) LD = np.arange(28, 38)
-            for bin_idx in range(0, 7):
-                bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
-                self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials[:, bins],
-                                                                         right_trials[:, bins])
-                if self.per_sec_sel[bin_idx, su_idx]:
-                    if np.mean(left_trials[:, bins]) > np.mean(right_trials[:, bins]):
-                        self.per_sec_prefS1[bin_idx, su_idx] = 1
-                    else:
-                        self.per_sec_prefS2[bin_idx, su_idx] = 1
+            if delay == 6:
+                for bin_idx in range(0, 7):
+                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
+                    self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
+                                                                             right_trials_6[:, bins])
+                    if self.per_sec_sel[bin_idx, su_idx]:
+                        if np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]):
+                            self.per_sec_prefS1[bin_idx, su_idx] = 1
+                        else:
+                            self.per_sec_prefS2[bin_idx, su_idx] = 1
 
-                self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
-                                                     self.bool_stats_test(onesu[:, bins],
-                                                                          onesu[:, 6:10]))
+                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
+                                                         self.bool_stats_test(onesu_6[:, bins],
+                                                                              onesu_6[:, 6:10]))
+            elif delay == 3:
+                for bin_idx in range(0, 4):
+                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
+                    self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
+                                                                             right_trials_3[:, bins])
+                    if self.per_sec_sel[bin_idx, su_idx]:
+                        if np.mean(left_trials_3[:, bins]) > np.mean(right_trials_3[:, bins]):
+                            self.per_sec_prefS1[bin_idx, su_idx] = 1
+                        else:
+                            self.per_sec_prefS2[bin_idx, su_idx] = 1
+
+                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel_3[bin_idx, su_idx]) and
+                                                         self.bool_stats_test(onesu_3[:, bins],
+                                                                              onesu_3[:, 6:10]))
                 # self.non_mod[bin_idx, su_idx] = not (
                 #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
 
@@ -93,7 +116,8 @@ class per_sec_stats:
 
 ### all brain region entry point
 
-def prepare_data():
+def prepare_data(delay=6):
+    # TODO: 3s delay branch
     curr_stats = per_sec_stats()
     per_sec_sel_list = []
     non_sel_mod_list = []
@@ -139,7 +163,7 @@ def prepare_data():
         if perf_code != 3:
             continue
 
-        curr_stats.processGLMStats(trial_FR, trials, welltrain_window, correct_resp)
+        curr_stats.processGLMStats(trial_FR, trials, welltrain_window, correct_resp, delay=delay)
 
         (per_sec_sel, non_sel_mod, perfS1, perfS2) = curr_stats.getFeatures()
         per_sec_sel_list.append(per_sec_sel)
@@ -208,7 +232,7 @@ def plot_features():
 
 
 # %% main
-def process_all(denovo=False, toPlot=False, toExport=False):
+def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
     perfS1_arr = None
@@ -216,7 +240,8 @@ def process_all(denovo=False, toPlot=False, toExport=False):
     reg_arr = None
     if denovo:
         ### save raw data file
-        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list) = prepare_data()
+        ### TODO need a 3s delay branck
+        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list) = prepare_data(delay=delay)
         per_sec_sel_arr = np.hstack(per_sec_list)
         non_sel_mod_arr = np.hstack(non_sel_mod_list)
         perfS1_arr = np.hstack(perfS1_list)
@@ -236,9 +261,9 @@ def process_all(denovo=False, toPlot=False, toExport=False):
         fstr = np.load('per_sec_sel.npz')
         per_sec_sel_arr = fstr['per_sec_sel_arr']
         non_sel_mod_arr = fstr['non_sel_mod_arr']
-        perfS1_arr = fstr['perfS1_arr']
-        perfS2_arr = fstr['perfS2_arr']
-        reg_arr = fstr['reg_arr']
+        # perfS1_arr = fstr['perfS1_arr']
+        # perfS2_arr = fstr['perfS2_arr']
+        # reg_arr = fstr['reg_arr']
 
     sample_only = np.count_nonzero(per_sec_sel_arr[0, :].astype(np.bool) & ~np.any(per_sec_sel_arr[1:7, :], axis=0))
     delay_sel = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0))
@@ -255,11 +280,13 @@ def process_all(denovo=False, toPlot=False, toExport=False):
     perfS1_arr = fstr['perfS1_arr']
     perfS2_arr = fstr['perfS2_arr']
     # reg_arr = fstr['reg_arr']
-    transient6 = None
-    transient3 = None
+    # CQ's algorithm of transient coding, both 3s and 6s obtained
+    transient = None
     with h5py.File(os.path.join('transient', 'CQ_transient.hdf5'), 'r') as fr:
-        transient6 = np.array(fr["transient6"]).T
-        transient3 = np.array(fr["transient3"]).T
+        if delay == 6:
+            transient = np.array(fr["transient6"]).T
+        elif delay == 3:
+            transient = np.array(fr["transient3"]).T
 
     frac = [delay_sel, sample_only, non_sel_mod, non_mod]
     explode = (0.1, 0.1, 0, 0)
@@ -274,16 +301,16 @@ def process_all(denovo=False, toPlot=False, toExport=False):
         explode = (0.1, 0, 0, 0)
         labels = ('sustained', 'transient', 'transient-switched', 'unclassified')
 
-    switched = np.any(perfS1_arr[1:7, :], axis=0) & np.any(perfS2_arr[1:7, :], axis=0) & transient6.astype(
+    switched = np.any(perfS1_arr[1:7, :], axis=0) & np.any(perfS2_arr[1:7, :], axis=0) & transient.astype(
         np.bool).flatten()
 
     sust = np.count_nonzero(np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched)
     transient = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                                 & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient6.astype(np.bool))
+                                 & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient.astype(np.bool))
     switched_count = np.count_nonzero(switched)
 
     unclassified = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                                    & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient6.astype(np.bool))
+                                    & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient.astype(np.bool))
     if toPlot:
         axes[1].pie([sust, transient, switched_count, unclassified], explode=explode, labels=labels,
                     # autopct=lambda p: '{:.1f}%'.format(p * delay_sel / switched.shape[0]),
@@ -298,10 +325,10 @@ def process_all(denovo=False, toPlot=False, toExport=False):
     ### export list
     sust_list = np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched
     transient_list = (np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                      & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient6.astype(np.bool).flatten())
+                      & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient.astype(np.bool).flatten())
     switched_list = switched
     unclassified_list = (np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                         & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient6.astype(np.bool).flatten())
+                         & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient.astype(np.bool).flatten())
 
     export_arr = np.vstack((sust_list, transient_list, switched_list, unclassified_list)).T.astype(np.int8)
     if toExport:
