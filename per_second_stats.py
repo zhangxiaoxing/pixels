@@ -3,7 +3,17 @@
 Created on Wed Feb 12 00:14:22 2020
 
 @author: Libra
+
+
+@author: Libra
+
+Generate transient sustained percentage pie chart
+Depends on intermediate data from CQTransient.py-> CQ_transient.m
+
+For 1D and 2D decoding, use sus_transient_decoding.py
+
 """
+
 import os
 import h5py
 import csv
@@ -104,7 +114,7 @@ class per_sec_stats:
                         else:
                             self.per_sec_prefS2[bin_idx, su_idx] = 1
 
-                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel_3[bin_idx, su_idx]) and
+                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
                                                          self.bool_stats_test(onesu_3[:, bins],
                                                                               onesu_3[:, 6:10]))
                 # self.non_mod[bin_idx, su_idx] = not (
@@ -247,40 +257,43 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
         perfS1_arr = np.hstack(perfS1_list)
         perfS2_arr = np.hstack(perfS2_list)
 
-        np.savez_compressed('per_sec_sel.npz', per_sec_sel_arr=per_sec_sel_arr,
+        np.savez_compressed(f'per_sec_sel_{delay}.npz', per_sec_sel_arr=per_sec_sel_arr,
                             non_sel_mod_arr=non_sel_mod_arr,
                             # non_mod_arr=non_mod_arr,
                             perfS1_arr=perfS1_arr,
                             perfS2_arr=perfS2_arr,
-                            reg_arr=reg_list)
+                            reg_arr=reg_list,
+                            delay=delay)
     else:
         ### load back saved raw data
-        if not os.path.isfile("per_sec_sel.npz"):
+        if not os.path.isfile(f"per_sec_sel_{delay}.npz"):
             print('missing data file!')
             return
-        fstr = np.load('per_sec_sel.npz')
+        fstr = np.load(f'per_sec_sel_{delay}.npz')
         per_sec_sel_arr = fstr['per_sec_sel_arr']
         non_sel_mod_arr = fstr['non_sel_mod_arr']
-        # perfS1_arr = fstr['perfS1_arr']
-        # perfS2_arr = fstr['perfS2_arr']
+        if fstr['delay'] != delay:
+            print('Delay duration mismatch')
+        perfS1_arr = fstr['perfS1_arr']
+        perfS2_arr = fstr['perfS2_arr']
         # reg_arr = fstr['reg_arr']
 
-    sample_only = np.count_nonzero(per_sec_sel_arr[0, :].astype(np.bool) & ~np.any(per_sec_sel_arr[1:7, :], axis=0))
-    delay_sel = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0))
-    non_sel_mod = np.count_nonzero(np.any(non_sel_mod_arr[1:7, :], axis=0) & ~np.any(per_sec_sel_arr[1:7, :], axis=0))
-    non_mod = per_sec_sel_arr.shape[1] - sample_only - delay_sel - non_sel_mod
-    ### TODO: load transient permute result
+    delay_bins = None
+    if delay == 6:
+        delay_bins = np.arange(1, 7)
+    elif delay == 3:
+        delay_bins = np.arange(1, 4)
 
-    if not os.path.isfile("per_sec_sel.npz"):
-        print('missing data file!')
-        sys.exit(0)
-    fstr = np.load('per_sec_sel.npz')
-    per_sec_sel_arr = fstr['per_sec_sel_arr']
-    non_sel_mod_arr = fstr['non_sel_mod_arr']
-    perfS1_arr = fstr['perfS1_arr']
-    perfS2_arr = fstr['perfS2_arr']
-    # reg_arr = fstr['reg_arr']
-    # CQ's algorithm of transient coding, both 3s and 6s obtained
+    sample_only = per_sec_sel_arr[0, :].astype(np.bool) & ~np.any(per_sec_sel_arr[delay_bins, :], axis=0)
+    sample_only_count = np.count_nonzero(sample_only)
+    delay_sel = np.any(per_sec_sel_arr[delay_bins, :], axis=0)
+    delay_sel_count = np.count_nonzero(delay_sel)
+    non_sel_mod = np.any(non_sel_mod_arr[delay_bins, :], axis=0) & ~np.any(per_sec_sel_arr[delay_bins, :], axis=0)
+    non_sel_mod_count = np.count_nonzero(non_sel_mod)
+    non_mod = np.logical_not(np.logical_not(np.any(np.vstack((sample_only, delay_sel, non_sel_mod)), axis=0)))
+    non_mod_count = np.count_nonzero(non_mod)
+
+    # output from CQ's algorithm of transient coding, both 3s and 6s obtained
     transient = None
     with h5py.File(os.path.join('transient', 'CQ_transient.hdf5'), 'r') as fr:
         if delay == 6:
@@ -288,55 +301,109 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
         elif delay == 3:
             transient = np.array(fr["transient3"]).T
 
-    frac = [delay_sel, sample_only, non_sel_mod, non_mod]
+    frac = [delay_sel_count, sample_only_count, non_sel_mod_count, non_mod_count]
     explode = (0.1, 0.1, 0, 0)
     labels = ('selective during delay', 'selective only during sample', 'Non-selective modulation', 'Unmodulated')
     fh = None
     axes = None
     if toPlot:
-        (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=150)
+        (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=200)
         axes[0].pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True)
         axes[0].axis('equal')
 
         explode = (0.1, 0, 0, 0)
         labels = ('sustained', 'transient', 'transient-switched', 'unclassified')
 
-    switched = np.any(perfS1_arr[1:7, :], axis=0) & np.any(perfS2_arr[1:7, :], axis=0) & transient.astype(
+    switched = np.any(perfS1_arr[delay_bins, :], axis=0) & np.any(perfS2_arr[delay_bins, :], axis=0) & transient.astype(
         np.bool).flatten()
 
-    sust = np.count_nonzero(np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched)
-    transient = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                                 & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient.astype(np.bool))
+    sust_count = np.count_nonzero(np.all(per_sec_sel_arr[delay_bins, :], axis=0) & ~switched)
+    transient_count = np.count_nonzero(np.any(per_sec_sel_arr[delay_bins, :], axis=0) & (~switched)
+                                       & (~np.all(per_sec_sel_arr[delay_bins, :], axis=0)) & transient.astype(np.bool))
     switched_count = np.count_nonzero(switched)
 
-    unclassified = np.count_nonzero(np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                                    & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient.astype(np.bool))
+    unclassified_count = np.count_nonzero(np.any(per_sec_sel_arr[delay_bins, :], axis=0) & (~switched)
+                                          & (~np.all(per_sec_sel_arr[delay_bins, :], axis=0)) & ~transient.astype(
+        np.bool))
     if toPlot:
-        axes[1].pie([sust, transient, switched_count, unclassified], explode=explode, labels=labels,
-                    # autopct=lambda p: '{:.1f}%'.format(p * delay_sel / switched.shape[0]),
+        axes[1].pie([sust_count, transient_count, switched_count, unclassified_count], explode=explode, labels=labels,
                     autopct='%1.1f%%',
-                    radius=np.sqrt(delay_sel / per_sec_sel_arr.shape[1]), shadow=True)
+                    radius=np.sqrt(delay_sel_count / per_sec_sel_arr.shape[1]), shadow=True)
         axes[1].axis('equal')
         axes[0].set_xlim((-1.25, 1.25))
         axes[1].set_xlim((-1.25, 1.25))
-        fh.savefig('sus_trans_pie.png')
+        fh.savefig(f'sus_trans_pie_{delay}.png')
         plt.show()
 
     ### export list
-    sust_list = np.all(per_sec_sel_arr[1:7, :], axis=0) & ~switched
-    transient_list = (np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                      & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & transient.astype(np.bool).flatten())
+    sust_list = np.all(per_sec_sel_arr[delay_bins, :], axis=0) & ~switched
+    transient_list = (np.any(per_sec_sel_arr[delay_bins, :], axis=0) & (~switched)
+                      & (~np.all(per_sec_sel_arr[delay_bins, :], axis=0)) & transient.astype(np.bool).flatten())
     switched_list = switched
-    unclassified_list = (np.any(per_sec_sel_arr[1:7, :], axis=0) & (~switched)
-                         & (~np.all(per_sec_sel_arr[1:7, :], axis=0)) & ~transient.astype(np.bool).flatten())
+    unclassified_list = (np.any(per_sec_sel_arr[delay_bins, :], axis=0) & (~switched)
+                         & (~np.all(per_sec_sel_arr[delay_bins, :], axis=0)) & ~transient.astype(np.bool).flatten())
 
     export_arr = np.vstack((sust_list, transient_list, switched_list, unclassified_list)).T.astype(np.int8)
+    np.savez_compressed(f'sus_trans_pie_{delay}.npz', sust_list=sust_list, transient_list=transient_list,
+                        switched_list=switched_list, unclassified_list=unclassified_list, sample_only=sample_only,
+                        non_sel_mod=non_sel_mod, non_mod=non_mod)
+
     if toExport:
-        np.savetxt('transient.csv', export_arr, fmt='%d', delimiter=',',
+        np.savetxt(f'transient_{delay}.csv', export_arr, fmt='%d', delimiter=',',
                    header='Sustained,transient,switched,unclassified')
     return export_arr
 
 
+def venn():
+    # load and align 6s 3s delay selectivity data
+    fstr6 = np.load('sus_trans_pie_6.npz')
+    fstr3 = np.load('sus_trans_pie_3.npz')
+    sample_only_3 = fstr3['sample_only']
+    sample_only_6 = fstr6['sample_only']
+
+    np.count_nonzero(sample_only_3)
+    np.count_nonzero(sample_only_6)
+    np.count_nonzero(sample_only_3 & sample_only_6)
+
+    sus_3 = fstr3['sust_list']
+    sus_6 = fstr6['sust_list']
+
+    np.count_nonzero(sus_3)
+    np.count_nonzero(sus_6)
+    np.count_nonzero(sus_3 & sus_6)
+
+    transient_3 = fstr3['transient_list']
+    transient_6 = fstr6['transient_list']
+
+    np.count_nonzero(transient_3)
+    np.count_nonzero(transient_6)
+    np.count_nonzero(transient_3 & transient_6)
+
+    np.count_nonzero(sus_3 & transient_6)
+
+    switched_3 = fstr3['switched_list']
+    switched_6 = fstr6['switched_list']
+
+    np.count_nonzero(switched_3)
+    np.count_nonzero(switched_6)
+    np.count_nonzero(switched_3 & switched_6)
+
+    non_sel_mod_3 = fstr3['non_sel_mod']
+    non_sel_mod_6 = fstr6['non_sel_mod']
+
+    np.count_nonzero(non_sel_mod_3)
+    np.count_nonzero(non_sel_mod_6)
+    np.count_nonzero(non_sel_mod_3 & non_sel_mod_6)
+
+    non_mod_3 = fstr3['non_mod']
+    non_mod_6 = fstr6['non_mod']
+
+    np.count_nonzero(non_mod_3)
+    np.count_nonzero(non_mod_6)
+    np.count_nonzero(non_mod_3 & non_mod_6)
+
+
 if __name__ == "__main__":
     # prepare_data_sync()
-    process_all(False, True, False)
+    process_all(denovo=False, toPlot=True, toExport=False, delay=6)
+    # process_all(denovo=False, toPlot=True, toExport=False, delay=3)
