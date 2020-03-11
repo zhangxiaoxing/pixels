@@ -69,49 +69,79 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
     return concurrent_time
 
 
-def cross_time_decoding():
-    fstr = np.load("ctd.npz", allow_pickle=True)
-    features_per_su = fstr["features_per_su"].tolist()
-    # reg_list = fstr["reg_list"].tolist()
-    sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
-    sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
-    trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
-    repeats = 1000
-    curr_pool = Pool(processes=24)
-    sus100 = []
-    trans100 = []
-    trans1000 = []
-    sust_proc = []
-    trans100_proc = []
-    trans1000_proc = []
-    for i in range(repeats):
-        sust_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(sus_feat,),
-                                               kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": 6,
-                                                     "bin_range": np.arange(4, 52)}))
-
-        trans100_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
+def cross_time_decoding(denovo=False, plot=False):
+    if denovo:
+        fstr = np.load("ctd.npz", allow_pickle=True)
+        features_per_su = fstr["features_per_su"].tolist()
+        # reg_list = fstr["reg_list"].tolist()
+        sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+        sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+        repeats = 1000
+        curr_pool = Pool(processes=24)
+        sus100 = []
+        trans100 = []
+        trans1000 = []
+        sust_proc = []
+        trans100_proc = []
+        trans1000_proc = []
+        for i in range(repeats):
+            sust_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(sus_feat,),
                                                    kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": 6,
                                                          "bin_range": np.arange(4, 52)}))
-        trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
-                                                    kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": 6,
-                                                          "bin_range": np.arange(4, 52)}))
-    for one_proc in sust_proc:
-        sus100.append(one_proc.get())
 
-    for one_proc in trans100_proc:
-        trans100.append(one_proc.get())
+            trans100_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
+                                                       kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": 6,
+                                                             "bin_range": np.arange(4, 52)}))
+            trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": 6,
+                                                              "bin_range": np.arange(4, 52)}))
+        for one_proc in sust_proc:
+            sus100.append(one_proc.get())
 
-    for one_proc in trans1000_proc:
-        trans1000.append(one_proc.get())
+        for one_proc in trans100_proc:
+            trans100.append(one_proc.get())
+
+        for one_proc in trans1000_proc:
+            trans1000.append(one_proc.get())
+        return (sus100, trans100, trans1000)
+
+    else:
+        fstr=np.load("sus_trans_ctd10.npz")
+        sus100=fstr['sus100']
+        trans100=fstr['trans100']
+        trans1000=fstr['trans1000']
+
+        sus_mat=sus100.mean(axis=0).mean(axis=0)
+        trans100_mat=trans100.mean(axis=0).mean(axis=0)
+        trans1000_mat=trans1000.mean(axis=0).mean(axis=0)
+
+
+        (fig,ax)=plt.subplots(1,3,figsize=[9,3],dpi=150)
+        ax[0].imshow(sus_mat,cmap="jet", aspect="auto", origin='lower',vmin=0, vmax=100)
+        ax[0].set_title('100 sustained SU')
+        ax[1].imshow(trans100_mat,cmap="jet", aspect="auto", origin='lower',vmin=0, vmax=100)
+        ax[1].set_title('100 transient SU')
+        im2=ax[2].imshow(trans1000_mat,cmap="jet", aspect="auto", origin='lower',vmin=0, vmax=100)
+        ax[2].set_title('1000 transient SU')
+        plt.colorbar(im2,ticks=[0,50,100],format="%d")
+
+        for oneax in ax:
+            oneax.set_xticks([7.5,27.5])
+            oneax.set_xticklabels([0,5])
+            oneax.set_xlabel('template time (s)')
+            oneax.set_yticks([7.5,27.5])
+            oneax.set_yticklabels([0,5])
+            oneax.set_ylabel('scoring time (s)')
+            [oneax.axhline(x,color='w',ls=':') for x in [7.5,11.5,35.5,39.5]]
+            [oneax.axvline(x,color='w',ls=':') for x in [7.5,11.5,35.5,39.5]]
+        fig.savefig('sustained_transient_ctd.png',bbox_inches='tight')
+        plt.show()
+
+        return (sus100, trans100, trans1000)
 
 
 
-
-
-    fstr=np.load("sus_trans_ctd10.npz")
-
-
-    return (sus100, trans100, trans1000)
 
 
 def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
