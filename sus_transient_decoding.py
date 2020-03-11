@@ -78,9 +78,9 @@ def cross_time_decoding():
     trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
     repeats = 1000
     curr_pool = Pool(processes=24)
-    sust_list = []
-    trans100_list = []
-    trans1000_list = []
+    sus100 = []
+    trans100 = []
+    trans1000 = []
     sust_proc = []
     trans100_proc = []
     trans1000_proc = []
@@ -96,15 +96,22 @@ def cross_time_decoding():
                                                     kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": 6,
                                                           "bin_range": np.arange(4, 52)}))
     for one_proc in sust_proc:
-        sust_list.append(one_proc.get())
+        sus100.append(one_proc.get())
 
     for one_proc in trans100_proc:
-        trans100_list.append(one_proc.get())
+        trans100.append(one_proc.get())
 
     for one_proc in trans1000_proc:
-        trans1000_list.append(one_proc.get())
+        trans1000.append(one_proc.get())
 
-    return (sust_list, trans100_list, trans1000_list)
+
+
+
+
+    fstr=np.load("sus_trans_ctd10.npz")
+
+
+    return (sus100, trans100, trans1000)
 
 
 def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
