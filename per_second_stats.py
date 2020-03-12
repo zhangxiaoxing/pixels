@@ -136,7 +136,7 @@ def prepare_data(delay=6):
     # non_mod_list = []
     reg_list = []
     dpath = align.get_root_path()
-    for path in align.traverse(dpath):
+    for path in sorted(align.traverse(dpath)):
         print(path)
         # SU_ids = []
         trial_FR = None
@@ -288,9 +288,10 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
     sample_only_count = np.count_nonzero(sample_only)
     delay_sel = np.any(per_sec_sel_arr[delay_bins, :], axis=0)
     delay_sel_count = np.count_nonzero(delay_sel)
-    non_sel_mod = np.any(non_sel_mod_arr[delay_bins, :], axis=0) & ~np.any(per_sec_sel_arr[delay_bins, :], axis=0)
+    non_sel_mod = np.any(non_sel_mod_arr[delay_bins, :], axis=0) & np.logical_not(
+        np.any(np.vstack((sample_only, delay_sel)), axis=0))
     non_sel_mod_count = np.count_nonzero(non_sel_mod)
-    non_mod = np.logical_not(np.logical_not(np.any(np.vstack((sample_only, delay_sel, non_sel_mod)), axis=0)))
+    non_mod = np.logical_not(np.any(np.vstack((sample_only, delay_sel, non_sel_mod)), axis=0))
     non_mod_count = np.count_nonzero(non_mod)
 
     # output from CQ's algorithm of transient coding, both 3s and 6s obtained
@@ -332,6 +333,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
         axes[1].axis('equal')
         axes[0].set_xlim((-1.25, 1.25))
         axes[1].set_xlim((-1.25, 1.25))
+        fh.suptitle(f'{delay}s delay')
         fh.savefig(f'sus_trans_pie_{delay}.png')
         plt.show()
 
@@ -406,4 +408,4 @@ def venn():
 if __name__ == "__main__":
     # prepare_data_sync()
     process_all(denovo=False, toPlot=True, toExport=False, delay=6)
-    # process_all(denovo=False, toPlot=True, toExport=False, delay=3)
+    process_all(denovo=False, toPlot=True, toExport=False, delay=3)
