@@ -105,7 +105,7 @@ class per_sec_stats:
                     self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
                                                          self.bool_stats_test(onesu_6[:, bins],
                                                                               onesu_6[:, 6:10]))
-            elif delay == 63:
+            elif delay == 'early3in6':
                 for bin_idx in range(0, 4):
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
@@ -119,8 +119,21 @@ class per_sec_stats:
                     self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
                                                          self.bool_stats_test(onesu_6[:, bins],
                                                                               onesu_6[:, 6:10]))
-                pass
 
+            elif delay == 'late3in6':
+                for bin_idx in range(4, 8):
+                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
+                    self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
+                                                                             right_trials_6[:, bins])
+                    if self.per_sec_sel[bin_idx, su_idx]:
+                        if np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]):
+                            self.per_sec_prefS1[bin_idx, su_idx] = 1
+                        else:
+                            self.per_sec_prefS2[bin_idx, su_idx] = 1
+
+                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
+                                                         self.bool_stats_test(onesu_6[:, bins],
+                                                                              onesu_6[:, 6:10]))
 
             elif delay == 3:
                 for bin_idx in range(0, 4):
@@ -447,6 +460,7 @@ def bars():
 
 if __name__ == "__main__":
     # prepare_data_sync()
+    # delay can be 'early3in6','late3in6','3','6'
     # process_all(denovo=False, toPlot=False, toExport=False, delay=6)
     # process_all(denovo=False, toPlot=False, toExport=False, delay=3)
     bars()
