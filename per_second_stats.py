@@ -435,7 +435,7 @@ def bars():
     # 3s transient from
     norm = Normalize(vmin=0, vmax=0.6)
     counts_sum = []
-    (fig, ax) = plt.subplots(1, 1, figsize=(7, 7), dpi=300)
+    (fig, ax) = plt.subplots(1, 1, figsize=(7.5, 7), dpi=300)
     for row in range(7):
         (counts, sums) = subgroup_equiv(3, row)
         counts_sum.extend(counts)
@@ -453,15 +453,17 @@ def bars():
                         'nonselective modulation', 'non-modulated'), rotation=45, va='top', ha='right')
     ax.set_xlabel('coding in 6s delay trials')
     ax.set_ylabel('coding in 3s delay trials')
-
-    fig.savefig('sus_trans_3vs6.png')
+    sm = plt.cm.ScalarMappable(cmap='jet', norm=norm)
+    sm._A = []
+    plt.colorbar(sm, ticks=[0,0.5], format="%.1f")
+    fig.savefig('sus_trans_3vs6.png',bbox_inches='tight',pad_inches=2)
     plt.show()
     sumcounts = np.sum(counts_sum)
     print(f"sum counts {sumcounts}")
 
 
     counts_sum = []
-    (fig, ax) = plt.subplots(1, 1, figsize=(7, 7), dpi=300)
+    (fig, ax) = plt.subplots(1, 1, figsize=(7.5, 7), dpi=300)
     for row in range(7):
         (counts, sums) = subgroup_equiv('early3in6', row)
         counts_sum.extend(counts)
@@ -479,15 +481,17 @@ def bars():
                         'nonselective modulation', 'non-modulated'), rotation=45, va='top', ha='right')
     ax.set_xlabel('coding in 6s delay early half')
     ax.set_ylabel('coding in 3s delay trials')
-
-    fig.savefig('sus_trans_3vse3.png')
+    sm = plt.cm.ScalarMappable(cmap='jet', norm=norm)
+    sm._A = []
+    plt.colorbar(sm, ticks=[0,0.5], format="%.1f")
+    fig.savefig('sus_trans_3vse3.png',bbox_inches='tight',pad_inches=2)
     plt.show()
     sumcounts = np.sum(counts_sum)
     print(f"sum counts {sumcounts}")
 
 
     counts_sum = []
-    (fig, ax) = plt.subplots(1, 1, figsize=(7, 7), dpi=300)
+    (fig, ax) = plt.subplots(1, 1, figsize=(7.5, 7), dpi=300)
     for row in range(7):
         (counts, sums) = subgroup_equiv('early_late', row)
         counts_sum.extend(counts)
@@ -506,7 +510,10 @@ def bars():
     ax.set_xlabel('coding in 6s delay early half')
     ax.set_ylabel('coding in 6s delay late half')
 
-    fig.savefig('sus_trans_early_vs_late.png')
+    sm = plt.cm.ScalarMappable(cmap='jet', norm=norm)
+    sm._A = []
+    plt.colorbar(sm, ticks=[0,0.5], format="%.1f")
+    fig.savefig('sus_trans_early_vs_late.png',bbox_inches='tight',pad_inches=2)
     plt.show()
     sumcounts = np.sum(counts_sum)
     print(f"sum counts {sumcounts}")
