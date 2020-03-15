@@ -111,6 +111,51 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6):
                             trans1000=trans1000)
         return (sus100, trans100, trans1000)
 
+
+def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
+    repeats = 1000
+    if denovo:
+        fstr = np.load("ctd.npz", allow_pickle=True)
+        features_per_su = fstr["features_per_su"].tolist()
+        # reg_list = fstr["reg_list"].tolist()
+        sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+        sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+        curr_pool = Pool(processes=cpu)
+        sus100 = []
+        trans100 = []
+        trans1000 = []
+        sust_proc = []
+        trans100_proc = []
+        trans1000_proc = []
+        for i in range(repeats):
+            sust_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(sus_feat,),
+                                                   kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": delay,
+                                                         "bin_range": np.arange(4, 52)}))
+
+            trans100_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
+                                                       kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": delay,
+                                                             "bin_range": np.arange(4, 52)}))
+            trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
+                                                              "bin_range": np.arange(4, 52)}))
+        for one_proc in sust_proc:
+            sus100.append(one_proc.get())
+
+        for one_proc in trans100_proc:
+            trans100.append(one_proc.get())
+
+        for one_proc in trans1000_proc:
+            trans1000.append(one_proc.get())
+
+        curr_pool.close()
+        curr_pool.join()
+        np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus100=sus100, trans100=trans100,
+                            trans1000=trans1000)
+        return (sus100, trans100, trans1000)
+
+
+
     else:
         fstr = np.load(f"sus_trans_ctd_{delay}_{repeats}.npz")
         sus100 = fstr['sus100']
@@ -153,8 +198,6 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6):
 
 def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
-    if bin_range is None:
-        bin_range = np.arange(36, 40)
     avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
 
     if sum(avail_sel) < n_neuron:
@@ -198,6 +241,67 @@ def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), de
                 # y_shuf=y.copy()
                 # rng.shuffle(y_shuf)
                 clf.fit(X_templates, y_templates)
+                X_test = scaler.transform(X_test)
+                score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
+
+        score_mat = score_mat * 100
+        one_cv.append(score_mat)
+
+    return one_cv
+
+
+def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), template_delay=6, bin_range=None):
+    template_keys = ["S1_3", "S2_3"] if template_delay == 3 else ["S1_6", "S2_6"]
+    score_keys = ["S1_6", "S2_6"] if template_delay == 3 else ["S1_3", "S2_3"]
+    avail_sel = [(x[template_keys[0]].shape[1] >= n_trial[1] and x[template_keys[1]].shape[1] >= n_trial[1]
+                  and x[score_keys[0]].shape[1] >= n_trial[1] and x[score_keys[1]].shape[1] >= n_trial[1]) for x in
+                 features_per_su]
+
+    if sum(avail_sel) < n_neuron:
+        print('Not enough SU with suffcient trials')
+        return None
+
+    # bins, trials
+    if bin_range is None:
+        bin_range = np.arange(features_per_su[0][template_keys[0]].shape[0])
+
+    scaler = MinMaxScaler()
+    clf = LinearSVC()
+    kf = KFold(10)
+    su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
+    su_selected_features = [features_per_su[i] for i in su_index]
+    template_X1 = []
+    score_X1 = []
+    template_X2 = []
+    score_X2 = []
+    for one_su in su_selected_features:
+        trial_to_select1 = np.random.choice(one_su[template_keys[0]].shape[1], n_trial[0], replace=False)
+        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in trial_to_select1])
+        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in trial_to_select1])
+        trial_to_select2 = np.random.choice(one_su[template_keys[1]].shape[1], n_trial[0], replace=False)
+        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in trial_to_select2])
+        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in trial_to_select2])
+
+    template_X1 = np.array(template_X1).transpose((1, 0, 2))
+    template_X2 = np.array(template_X2).transpose((1, 0, 2))  # trial, SU, bin
+    score_X1 = np.array(score_X1).transpose((1, 0, 2))
+    score_X2 = np.array(score_X2).transpose((1, 0, 2))  # trial, SU, bin
+
+    one_cv = []
+    for (templates, tests) in kf.split(template_X1):
+        score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
+        for template_bin_idx in np.arange(bin_range.shape[0]):
+            X_templates = np.vstack(
+                (template_X1[templates, :, template_bin_idx], template_X2[templates, :, template_bin_idx]))
+            y_templates = np.hstack((np.zeros_like(templates), np.ones_like(templates))).T
+            scaler = scaler.fit(X_templates)
+            X_templates = scaler.transform(X_templates)
+            clf.fit(X_templates, y_templates)
+            for test_bin_idx in np.arange(bin_range.shape[0]):
+                X_test = np.vstack((score_X1[tests, :, test_bin_idx], score_X2[tests, :, test_bin_idx]))
+                y_test = np.hstack((np.zeros_like(tests), np.ones_like(tests))).T
+                # y_shuf=y.copy()
+                # rng.shuffle(y_shuf)
                 X_test = scaler.transform(X_test)
                 score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
 
