@@ -152,48 +152,44 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         curr_pool.join()
         np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus100=sus100, trans100=trans100,
                             trans1000=trans1000)
-        return (sus100, trans100, trans1000)
-
-
-
     else:
         fstr = np.load(f"sus_trans_ctd_{delay}_{repeats}.npz")
         sus100 = fstr['sus100']
         trans100 = fstr['trans100']
         trans1000 = fstr['trans1000']
 
-        sus_mat = sus100.mean(axis=0).mean(axis=0)
-        trans100_mat = trans100.mean(axis=0).mean(axis=0)
-        trans1000_mat = trans1000.mean(axis=0).mean(axis=0)
-        if to_plot:
-            (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
-            ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-            ax[0].set_title('100 sustained SU')
-            ax[0].set_ylabel('scoring time (s)')
-            ax[1].imshow(trans100_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-            ax[1].set_title('100 transient SU')
-            im2 = ax[2].imshow(trans1000_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-            ax[2].set_title('1000 transient SU')
-            plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
+    sus_mat = sus100.mean(axis=0).mean(axis=0)
+    trans100_mat = trans100.mean(axis=0).mean(axis=0)
+    trans1000_mat = trans1000.mean(axis=0).mean(axis=0)
+    if to_plot:
+        (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
+        ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[0].set_title('100 sustained SU')
+        ax[0].set_ylabel('scoring time (s)')
+        ax[1].imshow(trans100_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[1].set_title('100 transient SU')
+        im2 = ax[2].imshow(trans1000_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[2].set_title('1000 transient SU')
+        plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
 
-            for oneax in ax:
-                oneax.set_xticks([7.5, 27.5])
-                oneax.set_xticklabels([0, 5])
-                oneax.set_xlabel('template time (s)')
-                oneax.set_yticks([7.5, 27.5])
-                oneax.set_yticklabels([0, 5])
+        for oneax in ax:
+            oneax.set_xticks([7.5, 27.5])
+            oneax.set_xticklabels([0, 5])
+            oneax.set_xlabel('template time (s)')
+            oneax.set_yticks([7.5, 27.5])
+            oneax.set_yticklabels([0, 5])
 
-                if delay == 6:
-                    [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
-                    [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
-                elif delay == 3:
-                    [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
-                    [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+            if delay == 6:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+            elif delay == 3:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
 
-            fig.savefig('sustained_transient_ctd_3.png', bbox_inches='tight')
-            plt.show()
+        fig.savefig('ctd_cross_delay_dur.png', bbox_inches='tight')
+        plt.show()
 
-        return (sus100, trans100, trans1000)
+    return (sus100, trans100, trans1000)
 
 
 def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
@@ -317,7 +313,7 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
 
 
 if __name__ == "__main__":
-    (sus100, trans100, trans1000) = cross_time_decoding()
+    (sus100, trans100, trans1000) = ctd_cross_all()
 
     sys.exit()
     (sus, trans) = last_bin_decoding()
