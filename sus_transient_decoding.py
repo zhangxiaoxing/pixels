@@ -113,12 +113,12 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6):
 
 
 def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
-    repeats = 1000
+    repeats = 100
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
         # reg_list = fstr["reg_list"].tolist()
-        sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+        sus_trans_flag = per_second_stats.process_all(denovo=True,delay=delay)  # 33172 x 4, sust,trans,switch,unclassified
         sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
         trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
         curr_pool = Pool(processes=cpu)
@@ -130,14 +130,14 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         trans1000_proc = []
         for i in range(repeats):
             sust_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(sus_feat,),
-                                                   kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": delay,
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25), "template_delay": delay,
                                                          "bin_range": np.arange(4, 52)}))
 
             trans100_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
-                                                       kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": delay,
+                                                       kwds={"n_neuron": 50, "n_trial": (20, 25), "template_delay": delay,
                                                              "bin_range": np.arange(4, 52)}))
             trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
-                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25), "template_delay": delay,
                                                               "bin_range": np.arange(4, 52)}))
         for one_proc in sust_proc:
             sus100.append(one_proc.get())
@@ -158,9 +158,9 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         trans100 = fstr['trans100']
         trans1000 = fstr['trans1000']
 
-    sus_mat = sus100.mean(axis=0).mean(axis=0)
-    trans100_mat = trans100.mean(axis=0).mean(axis=0)
-    trans1000_mat = trans1000.mean(axis=0).mean(axis=0)
+    sus_mat = np.array(sus100).mean(axis=0).mean(axis=0)
+    trans100_mat = np.array(trans100).mean(axis=0).mean(axis=0)
+    trans1000_mat = np.array(trans1000).mean(axis=0).mean(axis=0)
     if to_plot:
         (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
         ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
@@ -313,7 +313,7 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
 
 
 if __name__ == "__main__":
-    (sus100, trans100, trans1000) = ctd_cross_all()
+    (sus100, trans100, trans1000) = ctd_cross_all(denovo=True,to_plot=True, delay=3, cpu=30)
 
     sys.exit()
     (sus, trans) = last_bin_decoding()
