@@ -118,7 +118,7 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
         # reg_list = fstr["reg_list"].tolist()
-        sus_trans_flag = per_second_stats.process_all(denovo=True,delay=delay)  # 33172 x 4, sust,trans,switch,unclassified
+        sus_trans_flag = per_second_stats.process_all(denovo=True,delay=delay).T  # 33172 x 4, sust,trans,switch,unclassified
         sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
         trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
         curr_pool = Pool(processes=cpu)
@@ -130,11 +130,11 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         trans1000_proc = []
         for i in range(repeats):
             sust_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(sus_feat,),
-                                                   kwds={"n_neuron": 50, "n_trial": (20, 25), "template_delay": delay,
+                                                   kwds={"n_neuron": 100, "n_trial": (20, 25), "template_delay": delay,
                                                          "bin_range": np.arange(4, 52)}))
 
             trans100_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
-                                                       kwds={"n_neuron": 50, "n_trial": (20, 25), "template_delay": delay,
+                                                       kwds={"n_neuron": 100, "n_trial": (20, 25), "template_delay": delay,
                                                              "bin_range": np.arange(4, 52)}))
             trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
                                                         kwds={"n_neuron": 1000, "n_trial": (20, 25), "template_delay": delay,
@@ -271,12 +271,14 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
     template_X2 = []
     score_X2 = []
     for one_su in su_selected_features:
-        trial_to_select1 = np.random.choice(one_su[template_keys[0]].shape[1], n_trial[0], replace=False)
-        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in trial_to_select1])
-        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in trial_to_select1])
-        trial_to_select2 = np.random.choice(one_su[template_keys[1]].shape[1], n_trial[0], replace=False)
-        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in trial_to_select2])
-        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in trial_to_select2])
+        template_trial_to_select1 = np.random.choice(one_su[template_keys[0]].shape[1], n_trial[0], replace=False)
+        score_trial_to_select1 = np.random.choice(one_su[score_keys[0]].shape[1], n_trial[0], replace=False)
+        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in template_trial_to_select1])
+        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in score_trial_to_select1])
+        template_trial_to_select2 = np.random.choice(one_su[template_keys[1]].shape[1], n_trial[0], replace=False)
+        score_trial_to_select2 = np.random.choice(one_su[score_keys[1]].shape[1], n_trial[0], replace=False)
+        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in template_trial_to_select2])
+        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in score_trial_to_select2])
 
     template_X1 = np.array(template_X1).transpose((1, 0, 2))
     template_X2 = np.array(template_X2).transpose((1, 0, 2))  # trial, SU, bin
