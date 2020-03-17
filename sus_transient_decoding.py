@@ -202,6 +202,90 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
     return (sus100, trans100, trans1000)
 
 
+def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
+    repeats = 1000
+    if denovo:
+        fstr = np.load("ctd.npz", allow_pickle=True)
+        features_per_su = fstr["features_per_su"].tolist()
+        # reg_list = fstr["reg_list"].tolist()
+        sus_trans_flag = per_second_stats.process_all(denovo=True,
+                                                      delay=delay).T  # 33172 x 4, sust,trans,switch,unclassified
+        sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+        curr_pool = Pool(processes=cpu)
+        sus100 = []
+        trans100 = []
+        trans1000 = []
+        sust_proc = []
+        trans100_proc = []
+        trans1000_proc = []
+        for i in range(repeats):
+            sust_proc.append(curr_pool.apply_async(ctd_correct_error, args=(sus_feat,),
+                                                   kwds={"n_neuron": 100, "n_trial": (20, 25, 2, 4),
+                                                         "template_delay": delay,
+                                                         "bin_range": np.arange(4, 52)}))
+
+            trans100_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
+                                                       kwds={"n_neuron": 100, "n_trial": (20, 25, 2, 4),
+                                                             "template_delay": delay,
+                                                             "bin_range": np.arange(4, 52)}))
+            trans1000_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25, 2, 4),
+                                                              "template_delay": delay,
+                                                              "bin_range": np.arange(4, 52)}))
+        for one_proc in sust_proc:
+            sus100.append(one_proc.get())
+
+        for one_proc in trans100_proc:
+            trans100.append(one_proc.get())
+
+        for one_proc in trans1000_proc:
+            trans1000.append(one_proc.get())
+
+        curr_pool.close()
+        curr_pool.join()
+        np.savez_compressed(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz', sus100=sus100, trans100=trans100,
+                            trans1000=trans1000)
+    else:
+        fstr = np.load(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz')
+        sus100 = fstr['sus100']
+        trans100 = fstr['trans100']
+        trans1000 = fstr['trans1000']
+
+    sus_mat = np.array(sus100).mean(axis=0).mean(axis=0)
+    trans100_mat = np.array(trans100).mean(axis=0).mean(axis=0)
+    trans1000_mat = np.array(trans1000).mean(axis=0).mean(axis=0)
+    if to_plot:
+        (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
+        ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[0].set_title('100 sustained SU')
+        ax[0].set_ylabel('template time (s)')
+        ax[1].imshow(trans100_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[1].set_title('100 transient SU')
+        im2 = ax[2].imshow(trans1000_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[2].set_title('1000 transient SU')
+        plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
+
+        for oneax in ax:
+            oneax.set_xticks([7.5, 27.5])
+            oneax.set_xticklabels([0, 5])
+            oneax.set_xlabel('scoring time (s)')
+            oneax.set_yticks([7.5, 27.5])
+            oneax.set_yticklabels([0, 5])
+
+            if delay == 6:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+            elif delay == 3:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+
+        fig.savefig(f'ctd_correct_error_{delay}.png', bbox_inches='tight')
+        plt.show()
+
+    return (sus100, trans100, trans1000)
+
+
 def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
@@ -324,18 +408,17 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
 
-def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25), template_delay=6, bin_range=None):
+def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25, 2, 4), template_delay=6, bin_range=None):
     template_keys = ["S1_3", "S2_3"] if template_delay == 3 else ["S1_6", "S2_6"]
     score_keys = ["S1_3_ERR", "S2_3_ERR"] if template_delay == 3 else ["S1_6_ERR", "S2_6_ERR"]
-    avail_sel = [(x[template_keys[0]].shape[1] >= n_trial[1] and x[template_keys[1]].shape[1] >= n_trial[1]
-                   and (x[score_keys[0]].ndim > 1) and (x[score_keys[1]].ndim > 1)
-                  for x in features_per_su]
-
-    [((x[score_keys[0]].ndim > 1) and (x[score_keys[0]].shape[1]>n_trial[1]) and (x[score_keys[1]].ndim > 1) and (x[score_keys[1]].shape[1]>n_trial[1]))  for x in    features_per_su]
+    avail_sel = [((x[score_keys[0]].ndim > 1) and (x[score_keys[0]].shape[1] > n_trial[3]) and (
+            x[score_keys[1]].ndim > 1) and (x[score_keys[1]].shape[1] > n_trial[3]) and (
+                          x[template_keys[0]].shape[1] >= n_trial[1]) and (x[template_keys[1]].shape[1] >= n_trial[1]
+                                                                           )) for x in features_per_su]
 
     if sum(avail_sel) < n_neuron:
         print('Not enough SU with suffcient trials')
-    return None
+        return None
 
     # bins, trials
     if bin_range is None:
@@ -352,11 +435,11 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25), template_
     score_X2 = []
     for one_su in su_selected_features:
         template_trial_to_select1 = np.random.choice(one_su[template_keys[0]].shape[1], n_trial[0], replace=False)
-        score_trial_to_select1 = np.random.choice(one_su[score_keys[0]].shape[1], n_trial[0], replace=False)
+        score_trial_to_select1 = np.random.choice(one_su[score_keys[0]].shape[1], n_trial[2], replace=False)
         template_X1.append([one_su[template_keys[0]][bin_range, t] for t in template_trial_to_select1])
         score_X1.append([one_su[score_keys[0]][bin_range, t] for t in score_trial_to_select1])
         template_trial_to_select2 = np.random.choice(one_su[template_keys[1]].shape[1], n_trial[0], replace=False)
-        score_trial_to_select2 = np.random.choice(one_su[score_keys[1]].shape[1], n_trial[0], replace=False)
+        score_trial_to_select2 = np.random.choice(one_su[score_keys[1]].shape[1], n_trial[2], replace=False)
         template_X2.append([one_su[template_keys[1]][bin_range, t] for t in template_trial_to_select2])
         score_X2.append([one_su[score_keys[1]][bin_range, t] for t in score_trial_to_select2])
 
@@ -366,25 +449,26 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25), template_
     score_X2 = np.array(score_X2).transpose((1, 0, 2))  # trial, SU, bin
 
     one_cv = []
-    for (templates, tests) in kf.split(template_X1):
-        score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
-        for template_bin_idx in np.arange(bin_range.shape[0]):
-            X_templates = np.vstack(
-                (template_X1[templates, :, template_bin_idx], template_X2[templates, :, template_bin_idx]))
-            y_templates = np.hstack((np.zeros_like(templates), np.ones_like(templates))).T
-            scaler = scaler.fit(X_templates)
-            X_templates = scaler.transform(X_templates)
-            clf.fit(X_templates, y_templates)
-            for test_bin_idx in np.arange(bin_range.shape[0]):
-                X_test = np.vstack((score_X1[tests, :, test_bin_idx], score_X2[tests, :, test_bin_idx]))
-                y_test = np.hstack((np.zeros_like(tests), np.ones_like(tests))).T
-                # y_shuf=y.copy()
-                # rng.shuffle(y_shuf)
-                X_test = scaler.transform(X_test)
-                score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
+    (templates, tests) = list(kf.split(template_X1))[0]
 
-        score_mat = score_mat * 100
-        one_cv.append(score_mat)
+    score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
+    for template_bin_idx in np.arange(bin_range.shape[0]):
+        X_templates = np.vstack(
+            (template_X1[templates, :, template_bin_idx], template_X2[templates, :, template_bin_idx]))
+        y_templates = np.hstack((np.zeros_like(templates), np.ones_like(templates))).T
+        scaler = scaler.fit(X_templates)
+        X_templates = scaler.transform(X_templates)
+        clf.fit(X_templates, y_templates)
+        for test_bin_idx in np.arange(bin_range.shape[0]):
+            X_test = np.vstack((score_X1[tests, :, test_bin_idx], score_X2[tests, :, test_bin_idx]))
+            y_test = np.hstack((np.zeros_like(tests), np.ones_like(tests))).T
+            # y_shuf=y.copy()
+            # rng.shuffle(y_shuf)
+            X_test = scaler.transform(X_test)
+            score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
+
+    score_mat = score_mat * 100
+    one_cv.append(score_mat)
 
     return one_cv
 
@@ -395,7 +479,8 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25), template_
 
 
 if __name__ == "__main__":
-    (sus100, trans100, trans1000) = ctd_cross_all(denovo=True, to_plot=True, delay=3, cpu=30)
+    (sus100, trans100, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
+    (sus100, trans100, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
 
     sys.exit()
     (sus, trans) = last_bin_decoding()
