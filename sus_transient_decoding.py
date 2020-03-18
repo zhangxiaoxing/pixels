@@ -7,6 +7,7 @@ depends on the per_second_stats module for sustained and transient classificatio
 
 import sys
 import per_second_stats
+import os
 import numpy as np
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
@@ -14,6 +15,17 @@ from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
+import scipy.stats as stats
+
+
+def exact_mc_perm_test(xs, ys, nmc):
+    n, k = len(xs), 0
+    diff = np.abs(np.mean(xs) - np.mean(ys))
+    zs = np.concatenate([xs, ys])
+    for j in range(nmc):
+        np.random.shuffle(zs)
+        k += diff < np.abs(np.mean(zs[:n]) - np.mean(zs[n:]))
+    return k / nmc
 
 
 def last_bin_decoding():
@@ -76,7 +88,7 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
     return concurrent_time
 
 
-def cross_time_decoding(denovo=False, to_plot=False, delay=6):
+def cross_time_decoding(denovo=False, to_plot=False, delay=6, ):
     repeats = 1000
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
@@ -478,11 +490,82 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25, 2, 4), tem
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
 
+def statistical_test_correct_error():
+    fstr = np.load(os.path.join('ctd', 'sus_trans_ctd_6_1000.npz'), 'r')
+    fstr_Err = np.load(os.path.join('ctd', 'sus_trans_ctd_correct_error_6_1000.npz'), 'r')
+
+    correct_mat = fstr['sus100']
+    err_mat = fstr_Err['sus100']
+
+    err_mean = p_mat = np.ones((correct_mat.shape[2:4]))
+    cr_mean = p_mat = np.ones((correct_mat.shape[2:4]))
+    for template_bin in range(correct_mat.shape[2]):
+        for score_bin in range(correct_mat.shape[3]):
+            err_mean[template_bin, score_bin] = np.mean(err_mat[:, :, template_bin, score_bin])
+            cr_mean[template_bin, score_bin] = np.mean(correct_mat[:, :, template_bin, score_bin])
+
+    p_mat = np.ones((correct_mat.shape[2:4]))
+    for template_bin in range(correct_mat.shape[2]):
+        for score_bin in range(correct_mat.shape[3]):
+            (_stat, p_mat[template_bin, score_bin]) = stats.mannwhitneyu(
+                correct_mat[:, :, template_bin, score_bin].flatten(),
+                err_mat[:, :, template_bin, score_bin].flatten(),
+                alternative="two-sided")
+    p_mat = p_mat * correct_mat.shape[2] * correct_mat.shape[3]
+    (fig, ax) = plt.subplots(1, 1)
+    ax.imshow(p_mat)
+    plt.show()
+
+
+def tempStatstics():
+    fstr = np.load("ctd.npz", allow_pickle=True)
+    features_per_su = fstr["features_per_su"].tolist()
+    baseline_stats = []
+    baseline_sel = []
+    for su in features_per_su:
+        S1 = su['S1_6'][2:10, :].flatten()
+        S2 = su['S2_6'][2:10, :].flatten()
+        if not (np.unique(S1).shape[0] == 1 and np.unique(S2).shape[0] == 1):
+            baseline_stats.append(stats.mannwhitneyu(S1, S2, alternative='two-sided'))
+            baseline_sel.append((np.mean(S1)-np.mean(S2))/(np.mean(S1)+np.mean(S2)))
+        else:
+            baseline_stats.append(stats.stats.MannwhitneyuResult(0, 1))
+            baseline_sel.append(0)
+
+    idx=np.nonzero([stat.pvalue < 0.0000001 for stat in baseline_stats])[0]
+
+    idx=np.nonzero(np.array(baseline_sel)>0.99)[0]
+
+    # s1m=np.mean(features_per_su[idx[2]]['S1_6'],axis=1)
+    # s2m=np.mean(features_per_su[idx[2]]['S2_6'],axis=1)
+    for i in range(len(idx)):
+        (fig,ax)=plt.subplots(2,1,sharex=True,figsize=(4,4),dpi=200)
+        ax[0].imshow(features_per_su[idx[i]]['S1_6'].T,cmap='jet', aspect='auto')
+        ax[0].set_ylabel('S1 trial #')
+        [ax[0].axvline(x,color='w',ls=':') for x in [11.5,15.5, 39.5,43.5]]
+        [ax[0].axvline(x, color='gray', ls=':') for x in [1.5, 9.5]]
+        ax[1].imshow(features_per_su[idx[i]]['S2_6'].T,cmap='jet', aspect='auto')
+        ax[1].set_ylabel('S2 trial #')
+        ax[1].set_xticks([11.5,31.5,51.5])
+        [ax[1].axvline(x, color='w', ls=':') for x in [11.5, 15.5, 39.5, 43.5]]
+        [ax[1].axvline(x, color='gray', ls=':') for x in [1.5, 9.5]]
+        ax[1].set_xticklabels([0, 5, 10])
+        ax[1].set_xlabel('time (s)')
+        fig.savefig(f'raw_fr_idx{i}_{idx[i]}.png',bbox_inches='tight')
+        # plt.show()
+
+
+
+
 if __name__ == "__main__":
+    tempStatstics()
+
+    sys.exit()
+
+
     (sus100, trans100, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
     (sus100, trans100, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
 
-    sys.exit()
     (sus, trans) = last_bin_decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
     sus_per_count = []
