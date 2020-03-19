@@ -32,10 +32,13 @@ def exact_mc_perm_test(xs, ys, nmc):
 def last_bin_decoding():
     fstr = np.load("ctd.npz", allow_pickle=True)
     features_per_su = fstr["features_per_su"].tolist()
+    baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+    wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
     # reg_list = fstr["reg_list"].tolist()
     sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
-    sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
-    trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+    sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
+    trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
+    
     sust_sum = []
     repeats = 1000
     for n_neuron in np.arange(25, 126, 25):
@@ -139,11 +142,12 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
+        baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+        wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
         # reg_list = fstr["reg_list"].tolist()
-        sus_trans_flag = per_second_stats.process_all(denovo=True,
-                                                      delay=delay).T  # 33172 x 4, sust,trans,switch,unclassified
-        sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
-        trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+        sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
         curr_pool = Pool(processes=cpu)
         sus50 = []
         trans50 = []
@@ -222,11 +226,12 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
+        baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+        wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
         # reg_list = fstr["reg_list"].tolist()
-        sus_trans_flag = per_second_stats.process_all(denovo=True,
-                                                      delay=delay).T  # 33172 x 4, sust,trans,switch,unclassified
-        sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
-        trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
+        sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
         curr_pool = Pool(processes=cpu)
         sus50 = []
         trans50 = []
