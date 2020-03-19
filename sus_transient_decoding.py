@@ -94,6 +94,9 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
 
 def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
     repeats = 1000
+    sus50 = None
+    trans50 = None
+    trans1000 = None
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
@@ -134,6 +137,40 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
         curr_pool.join()
         np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
                             trans1000=trans1000)
+    else:
+        fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_1000.npz'), 'r')
+        sus50 = fstr['sus50']
+        trans50 = fstr['trans50']
+        trans1000 = fstr['trans1000']
+
+    if to_plot:
+        (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
+        ax[0].imshow(sus50.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[0].set_title('50 sustained SU')
+        ax[0].set_ylabel('template time (s)')
+        ax[1].imshow(trans50.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[1].set_title('50 transient SU')
+        im2 = ax[2].imshow(trans1000.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[2].set_title('1000 transient SU')
+        plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
+
+        for oneax in ax:
+            oneax.set_xticks([7.5, 27.5])
+            oneax.set_xticklabels([0, 5])
+            oneax.set_xlabel('scoring time (s)')
+            oneax.set_yticks([7.5, 27.5])
+            oneax.set_yticklabels([0, 5])
+
+            if delay == 6:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+            elif delay == 3:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+
+        fig.savefig('ctd_{delay}_{repeats}.png', bbox_inches='tight')
+
+        plt.show()
         return (sus50, trans50, trans1000)
 
 
@@ -498,15 +535,15 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25, 2, 4), tem
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
 
-def statistical_test_correct_error():
-    fstr = np.load(os.path.join('ctd', 'sus_trans_ctd_6_1000.npz'), 'r')
-    fstr_Err = np.load(os.path.join('ctd', 'sus_trans_ctd_correct_error_6_1000.npz'), 'r')
+def statistical_test_correct_error(delay=3):
+    fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_1000.npz'), 'r')
+    fstr_Err = np.load(os.path.join('ctd', f'sus_trans_ctd_correct_error_{delay}_1000.npz'), 'r')
 
     correct_mat = fstr['sus50']
     err_mat = fstr_Err['sus50']
 
-    err_mean = p_mat = np.ones((correct_mat.shape[2:4]))
-    cr_mean = p_mat = np.ones((correct_mat.shape[2:4]))
+    err_mean =np.ones((correct_mat.shape[2:4]))
+    cr_mean = np.ones((correct_mat.shape[2:4]))
     for template_bin in range(correct_mat.shape[2]):
         for score_bin in range(correct_mat.shape[3]):
             err_mean[template_bin, score_bin] = np.mean(err_mat[:, :, template_bin, score_bin])
@@ -516,12 +553,12 @@ def statistical_test_correct_error():
     for template_bin in range(correct_mat.shape[2]):
         for score_bin in range(correct_mat.shape[3]):
             (_stat, p_mat[template_bin, score_bin]) = stats.mannwhitneyu(
-                correct_mat[:, :, template_bin, score_bin].flatten(),
+                correct_mat[:, 1, template_bin, score_bin].flatten(),
                 err_mat[:, :, template_bin, score_bin].flatten(),
                 alternative="two-sided")
     p_mat = p_mat * correct_mat.shape[2] * correct_mat.shape[3]
     (fig, ax) = plt.subplots(1, 1)
-    ax.imshow(p_mat)
+    ax.imshow(p_mat>0.05)
     plt.show()
 
 
