@@ -9,6 +9,7 @@ import sys
 import per_second_stats
 import os
 import numpy as np
+
 from sklearn.svm import LinearSVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
@@ -88,47 +89,49 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
     return concurrent_time
 
 
-def cross_time_decoding(denovo=False, to_plot=False, delay=6, ):
+def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
     repeats = 1000
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
+        baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+        wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
         # reg_list = fstr["reg_list"].tolist()
         sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
-        sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
-        trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
-        curr_pool = Pool(processes=24)
-        sus100 = []
-        trans100 = []
+        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
+        curr_pool = Pool(processes=cpu)
+        sus50 = []
+        trans50 = []
         trans1000 = []
         sust_proc = []
-        trans100_proc = []
+        trans50_proc = []
         trans1000_proc = []
         for i in range(repeats):
-            sust_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(sus_feat,),
-                                                   kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": delay,
+            sust_proc.append(curr_pool.apply_async(cross_time_decoding_actual, args=(sus_feat,),
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
                                                          "bin_range": np.arange(4, 52)}))
 
-            trans100_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
-                                                       kwds={"n_neuron": 100, "n_trial": (20, 25), "delay": delay,
-                                                             "bin_range": np.arange(4, 52)}))
-            trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_calc, args=(trans_feat,),
+            trans50_proc.append(curr_pool.apply_async(cross_time_decoding_actual, args=(trans_feat,),
+                                                      kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
+                                                            "bin_range": np.arange(4, 52)}))
+            trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_actual, args=(trans_feat,),
                                                         kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
                                                               "bin_range": np.arange(4, 52)}))
         for one_proc in sust_proc:
-            sus100.append(one_proc.get())
+            sus50.append(one_proc.get())
 
-        for one_proc in trans100_proc:
-            trans100.append(one_proc.get())
+        for one_proc in trans50_proc:
+            trans50.append(one_proc.get())
 
         for one_proc in trans1000_proc:
             trans1000.append(one_proc.get())
 
         curr_pool.close()
         curr_pool.join()
-        np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus100=sus100, trans100=trans100,
+        np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
                             trans1000=trans1000)
-        return (sus100, trans100, trans1000)
+        return (sus50, trans50, trans1000)
 
 
 def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
@@ -142,54 +145,54 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
         trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
         curr_pool = Pool(processes=cpu)
-        sus100 = []
-        trans100 = []
+        sus50 = []
+        trans50 = []
         trans1000 = []
         sust_proc = []
-        trans100_proc = []
+        trans50_proc = []
         trans1000_proc = []
         for i in range(repeats):
             sust_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(sus_feat,),
-                                                   kwds={"n_neuron": 100, "n_trial": (20, 25), "template_delay": delay,
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25), "template_delay": delay,
                                                          "bin_range": np.arange(4, 52)}))
 
-            trans100_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
-                                                       kwds={"n_neuron": 100, "n_trial": (20, 25),
-                                                             "template_delay": delay,
-                                                             "bin_range": np.arange(4, 52)}))
+            trans50_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
+                                                      kwds={"n_neuron": 50, "n_trial": (20, 25),
+                                                            "template_delay": delay,
+                                                            "bin_range": np.arange(4, 52)}))
             trans1000_proc.append(curr_pool.apply_async(cross_time_decoding_cross, args=(trans_feat,),
                                                         kwds={"n_neuron": 1000, "n_trial": (20, 25),
                                                               "template_delay": delay,
                                                               "bin_range": np.arange(4, 52)}))
         for one_proc in sust_proc:
-            sus100.append(one_proc.get())
+            sus50.append(one_proc.get())
 
-        for one_proc in trans100_proc:
-            trans100.append(one_proc.get())
+        for one_proc in trans50_proc:
+            trans50.append(one_proc.get())
 
         for one_proc in trans1000_proc:
             trans1000.append(one_proc.get())
 
         curr_pool.close()
         curr_pool.join()
-        np.savez_compressed(f'sus_trans_ctd_cross_delay_dur_{delay}_{repeats}.npz', sus100=sus100, trans100=trans100,
+        np.savez_compressed(f'sus_trans_ctd_cross_delay_dur_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
                             trans1000=trans1000)
     else:
         fstr = np.load(f"sus_trans_ctd_{delay}_{repeats}.npz")
-        sus100 = fstr['sus100']
-        trans100 = fstr['trans100']
+        sus50 = fstr['sus50']
+        trans50 = fstr['trans50']
         trans1000 = fstr['trans1000']
 
-    sus_mat = np.array(sus100).mean(axis=0).mean(axis=0)
-    trans100_mat = np.array(trans100).mean(axis=0).mean(axis=0)
+    sus_mat = np.array(sus50).mean(axis=0).mean(axis=0)
+    trans50_mat = np.array(trans50).mean(axis=0).mean(axis=0)
     trans1000_mat = np.array(trans1000).mean(axis=0).mean(axis=0)
     if to_plot:
         (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
         ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-        ax[0].set_title('100 sustained SU')
+        ax[0].set_title('50 sustained SU')
         ax[0].set_ylabel('template time (s)')
-        ax[1].imshow(trans100_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-        ax[1].set_title('100 transient SU')
+        ax[1].imshow(trans50_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[1].set_title('50 transient SU')
         im2 = ax[2].imshow(trans1000_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
         ax[2].set_title('1000 transient SU')
         plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
@@ -211,7 +214,7 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
         fig.savefig('ctd_cross_delay_dur.png', bbox_inches='tight')
         plt.show()
 
-    return (sus100, trans100, trans1000)
+    return (sus50, trans50, trans1000)
 
 
 def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
@@ -225,55 +228,55 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
         sus_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 0])[0]]
         trans_feat = [features_per_su[i] for i in np.nonzero(sus_trans_flag[:, 1])[0]]
         curr_pool = Pool(processes=cpu)
-        sus100 = []
-        trans100 = []
+        sus50 = []
+        trans50 = []
         trans1000 = []
         sust_proc = []
-        trans100_proc = []
+        trans50_proc = []
         trans1000_proc = []
         for i in range(repeats):
             sust_proc.append(curr_pool.apply_async(ctd_correct_error, args=(sus_feat,),
-                                                   kwds={"n_neuron": 100, "n_trial": (20, 25, 2, 4),
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25, 2, 4),
                                                          "template_delay": delay,
                                                          "bin_range": np.arange(4, 52)}))
 
-            trans100_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
-                                                       kwds={"n_neuron": 100, "n_trial": (20, 25, 2, 4),
-                                                             "template_delay": delay,
-                                                             "bin_range": np.arange(4, 52)}))
+            trans50_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
+                                                      kwds={"n_neuron": 50, "n_trial": (20, 25, 2, 4),
+                                                            "template_delay": delay,
+                                                            "bin_range": np.arange(4, 52)}))
             trans1000_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
                                                         kwds={"n_neuron": 1000, "n_trial": (20, 25, 2, 4),
                                                               "template_delay": delay,
                                                               "bin_range": np.arange(4, 52)}))
         for one_proc in sust_proc:
-            sus100.append(one_proc.get())
+            sus50.append(one_proc.get())
 
-        for one_proc in trans100_proc:
-            trans100.append(one_proc.get())
+        for one_proc in trans50_proc:
+            trans50.append(one_proc.get())
 
         for one_proc in trans1000_proc:
             trans1000.append(one_proc.get())
 
         curr_pool.close()
         curr_pool.join()
-        np.savez_compressed(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz', sus100=sus100, trans100=trans100,
+        np.savez_compressed(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
                             trans1000=trans1000)
     else:
         fstr = np.load(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz')
-        sus100 = fstr['sus100']
-        trans100 = fstr['trans100']
+        sus50 = fstr['sus50']
+        trans50 = fstr['trans100']
         trans1000 = fstr['trans1000']
 
-    sus_mat = np.array(sus100).mean(axis=0).mean(axis=0)
-    trans100_mat = np.array(trans100).mean(axis=0).mean(axis=0)
+    sus_mat = np.array(sus50).mean(axis=0).mean(axis=0)
+    trans50_mat = np.array(trans50).mean(axis=0).mean(axis=0)
     trans1000_mat = np.array(trans1000).mean(axis=0).mean(axis=0)
     if to_plot:
         (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
         ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-        ax[0].set_title('100 sustained SU')
+        ax[0].set_title('50 sustained SU')
         ax[0].set_ylabel('template time (s)')
-        ax[1].imshow(trans100_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
-        ax[1].set_title('100 transient SU')
+        ax[1].imshow(trans50_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[1].set_title('50 transient SU')
         im2 = ax[2].imshow(trans1000_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
         ax[2].set_title('1000 transient SU')
         plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
@@ -295,10 +298,10 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
         fig.savefig(f'ctd_correct_error_{delay}.png', bbox_inches='tight')
         plt.show()
 
-    return (sus100, trans100, trans1000)
+    return (sus50, trans50, trans1000)
 
 
-def cross_time_decoding_calc(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
+def cross_time_decoding_actual(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
 
@@ -494,8 +497,8 @@ def statistical_test_correct_error():
     fstr = np.load(os.path.join('ctd', 'sus_trans_ctd_6_1000.npz'), 'r')
     fstr_Err = np.load(os.path.join('ctd', 'sus_trans_ctd_correct_error_6_1000.npz'), 'r')
 
-    correct_mat = fstr['sus100']
-    err_mat = fstr_Err['sus100']
+    correct_mat = fstr['sus50']
+    err_mat = fstr_Err['sus50']
 
     err_mean = p_mat = np.ones((correct_mat.shape[2:4]))
     cr_mean = p_mat = np.ones((correct_mat.shape[2:4]))
@@ -517,54 +520,63 @@ def statistical_test_correct_error():
     plt.show()
 
 
-def tempStatstics():
-    fstr = np.load("ctd.npz", allow_pickle=True)
-    features_per_su = fstr["features_per_su"].tolist()
+def baseline_statstics(features_per_su):
     baseline_stats = []
-    baseline_sel = []
     for su in features_per_su:
-        S1 = su['S1_6'][2:10, :].flatten()
-        S2 = su['S2_6'][2:10, :].flatten()
-        if not (np.unique(S1).shape[0] == 1 and np.unique(S2).shape[0] == 1):
-            baseline_stats.append(stats.mannwhitneyu(S1, S2, alternative='two-sided'))
-            baseline_sel.append((np.mean(S1)-np.mean(S2))/(np.mean(S1)+np.mean(S2)))
+        S1_3 = su['S1_3'][2:10, :].flatten()
+        S2_3 = su['S2_3'][2:10, :].flatten()
+        S1_6 = su['S1_6'][2:10, :].flatten()
+        S2_6 = su['S2_6'][2:10, :].flatten()
+        p3 = None
+        p6 = None
+        if not (np.unique(np.concatenate((S1_3, S2_3))).shape[0] == 1):
+            p3 = stats.mannwhitneyu(S1_3, S2_3, alternative='two-sided')[1]
         else:
-            baseline_stats.append(stats.stats.MannwhitneyuResult(0, 1))
-            baseline_sel.append(0)
+            p3 = 1
 
-    idx=np.nonzero([stat.pvalue < 0.0000001 for stat in baseline_stats])[0]
+        if not (np.unique(np.concatenate((S1_6, S2_6))).shape[0] == 1):
+            p6 = stats.mannwhitneyu(S1_6, S2_6, alternative='two-sided')[1]
+        else:
+            p6 = 1
+        baseline_stats.append((p3, p6))
 
-    idx=np.nonzero(np.array(baseline_sel)>0.99)[0]
+    np.savez_compressed('baseline_WRS.npz', baseline_WRS_p3_p6=baseline_stats)
+    return np.array(baseline_stats)
+
+    # idx=np.nonzero([stat.pvalue < 0.05 for stat in baseline_stats])[0]
+
+    # idx = np.nonzero(np.array(baseline_sel) > 0.99)[0]
 
     # s1m=np.mean(features_per_su[idx[2]]['S1_6'],axis=1)
     # s2m=np.mean(features_per_su[idx[2]]['S2_6'],axis=1)
-    for i in range(len(idx)):
-        (fig,ax)=plt.subplots(2,1,sharex=True,figsize=(4,4),dpi=200)
-        ax[0].imshow(features_per_su[idx[i]]['S1_6'].T,cmap='jet', aspect='auto')
-        ax[0].set_ylabel('S1 trial #')
-        [ax[0].axvline(x,color='w',ls=':') for x in [11.5,15.5, 39.5,43.5]]
-        [ax[0].axvline(x, color='gray', ls=':') for x in [1.5, 9.5]]
-        ax[1].imshow(features_per_su[idx[i]]['S2_6'].T,cmap='jet', aspect='auto')
-        ax[1].set_ylabel('S2 trial #')
-        ax[1].set_xticks([11.5,31.5,51.5])
-        [ax[1].axvline(x, color='w', ls=':') for x in [11.5, 15.5, 39.5, 43.5]]
-        [ax[1].axvline(x, color='gray', ls=':') for x in [1.5, 9.5]]
-        ax[1].set_xticklabels([0, 5, 10])
-        ax[1].set_xlabel('time (s)')
-        fig.savefig(f'raw_fr_idx{i}_{idx[i]}.png',bbox_inches='tight')
-        # plt.show()
-
-
+    # for i in range(len(idx)):
+    #     (fig,ax)=plt.subplots(2,1,sharex=True,figsize=(4,4),dpi=200)
+    #     ax[0].imshow(features_per_su[idx[i]]['S1_6'].T,cmap='jet', aspect='auto')
+    #     ax[0].set_ylabel('S1 trial #')
+    #     [ax[0].axvline(x,color='w',ls=':') for x in [11.5,15.5, 39.5,43.5]]
+    #     [ax[0].axvline(x, color='gray', ls=':') for x in [1.5, 9.5]]
+    #     ax[1].imshow(features_per_su[idx[i]]['S2_6'].T,cmap='jet', aspect='auto')
+    #     ax[1].set_ylabel('S2 trial #')
+    #     ax[1].set_xticks([11.5,31.5,51.5])
+    #     [ax[1].axvline(x, color='w', ls=':') for x in [11.5, 15.5, 39.5, 43.5]]
+    #     [ax[1].axvline(x, color='gray', ls=':') for x in [1.5, 9.5]]
+    #     ax[1].set_xticklabels([0, 5, 10])
+    #     ax[1].set_xlabel('time (s)')
+    #     fig.savefig(f'raw_fr_idx{i}_{idx[i]}.png',bbox_inches='tight')
+    #     # plt.show()
 
 
 if __name__ == "__main__":
-    tempStatstics()
+    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=30)
+    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=30)
+
+    ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
+    ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
 
     sys.exit()
 
-
-    (sus100, trans100, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
-    (sus100, trans100, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
 
     (sus, trans) = last_bin_decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
