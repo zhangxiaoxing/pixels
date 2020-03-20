@@ -568,9 +568,9 @@ def bars():
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    # process_all(denovo=False, toPlot=True, toExport=False, delay=6)
-    # process_all(denovo=False, toPlot=True, toExport=False, delay=3)
+    process_all(denovo=False, toPlot=False, toExport=True, delay=6)
+    process_all(denovo=False, toPlot=False, toExport=True, delay=3)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
 
-    bars()
+    # bars()

@@ -11,6 +11,10 @@ import os
 import numpy as np
 
 from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
+# from mcc.mcc import MaximumCorrelationClassifier
+
+
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
 from sklearn.preprocessing import MinMaxScaler
@@ -29,7 +33,7 @@ def exact_mc_perm_test(xs, ys, nmc):
     return k / nmc
 
 
-def last_bin_decoding():
+def last_bin_decoding(delay=6):
     fstr = np.load("ctd.npz", allow_pickle=True)
     features_per_su = fstr["features_per_su"].tolist()
     baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
@@ -38,7 +42,7 @@ def last_bin_decoding():
     sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
     sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
     trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
-    
+
     sust_sum = []
     repeats = 1000
     for n_neuron in np.arange(25, 126, 25):
@@ -61,11 +65,10 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
         su_selected_features = [features_per_su[i] for i in su_index]
         X1 = []
         X2 = []
+        trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
         for one_su in su_selected_features:
-            trial_to_select1 = np.random.choice(one_su[keys[0]].shape[1], n_trial[0], replace=False)
-            X1.append([np.mean(one_su[keys[0]][bin_range, t]) for t in trial_to_select1])
-            trial_to_select2 = np.random.choice(one_su[keys[1]].shape[1], n_trial[0], replace=False)
-            X2.append([np.mean(one_su[keys[1]][bin_range, t]) for t in trial_to_select2])
+            X1.append([np.mean(one_su[keys[0]][bin_range, t]) for t in trial_to_select])
+            X2.append([np.mean(one_su[keys[1]][bin_range, t]) for t in trial_to_select])
 
         # bins, trials
         rng = np.random.default_rng()
@@ -150,7 +153,8 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
         ax[0].set_ylabel('template time (s)')
         ax[1].imshow(trans50.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
         ax[1].set_title('50 transient SU')
-        im2 = ax[2].imshow(trans1000.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        im2 = ax[2].imshow(trans1000.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
+                           vmax=100)
         ax[2].set_title('1000 transient SU')
         plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
 
@@ -168,7 +172,7 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
                 [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
                 [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
 
-        fig.savefig('ctd_{delay}_{repeats}.png', bbox_inches='tight')
+        fig.savefig(f'ctd_{delay}_{repeats}.png', bbox_inches='tight')
 
         plt.show()
         return (sus50, trans50, trans1000)
@@ -343,7 +347,7 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
     return (sus50, trans50, trans1000)
 
 
-def cross_time_decoding_actual(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None):
+def cross_time_decoding_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_range=None):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
 
@@ -356,43 +360,44 @@ def cross_time_decoding_actual(features_per_su, n_neuron=300, n_trial=(20, 25), 
         bin_range = np.arange(features_per_su[0][keys[0]].shape[0])
 
     scaler = MinMaxScaler()
-    clf = LinearSVC()
+    clf = SVC(kernel='linear')
+    # clf=MaximumCorrelationClassifier(n_neuron)
     kf = KFold(10)
     su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
     su_selected_features = [features_per_su[i] for i in su_index]
     X1 = []
     X2 = []
+    trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
     for one_su in su_selected_features:
-        trial_to_select1 = np.random.choice(one_su[keys[0]].shape[1], n_trial[0], replace=False)
-        X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select1])
-        trial_to_select2 = np.random.choice(one_su[keys[1]].shape[1], n_trial[0], replace=False)
-        X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select2])
+        X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select])
+        X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select])
 
     X1 = np.array(X1).transpose((1, 0, 2))
     X2 = np.array(X2).transpose((1, 0, 2))  # trial, SU, bin
 
-    y1 = np.ones((X1.shape[0]))
-    y2 = np.zeros_like(y1)
-    y = np.hstack((y1, y2))
     one_cv = []
     for (templates, tests) in kf.split(X1):
-        score_mat = np.zeros((bin_range.shape[0], bin_range.shape[0]))
+        score_mat = np.ones((bin_range.shape[0], bin_range.shape[0]))
         for template_bin_idx in np.arange(bin_range.shape[0]):
             X_templates = np.vstack((X1[templates, :, template_bin_idx], X2[templates, :, template_bin_idx]))
-            y_templates = np.hstack((np.zeros_like(templates), np.ones_like(templates))).T
+            y_templates = np.hstack((np.ones_like(templates) * 1, np.ones_like(templates) * 2)).T
+            # np.random.shuffle(y_templates)
             scaler = scaler.fit(X_templates)
             X_templates = scaler.transform(X_templates)
             for test_bin_idx in np.arange(bin_range.shape[0]):
                 X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
-                y_test = np.hstack((np.zeros_like(tests), np.ones_like(tests))).T
+                y_test = np.hstack((np.ones_like(tests) * 1, np.ones_like(tests) * 2)).T
                 # y_shuf=y.copy()
                 # rng.shuffle(y_shuf)
                 clf.fit(X_templates, y_templates)
                 X_test = scaler.transform(X_test)
+                # score_mat[template_bin_idx, test_bin_idx] = np.mean(np.hstack((clf.predict(X1[tests, :, test_bin_idx])<=0,clf.predict(X2[tests, :, test_bin_idx])>0)))
+
                 score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
 
         score_mat = score_mat * 100
         one_cv.append(score_mat)
+    np.mean(one_cv)
 
     return one_cv
 
@@ -421,15 +426,13 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
     score_X1 = []
     template_X2 = []
     score_X2 = []
+    template_trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
+    score_trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
     for one_su in su_selected_features:
-        template_trial_to_select1 = np.random.choice(one_su[template_keys[0]].shape[1], n_trial[0], replace=False)
-        score_trial_to_select1 = np.random.choice(one_su[score_keys[0]].shape[1], n_trial[0], replace=False)
-        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in template_trial_to_select1])
-        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in score_trial_to_select1])
-        template_trial_to_select2 = np.random.choice(one_su[template_keys[1]].shape[1], n_trial[0], replace=False)
-        score_trial_to_select2 = np.random.choice(one_su[score_keys[1]].shape[1], n_trial[0], replace=False)
-        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in template_trial_to_select2])
-        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in score_trial_to_select2])
+        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in template_trial_to_select])
+        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in score_trial_to_select])
+        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in template_trial_to_select])
+        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in score_trial_to_select])
 
     template_X1 = np.array(template_X1).transpose((1, 0, 2))
     template_X2 = np.array(template_X2).transpose((1, 0, 2))  # trial, SU, bin
@@ -490,15 +493,13 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25, 2, 4), tem
     score_X1 = []
     template_X2 = []
     score_X2 = []
+    template_trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
+    score_trial_to_select = np.random.choice(n_trial[3], n_trial[2], replace=False)
     for one_su in su_selected_features:
-        template_trial_to_select1 = np.random.choice(one_su[template_keys[0]].shape[1], n_trial[0], replace=False)
-        score_trial_to_select1 = np.random.choice(one_su[score_keys[0]].shape[1], n_trial[2], replace=False)
-        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in template_trial_to_select1])
-        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in score_trial_to_select1])
-        template_trial_to_select2 = np.random.choice(one_su[template_keys[1]].shape[1], n_trial[0], replace=False)
-        score_trial_to_select2 = np.random.choice(one_su[score_keys[1]].shape[1], n_trial[2], replace=False)
-        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in template_trial_to_select2])
-        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in score_trial_to_select2])
+        template_X1.append([one_su[template_keys[0]][bin_range, t] for t in template_trial_to_select])
+        score_X1.append([one_su[score_keys[0]][bin_range, t] for t in score_trial_to_select])
+        template_X2.append([one_su[template_keys[1]][bin_range, t] for t in template_trial_to_select])
+        score_X2.append([one_su[score_keys[1]][bin_range, t] for t in score_trial_to_select])
 
     template_X1 = np.array(template_X1).transpose((1, 0, 2))
     template_X2 = np.array(template_X2).transpose((1, 0, 2))  # trial, SU, bin
@@ -539,10 +540,10 @@ def statistical_test_correct_error(delay=3):
     fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_1000.npz'), 'r')
     fstr_Err = np.load(os.path.join('ctd', f'sus_trans_ctd_correct_error_{delay}_1000.npz'), 'r')
 
-    correct_mat = fstr['sus50']
-    err_mat = fstr_Err['sus50']
+    correct_mat = fstr['trans1000']
+    err_mat = fstr_Err['trans1000']
 
-    err_mean =np.ones((correct_mat.shape[2:4]))
+    err_mean = np.ones((correct_mat.shape[2:4]))
     cr_mean = np.ones((correct_mat.shape[2:4]))
     for template_bin in range(correct_mat.shape[2]):
         for score_bin in range(correct_mat.shape[3]):
@@ -553,12 +554,12 @@ def statistical_test_correct_error(delay=3):
     for template_bin in range(correct_mat.shape[2]):
         for score_bin in range(correct_mat.shape[3]):
             (_stat, p_mat[template_bin, score_bin]) = stats.mannwhitneyu(
-                correct_mat[:, 1, template_bin, score_bin].flatten(),
+                correct_mat[:, :, template_bin, score_bin].flatten(),
                 err_mat[:, :, template_bin, score_bin].flatten(),
                 alternative="two-sided")
     p_mat = p_mat * correct_mat.shape[2] * correct_mat.shape[3]
     (fig, ax) = plt.subplots(1, 1)
-    ax.imshow(p_mat>0.05)
+    ax.imshow(p_mat > 0.05)
     plt.show()
 
 
@@ -608,17 +609,34 @@ def baseline_statstics(features_per_su):
     #     # plt.show()
 
 
+def refine_svm():
+    delay = 6
+    fstr = np.load("ctd.npz", allow_pickle=True)
+    features_per_su = fstr["features_per_su"].tolist()
+    baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+    sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
+    wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+    trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
+    features_per_su_all = features_per_su
+    features_per_su = trans_feat
+    one_cv = cross_time_decoding_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=6,
+                                        bin_range=np.arange(4, 12))
+
+
+# %% main
 if __name__ == "__main__":
-    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=30)
-    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=30)
+
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
+
+    cross_time_decoding(denovo=False, to_plot=True, delay=6, cpu=30)
+    cross_time_decoding(denovo=False, to_plot=True, delay=3, cpu=30)
 
     ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
     ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
 
     sys.exit()
-
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
+    
 
     (sus, trans) = last_bin_decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
