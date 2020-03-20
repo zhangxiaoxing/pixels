@@ -180,8 +180,7 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=10
         return (sus50, trans50, trans1000)
 
 
-def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
-    repeats = 1000
+def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=1000):
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
@@ -258,7 +257,7 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
                 [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
                 [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
 
-        fig.savefig('ctd_cross_delay_dur.png', bbox_inches='tight')
+        fig.savefig(f'ctd_cross_delay_dur_{delay}_{repeats}.png', bbox_inches='tight')
         plt.show()
 
     return (sus50, trans50, trans1000)
@@ -626,16 +625,15 @@ def refine_svm():
 
 # %% main
 if __name__ == "__main__":
-    repeat = 100
+    repeat = 1000
     (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
     (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
 
     cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
     cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
 
-    ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
-    ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
-
+    ctd_cross_all(denovo=True, to_plot = True, delay=3, cpu=30, repeats=repeat)
+    ctd_cross_all(denovo=True, to_plot = True, delay=6, cpu=30, repeats=repeat)
     sys.exit()
 
     (sus, trans) = last_bin_decoding()
