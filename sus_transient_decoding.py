@@ -272,8 +272,8 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
         wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
         # reg_list = fstr["reg_list"].tolist()
         sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
-        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
-        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
+        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.01))[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.01))[0]]
         curr_pool = Pool(processes=cpu)
         sus50 = []
         trans50 = []
@@ -411,7 +411,7 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
                  features_per_su]
 
     if sum(avail_sel) < n_neuron:
-        print('Not enough SU with suffcient trials')
+        print(f'Not enough SU with suffcient trials {sum(avail_sel)}/{n_neuron}')
         return None
 
     # bins, trials
@@ -617,7 +617,7 @@ def refine_svm():
     baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
     sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
     wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
-    trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.01))[0]]
+    trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.01))[0]]
     features_per_su_all = features_per_su
     features_per_su = trans_feat
     one_cv = cross_time_decoding_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=6,
@@ -630,8 +630,8 @@ if __name__ == "__main__":
     (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
     (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
 
-    cross_time_decoding(denovo=False, to_plot=True, delay=6, cpu=30, repeats=repeat)
-    cross_time_decoding(denovo=False, to_plot=True, delay=3, cpu=30, repeats=repeat)
+    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
+    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
 
     ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
     ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
