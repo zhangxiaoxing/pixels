@@ -95,8 +95,7 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
     return concurrent_time
 
 
-def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
-    repeats = 1000
+def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=1000):
     sus50 = None
     trans50 = None
     trans1000 = None
@@ -148,12 +147,15 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
 
     if to_plot:
         (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
-        ax[0].imshow(sus50.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[0].imshow(np.array(sus50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
+                     vmax=100)
         ax[0].set_title('50 sustained SU')
         ax[0].set_ylabel('template time (s)')
-        ax[1].imshow(trans50.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
+        ax[1].imshow(np.array(trans50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
+                     vmax=100)
         ax[1].set_title('50 transient SU')
-        im2 = ax[2].imshow(trans1000.mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
+        im2 = ax[2].imshow(np.array(trans1000).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower',
+                           vmin=0,
                            vmax=100)
         ax[2].set_title('1000 transient SU')
         plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
@@ -178,8 +180,7 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30):
         return (sus50, trans50, trans1000)
 
 
-def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
-    repeats = 1000
+def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=1000):
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
@@ -256,14 +257,13 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30):
                 [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
                 [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
 
-        fig.savefig('ctd_cross_delay_dur.png', bbox_inches='tight')
+        fig.savefig(f'ctd_cross_delay_dur_{delay}_{repeats}.png', bbox_inches='tight')
         plt.show()
 
     return (sus50, trans50, trans1000)
 
 
-def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
-    repeats = 1000
+def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=1000):
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
@@ -271,8 +271,8 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30):
         wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
         # reg_list = fstr["reg_list"].tolist()
         sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
-        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.05))[0]]
-        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
+        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.01))[0]]
+        trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.01))[0]]
         curr_pool = Pool(processes=cpu)
         sus50 = []
         trans50 = []
@@ -410,7 +410,7 @@ def cross_time_decoding_cross(features_per_su, n_neuron=300, n_trial=(20, 25), t
                  features_per_su]
 
     if sum(avail_sel) < n_neuron:
-        print('Not enough SU with suffcient trials')
+        print(f'Not enough SU with suffcient trials {sum(avail_sel)}/{n_neuron}')
         return None
 
     # bins, trials
@@ -566,10 +566,10 @@ def statistical_test_correct_error(delay=3):
 def baseline_statstics(features_per_su):
     baseline_stats = []
     for su in features_per_su:
-        S1_3 = su['S1_3'][2:10, :].flatten()
-        S2_3 = su['S2_3'][2:10, :].flatten()
-        S1_6 = su['S1_6'][2:10, :].flatten()
-        S2_6 = su['S2_6'][2:10, :].flatten()
+        S1_3 = su['S1_3'][4:12, :].flatten()
+        S2_3 = su['S2_3'][4:12, :].flatten()
+        S1_6 = su['S1_6'][4:12, :].flatten()
+        S2_6 = su['S2_6'][4:12, :].flatten()
         p3 = None
         p6 = None
         if not (np.unique(np.concatenate((S1_3, S2_3))).shape[0] == 1):
@@ -616,7 +616,7 @@ def refine_svm():
     baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
     sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
     wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
-    trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > 0.05))[0]]
+    trans_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > 0.01))[0]]
     features_per_su_all = features_per_su
     features_per_su = trans_feat
     one_cv = cross_time_decoding_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=6,
@@ -625,18 +625,16 @@ def refine_svm():
 
 # %% main
 if __name__ == "__main__":
+    repeat = 1000
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
 
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
+    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat)
+    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat)
 
-    cross_time_decoding(denovo=False, to_plot=True, delay=6, cpu=30)
-    cross_time_decoding(denovo=False, to_plot=True, delay=3, cpu=30)
-
-    ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30)
-    ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30)
-
+    ctd_cross_all(denovo=True, to_plot = True, delay=3, cpu=30, repeats=repeat)
+    ctd_cross_all(denovo=True, to_plot = True, delay=6, cpu=30, repeats=repeat)
     sys.exit()
-    
 
     (sus, trans) = last_bin_decoding()
     np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
