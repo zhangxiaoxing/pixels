@@ -22,6 +22,7 @@ def traverse(path):
         if "cluster_info.tsv" in files:
             yield basepath
 
+
 def judgePerformance(trials, criteria=75):
     """
 
@@ -71,6 +72,7 @@ def judgePerformance(trials, criteria=75):
             else:
                 return ("transition", 1, np.ones_like(inWindow), correctResp)
 
+
 def get_root_path():
     dpath = None
     if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
@@ -81,6 +83,7 @@ def get_root_path():
         dpath = r"D:\neupix\DataSum"
 
     return dpath
+
 
 def get_bsid_duration_who(path):
     bs_id = 0
@@ -166,8 +169,8 @@ def combineSubRegion(r):
         return r
 
 
-def getRegionList():
-    site_file = r"D:\neupix\meta\NP tracks validated3.3.csv"
+def getRegionList(cmp=False):
+    site_file = r"K:\neupix\meta\NP tracks revised 0319.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mouse_id": "str", "implanting_date": "str"}
     )[
@@ -182,12 +185,31 @@ def getRegionList():
     ]
 
     regionL["acronym"] = regionL["acronym"].apply(combineSubRegion)
-    return regionL
+    if not cmp:
+        return regionL
+    else:
+        cmp_file = r"K:\neupix\meta\NP tracks validated3.3.csv"
+        cmpL = pd.read_csv(cmp_file).astype(
+            {"mouse_id": "str", "implanting_date": "str"}
+        )[
+            [
+                "mouse_id",
+                "implanting_date",
+                "side",
+                "acronym",
+                "distance2tipHigh",
+                "distance2tipLow",
+            ]
+        ]
+
+        cmpL["acronym"] = cmpL["acronym"].apply(combineSubRegion)
+        return (regionL, cmpL)
 
 
 ### Walk through
 if __name__ == "__main__":
-    regionL = getRegionList()
+    identical_counter = []
+    (regionL, cmpL) = getRegionList(cmp=True)
     unlabeledRecord = []
 
     for path in traverse(r"K:\neupix\DataSum"):
@@ -198,9 +220,11 @@ if __name__ == "__main__":
             print("missing one FR_All file, path: ", path)
             continue
 
+        print(path)
         (bs_id, time_s, who) = get_bsid_duration_who(path)
         (mice_id, date, imec_no) = zpy.get_miceid_date_imecno(path)
         depthL = getTrackRegion(regionL, mice_id, date, imec_no, who)
+        depth_cmp = getTrackRegion(cmpL, mice_id, date, imec_no, who)
         su_ids = None
         su_region_corr = []
         with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
@@ -216,11 +240,18 @@ if __name__ == "__main__":
         for one_su in su_ids:
             depth = unitInfo.loc[unitInfo['id'] == one_su, ['depth']].iat[0, 0]
             reg = matchDepth(depth, depthL, date, mice_id, imec_no, unlabeledRecord)
-            su_region_corr.append([one_su, reg])
+            reg_cmp = matchDepth(depth, depth_cmp, date, mice_id, imec_no, unlabeledRecord)
+            su_region_corr.append([one_su, reg, reg_cmp])
+            if reg == reg_cmp:
+                identical_counter.append([1, reg, reg_cmp])
+            else:
+                identical_counter.append([0, reg, reg_cmp])
 
-        tbl = pd.DataFrame(su_region_corr, columns=['index', 'region']).set_index('index')['region']
+        tbl = pd.DataFrame(su_region_corr, columns=['index', 'region', 'old']).set_index('index')[:]
         tbl.to_csv(os.path.join(path, 'su_id2reg.csv'), header=True)
 
         with open("unlabeled.csv", "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerows(unlabeledRecord)
+
+    print(np.sum(np.array(identical_counter)) / len(identical_counter))

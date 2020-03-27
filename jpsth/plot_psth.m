@@ -4,14 +4,13 @@ sus=importdata('transient_6.csv',',',1);
 accu=0;
 for idx=find(sus.data(1,:)==1)
     accu=accu+1;
-    if accu>=145
         disp(accu)
 
         fstr=su_list.textdata{idx};
         suid=su_list.data(idx);
         plot_su(replace(fstr,'D:','K:'),suid);
-        disp('.')
-    end
+
+
 end
 end
 
