@@ -5,10 +5,10 @@ Spyder Editor
 This is a temporary script file.
 """
 
-
 # import glob
 import h5py
 import numpy as np
+
 
 # import os
 
@@ -33,11 +33,11 @@ def parseGNGEvents(events):
             lastTS = cueTS
 
         if (
-            lastCue > 0
-            and rsps < 0
-            and events[eidx][0] >= lastTS + 30000
-            and events[eidx][0] < lastTS + 90000
-            and (events[eidx][1] & 0x03) > 0
+                lastCue > 0
+                and rsps < 0
+                and events[eidx][0] >= lastTS + 30000
+                and events[eidx][0] < lastTS + 90000
+                and (events[eidx][1] & 0x03) > 0
         ):
             rsps = events[eidx][1] & 0x03
 
@@ -109,13 +109,8 @@ def parseDPAEvents(events):
             lastCue = cue
             lastTS = cueTS
 
-        if (
-            test > 0
-            and rsps < 0
-            and events[eidx][0] >= testTS + s1s
-            and events[eidx][0] < lastTS + 2 * s1s
-            and (events[eidx][1] & 0x03) > 0
-        ):
+        if (test > 0 and rsps < 0 and events[eidx][0] >= testTS + s1s and events[eidx][0] < lastTS + 2 * s1s and (
+                events[eidx][1] & 0x01) > 0):
             rsps = 1
 
     if sample > 0 and test > 0:
@@ -136,7 +131,7 @@ def parseDPAEvents(events):
 
 
 def getEvents():
-    syncs = np.empty([0])
+    syncs = None
     with h5py.File("sync.hdf5", "r") as fs:
         dset = fs["sync"]
         syncs = np.array(dset, dtype="int8")
@@ -160,14 +155,15 @@ def getEvents():
                 ts += 1
             else:
                 blockCount = 0
-                state = 0
-                state += 1 if np.sum(syncs[ts + 5 : ts + 10]) > 128 else 0
-                state += 2 if np.sum(syncs[ts + 10 : ts + 14]) > 127 else 0
-                state += 4 if np.sum(syncs[ts + 14 : ts + 19]) > 128 else 0
-                state += 8 if np.sum(syncs[ts + 19 : ts + 24]) > 128 else 0
-                if (not events) or events[-1][1] != state:
-                    events.append([ts, state])
+                state = [ts, 0, 0, 0, 0]
+                state[1] = 1 if np.sum(syncs[ts + 5: ts + 10]) > 128 else 0
+                state[2] = 1 if np.sum(syncs[ts + 10: ts + 14]) > 127 else 0
+                state[3] = 1 if np.sum(syncs[ts + 14: ts + 19]) > 128 else 0
+                state[4] = 1 if np.sum(syncs[ts + 19: ts + 24]) > 128 else 0
+                if (not events) or not np.array_equal(events[-1][1:], state[1:]):
+                    events.append(state)
                 ts += 24
+    events = np.array(events)
     return events
 
 
@@ -177,8 +173,51 @@ def writeEvents(events, trials):
         tDset = fw.create_dataset("trials", data=np.array(trials, dtype="i4"))
 
 
+def filter_events(events):
+    lick_interval = 30000 * 0.05  # 50ms
+    cue_interval = 30000 * 0.5
+    prev_idx = np.argmax(events[:, 1])
+    prev_TS = events[prev_idx, 0]
+    for i in range(prev_idx + 1, events.shape[0]):
+        if events[i, 1] == 1:
+            curr_TS = events[i, 0]
+            if curr_TS - prev_TS < lick_interval:
+                events[prev_idx:i, 1] = 1
+            prev_idx = i
+            prev_TS = curr_TS
+
+    prev_idx = np.argmax(events[:, 3])
+    prev_TS = events[prev_idx, 0]
+    for i in range(prev_idx + 1, events.shape[0]):
+        if events[i, 3] == 1:
+            curr_TS = events[i, 0]
+            if curr_TS - prev_TS < cue_interval:
+                events[prev_idx:i, 3] = 1
+            prev_idx = i
+            prev_TS = curr_TS
+
+    prev_idx = np.argmax(events[:, 4])
+    prev_TS = events[prev_idx, 0]
+    for i in range(prev_idx + 1, events.shape[0]):
+        if events[i, 4] == 1:
+            curr_TS = events[i, 0]
+            if curr_TS - prev_TS < cue_interval:
+                events[prev_idx:i, 4] = 1
+            prev_idx = i
+            prev_TS = curr_TS
+    events[:, 2] = 0
+    output = []
+    output.append([events[0, 0], events[0, 1] + events[0, 3] * 4 + events[0, 4] * 8])
+    for i in range(1, events.shape[0]):
+        val = events[i, 1] + events[i, 3] * 4 + events[i, 4] * 8
+        if not val == output[-1][1]:
+            output.append([events[i, 0], val])
+    return output
+
+
 def runsync():
     events = getEvents()
+    events = filter_events(events)
     trials = parseDPAEvents(events)
     writeEvents(events, trials)
     return trials
@@ -188,6 +227,5 @@ if __name__ == "__main__":
     events = getEvents()
     trials = parseDPAEvents(events)
     writeEvents(events, trials)
-
 
 # with open('events.csv','w',newline='\r\n') as
