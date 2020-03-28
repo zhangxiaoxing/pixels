@@ -44,7 +44,7 @@ end
 trl=FT_SPIKE.trialinfo;
 ts=arrayfun(@(x) FT_SPIKE.time{1}(FT_SPIKE.trial{1}==x),1:size(trl,1),'UniformOutput',false);
 
-fig=figure('Color','w','Position',[100,100,600,800]);
+fig=figure('Color','w','Position',[100,100,1200,800]);
 p1=[0.15,0.5,0.7,0.40];
 p2=[0.15,0.1,0.7,0.35];
 
@@ -181,9 +181,11 @@ if nnz(correct_sel)<20 || nnz(err_sel)<20
     return
 end
 
-
-ts{1}=arrayfun(@(x) FT_SPIKE.time{1}(FT_SPIKE.trial{1}==x),err_sel,'UniformOutput',false);
+ts{1}=correct_sel;
 ts{2}=arrayfun(@(x) FT_SPIKE.time{1}(FT_SPIKE.trial{1}==x),correct_sel,'UniformOutput',false);
+
+ts{3}=err_sel;
+ts{4}=arrayfun(@(x) FT_SPIKE.time{1}(FT_SPIKE.trial{1}==x),err_sel,'UniformOutput',false);
 
 fig=figure('Color','w','Position',[100,100,600,800]);
 p1=[0.15,0.5,0.7,0.40];
@@ -208,20 +210,19 @@ ts=ts';
 counts=cellfun(@(x) numel(x),[ts{1};ts{2}]);
 skips=ceil(max(counts)/200);
 
-count1=size(ts{1},1);
-count2=size(ts{2},1);
+count1=size(ts{2},1);
+count2=size(ts{4},1);
 
-posRange=1:size(ts{1},1);
-cellfun(@(x) plot([x{1}(1:skips:end);x{1}(1:skips:end)],repmat([x{2};x{2}+0.8],1,ceil(length(x{1})/skips)),'-r'),cellfun(@(x,y) {x,y},ts{1}(posRange),num2cell(1:length(posRange),1)','UniformOutput',false));
+arrayfun(@(x) plot([ts{2}{x,1:skips:end};ts{2}{x,1:skips:end}],repmat([ts{1}(x);ts{1}(x)+0.8],1,ceil(length(ts{2}{x})/skips)),'-r'),1:length(ts{1}));
 
-posRange=1:size(ts{2},1);
-cellfun(@(x) plot([x{1}(1:skips:end);x{1}(1:skips:end)],repmat([x{2};x{2}+0.8]+count1+4,1,ceil(length(x{1})/skips)),'-b'),cellfun(@(x,y) {x,y},ts{2}(posRange),num2cell(1:length(posRange),1)','UniformOutput',false));
+arrayfun(@(x) plot([ts{4}{x,1:skips:end};ts{4}{x,1:skips:end}],repmat([ts{3}(x);ts{3}(x)+0.8],1,ceil(length(ts{4}{x})/skips)),'-b'),1:length(ts{3}));
 
 xlim([-1,rLim]);
 
-set(gca,'XTick',[],'YTick',[1,count1,count1+5,count1+count2+4],'YTickLabel',[1,count1,1,count2]);
+set(gca,'XTick',[]);
 
-ylim([0,count1+count2+5]);
+ylim([0,count1+count2]);
+ylabel('trial #');
 arrayfun(@(x) xline(x,'--k'),[0,1,4,7]);
 
 
@@ -230,12 +231,12 @@ axd=subplot('Position',p2);
 binSize=0.25;
 hold on;
 
-pfHist=cell2mat(cellfun(@(x) histcounts(x,-4:binSize:rLim)./binSize,ts{1},'UniformOutput',false));
+pfHist=cell2mat(cellfun(@(x) histcounts(x,-4:binSize:rLim)./binSize,ts{2},'UniformOutput',false));
 cia=bootci(1000,@(x) mean(x), pfHist);
 fill([-4+binSize/2:binSize:rLim,rLim-binSize/2:-binSize:-4],[cia(1,:),fliplr(cia(2,:))],[1,0.8,0.8],'EdgeColor','none');
 
 
-bnHist=cell2mat(cellfun(@(x) histcounts(x,-4:binSize:rLim)./binSize,ts{2},'UniformOutput',false));
+bnHist=cell2mat(cellfun(@(x) histcounts(x,-4:binSize:rLim)./binSize,ts{4},'UniformOutput',false));
 cib=bootci(1000,@(x) mean(x), bnHist);
 fill([-4+binSize/2:binSize:rLim,rLim-binSize/2:-binSize:-4],[cib(1,:),fliplr(cib(2,:))],[0.8,0.8,1],'EdgeColor','none');
 
@@ -243,14 +244,17 @@ plot(-4+binSize/2:binSize:rLim,(mean(pfHist,1))','-r');
 plot(-4+binSize/2:binSize:rLim,(mean(bnHist,1))','-b');
 
 xlim([-1,rLim]);
-if min(size(ts{1},1),size(ts{2},1))>2
-    ylim([min(ylim()),max([cia(:);cib(:)])]);
-end
+
+ylim([min(ylim()),max([cia(:);cib(:)])]);
+ylabel('avearged FR (Hz)');
 arrayfun(@(x) xline(x,'--k'),[0,1,4,7]);
 
 
 set(gca,'XTick',[0,5,10]);
-xlabel(sprintf('time (s), 1:%d downsample',skips))
-
+if skips > 1
+    xlabel(sprintf('time (s), raster 1:%d downsample',skips))
+else
+    xlabel('time (s)')
+end
 
 end
