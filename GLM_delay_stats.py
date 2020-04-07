@@ -3,6 +3,11 @@
 Created on Wed Feb 12 00:14:22 2020
 
 @author: Libra
+
+produces glm_coding_features
+
+summs up coding features that stressing  more on delay period, also see GLM_stats.py/per_region_glm.py
+
 """
 import os
 import h5py
@@ -164,13 +169,46 @@ class GLM_delay_stats:
                                self.non_mod))
 
 
+class CV_sw_test:
+    def __init__(self):
+        self.stats = None
+        self.paths = None
+
+    def processGLMStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None, path=None, pid=-1):
+        self.stats = []
+        self.paths = []
+        perf_sel_FR = trial_FR[:, welltrain_window & correct_resp, :]
+        trials = trials[welltrain_window & correct_resp, :]
+
+        for su_idx in range(trial_FR.shape[2]):
+            onesu = np.mean(perf_sel_FR[0:10, :, su_idx], axis=0)
+            (w, norm_p) = stats.shapiro(onesu)
+            cv = stats.variation(onesu)
+            fr = np.mean(onesu)
+            n = onesu.size
+            left = onesu[trials[:, 2] == 4]
+            right = onesu[trials[:, 2] == 8]
+            (_stats, pwrs) = stats.ranksums(left, right)
+
+            self.stats.append([n, fr, cv, w, norm_p, pwrs, pid, su_idx])
+            self.paths.append(path)
+
+    def getFeatures(self):
+        return (self.stats, self.paths)
+
+
 ### all brain region entry point
-def prepare_GLM():
-    curr_stats = GLM_delay_stats()
+def prepare_GLM(baseline_stats=False):
+    if baseline_stats:
+        curr_stats = CV_sw_test()
+    else:
+        curr_stats = GLM_delay_stats()
     all_sess_list = []
+    path_list = []
     reg_list = []
+
     dpath = align.get_root_path()
-    for path in align.traverse(dpath):
+    for (pid, path) in enumerate(align.traverse(dpath)):
         print(path)
         # SU_ids = []
         trial_FR = None
@@ -197,7 +235,6 @@ def prepare_GLM():
                 print("h5py read error handled")
         if trials is None:
             continue
-        suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
             l = list(csv.reader(csvfile))[1:]
             suid_reg = [list(i) for i in zip(*l)]
@@ -207,13 +244,13 @@ def prepare_GLM():
         if perf_code != 3:
             continue
 
-        curr_stats.processGLMStats(trial_FR, trials, welltrain_window, correct_resp)
+        curr_stats.processGLMStats(trial_FR, trials, welltrain_window, correct_resp, path, pid)
 
-        onesession = curr_stats.getFeatures()
+        (onesession, onepath) = curr_stats.getFeatures()
         all_sess_list.append(onesession)
-
+        path_list.extend(onepath)
         reg_list.extend(suid_reg[1])
-    return (all_sess_list, reg_list)
+    return (all_sess_list, path_list, reg_list)
 
 
 def plot_features():
@@ -227,8 +264,12 @@ def process_all(denovo=False):
     reg_arr = None
     if denovo:
         ### save raw data file
-        (all_sess_list, reg_list) = prepare_GLM()
-        all_sess_arr = np.hstack(all_sess_list)
+        (all_sess_list, path_list, reg_list) = prepare_GLM(baseline_stats=True)
+        all_sess_arr = np.vstack(all_sess_list)
+        np.savez_compressed('shapiro.npz', factors=all_sess_arr, reg_arr=reg_list, path_list=path_list)
+
+        return
+        all_sess_arr = np.vstack(all_sess_list)
         reg_arr = np.array(reg_list)
         np.savez_compressed('GLM_stats.npz', all_sess_arr=all_sess_arr, reg_arr=reg_arr)
     else:

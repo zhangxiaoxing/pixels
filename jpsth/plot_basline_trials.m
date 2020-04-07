@@ -8,6 +8,16 @@ try
 catch me    
     init()
 end
+
+su_list=importdata('..\base_selective.csv',',',0);
+for idx=1:length(su_list.data)
+    
+    plot_sample_pair(su_list.textdata{idx},num2str(su_list.data(idx)),'NA')
+end
+return
+
+
+
 su_list=importdata('..\baseline_stats.csv',',',0);
 accu=0;
 if state
@@ -76,6 +86,7 @@ sps=30000;
 rootpath=f_path;
 disp(rootpath)
 trials=markWTPerf(h5read(fullfile(rootpath,'events.hdf5'),'/trials')');
+trials=trials(trials(:,9)==1 & trials(:,10)==1,:);
 if isempty(trials)
     avail=false;
     out=[];
@@ -124,7 +135,6 @@ end
 out=[facSeq,xor(facSeq(:,5)==facSeq(:,6) , facSeq(:,7)>0)];
 WTIdx=9;
 end
-
 
 
 function [axu,axd]=plotOne(ts,rLim,p1,p2,trial_sel)
@@ -201,21 +211,60 @@ toc
 end
 
 
+function [FT_SPIKE,avail]=plot_sample_pair(f_path,suid,currReg)
+[avail,FT_SPIKE]=pre_process(f_path,suid);
+if ~avail
+    return
+end
+
+% psth=getPsth(FT_SPIKE,num2str(suid));
+trl=FT_SPIKE.trialinfo;
+S1_sel=find(trl(:,5)==4);
+S2_sel=find(trl(:,5)==8);
+if nnz(S1_sel)<20 || nnz(S2_sel)<20
+    return
+end
+if numel(FT_SPIKE.timestamp{1})<1000
+    return
+end
+
+ts{1}=(1:length(S1_sel))';
+ts{2}=arrayfun(@(x) FT_SPIKE.time{1}(FT_SPIKE.trial{1}==x),S1_sel,'UniformOutput',false);
+
+ts{3}=((1:length(S2_sel))+length(S1_sel))';
+ts{4}=arrayfun(@(x) FT_SPIKE.time{1}(FT_SPIKE.trial{1}==x),S2_sel,'UniformOutput',false);
+
+
+
+fig=figure('Color','w','Position',[100,100,600,800]);
+p1=[0.15,0.5,0.7,0.40];
+p2=[0.15,0.1,0.7,0.35];
+[axu,axd]=plotOnePair(ts,11,p1,p2);
+
+
+[~,fp,~]=fileparts(f_path);
+sgtitle(strjoin({currReg,fp,'SU#',suid}),'Interpreter','none')
+print(fig,strjoin({'bs_sel',fp,suid,'.png'},'_'),'-dpng','-painters');
+close(fig)
+toc
+end
+
+
 function [axu,axd]=plotOnePair(ts,rLim,p1,p2)
 %         pf=nan(0,0);
 %         bn=nan(0,0);
 axu=subplot('Position',p1);
 hold on;
 ts=ts';
-counts=cellfun(@(x) numel(x),[ts{1};ts{2}]);
+counts=cellfun(@(x) numel(x),[ts{2};ts{4}]);
 skips=ceil(max(counts)/200);
 
 count1=size(ts{2},1);
 count2=size(ts{4},1);
 
-arrayfun(@(x) plot([ts{2}{x,1:skips:end};ts{2}{x,1:skips:end}],repmat([ts{1}(x);ts{1}(x)+0.8],1,ceil(length(ts{2}{x})/skips)),'-r'),1:length(ts{1}));
+arrayfun(@(x) plot([ts{2}{x}(1:skips:end);ts{2}{x}(1:skips:end)],repmat([ts{1}(x);ts{1}(x)+0.8],1,ceil(length(ts{2}{x})/skips)),'-r'),1:length(ts{1}));
 
-arrayfun(@(x) plot([ts{4}{x,1:skips:end};ts{4}{x,1:skips:end}],repmat([ts{3}(x);ts{3}(x)+0.8],1,ceil(length(ts{4}{x})/skips)),'-b'),1:length(ts{3}));
+arrayfun(@(x) plot([ts{4}{x}(1:skips:end);ts{4}{x}(1:skips:end)],repmat([ts{3}(x);ts{3}(x)+0.8],1,ceil(length(ts{4}{x})/skips)),'-b'),1:length(ts{3}));
 
 xlim([-1,rLim]);
 

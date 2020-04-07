@@ -3,6 +3,8 @@
 Created on Wed Feb 12 00:38:49 2020
 
 @author: Libra
+
+summs up coding features with the current form. relays on GLM_stats module. For similar function but weights more on delay period, see GLM_delay_stats.py
 """
 import os
 import h5py

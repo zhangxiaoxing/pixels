@@ -184,7 +184,8 @@ if __name__ == "__main__":
         if trials is None:
             continue
 
-        (perfType, perfIdx, inWindow, correctResp) = align.judgePerformance(trials)
+        (perf_desc, perf_code, inWindow, correctResp) = align.judgePerformance(trials)
+
 
         (bs_id, time_s, who_did) = align.get_bsid_duration_who(path)
         (mice_id, date, imec_no) = get_miceid_date_imecno(path)
@@ -214,7 +215,7 @@ if __name__ == "__main__":
 
             if np.isin(np.double(row["id"]), sampSel[:, 0]):
                 regionMatched.append(
-                    [path, row["id"], suDepth, reg, perfIdx]
+                    [path, row["id"], suDepth, reg, perf_code]
                     + sampSel[sampSel[:, 0] == np.double(row["id"]), 1:5].tolist()[0]
                     + pairSel[pairSel[:, 0] == np.double(row["id"]), 1:3].tolist()[0]
                     + [int(mice_id)]

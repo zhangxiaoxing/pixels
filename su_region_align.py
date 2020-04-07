@@ -134,7 +134,7 @@ def imecNo2side(who_did, date, imecNo, mid):
     return "X"
 
 
-def matchDepth(depth, depthL, date, mice_id, imec_no, unlabeledRecord):
+def matchDepth(depth, depthL, date, mice_id, imec_no, unlabeledRecord=None):
     if not depthL.empty:
         label = depthL.loc[
             (depthL["distance2tipLow"] <= depth) & (depth < depthL["distance2tipHigh"]),
