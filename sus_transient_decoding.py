@@ -30,48 +30,57 @@ def exact_mc_perm_test(xs, ys, nmc):
 
 
 def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=1000, wrs_thres=0, decoder='MCC'):
-    sus50 = None
-    trans50 = None
-    trans1000 = None
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
-        baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
-        wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        # baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+        # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        wrs_p = np.ones(len(features_per_su))
         # reg_list = fstr["reg_list"].tolist()
         sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
         sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > wrs_thres))[0]]
         trans_feat = [features_per_su[i] for i in
                       np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > wrs_thres))[0]]
-        curr_pool = Pool(processes=cpu)
         sus50 = []
         trans50 = []
         trans1000 = []
         sust_proc = []
         trans50_proc = []
         trans1000_proc = []
-        for i in range(np.ceil(repeats / 50).astype(np.int)):
-            sust_proc.append(curr_pool.apply_async(ctd_actual, args=(sus_feat,),
-                                                   kwds={"n_neuron": 50, "n_trial": (10, 20), "delay": delay,
-                                                         "bin_range": np.arange(4, 52), "decoder": decoder}))
+        if cpu > 1:
+            curr_pool = Pool(processes=cpu)
+            for i in range(np.ceil(repeats / 50).astype(np.int)):
+                sust_proc.append(curr_pool.apply_async(ctd_actual, args=(sus_feat,),
+                                                       kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
+                                                             "bin_range": np.arange(4, 52), "decoder": decoder}))
 
-            trans50_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
-                                                      kwds={"n_neuron": 50, "n_trial": (10, 20), "delay": delay,
-                                                            "bin_range": np.arange(4, 52), "decoder": decoder}))
-            trans1000_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
-                                                        kwds={"n_neuron": 1000, "n_trial": (10, 20), "delay": delay,
-                                                              "bin_range": np.arange(4, 52), "decoder": decoder}))
-        for one_proc in sust_proc:
-            sus50.append(one_proc.get())
+                trans50_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
+                                                          kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
+                                                                "bin_range": np.arange(4, 52), "decoder": decoder}))
+                trans1000_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
+                                                            kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
+                                                                  "bin_range": np.arange(4, 52), "decoder": decoder}))
+            for one_proc in sust_proc:
+                sus50.append(one_proc.get())
 
-        for one_proc in trans50_proc:
-            trans50.append(one_proc.get())
+            for one_proc in trans50_proc:
+                trans50.append(one_proc.get())
 
-        for one_proc in trans1000_proc:
-            trans1000.append(one_proc.get())
+            for one_proc in trans1000_proc:
+                trans1000.append(one_proc.get())
 
-        curr_pool.close()
-        curr_pool.join()
+            curr_pool.close()
+            curr_pool.join()
+        else:
+            sus50.append(ctd_actual(sus_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                                    decoder=decoder))
+            trans50.append(
+                ctd_actual(trans_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                           decoder=decoder))
+            trans1000.append(
+                ctd_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                           decoder=decoder))
+
         np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
                             trans1000=trans1000)
     else:
@@ -119,8 +128,9 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=1000, wr
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         feat_per_su = fstr["features_per_su"].tolist()
-        baseline_WRS_p3_p6 = baseline_statstics(feat_per_su)
-        wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        # baseline_WRS_p3_p6 = baseline_statstics(feat_per_su)
+        # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        wrs_p = np.ones(len(features_per_su))
         # reg_list = fstr["reg_list"].tolist()
         sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
         sus_feat = [feat_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > wrs_thres))[0]]
@@ -134,15 +144,15 @@ def ctd_cross_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=1000, wr
         trans1000_proc = []
         for i in range(np.ceil(repeats / 50).astype(np.int)):
             sust_proc.append(curr_pool.apply_async(ctd_cross_delay_dur, args=(sus_feat,),
-                                                   kwds={"n_neuron": 50, "n_trial": (10, 20), "template_delay": delay,
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25), "template_delay": delay,
                                                          "bin_range": np.arange(4, 52), 'decoder': decoder}))
 
             trans50_proc.append(curr_pool.apply_async(ctd_cross_delay_dur, args=(trans_feat,),
-                                                      kwds={"n_neuron": 50, "n_trial": (10, 20),
+                                                      kwds={"n_neuron": 50, "n_trial": (20, 25),
                                                             "template_delay": delay,
                                                             "bin_range": np.arange(4, 52), 'decoder': decoder}))
             trans1000_proc.append(curr_pool.apply_async(ctd_cross_delay_dur, args=(trans_feat,),
-                                                        kwds={"n_neuron": 1000, "n_trial": (10, 20),
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25),
                                                               "template_delay": delay,
                                                               "bin_range": np.arange(4, 52), 'decoder': decoder}))
         for one_proc in sust_proc:
@@ -202,8 +212,10 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
     if denovo:
         fstr = np.load("ctd.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
-        baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
-        wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        # baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+        # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        wrs_p = np.ones(len(features_per_su))
+
         # reg_list = fstr["reg_list"].tolist()
         sus_trans_flag = per_second_stats.process_all()  # 33172 x 4, sust,trans,switch,unclassified
         sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > wrs_thres))[0]]
@@ -218,16 +230,16 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
         trans1000_proc = []
         for i in range(np.ceil(repeats / 50).astype(np.int)):
             sust_proc.append(curr_pool.apply_async(ctd_correct_error, args=(sus_feat,),
-                                                   kwds={"n_neuron": 50, "n_trial": (10, 20, 1, 2),
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25, 1, 2),
                                                          "template_delay": delay,
                                                          "bin_range": np.arange(4, 52), 'decoder': decoder}))
 
             trans50_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
-                                                      kwds={"n_neuron": 50, "n_trial": (10, 20, 1, 2),
+                                                      kwds={"n_neuron": 50, "n_trial": (20, 25, 1, 2),
                                                             "template_delay": delay,
                                                             "bin_range": np.arange(4, 52), 'decoder': decoder}))
             trans1000_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
-                                                        kwds={"n_neuron": 1000, "n_trial": (10, 20, 1, 2),
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25, 1, 2),
                                                               "template_delay": delay,
                                                               "bin_range": np.arange(4, 52), 'decoder': decoder}))
         for one_proc in sust_proc:
@@ -320,16 +332,16 @@ def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_rang
             score_mat = np.ones((bin_range.shape[0], bin_range.shape[0]))
             for template_bin_idx in np.arange(bin_range.shape[0]):
                 X_templates = np.vstack((X1[templates, :, template_bin_idx], X2[templates, :, template_bin_idx]))
-                y_templates = np.hstack((np.ones_like(templates) * 1, np.ones_like(templates) * 2)).T
+                y_templates = np.hstack((np.ones_like(templates) * -1, np.ones_like(templates) * 1)).T
                 # np.random.shuffle(y_templates)
                 scaler = scaler.fit(X_templates)
                 X_templates = scaler.transform(X_templates)
+                clf.fit(X_templates, y_templates)
                 for test_bin_idx in np.arange(bin_range.shape[0]):
                     X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
                     y_test = np.hstack((np.ones_like(tests) * 1, np.ones_like(tests) * 2)).T
                     # y_shuf=y.copy()
                     # rng.shuffle(y_shuf)
-                    clf.fit(X_templates, y_templates)
                     X_test = scaler.transform(X_test)
                     if decoder == 'MCC':
                         score_mat[template_bin_idx, test_bin_idx] = np.mean(np.hstack(
@@ -589,22 +601,31 @@ def refine_svm():
                         bin_range=np.arange(4, 12))
 
 
+def debug():
+    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=1, repeats=3,
+                        wrs_thres=0, decoder='MCC')
+
+
 # %% main
 if __name__ == "__main__":
+    # debug()
+    # sys.exit(0)
+
     repeat = 1000
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat,
+    cpus = 1
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
                                                         wrs_thres=0, decoder='MCC')
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat,
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
                                                         wrs_thres=0, decoder='MCC')
 
-    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat,
+    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
                         wrs_thres=0, decoder='MCC')
-    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat,
+    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
                         wrs_thres=0, decoder='MCC')
 
-    ctd_cross_all(denovo=True, to_plot=True, delay=3, cpu=30, repeats=repeat,
+    ctd_cross_all(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
                   wrs_thres=0, decoder='MCC')
-    ctd_cross_all(denovo=True, to_plot=True, delay=6, cpu=30, repeats=repeat,
+    ctd_cross_all(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
                   wrs_thres=0, decoder='MCC')
     sys.exit()
 

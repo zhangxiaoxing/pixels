@@ -27,11 +27,11 @@ import su_region_align as align
 
 class per_sec_stats:
     def __init__(self):
-        self.per_sec_sel = None  # 10 x SU , 3s baseline, sample + 6s delay
-        self.per_sec_prefS1 = None  # 10 x SU , 3s baseline, sample + 6s delay
-        self.per_sec_prefS2 = None  # 10 x SU , sample + 6s delay
-        self.non_sel_mod = None  # 10 x SU
-        self.non_mod = None  # 10 x SU
+        self.per_sec_sel = None  # 7 x SU , sample + 6s delay
+        self.per_sec_prefS1 = None  # 7 x SU , sample + 6s delay
+        self.per_sec_prefS2 = None  # 7 x SU , sample + 6s delay
+        self.non_sel_mod = None  # 7 x SU
+        self.non_mod = None  # 7 x SU
 
         self.use_ranksum = True
 
@@ -74,9 +74,9 @@ class per_sec_stats:
         trial_sel_left_3 = trial_perf_sel_3[:, 2] == 4
         self.per_sec_sel = None
         if delay == 6:
-            self.per_sec_sel = np.zeros((10, trial_FR.shape[2]))  # baseline sample delay
+            self.per_sec_sel = np.zeros((7, trial_FR.shape[2]))
         else:
-            self.per_sec_sel = np.zeros((7, trial_FR.shape[2]))  # baseline sample delay
+            self.per_sec_sel = np.zeros((4, trial_FR.shape[2]))
 
         self.per_sec_prefS1 = np.zeros_like(self.per_sec_sel)
         self.per_sec_prefS2 = np.zeros_like(self.per_sec_sel)
@@ -93,8 +93,8 @@ class per_sec_stats:
 
             # SP = np.arange(12, 16) ED = np.arange(18, 28) LD = np.arange(28, 38)
             if delay == 6:
-                for bin_idx in range(0, 10):
-                    bins = np.arange(bin_idx * 4, bin_idx * 4 + 4)
+                for bin_idx in range(0, 7):
+                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
                                                                              right_trials_6[:, bins])
                     if self.per_sec_sel[bin_idx, su_idx]:
@@ -102,13 +102,13 @@ class per_sec_stats:
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
                         else:
                             self.per_sec_prefS2[bin_idx, su_idx] = 1
-                    if bin_idx > 2:
-                        self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
-                                                             self.bool_stats_test(onesu_6[:, bins],
-                                                                                  onesu_6[:, 6:10]))
+
+                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
+                                                         self.bool_stats_test(onesu_6[:, bins],
+                                                                              onesu_6[:, 6:10]))
             elif delay == 3:
-                for bin_idx in range(0, 7):
-                    bins = np.arange(bin_idx * 4, bin_idx * 4 + 4)
+                for bin_idx in range(0, 4):
+                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
                                                                              right_trials_3[:, bins])
                     if self.per_sec_sel[bin_idx, su_idx]:
@@ -116,10 +116,10 @@ class per_sec_stats:
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
                         else:
                             self.per_sec_prefS2[bin_idx, su_idx] = 1
-                    if bin_idx > 2:
-                        self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
-                                                             self.bool_stats_test(onesu_3[:, bins],
-                                                                                  onesu_3[:, 6:10]))
+
+                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
+                                                         self.bool_stats_test(onesu_3[:, bins],
+                                                                              onesu_3[:, 6:10]))
                 # self.non_mod[bin_idx, su_idx] = not (
                 #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
 
@@ -284,14 +284,13 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
 
     delay_bins = None
     if delay == 6:
-        delay_bins = np.arange(4, 10)
+        delay_bins = np.arange(1, 7)
     elif delay == 3 or delay == 'early3in6':
-        delay_bins = np.arange(4, 7)
+        delay_bins = np.arange(1, 4)
     elif delay == 'late3in6':
-        delay_bins = np.arange(7, 10)
-    baseline_bins = np.arange(0, 4)
+        delay_bins = np.arange(4, 7)
 
-    sample_only = per_sec_sel_arr[3, :].astype(np.bool) & ~np.any(per_sec_sel_arr[delay_bins, :], axis=0)
+    sample_only = per_sec_sel_arr[0, :].astype(np.bool) & ~np.any(per_sec_sel_arr[delay_bins, :], axis=0)
     sample_only_count = np.count_nonzero(sample_only)
     delay_sel = np.any(per_sec_sel_arr[delay_bins, :], axis=0)
     delay_sel_count = np.count_nonzero(delay_sel)
@@ -456,11 +455,12 @@ def bars():
     ax.set_ylabel('coding in 3s delay trials')
     sm = plt.cm.ScalarMappable(cmap='jet', norm=norm)
     sm._A = []
-    plt.colorbar(sm, ticks=[0, 0.5], format="%.1f")
-    fig.savefig('sus_trans_3vs6.png', bbox_inches='tight', pad_inches=2)
+    plt.colorbar(sm, ticks=[0,0.5], format="%.1f")
+    fig.savefig('sus_trans_3vs6.png',bbox_inches='tight',pad_inches=2)
     plt.show()
     sumcounts = np.sum(counts_sum)
     print(f"sum counts {sumcounts}")
+
 
     counts_sum = []
     (fig, ax) = plt.subplots(1, 1, figsize=(7.5, 7), dpi=300)
@@ -483,11 +483,12 @@ def bars():
     ax.set_ylabel('coding in 3s delay trials')
     sm = plt.cm.ScalarMappable(cmap='jet', norm=norm)
     sm._A = []
-    plt.colorbar(sm, ticks=[0, 0.5], format="%.1f")
-    fig.savefig('sus_trans_3vse3.png', bbox_inches='tight', pad_inches=2)
+    plt.colorbar(sm, ticks=[0,0.5], format="%.1f")
+    fig.savefig('sus_trans_3vse3.png',bbox_inches='tight',pad_inches=2)
     plt.show()
     sumcounts = np.sum(counts_sum)
     print(f"sum counts {sumcounts}")
+
 
     counts_sum = []
     (fig, ax) = plt.subplots(1, 1, figsize=(7.5, 7), dpi=300)
@@ -511,11 +512,12 @@ def bars():
 
     sm = plt.cm.ScalarMappable(cmap='jet', norm=norm)
     sm._A = []
-    plt.colorbar(sm, ticks=[0, 0.5], format="%.1f")
-    fig.savefig('sus_trans_early_vs_late.png', bbox_inches='tight', pad_inches=2)
+    plt.colorbar(sm, ticks=[0,0.5], format="%.1f")
+    fig.savefig('sus_trans_early_vs_late.png',bbox_inches='tight',pad_inches=2)
     plt.show()
     sumcounts = np.sum(counts_sum)
     print(f"sum counts {sumcounts}")
+
 
     # (fig, ax) = plt.subplots(7, 5, sharex=True, sharey=True, figsize=(12, 12), dpi=200)
     # # 3s equiv in 6s
