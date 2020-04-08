@@ -10,9 +10,9 @@ import os
 import h5py
 import csv
 import numpy as np
-# from scipy.stats.stats import pearsonr
 import scipy.stats as stats
 import su_region_align as align
+import matplotlib.pyplot as plt
 
 
 class PrevTrialStats:
@@ -22,10 +22,11 @@ class PrevTrialStats:
         # self.correct_base_avg = None
         # self.err_base_avg = None
 
-    def process_baseline_stats(self, trials):
+    def process_baseline_stats(self, trials, welltrain_window):
         self.stats = []
         for tidx in range(1, trials.shape[0]):
-            self.stats.append(np.hstack((trials[tidx - 1, 2:], (trials[tidx, 2:]))))
+            if welltrain_window[tidx]:
+                self.stats.append(np.hstack((trials[tidx - 1, 2:], (trials[tidx, 2:]))))
 
     def getFeatures(self):
         return self.stats
@@ -65,7 +66,7 @@ def prepare_baseline():
         if perf_code != 3:
             continue
 
-        curr_stats.process_baseline_stats(trials)
+        curr_stats.process_baseline_stats(trials, welltrain_window)
 
         onesession = curr_stats.getFeatures()
         all_sess_list.extend(onesession)
@@ -101,15 +102,30 @@ def process_all(denovo=False):
         fstr = np.load('prev_trial_stats.npz')
         arr = fstr['all_sess_arr']
 
-    t44 = np.count_nonzero(np.logical_and(arr[:, 1] == 4, arr[:, 4] == 4))
-    t48 = np.count_nonzero(np.logical_and(arr[:, 1] == 4, arr[:, 4] == 8))
-    t84 = np.count_nonzero(np.logical_and(arr[:, 1] == 8, arr[:, 4] == 4))
-    t88 = np.count_nonzero(np.logical_and(arr[:, 1] == 8, arr[:, 4] == 8))
-
     s44 = np.count_nonzero(np.logical_and(arr[:, 0] == 4, arr[:, 4] == 4))
     s48 = np.count_nonzero(np.logical_and(arr[:, 0] == 4, arr[:, 4] == 8))
     s84 = np.count_nonzero(np.logical_and(arr[:, 0] == 8, arr[:, 4] == 4))
     s88 = np.count_nonzero(np.logical_and(arr[:, 0] == 8, arr[:, 4] == 8))
+
+    st44 = np.count_nonzero(np.logical_and(arr[:, 0] == 4, arr[:, 5] == 4))
+    st48 = np.count_nonzero(np.logical_and(arr[:, 0] == 4, arr[:, 5] == 8))
+    st84 = np.count_nonzero(np.logical_and(arr[:, 0] == 8, arr[:, 5] == 4))
+    st88 = np.count_nonzero(np.logical_and(arr[:, 0] == 8, arr[:, 5] == 8))
+
+    ts44 = np.count_nonzero(np.logical_and(arr[:, 1] == 4, arr[:, 4] == 4))
+    ts48 = np.count_nonzero(np.logical_and(arr[:, 1] == 4, arr[:, 4] == 8))
+    ts84 = np.count_nonzero(np.logical_and(arr[:, 1] == 8, arr[:, 4] == 4))
+    ts88 = np.count_nonzero(np.logical_and(arr[:, 1] == 8, arr[:, 4] == 8))
+
+    t44 = np.count_nonzero(np.logical_and(arr[:, 1] == 4, arr[:, 5] == 4))
+    t48 = np.count_nonzero(np.logical_and(arr[:, 1] == 4, arr[:, 5] == 8))
+    t84 = np.count_nonzero(np.logical_and(arr[:, 1] == 8, arr[:, 5] == 4))
+    t88 = np.count_nonzero(np.logical_and(arr[:, 1] == 8, arr[:, 5] == 8))
+
+    d33 = np.count_nonzero(np.logical_and(arr[:, 3] < 5, arr[:, 7] < 5))
+    d36 = np.count_nonzero(np.logical_and(arr[:, 3] < 5, arr[:, 7] > 5))
+    d63 = np.count_nonzero(np.logical_and(arr[:, 3] > 5, arr[:, 7] < 5))
+    d66 = np.count_nonzero(np.logical_and(arr[:, 3] > 5, arr[:, 7] > 5))
 
     correct = np.logical_xor(arr[:, 4] == arr[:, 5], arr[:, 6] > 0)
 
@@ -118,14 +134,60 @@ def process_all(denovo=False):
     samp_non_Cong = np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 4], correct)) / np.count_nonzero(
         arr[:, 0] != arr[:, 4])
 
-    test_Cong = np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)) / np.count_nonzero(
-        arr[:, 1] == arr[:, 4])
-    test_non_Cong = np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 4], correct)) / np.count_nonzero(
-        arr[:, 1] != arr[:, 4])
+    samp_test_pair = np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 5], correct)) / np.count_nonzero(
+        arr[:, 0] != arr[:, 5])
+    samp_test_non_pair = np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 5], correct)) / np.count_nonzero(
+        arr[:, 0] == arr[:, 5])
 
-    print([s44, s48, s84, s88, t44, t48, t84, t88])
-    print([samp_Cong, samp_non_Cong, test_Cong, test_non_Cong])
+    test_sample_pair = np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 4], correct)) / np.count_nonzero(
+        arr[:, 1] != arr[:, 4])
+    test_sample_non_pair = np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)) / np.count_nonzero(
+        arr[:, 1] == arr[:, 4])
+
+    test_Cong = np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 5], correct)) / np.count_nonzero(
+        arr[:, 1] == arr[:, 5])
+    test_non_Cong = np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)) / np.count_nonzero(
+        arr[:, 1] != arr[:, 5])
+
+    trial_stats=[(s44 + s88) / (s44 + s84 + s48 + s88), (s48 + s84) / (s48 + s88 + s44 + s84),
+     (t44 + t88) / (t44 + t84 + t48 + t88), (t48 + t84) / (t48 + t88 + t44 + t84),
+     (st48 + st84) / (st48 + st84 + st44 + st88), (st44 + st88) / (st48 + st84 + st44 + st88),
+     (ts48 + ts84) / (ts48 + ts84 + ts44 + ts88), (ts44 + ts88) / (ts48 + ts84 + ts44 + ts88),
+     (d33 + d66) / (d33 + d36 + d63 + d66), (d36 + d63) / (d33 + d36 + d63 + d66),
+     ]
+
+    perf_by_prev_trial=[samp_Cong, samp_non_Cong, test_Cong, test_non_Cong, samp_test_pair, samp_test_non_pair, test_sample_pair,
+           test_sample_non_pair]
+
+    print(trial_stats)
+    print(perf_by_prev_trial)
+
+    # ps = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 4], correct)), np.count_nonzero(
+    #     arr[:, 0] != arr[:, 4]), samp_Cong, alternative='two-sided')
+    # pst = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 5], correct)), np.count_nonzero(
+    #     arr[:, 0] == arr[:, 5]), samp_test_pair, alternative='two-sided')
+    # pts = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)), np.count_nonzero(
+    #     arr[:, 1] == arr[:, 4]), test_sample_pair, alternative='two-sided')
+    # pt = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)), np.count_nonzero(
+    #     arr[:, 1] != arr[:, 5]), test_Cong, alternative='two-sided')
+
+    ps = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 4], correct)), np.count_nonzero(
+        arr[:, 0] != arr[:, 4]), samp_Cong, alternative='two-sided')
+    pst = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 5], correct)), np.count_nonzero(
+        arr[:, 0] == arr[:, 5]), samp_test_pair, alternative='two-sided')
+    pts = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)), np.count_nonzero(
+        arr[:, 1] == arr[:, 4]), test_sample_pair, alternative='two-sided')
+    pt = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)), np.count_nonzero(
+        arr[:, 1] != arr[:, 5]), test_Cong, alternative='two-sided')
+
+    print([ps, pt, pst, pts])
+
+    (fh, ax) = plt.subplots(2, 1)
+    ax[0].bar([1,2,4,5,7,8,10,11,13,14],trial_stats)
+    ax[1].bar([1,2,4,5,7,8,10,11],perf_by_prev_trial)
+    ax[1].set_ylim([0.6,1])
+    plt.show()
 
 
 if __name__ == "__main__":
-    process_all()
+    process_all(False)
