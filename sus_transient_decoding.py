@@ -230,16 +230,16 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
         trans1000_proc = []
         for i in range(np.ceil(repeats / 50).astype(np.int)):
             sust_proc.append(curr_pool.apply_async(ctd_correct_error, args=(sus_feat,),
-                                                   kwds={"n_neuron": 50, "n_trial": (20, 25, 1, 2),
+                                                   kwds={"n_neuron": 50, "n_trial": (20, 25, 2, 4),
                                                          "template_delay": delay,
                                                          "bin_range": np.arange(4, 52), 'decoder': decoder}))
 
             trans50_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
-                                                      kwds={"n_neuron": 50, "n_trial": (20, 25, 1, 2),
+                                                      kwds={"n_neuron": 50, "n_trial": (20, 25, 2, 4),
                                                             "template_delay": delay,
                                                             "bin_range": np.arange(4, 52), 'decoder': decoder}))
             trans1000_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
-                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25, 1, 2),
+                                                        kwds={"n_neuron": 1000, "n_trial": (20, 25, 2, 4),
                                                               "template_delay": delay,
                                                               "bin_range": np.arange(4, 52), 'decoder': decoder}))
         for one_proc in sust_proc:
