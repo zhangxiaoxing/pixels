@@ -13,6 +13,21 @@ import numpy as np
 import scipy.stats as stats
 import su_region_align as align
 import matplotlib.pyplot as plt
+import statsmodels.stats.proportion as mdl
+
+
+def exact_mc_perm_test(xs, ys, nmc):
+    n, k = len(xs), 0
+    diff = np.abs(np.mean(xs) - np.mean(ys))
+    zs = np.concatenate([xs, ys])
+    for j in range(nmc):
+        np.random.shuffle(zs)
+        k += diff < np.abs(np.mean(zs[:n]) - np.mean(zs[n:]))
+    return k / nmc
+
+
+def ratio(x):
+    return x[0] / x[1]
 
 
 class PrevTrialStats:
@@ -129,35 +144,36 @@ def process_all(denovo=False):
 
     correct = np.logical_xor(arr[:, 4] == arr[:, 5], arr[:, 6] > 0)
 
-    samp_Cong = np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 4], correct)) / np.count_nonzero(
-        arr[:, 0] == arr[:, 4])
-    samp_non_Cong = np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 4], correct)) / np.count_nonzero(
-        arr[:, 0] != arr[:, 4])
+    samp_Cong = (np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 4], correct)), np.count_nonzero(
+        arr[:, 0] == arr[:, 4]))
+    samp_non_Cong = (np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 4], correct)), np.count_nonzero(
+        arr[:, 0] != arr[:, 4]))
 
-    samp_test_pair = np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 5], correct)) / np.count_nonzero(
-        arr[:, 0] != arr[:, 5])
-    samp_test_non_pair = np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 5], correct)) / np.count_nonzero(
-        arr[:, 0] == arr[:, 5])
+    samp_test_pair = (np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 5], correct)), np.count_nonzero(
+        arr[:, 0] != arr[:, 5]))
+    samp_test_non_pair = (np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 5], correct)), np.count_nonzero(
+        arr[:, 0] == arr[:, 5]))
 
-    test_sample_pair = np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 4], correct)) / np.count_nonzero(
-        arr[:, 1] != arr[:, 4])
-    test_sample_non_pair = np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)) / np.count_nonzero(
-        arr[:, 1] == arr[:, 4])
+    test_sample_pair = (np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 4], correct)), np.count_nonzero(
+        arr[:, 1] != arr[:, 4]))
+    test_sample_non_pair = (np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)), np.count_nonzero(
+        arr[:, 1] == arr[:, 4]))
 
-    test_Cong = np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 5], correct)) / np.count_nonzero(
-        arr[:, 1] == arr[:, 5])
-    test_non_Cong = np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)) / np.count_nonzero(
-        arr[:, 1] != arr[:, 5])
+    test_Cong = (np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 5], correct)), np.count_nonzero(
+        arr[:, 1] == arr[:, 5]))
+    test_non_Cong = (np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)), np.count_nonzero(
+        arr[:, 1] != arr[:, 5]))
 
-    trial_stats=[(s44 + s88) / (s44 + s84 + s48 + s88), (s48 + s84) / (s48 + s88 + s44 + s84),
-     (t44 + t88) / (t44 + t84 + t48 + t88), (t48 + t84) / (t48 + t88 + t44 + t84),
-     (st48 + st84) / (st48 + st84 + st44 + st88), (st44 + st88) / (st48 + st84 + st44 + st88),
-     (ts48 + ts84) / (ts48 + ts84 + ts44 + ts88), (ts44 + ts88) / (ts48 + ts84 + ts44 + ts88),
-     (d33 + d66) / (d33 + d36 + d63 + d66), (d36 + d63) / (d33 + d36 + d63 + d66),
-     ]
+    trial_stats = [(s44 + s88) / (s44 + s84 + s48 + s88), (s48 + s84) / (s48 + s88 + s44 + s84),
+                   (t44 + t88) / (t44 + t84 + t48 + t88), (t48 + t84) / (t48 + t88 + t44 + t84),
+                   (st48 + st84) / (st48 + st84 + st44 + st88), (st44 + st88) / (st48 + st84 + st44 + st88),
+                   (ts48 + ts84) / (ts48 + ts84 + ts44 + ts88), (ts44 + ts88) / (ts48 + ts84 + ts44 + ts88),
+                   (d33 + d66) / (d33 + d36 + d63 + d66), (d36 + d63) / (d33 + d36 + d63 + d66),
+                   ]
 
-    perf_by_prev_trial=[samp_Cong, samp_non_Cong, test_Cong, test_non_Cong, samp_test_pair, samp_test_non_pair, test_sample_pair,
-           test_sample_non_pair]
+    perf_by_prev_trial = [ratio(samp_Cong), ratio(samp_non_Cong), ratio(test_Cong), ratio(test_non_Cong),
+                          ratio(samp_test_pair), ratio(samp_test_non_pair), ratio(test_sample_pair),
+                          ratio(test_sample_non_pair)]
 
     print(trial_stats)
     print(perf_by_prev_trial)
@@ -171,21 +187,48 @@ def process_all(denovo=False):
     # pt = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)), np.count_nonzero(
     #     arr[:, 1] != arr[:, 5]), test_Cong, alternative='two-sided')
 
-    ps = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 0] != arr[:, 4], correct)), np.count_nonzero(
-        arr[:, 0] != arr[:, 4]), samp_Cong, alternative='two-sided')
-    pst = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 5], correct)), np.count_nonzero(
-        arr[:, 0] == arr[:, 5]), samp_test_pair, alternative='two-sided')
-    pts = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] == arr[:, 4], correct)), np.count_nonzero(
-        arr[:, 1] == arr[:, 4]), test_sample_pair, alternative='two-sided')
-    pt = stats.binom_test(np.count_nonzero(np.logical_and(arr[:, 1] != arr[:, 5], correct)), np.count_nonzero(
-        arr[:, 1] != arr[:, 5]), test_Cong, alternative='two-sided')
+    ps = stats.binom_test(*samp_non_Cong, ratio(samp_Cong), alternative='two-sided')
+    pst = stats.binom_test(*samp_test_non_pair, ratio(samp_test_pair), alternative='two-sided')
+    pts = stats.binom_test(*test_sample_non_pair, ratio(test_sample_pair), alternative='two-sided')
+    pt = stats.binom_test(*test_non_Cong, ratio(test_Cong), alternative='two-sided')
+
+    # np.count_nonzero(np.logical_and(arr[:, 0] == arr[:, 4], correct))
+    # exact_mc_perm_test()
 
     print([ps, pt, pst, pts])
 
-    (fh, ax) = plt.subplots(2, 1)
-    ax[0].bar([1,2,4,5,7,8,10,11,13,14],trial_stats)
-    ax[1].bar([1,2,4,5,7,8,10,11],perf_by_prev_trial)
-    ax[1].set_ylim([0.6,1])
+    ci = (np.vstack((mdl.proportion_confint(*samp_Cong),
+                     mdl.proportion_confint(*samp_non_Cong),
+                     mdl.proportion_confint(*test_Cong),
+                     mdl.proportion_confint(*test_non_Cong),
+                     mdl.proportion_confint(*samp_test_pair),
+                     mdl.proportion_confint(*samp_test_non_pair),
+                     mdl.proportion_confint(*test_sample_pair),
+                     mdl.proportion_confint(*test_sample_non_pair),
+                     )) - np.expand_dims(np.array(perf_by_prev_trial), axis=1)).T
+
+    (fh, ax) = plt.subplots(2, 1, figsize=(6, 6), dpi=100)
+    ax[0].bar([1, 2, 4, 5, 7, 8, 10, 11, 13, 14], trial_stats)
+    ax[0].set_xticks([1, 2, 4, 5, 7, 8, 10, 11, 13, 14])
+    ax[0].set_xticklabels(['same sample', 'diff sample',
+                           'same test', 'diff test',
+                           "S'-T pair", "S'-T non-pair",
+                           "S-T' pair", "S-T' non-pair",
+                           'same delay','diff delay'
+                           ], rotation=45, va='top',ha='right')
+    ax[0].set_ylabel('proportion in trials')
+
+
+    ax[1].bar([1, 2, 4, 5, 7, 8, 10, 11], perf_by_prev_trial)
+    ax[1].errorbar([1, 2, 4, 5, 7, 8, 10, 11], perf_by_prev_trial, ci[0, :], fmt='k,', capsize=2, barsabove=True,lw=0.5)
+    ax[1].set_xticks([1, 2, 4, 5, 7, 8, 10, 11])
+    ax[1].set_xticklabels(['same sample', 'diff sample',
+                           'same test', 'diff test',
+                           "S'-T pair", "S'-T non-pair",
+                           "S-T' pair", "S-T' non-pair"], rotation=45, va='top',ha='right')
+    ax[1].set_ylabel('correct rate')
+    ax[1].set_ylim([0.6, 1])
+    fh.savefig('trial_design_stats.png')
     plt.show()
 
 
