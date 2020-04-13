@@ -31,7 +31,7 @@ class GLM_delay_stats:
         self.non_sel_mod_only_LD = None
         self.non_sel_mod_SP_ED = None
         self.non_sel_mod_ED_LD = None
-        self.non_sel_mod_SP_ED_LD = None
+        self.non_sel_mod_delay = None
         self.non_mod = None
 
         # self.row_sel_6 = np.concatenate(
@@ -87,17 +87,9 @@ class GLM_delay_stats:
         self.sample_sel_only_sample = np.zeros((1, trial_FR.shape[2]))
         self.sample_sel_only_ED = np.zeros_like(self.sample_sel_only_sample)
         self.sample_sel_only_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.sample_sel_SP_ED = np.zeros_like(self.sample_sel_only_sample)
         self.sample_sel_ED_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.sample_sel_SP_ED_LD = np.zeros_like(self.sample_sel_only_sample)
 
-        self.non_sel_mod_only_SP = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_only_ED = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_only_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_SP_ED = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_ED_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.non_sel_mod_SP_ED_LD = np.zeros_like(self.sample_sel_only_sample)
-        self.non_mod = np.zeros_like(self.sample_sel_only_sample)
+        self.non_sel_mod_delay = np.zeros_like(self.sample_sel_only_sample)
 
         ### TODO: selective only during sample
 
@@ -141,7 +133,7 @@ class GLM_delay_stats:
 
             self.non_sel_mod_SP_ED[0, su_idx] = nsm_ED and nsm_SP and (not nsm_LD)
             self.non_sel_mod_ED_LD[0, su_idx] = nsm_ED and nsm_LD and (not nsm_SP)
-            self.non_sel_mod_SP_ED_LD[0, su_idx] = nsm_LD and nsm_ED and nsm_SP
+            self.non_sel_mod_delay[0, su_idx] = nsm_LD and nsm_ED and nsm_SP
 
             self.non_mod[0, su_idx] = not (sample_sel_SP or
                                            sample_sel_ED or
@@ -165,7 +157,7 @@ class GLM_delay_stats:
                                self.non_sel_mod_only_LD,
                                self.non_sel_mod_SP_ED,
                                self.non_sel_mod_ED_LD,
-                               self.non_sel_mod_SP_ED_LD,
+                               self.non_sel_mod_delay,
                                self.non_mod))
 
 

@@ -136,7 +136,7 @@ class per_sec_stats:
 
 ### all brain region entry point
 
-def prepare_data(delay=6):
+def prepare_data(delay=6,reg_idx=1):
     curr_stats = per_sec_stats()
     per_sec_sel_list = []
     non_sel_mod_list = []
@@ -192,7 +192,7 @@ def prepare_data(delay=6):
         # non_mod_list.append(non_sel_mod)
         perfS1_list.append(perfS1)
         perfS2_list.append(perfS2)
-        reg_list.extend(suid_reg[1])
+        reg_list.extend(suid_reg[reg_idx])
     return (per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list)
 
 
@@ -253,7 +253,7 @@ def plot_features():
 
 
 # %% main
-def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
+def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
     perfS1_arr = None
@@ -263,21 +263,22 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
     if delay == 'early3in6' or delay == 'late3in6':
         delay_num = 6
     if denovo:
+        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list) = prepare_data(delay=delay,reg_idx=reg_idx)
         ### save raw data file
-        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list) = prepare_data(delay=delay)
+        reg_arr=np.array(reg_list)
         per_sec_sel_arr = np.hstack(per_sec_list)
         non_sel_mod_arr = np.hstack(non_sel_mod_list)
         perfS1_arr = np.hstack(perfS1_list)
         perfS2_arr = np.hstack(perfS2_list)
-        bs_sel_arr = np.hstack(bs_sel_list)
+        bs_sel = np.hstack(bs_sel_list)
         np.savez_compressed(f'per_sec_sel_{delay_num}.npz', per_sec_sel_arr=per_sec_sel_arr,
                             non_sel_mod_arr=non_sel_mod_arr,
                             # non_mod_arr=non_mod_arr,
                             perfS1_arr=perfS1_arr,
                             perfS2_arr=perfS2_arr,
-                            reg_arr=reg_list,
+                            reg_arr=reg_arr,
                             delay=delay,
-                            bs_sel=bs_sel_arr)
+                            bs_sel=bs_sel)
     else:
         ### load back saved raw data
         if not os.path.isfile(f"per_sec_sel_{delay_num}.npz"):
@@ -402,6 +403,31 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6):
                    header='Sustained,transient,switched,unclassified')
 
         np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
+
+        all_sess_arr=np.vstack((sust,transient,switched,sample_only,non_sel_mod,non_mod))
+
+        reg_set = list(set(reg_arr.tolist()))
+        su_factors = []
+        su_factors.append(reg_set)
+        reg_count = []
+        for reg in reg_set:
+            reg_count.append(np.count_nonzero(reg_arr == reg))
+        su_factors.append(reg_count)
+
+        for feature in range(all_sess_arr.shape[0]):
+            per_region_su_factor = np.zeros_like(reg_set, dtype=np.float64)
+            for i in range(len(reg_set)):
+                per_region_su_factor[i] = np.mean(all_sess_arr[feature, reg_arr == reg_set[i]])
+            su_factors.append(per_region_su_factor.tolist())
+
+        su_factors = [list(i) for i in zip(*su_factors)]
+
+        ### export csv for matlab GLM
+        with open("glm_coding_features.csv", "w", newline="") as cf:
+            cwriter = csv.writer(cf, dialect="excel")
+            for row in su_factors:
+                cwriter.writerow(row)
+
 
 
     return export_arr
@@ -604,7 +630,7 @@ def bars():
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=True, toExport=True, delay=6)
+    process_all(denovo=False, toPlot=True, toExport=True, delay=6,reg_idx=2)
     process_all(denovo=False, toPlot=True, toExport=True, delay=3)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')

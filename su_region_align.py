@@ -170,7 +170,8 @@ def combineSubRegion(r):
 
 
 def getRegionList(cmp=False):
-    site_file = r"K:\neupix\meta\NP tracks revised 0319.csv"
+    # site_file = r"D:\neupix\meta\NP tracks revised 0319.csv"
+    site_file=Fr"D:\neupix\meta\NP tracks validated3.3.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mouse_id": "str", "implanting_date": "str"}
     )[
@@ -186,9 +187,9 @@ def getRegionList(cmp=False):
 
     regionL["acronym"] = regionL["acronym"].apply(combineSubRegion)
     if not cmp:
-        return regionL
+        return (regionL,None)
     else:
-        cmp_file = r"K:\neupix\meta\NP tracks validated3.3.csv"
+        cmp_file = r"D:\neupix\meta\NP tracks validated3.3.csv"
         cmpL = pd.read_csv(cmp_file).astype(
             {"mouse_id": "str", "implanting_date": "str"}
         )[
@@ -212,7 +213,7 @@ if __name__ == "__main__":
     (regionL, cmpL) = getRegionList(cmp=True)
     unlabeledRecord = []
 
-    for path in traverse(r"K:\neupix\DataSum"):
+    for path in traverse(r"D:\neupix\DataSum"):
 
         # if os.path.isfile(os.path.join(path, 'su_id2reg.csv')):
         #     continue
@@ -254,4 +255,6 @@ if __name__ == "__main__":
             writer = csv.writer(f)
             writer.writerows(unlabeledRecord)
 
-    print(np.sum(np.array(identical_counter)) / len(identical_counter))
+        np.sum(list(zip(*identical_counter))[0])
+
+    print(np.sum(list(zip(*identical_counter))[0]) / len(identical_counter))
