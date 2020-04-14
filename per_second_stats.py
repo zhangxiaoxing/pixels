@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 import scipy.stats as stats
 import su_region_align as align
+from matplotlib import rcParams
 
 
 class per_sec_stats:
@@ -136,7 +137,7 @@ class per_sec_stats:
 
 ### all brain region entry point
 
-def prepare_data(delay=6,reg_idx=1):
+def prepare_data(delay=6, reg_idx=1):
     curr_stats = per_sec_stats()
     per_sec_sel_list = []
     non_sel_mod_list = []
@@ -253,7 +254,7 @@ def plot_features():
 
 
 # %% main
-def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
+def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, counterclock=False):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
     perfS1_arr = None
@@ -263,9 +264,10 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
     if delay == 'early3in6' or delay == 'late3in6':
         delay_num = 6
     if denovo:
-        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list) = prepare_data(delay=delay,reg_idx=reg_idx)
+        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list) = prepare_data(delay=delay,
+                                                                                                         reg_idx=reg_idx)
         ### save raw data file
-        reg_arr=np.array(reg_list)
+        reg_arr = np.array(reg_list)
         per_sec_sel_arr = np.hstack(per_sec_list)
         non_sel_mod_arr = np.hstack(non_sel_mod_list)
         perfS1_arr = np.hstack(perfS1_list)
@@ -302,24 +304,24 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
     elif delay == 'late3in6':
         delay_bins = np.arange(4, 7)
 
-    bs_count=np.count_nonzero(bs_sel)
-    non_bs=np.logical_not(bs_sel)
+    bs_count = np.count_nonzero(bs_sel)
+    non_bs = np.logical_not(bs_sel)
 
-    any_sel=np.logical_and(non_bs, np.any(per_sec_sel_arr,axis=0))
-    any_sel_count=np.count_nonzero(any_sel)
+    any_sel = np.logical_and(non_bs, np.any(per_sec_sel_arr, axis=0))
+    any_sel_count = np.count_nonzero(any_sel)
 
-    sample_only=np.logical_and(any_sel, np.logical_not(np.any(per_sec_sel_arr[delay_bins, :], axis=0)))
+    sample_only = np.logical_and(any_sel, np.logical_not(np.any(per_sec_sel_arr[delay_bins, :], axis=0)))
 
     sample_only_count = np.count_nonzero(sample_only)
 
-    delay_sel=np.logical_and(any_sel, np.logical_not(sample_only))
+    delay_sel = np.logical_and(any_sel, np.logical_not(sample_only))
 
     delay_sel_count = np.count_nonzero(delay_sel)
 
-    non_sel=np.logical_and(non_bs,np.logical_not(any_sel))
-    non_sel_count=np.count_nonzero(non_sel)
+    non_sel = np.logical_and(non_bs, np.logical_not(any_sel))
+    non_sel_count = np.count_nonzero(non_sel)
 
-    non_sel_mod = np.logical_and(non_sel,np.any(non_sel_mod_arr[delay_bins, :], axis=0))
+    non_sel_mod = np.logical_and(non_sel, np.any(non_sel_mod_arr[delay_bins, :], axis=0))
     non_sel_mod_count = np.count_nonzero(non_sel_mod)
 
     non_mod = np.logical_and(non_sel, np.logical_not(non_sel_mod))
@@ -339,64 +341,67 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
             print("error delay time")
             sys.exit(-1)
 
-    sust=np.logical_and(delay_sel,np.logical_and(
-            np.logical_xor(
-                np.any(perfS1_arr[delay_bins, :], axis=0),
-                np.any(perfS2_arr[delay_bins, :], axis=0)
-            ),np.all(per_sec_sel_arr[delay_bins, :], axis=0)))
+    sust = np.logical_and(delay_sel, np.logical_and(
+        np.logical_xor(
+            np.any(perfS1_arr[delay_bins, :], axis=0),
+            np.any(perfS2_arr[delay_bins, :], axis=0)
+        ), np.all(per_sec_sel_arr[delay_bins, :], axis=0)))
     sust_count = np.count_nonzero(sust)
 
-    non_sust=np.logical_and(delay_sel, np.logical_not(sust))
-    non_sust_count=np.count_nonzero(non_sust)
+    non_sust = np.logical_and(delay_sel, np.logical_not(sust))
+    non_sust_count = np.count_nonzero(non_sust)
 
-    cqtrans=np.logical_and(non_sust,CQ_transient.flatten())
-    cqtrans_count=np.count_nonzero(cqtrans)
+    cqtrans = np.logical_and(non_sust, CQ_transient.flatten())
+    cqtrans_count = np.count_nonzero(cqtrans)
 
-    switched=np.logical_and(cqtrans,np.logical_and(
-                np.any(perfS1_arr[delay_bins, :], axis=0),
-                np.any(perfS2_arr[delay_bins, :], axis=0)
-                ))
+    switched = np.logical_and(cqtrans, np.logical_and(
+        np.any(perfS1_arr[delay_bins, :], axis=0),
+        np.any(perfS2_arr[delay_bins, :], axis=0)
+    ))
 
     switched_count = np.count_nonzero(switched)
 
-
-    transient = np.logical_and(cqtrans,np.logical_not(switched))
+    transient = np.logical_and(cqtrans, np.logical_not(switched))
     transient_count = np.count_nonzero(transient)
 
-    unclassified = np.logical_and(non_sust,np.logical_not(cqtrans))
+    unclassified = np.logical_and(non_sust, np.logical_not(cqtrans))
     unclassified_count = np.count_nonzero(unclassified)
 
     if toPlot:
-        frac = [delay_sel_count, sample_only_count, non_sel_mod_count, non_mod_count, bs_count]
+        rcParams['pdf.fonttype'] = 42
+        rcParams['ps.fonttype'] = 42
+        rcParams['font.family'] = 'sans-serif'
+        rcParams['font.sans-serif'] = ['Arial']
+        # font.serif      : DejaVu Serif, Bitstream Vera Serif, Computer Modern Roman, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
+        #  : DejaVu Sans, Bitstream Vera Sans, Computer Modern Sans Serif, Lucida Grande, Verdana, Geneva, Lucid, Arial, Helvetica, Avant Garde, sans-serif
+
+        frac = [sust_count, transient_count, switched_count, unclassified_count, bs_count, sample_only_count,
+                non_sel_mod_count, non_mod_count, ]
         print(np.sum(frac))
-        explode = (0.1, 0.1, 0, 0, 0)
+        explode = (0.1, 0.05, 0, 0, 0, 0, 0, 0)
         labels = (
-            'selective during delay', 'selective only during sample', 'Non-selective modulation', 'Unmodulated',
-            'biased')
+            'sustained', 'transient', 'transient-switched', 'unclassified', 'biased', 'selective only during sample',
+            'Non-selective modulation', 'Unmodulated')
 
-        (fh, axes) = plt.subplots(1, 2, figsize=(10, 5), dpi=200)
-        axes[0].pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=True)
-        axes[0].axis('equal')
-
-        explode = (0.1, 0, 0,0)
-        labels = ('sustained', 'transient', 'transient-switched','unclassified')
-        # subtotal=delay_sel_count / delay_sel.shape[0]
-        axes[1].pie([sust_count, transient_count, switched_count,unclassified_count], explode=explode, labels=labels,
-                    autopct=lambda p: '{:.1f}%'.format(p * delay_sel_count / delay_sel.shape[0]),
-                    radius=np.sqrt(delay_sel_count / per_sec_sel_arr.shape[1]), shadow=True)
-        axes[1].axis('equal')
-        axes[0].set_xlim((-1.25, 1.25))
-        axes[1].set_xlim((-1.25, 1.25))
+        (fh, ax) = plt.subplots(1, 1, figsize=(12 / 2.54, 4 / 2.54), dpi=300)
+        if counterclock:
+            startangle = -60
+        else:
+            startangle = 240
+        ax.pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=False, startangle=startangle,
+               counterclock=counterclock)
+        # ax.axis('equal')
+        ax.set_xlim((-0.7, 0.7))
         fh.suptitle(f'{delay}s delay')
-        fh.savefig(f'sus_trans_pie_{delay}.png')
         plt.show()
+        fh.savefig(f'sus_trans_pie_{delay}.pdf')
 
     ### export list
 
     export_arr = np.vstack((sust, transient, switched, unclassified))
     np.savez_compressed(f'sus_trans_pie_{delay}.npz', sust=sust, transient=transient,
                         switched=switched, unclassified=unclassified, sample_only=sample_only,
-                        non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel,reg_arr=reg_arr)
+                        non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr)
 
     if toExport:
         np.savetxt(f'transient_{delay}.csv', export_arr, fmt='%d', delimiter=',',
@@ -404,7 +409,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
 
         np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
 
-        all_sess_arr=np.vstack((sust,transient,switched,sample_only,non_sel_mod,non_mod))
+        all_sess_arr = np.vstack((sust, transient, switched, sample_only, non_sel_mod, non_mod))
 
         reg_set = list(set(reg_arr.tolist()))
         su_factors = []
@@ -427,8 +432,6 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6,reg_idx=1):
             cwriter = csv.writer(cf, dialect="excel")
             for row in su_factors:
                 cwriter.writerow(row)
-
-
 
     return export_arr
 
@@ -630,8 +633,8 @@ def bars():
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=True, toExport=True, delay=6,reg_idx=2)
-    process_all(denovo=False, toPlot=True, toExport=True, delay=3)
+    process_all(denovo=False, toPlot=True, toExport=True, delay=6, counterclock=False)
+    # process_all(denovo=False, toPlot=True, toExport=True, delay=3, counterclock=True)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
 

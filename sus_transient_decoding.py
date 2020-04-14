@@ -19,6 +19,125 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 
 
+def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=50):
+    fstr = np.load("ctd.npz", allow_pickle=True)
+    feat_per_su = fstr["features_per_su"].tolist()
+    # baseline_WRS_p3_p6 = baseline_statstics(feat_per_su)
+    # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+    wrs_p = np.ones(len(feat_per_su))
+    # reg_list = fstr["reg_list"].tolist()
+    sus_trans_flag = per_second_stats.process_all(denovo=denovo_per_sec_stats,
+                                                  delay=delay)  # 33172 x 4, sust,trans,switch,unclassified
+    sus_feat = [feat_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > wrs_thres))[0]]
+    trans_feat = [feat_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > wrs_thres))[0]]
+
+    if delay == 6:
+        last_sec_bin = (36, 40)
+    else:
+        last_sec_bin = (24, 28)
+
+    sust_sum = []
+    repeats = repeats
+    for n_neuron in np.arange(25, 125, 25):
+        sust_sum.append(same_time_decoding(sus_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats))
+    trans_sum = []
+    for n_neuron in np.arange(25, 2001, 25):
+        trans_sum.append(same_time_decoding(trans_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats))
+
+    # (sus_sum, trans_sum) = last_bin_decoding()
+    np.savez_compressed(f'sus_transient_decoding_{delay}.npz', sus=sust_sum, trans=trans_sum)
+    sus_per_count = []
+    for count_bin in sust_sum:
+        mm = np.mean([x[0] for x in count_bin])
+        std = np.std([x[0] for x in count_bin])
+        mm_shuf = np.mean([x[2] for x in count_bin])
+        std_shuf = np.std([x[2] for x in count_bin])
+        sus_per_count.append([mm, std, mm_shuf, std_shuf])
+    trans_per_count = []
+    for count_bin in trans_sum:
+        mm = np.mean([x[0] for x in count_bin])
+        std = np.std([x[0] for x in count_bin])
+        mm_shuf = np.mean([x[2] for x in count_bin])
+        std_shuf = np.std([x[2] for x in count_bin])
+        trans_per_count.append([mm, std, mm_shuf, std_shuf])
+
+    (fh, axes) = plt.subplots(1, 1, figsize=(7, 5), dpi=300)
+    mmsus = list(zip(*sus_per_count))[0]
+    mmts = list(zip(*trans_per_count))[0]
+    mmshuf = list(zip(*trans_per_count))[2]
+
+    stdsus = list(zip(*sus_per_count))[1]
+    stdts = list(zip(*trans_per_count))[1]
+    stdshuf = list(zip(*trans_per_count))[3]
+
+    axes.fill_between(np.arange(len(mmsus)),
+                      [mmsus[i] + stdsus[i] for i in np.arange(len(mmsus))],
+                      [mmsus[i] - stdsus[i] for i in np.arange(len(mmsus))], fc='r', alpha=0.2)
+    axes.fill_between(np.arange(len(mmts)),
+                      [mmts[i] + stdts[i] for i in np.arange(len(mmts))],
+                      [mmts[i] - stdts[i] for i in np.arange(len(mmts))], fc='b', alpha=0.2)
+    axes.fill_between(np.arange(len(mmshuf)),
+                      [mmshuf[i] + stdshuf[i] for i in np.arange(len(mmshuf))],
+                      [mmshuf[i] - stdshuf[i] for i in np.arange(len(mmshuf))], fc='k', alpha=0.2)
+
+    ph0 = axes.plot(mmsus, 'r-')
+    ph1 = axes.plot(mmts, 'b-')
+    ph2 = axes.plot(mmshuf, 'k-')
+
+    axes.set_xticks(np.arange(-1, 40, 4))
+    axes.set_xticklabels(np.arange(0, 1001, 100))
+    axes.set_ylim((40, 100))
+    axes.set_ylabel('decoding accuracy')
+    axes.set_xlabel('Number of single units')
+    axes.legend((ph0[0], ph1[0], ph2[0]), ('sustained (157/33172)', 'transient (8680/33172)', 'shuffled'))
+    plt.show()
+    # fh.savefig('n_su_vs_decoding_accu.png')
+
+    return (sust_sum, trans_sum)
+
+
+def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6, bin_range=None, repeat=10):
+    if bin_range is None:
+        bin_range = np.arange(36, 40)
+
+    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
+    same_time = []
+    avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
+    rng = np.random.default_rng()
+    for i in range(repeat):
+        su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
+        su_selected_features = [features_per_su[i] for i in su_index]
+        X1 = []
+        X2 = []
+        trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
+        for one_su in su_selected_features:
+            X1.append([np.mean(one_su[keys[0]][bin_range, t]) for t in trial_to_select])
+            X2.append([np.mean(one_su[keys[1]][bin_range, t]) for t in trial_to_select])
+
+        # bins, trials
+        X1 = np.array(X1).T
+        X2 = np.array(X2).T
+        y1 = np.ones((X1.shape[0]))
+        y2 = np.zeros_like(y1)
+        y = np.hstack((y1, y2))
+        y_shuf = y.copy()
+        rng.shuffle(y_shuf)
+        scaler = MinMaxScaler()
+        X = scaler.fit_transform(np.vstack((X1, X2)))
+        clf = SVC(kernel='linear')
+        scores = cross_val_score(clf, X, y, cv=10, n_jobs=-1) * 100
+        scores_shuffled = cross_val_score(clf, X, y_shuf, cv=10, n_jobs=-1) * 100
+        same_time.append(
+            [
+                np.mean(scores),
+                np.std(scores),
+                np.mean(scores_shuffled),
+                np.std(scores_shuffled),
+            ]
+        )
+    return same_time
+
+
 def exact_mc_perm_test(xs, ys, nmc):
     n, k = len(xs), 0
     diff = np.abs(np.mean(xs) - np.mean(ys))
@@ -612,8 +731,8 @@ def debug():
 
 # %% main
 if __name__ == "__main__":
-    # debug()
-    # sys.exit(0)
+    last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=10)
+    sys.exit(0)
 
     repeat = 1000
     cpus = 1
@@ -633,52 +752,3 @@ if __name__ == "__main__":
     ctd_cross_all(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
                   wrs_thres=0, decoder=decoder)
     sys.exit()
-
-    (sus, trans) = last_bin_decoding()
-    np.savez_compressed('sus_transient_decoding.npz', sus=sus, trans=trans)
-    sus_per_count = []
-    for count_bin in sus:
-        mm = np.mean([x[0] for x in count_bin])
-        std = np.std([x[0] for x in count_bin])
-        mm_shuf = np.mean([x[2] for x in count_bin])
-        std_shuf = np.std([x[2] for x in count_bin])
-        sus_per_count.append([mm, std, mm_shuf, std_shuf])
-    trans_per_count = []
-    for count_bin in trans:
-        mm = np.mean([x[0] for x in count_bin])
-        std = np.std([x[0] for x in count_bin])
-        mm_shuf = np.mean([x[2] for x in count_bin])
-        std_shuf = np.std([x[2] for x in count_bin])
-        trans_per_count.append([mm, std, mm_shuf, std_shuf])
-
-    (fh, axes) = plt.subplots(1, 1, figsize=(7, 5), dpi=300)
-    mmsus = list(zip(*sus_per_count))[0]
-    mmts = list(zip(*trans_per_count))[0]
-    mmshuf = list(zip(*trans_per_count))[2]
-
-    stdsus = list(zip(*sus_per_count))[1]
-    stdts = list(zip(*trans_per_count))[1]
-    stdshuf = list(zip(*trans_per_count))[3]
-
-    axes.fill_between(np.arange(len(mmsus)),
-                      [mmsus[i] + stdsus[i] for i in np.arange(len(mmsus))],
-                      [mmsus[i] - stdsus[i] for i in np.arange(len(mmsus))], fc='r', alpha=0.2)
-    axes.fill_between(np.arange(len(mmts)),
-                      [mmts[i] + stdts[i] for i in np.arange(len(mmts))],
-                      [mmts[i] - stdts[i] for i in np.arange(len(mmts))], fc='b', alpha=0.2)
-    axes.fill_between(np.arange(len(mmshuf)),
-                      [mmshuf[i] + stdshuf[i] for i in np.arange(len(mmshuf))],
-                      [mmshuf[i] - stdshuf[i] for i in np.arange(len(mmshuf))], fc='k', alpha=0.2)
-
-    ph0 = axes.plot(mmsus, 'r-')
-    ph1 = axes.plot(mmts, 'b-')
-    ph2 = axes.plot(mmshuf, 'k-')
-
-    axes.set_xticks(np.arange(-1, 40, 4))
-    axes.set_xticklabels(np.arange(0, 1001, 100))
-    axes.set_ylim((40, 100))
-    axes.set_ylabel('decoding accuracy')
-    axes.set_xlabel('Number of single units')
-    axes.legend((ph0[0], ph1[0], ph2[0]), ('sustained (157/33172)', 'transient (8680/33172)', 'shuffled'))
-    plt.show()
-    fh.savefig('n_su_vs_decoding_accu.png')
