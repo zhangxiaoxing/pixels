@@ -372,8 +372,6 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         rcParams['ps.fonttype'] = 42
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = ['Arial']
-        # font.serif      : DejaVu Serif, Bitstream Vera Serif, Computer Modern Roman, New Century Schoolbook, Century Schoolbook L, Utopia, ITC Bookman, Bookman, Nimbus Roman No9 L, Times New Roman, Times, Palatino, Charter, serif
-        #  : DejaVu Sans, Bitstream Vera Sans, Computer Modern Sans Serif, Lucida Grande, Verdana, Geneva, Lucid, Arial, Helvetica, Avant Garde, sans-serif
 
         frac = [sust_count, transient_count, switched_count, unclassified_count, bs_count, sample_only_count,
                 non_sel_mod_count, non_mod_count, ]

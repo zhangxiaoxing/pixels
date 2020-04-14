@@ -17,9 +17,11 @@ from sklearn.preprocessing import MinMaxScaler
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import scipy.stats as stats
+from matplotlib import rcParams
+import statsmodels.stats.proportion as prop
 
 
-def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=50):
+def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=50, cpu=1):
     fstr = np.load("ctd.npz", allow_pickle=True)
     feat_per_su = fstr["features_per_su"].tolist()
     # baseline_WRS_p3_p6 = baseline_statstics(feat_per_su)
@@ -37,61 +39,89 @@ def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=
         last_sec_bin = (24, 28)
 
     sust_sum = []
-    repeats = repeats
-    for n_neuron in np.arange(25, 125, 25):
-        sust_sum.append(same_time_decoding(sus_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats))
     trans_sum = []
-    for n_neuron in np.arange(25, 2001, 25):
-        trans_sum.append(same_time_decoding(trans_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats))
+
+    if cpu>1:
+        sust_proc=[]
+        trans_proc=[]
+        curr_pool = Pool(processes=cpu)
+        for n_neuron in np.arange(25, 101, 25):
+            sust_proc.append(curr_pool.apply_async(same_time_decoding, args=(
+                sus_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats,)))
+
+        for n_neuron in np.arange(25, 1001, 25):
+            sust_proc.append(curr_pool.apply_async(same_time_decoding, args=(
+                trans_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats,)))
+
+        for one_proc in sust_proc:
+            sust_sum.append(one_proc.get())
+
+        for one_proc in trans_proc:
+            trans_sum.append(one_proc.get())
+
+        curr_pool.close()
+        curr_pool.join()
+    else:
+        for n_neuron in np.arange(25, 101, 25):
+            sust_sum.append(same_time_decoding(sus_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats))
+
+        for n_neuron in np.arange(25, 101, 25):
+            trans_sum.append(same_time_decoding(trans_feat, n_neuron, (20, 25), delay, np.arange(*last_sec_bin), repeats))
 
     # (sus_sum, trans_sum) = last_bin_decoding()
     np.savez_compressed(f'sus_transient_decoding_{delay}.npz', sus=sust_sum, trans=trans_sum)
     sus_per_count = []
     for count_bin in sust_sum:
-        mm = np.mean([x[0] for x in count_bin])
-        std = np.std([x[0] for x in count_bin])
-        mm_shuf = np.mean([x[2] for x in count_bin])
-        std_shuf = np.std([x[2] for x in count_bin])
-        sus_per_count.append([mm, std, mm_shuf, std_shuf])
+        per_cv = np.array([x[0] for x in count_bin]).flatten() / 25
+        ncorr = np.sum(per_cv)
+        ntot = per_cv.size * 4
+        shuf_cv = np.array([x[1] for x in count_bin]).flatten() / 25
+        shuf_corr = np.sum(shuf_cv)
+        shuf_tot = shuf_cv.size * 4
+        sus_per_count.append([ncorr, ntot,shuf_corr,shuf_tot])
     trans_per_count = []
     for count_bin in trans_sum:
-        mm = np.mean([x[0] for x in count_bin])
-        std = np.std([x[0] for x in count_bin])
-        mm_shuf = np.mean([x[2] for x in count_bin])
-        std_shuf = np.std([x[2] for x in count_bin])
-        trans_per_count.append([mm, std, mm_shuf, std_shuf])
+        per_cv = np.array([x[0] for x in count_bin]).flatten() / 25
+        ncorr = np.sum(per_cv)
+        ntot = per_cv.size * 4
+        shuf_cv = np.array([x[1] for x in count_bin]).flatten() / 25
+        shuf_corr = np.sum(shuf_cv)
+        shuf_tot = shuf_cv.size * 4
+        trans_per_count.append([ncorr, ntot,shuf_corr,shuf_tot])
 
-    (fh, axes) = plt.subplots(1, 1, figsize=(7, 5), dpi=300)
-    mmsus = list(zip(*sus_per_count))[0]
-    mmts = list(zip(*trans_per_count))[0]
-    mmshuf = list(zip(*trans_per_count))[2]
 
-    stdsus = list(zip(*sus_per_count))[1]
-    stdts = list(zip(*trans_per_count))[1]
-    stdshuf = list(zip(*trans_per_count))[3]
+    mmsus = [x[0]/x[1] for x in sus_per_count]
+    mmts = [x[0]/x[1] for x in trans_per_count]
+    mmshuf = [x[2]/x[3] for x in trans_per_count]
 
+    confi_sus = [prop.proportion_confint(x[0],x[1]) for x in sus_per_count]
+    confi_trans = [prop.proportion_confint(x[0],x[1]) for x in trans_per_count]
+    confi_shuf = [prop.proportion_confint(x[2],x[3]) for x in trans_per_count]
+
+
+    (fh, axes) = plt.subplots(1, 1, figsize=(4.5 / 2.54, 3.5 / 2.54), dpi=300)
     axes.fill_between(np.arange(len(mmsus)),
-                      [mmsus[i] + stdsus[i] for i in np.arange(len(mmsus))],
-                      [mmsus[i] - stdsus[i] for i in np.arange(len(mmsus))], fc='r', alpha=0.2)
+                      [x[0] for x in confi_sus],
+                      [x[1] for x in confi_sus], fc='r', alpha=0.2)
     axes.fill_between(np.arange(len(mmts)),
-                      [mmts[i] + stdts[i] for i in np.arange(len(mmts))],
-                      [mmts[i] - stdts[i] for i in np.arange(len(mmts))], fc='b', alpha=0.2)
+                      [x[0] for x in confi_trans],
+                      [x[1] for x in confi_trans], fc='b', alpha=0.2)
     axes.fill_between(np.arange(len(mmshuf)),
-                      [mmshuf[i] + stdshuf[i] for i in np.arange(len(mmshuf))],
-                      [mmshuf[i] - stdshuf[i] for i in np.arange(len(mmshuf))], fc='k', alpha=0.2)
+                      [x[0] for x in confi_shuf],
+                      [x[1] for x in confi_shuf], fc='k', alpha=0.2)
 
     ph0 = axes.plot(mmsus, 'r-')
     ph1 = axes.plot(mmts, 'b-')
     ph2 = axes.plot(mmshuf, 'k-')
 
-    axes.set_xticks(np.arange(-1, 40, 4))
-    axes.set_xticklabels(np.arange(0, 1001, 100))
-    axes.set_ylim((40, 100))
+    axes.set_xticks(np.arange(-1, 40, 20))
+    axes.set_xticklabels(np.arange(0, 1001, 500))
+    # axes.set_ylim((40, 100))
     axes.set_ylabel('decoding accuracy')
     axes.set_xlabel('Number of single units')
-    axes.legend((ph0[0], ph1[0], ph2[0]), ('sustained (157/33172)', 'transient (8680/33172)', 'shuffled'))
+    axes.legend((ph0[0], ph1[0], ph2[0]), ('sustained', 'transient', 'shuffled'))
     plt.show()
-    # fh.savefig('n_su_vs_decoding_accu.png')
+    fh.savefig(f'n_su_vs_decoding_accu_{delay}.pdf', bbox_inches='tight')
 
     return (sust_sum, trans_sum)
 
@@ -127,14 +157,7 @@ def same_time_decoding(features_per_su, n_neuron=300, n_trial=(20, 25), delay=6,
         clf = SVC(kernel='linear')
         scores = cross_val_score(clf, X, y, cv=10, n_jobs=-1) * 100
         scores_shuffled = cross_val_score(clf, X, y_shuf, cv=10, n_jobs=-1) * 100
-        same_time.append(
-            [
-                np.mean(scores),
-                np.std(scores),
-                np.mean(scores_shuffled),
-                np.std(scores_shuffled),
-            ]
-        )
+        same_time.append([scores, scores_shuffled])
     return same_time
 
 
@@ -210,7 +233,7 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=10
         trans1000 = fstr['trans1000']
 
     if to_plot:
-        (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
+        (fig, ax) = plt.subplots(1, 3, figsize=[110 / 25.4, 37 / 25.4], dpi=300)
         ax[0].imshow(np.array(sus50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
                      vmax=100)
         ax[0].set_title('50 sustained SU')
@@ -238,7 +261,7 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=10
                 [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
                 [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
 
-        fig.savefig(f'ctd_{delay}_{repeats}.png', bbox_inches='tight')
+        fig.savefig(f'ctd_{delay}_{repeats}.pdf', bbox_inches='tight')
 
         plt.show()
         return (sus50, trans50, trans1000)
@@ -378,16 +401,16 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
         np.savez_compressed(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
                             trans1000=trans1000)
     else:
-        fstr = np.load(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz')
+        fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz'))
         sus50 = fstr['sus50']
-        trans50 = fstr['trans100']
+        trans50 = fstr['trans50']
         trans1000 = fstr['trans1000']
 
     sus_mat = np.array(sus50).mean(axis=0).mean(axis=0)
     trans50_mat = np.array(trans50).mean(axis=0).mean(axis=0)
     trans1000_mat = np.array(trans1000).mean(axis=0).mean(axis=0)
     if to_plot:
-        (fig, ax) = plt.subplots(1, 3, figsize=[9, 3], dpi=200)
+        (fig, ax) = plt.subplots(1, 3, figsize=[110 / 25.4, 37 / 25.4], dpi=300)
         ax[0].imshow(sus_mat, cmap="jet", aspect="auto", origin='lower', vmin=0, vmax=100)
         ax[0].set_title('50 sustained SU')
         ax[0].set_ylabel('template time (s)')
@@ -411,7 +434,7 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
                 [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
                 [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
 
-        fig.savefig(f'ctd_correct_error_{delay}.png', bbox_inches='tight')
+        fig.savefig(f'ctd_correct_error_{delay}.pdf', bbox_inches='tight')
         plt.show()
 
     return (sus50, trans50, trans1000)
@@ -731,24 +754,28 @@ def debug():
 
 # %% main
 if __name__ == "__main__":
-    last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=10)
+    rcParams['pdf.fonttype'] = 42
+    rcParams['ps.fonttype'] = 42
+    rcParams['font.family'] = 'sans-serif'
+    rcParams['font.sans-serif'] = ['Arial']
+    last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=3)
     sys.exit(0)
 
     repeat = 1000
     cpus = 1
     decoder = 'SVC'
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=False, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
                                                         wrs_thres=0, decoder=decoder)
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
+    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=False, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
                                                         wrs_thres=0, decoder=decoder)
 
-    cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
-                        wrs_thres=0, decoder=decoder)
-    cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
-                        wrs_thres=0, decoder=decoder)
+    # cross_time_decoding(denovo=False, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
+    #                     wrs_thres=0, decoder=decoder)
+    # cross_time_decoding(denovo=False, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
+    #                     wrs_thres=0, decoder=decoder)
 
-    ctd_cross_all(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
-                  wrs_thres=0, decoder=decoder)
-    ctd_cross_all(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
-                  wrs_thres=0, decoder=decoder)
+    # ctd_cross_all(denovo=False, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
+    #               wrs_thres=0, decoder=decoder)
+    # ctd_cross_all(denovo=False, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
+    #               wrs_thres=0, decoder=decoder)
     sys.exit()
