@@ -207,28 +207,32 @@ def process_all(denovo=False):
                      mdl.proportion_confint(*test_sample_non_pair),
                      )) - np.expand_dims(np.array(perf_by_prev_trial), axis=1)).T
 
-    (fh, ax) = plt.subplots(2, 1, figsize=(6, 6), dpi=100)
-    ax[0].bar([1, 2, 4, 5, 7, 8, 10, 11, 13, 14], trial_stats)
-    ax[0].set_xticks([1, 2, 4, 5, 7, 8, 10, 11, 13, 14])
-    ax[0].set_xticklabels(['same sample', 'diff sample',
-                           'same test', 'diff test',
+    (fh, ax) = plt.subplots(1, 1, figsize=(6, 2), dpi=300)
+    ax.bar([1, 2, 4, 5, 7, 8, 10, 11, 13, 14], trial_stats)
+    ax.set_xticks([1, 2, 4, 5, 7, 8, 10, 11, 13, 14])
+    ax.set_xticklabels(['same sample', 'oppo sample',
+                           'same test', 'oppo test',
                            "S'-T pair", "S'-T non-pair",
                            "S-T' pair", "S-T' non-pair",
                            'same delay','diff delay'
-                           ], rotation=45, va='top',ha='right')
-    ax[0].set_ylabel('proportion in trials')
+                           ], rotation=30, va='top',ha='right')
+    ax.set_ylabel('proportion in trials')
+    fh.savefig('trial_design_stats1.png',bbox_inches='tight')
+    plt.show()
 
 
-    ax[1].bar([1, 2, 4, 5, 7, 8, 10, 11], perf_by_prev_trial)
-    ax[1].errorbar([1, 2, 4, 5, 7, 8, 10, 11], perf_by_prev_trial, ci[0, :], fmt='k,', capsize=2, barsabove=True,lw=0.5)
-    ax[1].set_xticks([1, 2, 4, 5, 7, 8, 10, 11])
-    ax[1].set_xticklabels(['same sample', 'diff sample',
-                           'same test', 'diff test',
+    (fh, ax) = plt.subplots(1, 1, figsize=(6, 2), dpi=300)
+    ax.bar([1, 2, 4, 5, 7, 8, 10, 11], perf_by_prev_trial)
+    ax.errorbar([1, 2, 4, 5, 7, 8, 10, 11], perf_by_prev_trial, ci[0, :], fmt='k,', capsize=2, barsabove=True,lw=0.5)
+    ax.set_xticks([1, 2, 4, 5, 7, 8, 10, 11])
+    ax.set_xticklabels(['same sample', 'oppo. sample',
+                           'same test', 'oppo. test',
                            "S'-T pair", "S'-T non-pair",
-                           "S-T' pair", "S-T' non-pair"], rotation=45, va='top',ha='right')
-    ax[1].set_ylabel('correct rate')
-    ax[1].set_ylim([0.6, 1])
-    fh.savefig('trial_design_stats.png')
+                           "S-T' pair", "S-T' non-pair"], rotation=30, va='top',ha='right')
+    ax.set_ylabel('correct rate')
+    ax.set_ylim([0.6, 1])
+    fh.savefig('trial_design_stats2.png',bbox_inches='tight')
+
     plt.show()
 
 
