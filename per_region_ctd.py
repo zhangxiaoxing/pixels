@@ -313,7 +313,7 @@ def cross_time_decoding(
     )
 
     if not avail:
-        return (False, None)
+        return (False, reg, None)
 
     elif to_plot:
         (fig, ax) = plt.subplots(1, 1, figsize=[15 / 25.4, 15 / 25.4], dpi=300)
@@ -339,7 +339,7 @@ def cross_time_decoding(
         fig.savefig(f"ctd_{delay}_{repeats}_{reg}.pdf", bbox_inches="tight")
 
         plt.show()
-        return (True, trans50)
+    return (True, reg, trans50)
 
 
 def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_range=None, decoder="MCC", repeats=20):
@@ -430,6 +430,8 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2):
     reg_set = [x[0] for x in reg_count if x[1] >= 50]
 
     curr_pool = Pool(processes=proc_n)
+    
+    
 
     all_proc = []
     # reg_offset = (
@@ -438,33 +440,69 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2):
 
     for reg_idx in range(len(reg_set)):
         curr_feat_su = [f for (f, reg, t) in zip(features_per_su, reg_list, trans) if (reg == reg_set[reg_idx] and t)]
+       
         # trans_feat, to_plot=False, delay=6, repeats=10, decoder="SVC", reg="RND",
         all_proc.append(
             curr_pool.apply_async(
                 cross_time_decoding,
                 args=(curr_feat_su,),
-                kwds={"to_plot": True, "delay": delay, "repeats": repeats, "decoder": "SVC", "reg": reg_set[reg_idx],},
+                kwds={"to_plot": False, "delay": delay, "repeats": repeats, "decoder": "SVC", "reg": reg_set[reg_idx],},
             )
         )
 
         # print("set")
 
     for one_proc in all_proc:
-        (avail, trans50) = one_proc.get()
+        (avail, reg, trans50) = one_proc.get()
         trans50_all.append(trans50)
         # print("get")
 
     curr_pool.close()
     curr_pool.join()
 
-    trans50Avail = [x for x in trans50 if x is not None]
-    reg_setAvail = [reg_set[i] for i in range(len(trans50)) if trans50[i] is not None]
+    trans50Avail = [x for x in trans50_all if x is not None]
+    reg_setAvail = [reg_set[i] for i in range(len(trans50_all)) if trans50_all[i] is not None]
     np.savez_compressed(f"per_region_ctd_{delay}_{repeats}.npz", trans50=trans50Avail, reg_set=reg_setAvail)
 
     return [reg_set, trans50_all]
 
+def per_region_corr():
+    fstr=np.load('per_region_ctd_6_100.npz')
+    # list(fstr.keys())
+    # Out[3]: ['trans50', 'reg_set']
+    trans50=fstr['trans50']
+    reg_set=fstr['reg_set']
+    reg_list=reg_set.tolist()
+    
+    exclude=[reg_list.index('Unlabeled'),reg_list.index('int')]
+    trans50=trans50[np.hstack((np.arange(23),24)),:,:,:]
+
+    reg_dist=[]
+    #early, late, diag, off-diag
+    for i in range(trans50.shape[0]):
+        early=np.mean([trans50[i,:,x,x] for x in range(16,20)])
+        late=np.mean([trans50[i,:,x,x] for x in range(36,40)])
+        diag=np.mean([early,late])
+        offdiagMat=np.mean(np.squeeze(trans50[i,:,16:40,16:40]),axis=0)
+        for odi in range(offdiagMat.shape[0]):
+            offdiagMat[odi,odi]=np.nan
+        offdiag=np.nanmean(offdiagMat)
+        reg_dist.append([early,late,diag,offdiag])
+        
+    reg_dist_arr=np.array(reg_dist)        
+    
+    (fig,ax)=plt.subplots(1,1,figsize=(8.5 / 2.54, 4.5 / 2.54), dpi=300)
+
+    for tidx in range(trans50.shape[0]):
+        ax.text(reg_dist_arr[tidx,1],reg_dist_arr[tidx,2],f'{tidx}')
+    plt.show()
+
 
 if __name__ == "__main__":
-
-    (reg_set, trans50) = ctd_par(denovo=True, delay=6, proc_n=8, repeats=2)
-    (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=100)
+    rcParams['pdf.fonttype'] = 42
+    rcParams['ps.fonttype'] = 42
+    rcParams['font.family'] = 'sans-serif'
+    rcParams['font.sans-serif'] = ['Arial']
+    # (reg_set, trans50) = ctd_par(denovo=True, delay=6, proc_n=8, repeats=2)
+    # (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=16, repeats=100)
+    per_region_corr()

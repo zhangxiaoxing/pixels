@@ -170,8 +170,7 @@ def combineSubRegion(r):
 
 
 def getRegionList(cmp=False):
-    # site_file = r"D:\neupix\meta\NP tracks revised 0319.csv"
-    site_file=Fr"D:\neupix\meta\NP tracks validated3.3.csv"
+    site_file = r"D:\neupix\meta\NP tracks revised 0319.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mouse_id": "str", "implanting_date": "str"}
     )[
