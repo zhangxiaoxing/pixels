@@ -12,6 +12,8 @@ Depends on intermediate data from CQTransient.py-> CQ_transient.m
 
 For 1D and 2D decoding, use sus_transient_decoding.py
 
+the output of this script is used for optogenetic mapping as of 4.19
+
 """
 
 import os
@@ -34,6 +36,8 @@ class per_sec_stats:
         self.non_sel_mod = None  # 7 x SU
         self.non_mod = None  # 7 x SU
         self.baseline_sel = None  # 1 x SU
+        self.early_in_6s = None
+        self.late_in_6s = None
 
         self.use_ranksum = True
 
@@ -296,13 +300,18 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         reg_arr = fstr['reg_arr']
         bs_sel = fstr['bs_sel']
 
-    delay_bins = None
     if delay == 6:
         delay_bins = np.arange(1, 7)
+        early_bins = np.arange(1, 4)
+        late_bins = np.arange(4, 7)
     elif delay == 3 or delay == 'early3in6':
         delay_bins = np.arange(1, 4)
+        early_bins = np.arange(1, 3)
+        late_bins = np.arange(2, 4)
     elif delay == 'late3in6':
         delay_bins = np.arange(4, 7)
+        early_bins = np.arange(4, 6)
+        late_bins = np.arange(5, 7)
 
     bs_count = np.count_nonzero(bs_sel)
     non_bs = np.logical_not(bs_sel)
@@ -362,6 +371,9 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
     switched_count = np.count_nonzero(switched)
 
     transient = np.logical_and(cqtrans, np.logical_not(switched))
+    early_in_6s = np.logical_and(transient, np.any(per_sec_sel_arr[early_bins, :], axis=0))
+    late_in_6s = np.logical_and(transient, np.any(per_sec_sel_arr[late_bins, :], axis=0))
+
     transient_count = np.count_nonzero(transient)
 
     unclassified = np.logical_and(non_sust, np.logical_not(cqtrans))
@@ -396,7 +408,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
 
     ### export list
 
-    export_arr = np.vstack((sust, transient, switched, unclassified))
+    export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s))
     np.savez_compressed(f'sus_trans_pie_{delay}.npz', sust=sust, transient=transient,
                         switched=switched, unclassified=unclassified, sample_only=sample_only,
                         non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr)
@@ -407,7 +419,8 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
 
         np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
 
-        all_sess_arr = np.vstack((sust, transient, switched, sample_only, non_sel_mod, non_mod))
+        all_sess_arr = np.vstack(
+            (sust, transient, switched, sample_only, non_sel_mod, non_mod, early_in_6s, late_in_6s))
 
         reg_set = list(set(reg_arr.tolist()))
         su_factors = []

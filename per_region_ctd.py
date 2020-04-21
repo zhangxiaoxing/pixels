@@ -20,6 +20,8 @@ import matplotlib.pyplot as plt
 import su_region_align as align
 import per_second_stats
 from multiprocessing import Pool
+from matplotlib import rcParams
+
 
 class ctd_stats:
     def __init__(self):
@@ -49,38 +51,36 @@ class ctd_stats:
 
     ### unprocessed data entry point
 
-    def processCTDStats(
-            self, trial_FR, trials, welltrain_window=None, correct_resp=None
-    ):
+    def processCTDStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None):
 
         ### TODO: when variables are empty
         # [bin:trial:SU]
         # breakpoint()
-        FR_D3_S1 = trial_FR[:,
-                   np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 4, welltrain_window, correct_resp,)), axis=0, ),
-                   :, ]
-        FR_D3_S2 = trial_FR[:,
-                   np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 8, welltrain_window, correct_resp,)), axis=0, ),
-                   :, ]
-        FR_D6_S1 = trial_FR[:,
-                   np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 4, welltrain_window, correct_resp,)), axis=0, ),
-                   :, ]
-        FR_D6_S2 = trial_FR[:,
-                   np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 8, welltrain_window, correct_resp,)), axis=0, ),
-                   :, ]
+        FR_D3_S1 = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 4, welltrain_window, correct_resp,)), axis=0,), :,
+        ]
+        FR_D3_S2 = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 8, welltrain_window, correct_resp,)), axis=0,), :,
+        ]
+        FR_D6_S1 = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 4, welltrain_window, correct_resp,)), axis=0,), :,
+        ]
+        FR_D6_S2 = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 8, welltrain_window, correct_resp,)), axis=0,), :,
+        ]
 
-        FR_D3_S1_ERR = trial_FR[:,
-                       np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 4, np.logical_not(correct_resp))),
-                              axis=0, ), :, ]
-        FR_D3_S2_ERR = trial_FR[:,
-                       np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 8, np.logical_not(correct_resp))),
-                              axis=0, ), :, ]
-        FR_D6_S1_ERR = trial_FR[:,
-                       np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 4, np.logical_not(correct_resp))),
-                              axis=0, ), :, ]
-        FR_D6_S2_ERR = trial_FR[:,
-                       np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 8, np.logical_not(correct_resp))),
-                              axis=0, ), :, ]
+        FR_D3_S1_ERR = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 4, np.logical_not(correct_resp))), axis=0,), :,
+        ]
+        FR_D3_S2_ERR = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 3, trials[:, 2] == 8, np.logical_not(correct_resp))), axis=0,), :,
+        ]
+        FR_D6_S1_ERR = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 4, np.logical_not(correct_resp))), axis=0,), :,
+        ]
+        FR_D6_S2_ERR = trial_FR[
+            :, np.all(np.vstack((trials[:, 5] == 6, trials[:, 2] == 8, np.logical_not(correct_resp))), axis=0,), :,
+        ]
 
         for su_idx in range(trial_FR.shape[2]):
             self.su_list.append(
@@ -159,9 +159,7 @@ def get_dataset(denovo):
             #     break
 
         ### save to npz file
-        np.savez_compressed(
-            "ctd.npz", features_per_su=features_per_su, reg_list=reg_list
-        )
+        np.savez_compressed("ctd.npz", features_per_su=features_per_su, reg_list=reg_list)
 
     ### load from npz file
     else:
@@ -176,9 +174,8 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     (features_per_su, _reg_list) = get_dataset(denovo)
 
     scaler = MinMaxScaler()
-    avail_sel = [(x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
-                 for x in features_per_su]
-    clf = SVC(kernel='linear')    # bins, trials
+    avail_sel = [(x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel) for x in features_per_su]
+    clf = SVC(kernel="linear")  # bins, trials
     one_dir = []
     rng = np.random.default_rng()
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
@@ -198,12 +195,7 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
         scores = cross_val_score(clf, X, y, cv=n_sel) * 100
         scores_shuffled = cross_val_score(clf, X, y_shuf, cv=n_sel) * 100
         one_dir.append(
-            [
-                np.mean(scores),
-                np.std(scores),
-                np.mean(scores_shuffled),
-                np.std(scores_shuffled),
-            ]
+            [np.mean(scores), np.std(scores), np.mean(scores_shuffled), np.std(scores_shuffled),]
         )
 
     mm = np.array(one_dir)[:, 0]
@@ -215,11 +207,7 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     plt.fill_between(np.arange(mm.shape[0]), mm - sem, mm + sem, color="r", alpha=0.2)
     (lhs,) = plt.plot(mm_shuf, color="k")
     plt.fill_between(
-        np.arange(mm.shape[0]),
-        mm_shuf - sem_shuf,
-        mm_shuf + sem_shuf,
-        color="k",
-        alpha=0.2,
+        np.arange(mm.shape[0]), mm_shuf - sem_shuf, mm_shuf + sem_shuf, color="k", alpha=0.2,
     )
     ax = plt.gca()
 
@@ -239,16 +227,13 @@ def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, re
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
 
     scaler = MinMaxScaler()
-    avail_sel = [
-        (x[keys[0]].shape[1] >= n_sel and x[keys[1]].shape[1] >= n_sel)
-        for x in features_per_su
-    ]
+    avail_sel = [(x[keys[0]].shape[1] >= n_sel and x[keys[1]].shape[1] >= n_sel) for x in features_per_su]
 
     if sum(avail_sel) < 10:
-        print('Not enough SU with suffcient trials')
+        print("Not enough SU with suffcient trials")
         return None
 
-    clf = SVC(kernel='linear')    # bins, trials
+    clf = SVC(kernel="linear")  # bins, trials
 
     if limit_bins is None:
         limit_bins = features_per_su[0][keys[0]].shape[0]
@@ -256,9 +241,11 @@ def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, re
     score_mat = np.zeros((limit_bins, limit_bins))
     for template_bin_idx in range(limit_bins):
         X1 = np.vstack(
-            tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+            tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
+        ).T
         X2 = np.vstack(
-            tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+            tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
+        ).T
         y1 = np.ones((X1.shape[0]))
         y2 = np.zeros_like(y1)
         y = np.hstack((y1, y2))
@@ -268,18 +255,18 @@ def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, re
         clf.fit(template_X, y)
         for test_bin_idx in range(limit_bins):
             XX1 = np.vstack(
-                tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+                tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
+            ).T
             XX2 = np.vstack(
-                tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])).T
+                tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
+            ).T
 
             test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
             score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
 
     score_mat = score_mat * 100
     (fh, ax) = plt.subplots()
-    im = plt.imshow(
-        score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100
-    )
+    im = plt.imshow(score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100)
     plt.colorbar(im, ticks=[50, 75, 100], format="%d")
     suffix = None
     if delay == 3:
@@ -298,9 +285,7 @@ def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, re
     ax.set_yticklabels([0, 5, 10])
     ax.set_ylabel("Time (s)")
     ax.set_title(f"{reg_name} CTD {suffix} delay")
-    fh.savefig(
-        f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight"
-    )
+    fh.savefig(f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight")
     np.save(f"score_mat_{suffix}_{reg_name}.npy", score_mat)
     return score_mat
 
@@ -310,124 +295,74 @@ def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, re
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
 
+def cross_time_decoding(
+    trans_feat, to_plot=False, delay=6, repeats=10, decoder="SVC", reg="RND",
+):
 
-def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=1000, wrs_thres=0, decoder='MCC',reg='PIR'):
-    if denovo:
-        fstr = np.load("ctd.npz", allow_pickle=True)
-        features_per_su = fstr["features_per_su"].tolist()
-        # baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
-        # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
-        wrs_p = np.ones(len(features_per_su))
-        reg_arr = fstr["reg_list"].tolist()
-        sus_trans_flag = per_second_stats.process_all(denovo=False,
-                                                      delay=delay)  # 33172 x 4, sust,trans,switch,unclassified
-        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > wrs_thres))[0]]
-        trans_feat = [features_per_su[i] for i in
-                      np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > wrs_thres))[0]]
-        sus50 = []
-        trans50 = []
-        trans1000 = []
-        sust_proc = []
-        trans50_proc = []
-        trans1000_proc = []
-        if cpu > 1:
-            curr_pool = Pool(processes=cpu)
-            for i in range(np.ceil(repeats / 20).astype(np.int)):
-                sust_proc.append(curr_pool.apply_async(ctd_actual, args=(sus_feat,),
-                                                       kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
-                                                             "bin_range": np.arange(4, 52), "decoder": decoder}))
+    # baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+    # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
 
-                trans50_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
-                                                          kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
-                                                                "bin_range": np.arange(4, 52), "decoder": decoder}))
-                trans1000_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
-                                                            kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
-                                                                  "bin_range": np.arange(4, 52), "decoder": decoder}))
-            for one_proc in sust_proc:
-                sus50.append(one_proc.get())
+    (avail, trans50) = ctd_actual(
+        trans_feat,
+        n_neuron=50,
+        n_trial=(20, 25),
+        delay=delay,
+        bin_range=np.arange(4, 52),
+        decoder=decoder,
+        repeats=repeats,
+    )
 
-            for one_proc in trans50_proc:
-                trans50.append(one_proc.get())
+    if not avail:
+        return (False, None)
 
-            for one_proc in trans1000_proc:
-                trans1000.append(one_proc.get())
+    elif to_plot:
+        (fig, ax) = plt.subplots(1, 1, figsize=[15 / 25.4, 15 / 25.4], dpi=300)
 
-            curr_pool.close()
-            curr_pool.join()
-        else:
-            sus50.append(ctd_actual(sus_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
-                                    decoder=decoder))
-            trans50.append(
-                ctd_actual(trans_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
-                           decoder=decoder))
-            trans1000.append(
-                ctd_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
-                           decoder=decoder))
+        # ax.set_ylabel("template time (s)")
+        # ax[1].set_title("50 transient SU")
+        im2 = ax.imshow(np.array(trans50).mean(axis=0), cmap="jet", aspect="auto", origin="lower", vmin=0, vmax=100)
+        # plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
 
-        np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
-                            trans1000=trans1000)
-    else:
-        fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_1000.npz'), 'r')
-        sus50 = fstr['sus50']
-        trans50 = fstr['trans50']
-        trans1000 = fstr['trans1000']
+        ax.set_xticks([7.5, 27.5])
+        ax.set_xticklabels([])
+        ax.set_xlabel(reg)
+        ax.set_yticks([7.5, 27.5])
+        ax.set_yticklabels([])
 
-    if to_plot:
-        (fig, ax) = plt.subplots(1, 3, figsize=[110 / 25.4, 37 / 25.4], dpi=300)
-        ax[0].imshow(np.array(sus50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
-                     vmax=100)
-        ax[0].set_title('50 sustained SU')
-        ax[0].set_ylabel('template time (s)')
-        ax[1].imshow(np.array(trans50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
-                     vmax=100)
-        ax[1].set_title('50 transient SU')
-        im2 = ax[2].imshow(np.array(trans1000).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower',
-                           vmin=0,
-                           vmax=100)
-        ax[2].set_title('1000 transient SU')
-        plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
+        if delay == 6:
+            [ax.axhline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 35.5, 39.5]]
+            [ax.axvline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 35.5, 39.5]]
+        elif delay == 3:
+            [ax.axhline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 23.5, 27.5]]
+            [ax.axvline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 23.5, 27.5]]
 
-        for oneax in ax:
-            oneax.set_xticks([7.5, 27.5])
-            oneax.set_xticklabels([0, 5])
-            oneax.set_xlabel('scoring time (s)')
-            oneax.set_yticks([7.5, 27.5])
-            oneax.set_yticklabels([0, 5])
-
-            if delay == 6:
-                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
-                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
-            elif delay == 3:
-                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
-                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
-
-        fig.savefig(f'ctd_{delay}_{repeats}.pdf', bbox_inches='tight')
+        fig.savefig(f"ctd_{delay}_{repeats}_{reg}.pdf", bbox_inches="tight")
 
         plt.show()
-        return (sus50, trans50, trans1000)
+        return (True, trans50)
 
 
-def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_range=None, decoder='MCC'):
+def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_range=None, decoder="MCC", repeats=20):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
     avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
 
     if sum(avail_sel) < n_neuron:
-        print('Not enough SU with suffcient trials')
-        return None
+        print("Not enough SU with suffcient trials")
+        return (False, None)
 
     # bins, trials
     if bin_range is None:
         bin_range = np.arange(features_per_su[0][keys[0]].shape[0])
 
     scaler = MinMaxScaler()
-    if decoder == 'MCC':
+    if decoder == "MCC":
         clf = MaximumCorrelationClassifier(n_neuron)
-    elif decoder == 'SVC':
-        clf = SVC(kernel='linear')
+    elif decoder == "SVC":
+        clf = SVC(kernel="linear")
 
     kf = KFold(10)
     one_cv = []
-    for i in range(20):
+    for i in range(repeats):
         su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
         su_selected_features = [features_per_su[i] for i in su_index]
         X1 = []
@@ -451,65 +386,85 @@ def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_rang
                 clf.fit(X_templates, y_templates)
                 for test_bin_idx in np.arange(bin_range.shape[0]):
                     X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
-                    y_test = np.hstack((np.ones_like(tests) * 1, np.ones_like(tests) * 2)).T
+                    y_test = np.hstack((np.ones_like(tests) * -1, np.ones_like(tests) * 1)).T
                     # y_shuf=y.copy()
                     # rng.shuffle(y_shuf)
                     X_test = scaler.transform(X_test)
-                    if decoder == 'MCC':
-                        score_mat[template_bin_idx, test_bin_idx] = np.mean(np.hstack(
-                            (clf.predict(X1[tests, :, test_bin_idx]) <= 0,
-                             clf.predict(X2[tests, :, test_bin_idx]) > 0)))
+                    if decoder == "MCC":
+                        score_mat[template_bin_idx, test_bin_idx] = np.mean(
+                            np.hstack(
+                                (
+                                    clf.predict(X1[tests, :, test_bin_idx]) <= 0,
+                                    clf.predict(X2[tests, :, test_bin_idx]) > 0,
+                                )
+                            )
+                        )
                     else:
                         score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
 
             score_mat = score_mat * 100
             one_cv.append(score_mat)
 
-    return one_cv
+    return (True, one_cv)
 
 
-def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, proc_n=2):
-    # breakpoint()
+def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2):
+    rcParams["pdf.fonttype"] = 42
+    rcParams["ps.fonttype"] = 42
+    rcParams["font.family"] = "sans-serif"
+    rcParams["font.sans-serif"] = ["Arial"]  # breakpoint()
     # be noted n_sel was not used until later stage, e.g. saved dataset is complete
     (features_per_su, reg_list) = get_dataset(denovo)
+    trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
+    # list(trans6.keys())
+    # sust = trans_fstr["sust"]
+    trans = trans_fstr["transient"]
+    # reg_arr=trans_fstr['reg_arr']  tested to be identical to ctd.npz source
 
-    if reg_onset is None:
-        cross_time_decoding(features_per_su, n_sel, delay=3, limit_bins=None)
-    else:
-        from multiprocessing import Pool
+    trans50_all = []
+    reg_set = sorted(set(reg_list))
+    # reg_count = [reg_list.count(x) for x in reg_set]
 
-        reg_set = sorted(set(reg_list))
-        reg_count = [reg_list.count(x) for x in reg_set]
-        reg_set = [reg for (reg, count) in zip(reg_set, reg_count) if count >= 50]
+    reg_count = [[reg, np.sum(np.logical_and([x == reg for x in reg_list], trans))] for reg in reg_set]
 
-        curr_pool = Pool(processes=proc_n)
+    reg_set = [x[0] for x in reg_count if x[1] >= 50]
 
-        if reg_onset < len(reg_set):
-            all_proc = []
-            # reg_offset = (
-            #     (reg_onset + proc_n) if (reg_onset <= len(reg_set) - proc_n) else len(reg_set)
-            # )
+    curr_pool = Pool(processes=proc_n)
 
-            reg_offset=len(reg_set)
-            for reg_idx in range(reg_onset, reg_offset):
-                curr_feat_su = [
-                    f
-                    for (f, reg) in zip(features_per_su, reg_list)
-                    if reg == reg_set[reg_idx]
-                ]
+    all_proc = []
+    # reg_offset = (
+    #     (reg_onset + proc_n) if (reg_onset <= len(reg_set) - proc_n) else len(reg_set)
+    # )
 
-                all_proc.append(curr_pool.apply_async(cross_time_decoding, args=(curr_feat_su, n_sel),
-                                                      kwds={"delay": delay, "limit_bins": limit_bins,
-                                                            "reg_name": reg_set[reg_idx], }, ))
+    for reg_idx in range(len(reg_set)):
+        curr_feat_su = [f for (f, reg, t) in zip(features_per_su, reg_list, trans) if (reg == reg_set[reg_idx] and t)]
+        # trans_feat, to_plot=False, delay=6, repeats=10, decoder="SVC", reg="RND",
+        all_proc.append(
+            curr_pool.apply_async(
+                cross_time_decoding,
+                args=(curr_feat_su,),
+                kwds={"to_plot": True, "delay": delay, "repeats": repeats, "decoder": "SVC", "reg": reg_set[reg_idx],},
+            )
+        )
 
-                print('set')
+        # print("set")
 
-            for one_proc in all_proc:
-                one_proc.get()
-                print('get')
+    for one_proc in all_proc:
+        (avail, trans50) = one_proc.get()
+        trans50_all.append(trans50)
+        # print("get")
 
-            curr_pool.close()
-            curr_pool.join()
+    curr_pool.close()
+    curr_pool.join()
 
-        else:
-            print("index exceeded number of regions")
+    trans50Avail = [x for x in trans50 if x is not None]
+    reg_setAvail = [reg_set[i] for i in range(len(trans50)) if trans50[i] is not None]
+    np.savez_compressed(f"per_region_ctd_{delay}_{repeats}.npz", trans50=trans50Avail, reg_set=reg_setAvail)
+
+    return [reg_set, trans50_all]
+
+
+if __name__ == "__main__":
+
+    (reg_set, trans50) = ctd_par(denovo=True, delay=6, proc_n=8, repeats=2)
+    (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=100)
