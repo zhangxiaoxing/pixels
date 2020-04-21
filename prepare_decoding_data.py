@@ -87,38 +87,43 @@ class ctd_stats:
                 }
             )
 
-    def processPrevTrialStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None):
+    def processPrevTrialStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None, classify_test=False):
 
         ### TODO: when variables are empty
         # [bin:trial:SU]
         # breakpoint()
         
-        shifted_trial=np.vstack((np.zeros(6),trials[1:,:]))
+        if classify_test:
+            cueIdx=3
+        else:
+            cueIdx=2
+        
+        shifted_trial=np.vstack((np.zeros(6),trials[:-1,:]))
         
         FR_D3_S1 = trial_FR[:,
-                   np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, 2] == 4, welltrain_window, correct_resp,)), axis=0, ),
+                   np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, cueIdx] == 4, welltrain_window, correct_resp,)), axis=0, ),
                    :, ]
         FR_D3_S2 = trial_FR[:,
-                   np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, 2] == 8, welltrain_window, correct_resp,)), axis=0, ),
+                   np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, cueIdx] == 8, welltrain_window, correct_resp,)), axis=0, ),
                    :, ]
         FR_D6_S1 = trial_FR[:,
-                   np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, 2] == 4, welltrain_window, correct_resp,)), axis=0, ),
+                   np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, cueIdx] == 4, welltrain_window, correct_resp,)), axis=0, ),
                    :, ]
         FR_D6_S2 = trial_FR[:,
-                   np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, 2] == 8, welltrain_window, correct_resp,)), axis=0, ),
+                   np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, cueIdx] == 8, welltrain_window, correct_resp,)), axis=0, ),
                    :, ]
 
         FR_D3_S1_ERR = trial_FR[:,
-                       np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, 2] == 4, np.logical_not(correct_resp))),
+                       np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, cueIdx] == 4, np.logical_not(correct_resp))),
                               axis=0, ), :, ]
         FR_D3_S2_ERR = trial_FR[:,
-                       np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, 2] == 8, np.logical_not(correct_resp))),
+                       np.all(np.vstack((shifted_trial[:, 5] == 3, shifted_trial[:, cueIdx] == 8, np.logical_not(correct_resp))),
                               axis=0, ), :, ]
         FR_D6_S1_ERR = trial_FR[:,
-                       np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, 2] == 4, np.logical_not(correct_resp))),
+                       np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, cueIdx] == 4, np.logical_not(correct_resp))),
                               axis=0, ), :, ]
         FR_D6_S2_ERR = trial_FR[:,
-                       np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, 2] == 8, np.logical_not(correct_resp))),
+                       np.all(np.vstack((shifted_trial[:, 5] == 6, shifted_trial[:, cueIdx] == 8, np.logical_not(correct_resp))),
                               axis=0, ), :, ]
 
         for su_idx in range(trial_FR.shape[2]):
@@ -143,7 +148,7 @@ class ctd_stats:
 ### Main program entry point
 
 
-def get_dataset(denovo=False, prevTrial=False):
+def get_dataset(denovo=False, prevTrial=False,classify_test=False):
     features_per_su = []
     reg_list = []
     if denovo:
@@ -184,7 +189,7 @@ def get_dataset(denovo=False, prevTrial=False):
 
             currStats = ctd_stats()
             if prevTrial:
-                currStats.processPrevTrialStats(trial_FR, trials, welltrain_window, correct_resp)
+                currStats.processPrevTrialStats(trial_FR, trials, welltrain_window, correct_resp,classify_test)
             else:
                 currStats.processCTDStats(trial_FR, trials, welltrain_window, correct_resp)
             # as decoding is population non-linear statistic, will not calculate per neuron stats and average
@@ -201,7 +206,10 @@ def get_dataset(denovo=False, prevTrial=False):
         ### save to npz file
         print("saving ctd data file...")
         if prevTrial:
-            fn = 'prevTrial.npz'
+            if classify_test:
+                fn='prevTest'
+            else:
+                fn = 'prevTrial.npz'
         else:
             fn = 'ctd.npz'
         np.savez_compressed(fn, force_zip64=True, features_per_su=features_per_su, reg_list=reg_list)
@@ -217,4 +225,4 @@ def get_dataset(denovo=False, prevTrial=False):
 
 
 if __name__ == "__main__":
-    (feat, regs) = get_dataset(denovo=True,prevTrial=True)
+    (feat, regs) = get_dataset(denovo=True,prevTrial=True,classify_test=True)

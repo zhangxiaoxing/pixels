@@ -21,8 +21,17 @@ from matplotlib import rcParams
 import statsmodels.stats.proportion as prop
 
 
-def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=50, cpu=1, bins=(36,40)):
-    fstr = np.load("ctd.npz", allow_pickle=True)
+def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=50, cpu=1, bins=(36,40),prev=False,classify_test=False):
+    if prev:
+        if classify_test:
+            fstr = np.load("prevTest.npz", allow_pickle=True)
+            suffix='prevTest'
+        else:
+            fstr = np.load("prevTrial.npz", allow_pickle=True)
+            suffix='prevSample'
+    else:
+        fstr = np.load("ctd.npz", allow_pickle=True)
+        suffix='lastbin'
     feat_per_su = fstr["features_per_su"].tolist()
     # baseline_WRS_p3_p6 = baseline_statstics(feat_per_su)
     # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
@@ -41,13 +50,13 @@ def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=
         sust_proc=[]
         trans_proc=[]
         curr_pool = Pool(processes=cpu)
-        for n_neuron in np.arange(25, 51, 25):
+        for n_neuron in np.arange(25, 101, 25):
             sust_proc.append(curr_pool.apply_async(same_time_decoding, args=(
                 sus_feat, n_neuron, (20, 25), delay, np.arange(*bins), repeats,)))
 
-        # for n_neuron in np.arange(25, 1001, 25):
-        #     sust_proc.append(curr_pool.apply_async(same_time_decoding, args=(
-        #         trans_feat, n_neuron, (20, 25), delay, np.arange(*bins), repeats,)))
+        for n_neuron in np.arange(25, 1001, 25):
+            trans_proc.append(curr_pool.apply_async(same_time_decoding, args=(
+                trans_feat, n_neuron, (20, 25), delay, np.arange(*bins), repeats,)))
 
         for one_proc in sust_proc:
             sust_sum.append(one_proc.get())
@@ -64,8 +73,9 @@ def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=
         for n_neuron in np.arange(25, 1001, 25):
             trans_sum.append(same_time_decoding(trans_feat, n_neuron, (20, 25), delay, np.arange(*bins), repeats))
 
+
     # (sus_sum, trans_sum) = last_bin_decoding()
-    np.savez_compressed(f'sus_transient_decoding_{delay}.npz', sus=sust_sum, trans=trans_sum)
+    np.savez_compressed(f'sus_transient_decoding_{delay}_{suffix}.npz', sus=sust_sum, trans=trans_sum)
     sus_per_count = []
     for count_bin in sust_sum:
         per_cv = np.array([x[0] for x in count_bin]).flatten() / 25
@@ -112,12 +122,12 @@ def last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, repeats=
 
     axes.set_xticks(np.arange(-1, 40, 20))
     axes.set_xticklabels(np.arange(0, 1001, 500))
-    # axes.set_ylim((40, 100))
+    axes.set_ylim((0.4, 1))
     axes.set_ylabel('decoding accuracy')
     axes.set_xlabel('Number of single units')
     axes.legend((ph0[0], ph1[0], ph2[0]), ('sustained', 'transient', 'shuffled'))
     plt.show()
-    fh.savefig(f'n_su_vs_decoding_accu_{delay}.pdf', bbox_inches='tight')
+    fh.savefig(f'n_su_vs_decoding_accu_{delay}_{bins[0]}_{bins[1]}_{suffix}.pdf', bbox_inches='tight')
 
     return (sust_sum, trans_sum)
 
@@ -753,7 +763,8 @@ if __name__ == "__main__":
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
-    last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, cpu=2, repeats=3,bins=(36,40))
+    last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, cpu=7, repeats=100,bins=(24,28),prev=True,classify_test=True)
+    last_bin_decoding(delay=3, wrs_thres=0, denovo_per_sec_stats=False, cpu=7, repeats=100,bins=(24,28),prev=True,classify_test=True)
     sys.exit(0)
 
     repeat = 1000
