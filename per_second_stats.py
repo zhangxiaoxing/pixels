@@ -253,7 +253,7 @@ def plot_features():
     pass
 
 
-# %% main
+### entry point
 def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, counterclock=False):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
@@ -373,12 +373,12 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = ['Arial']
 
-        frac = [sust_count, transient_count, switched_count, unclassified_count, bs_count, sample_only_count,
+        frac = [switched_count, unclassified_count, bs_count, sample_only_count, sust_count, transient_count,
                 non_sel_mod_count, non_mod_count, ]
         print(np.sum(frac))
-        explode = (0.1, 0.05, 0, 0, 0, 0, 0, 0)
+        explode = (0, 0, 0, 0, 0.1, 0.05, 0, 0)
         labels = (
-            'sustained', 'transient', 'transient-switched', 'unclassified', 'biased', 'selective only during sample',
+            'transient-switched', 'unclassified', 'biased', 'selective only during sample', 'sustained', 'transient',
             'Non-selective modulation', 'Unmodulated')
 
         (fh, ax) = plt.subplots(1, 1, figsize=(12 / 2.54, 4 / 2.54), dpi=300)
@@ -626,13 +626,30 @@ def bars():
     # plt.show()
     # 6s transient from
     # 6s transient to
+    
+def quickStats(delay=6):
+    trans_fstr=np.load(f'sus_trans_pie_{delay}.npz')
+    # list(trans6.keys())
+    sust=trans_fstr['sust']
+    trans=trans_fstr['transient']
+    reg_arr=trans_fstr['reg_arr']
+    
+    reg_set=tuple(set(reg_arr.tolist()))
+    
+    count=[]
+    for one_reg in reg_set:
+        sust_count=np.count_nonzero(np.logical_and(reg_arr==one_reg,sust))
+        trans_count=np.count_nonzero(np.logical_and(reg_arr==one_reg,trans))
+        count.append([one_reg,sust_count, trans_count])
+    
+    
 
 
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=True, toExport=True, delay=6, counterclock=False)
-    # process_all(denovo=False, toPlot=True, toExport=True, delay=3, counterclock=True)
+    process_all(denovo=True, toPlot=True, toExport=True, delay=6, counterclock=False)
+    process_all(denovo=True, toPlot=True, toExport=True, delay=3, counterclock=True)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
 

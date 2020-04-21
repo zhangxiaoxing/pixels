@@ -11,12 +11,15 @@ import csv
 import h5py
 import numpy as np
 import scipy.stats as stats
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
+from sklearn.model_selection import KFold
+from mcc.mcc import MaximumCorrelationClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import su_region_align as align
-
+import per_second_stats
+from multiprocessing import Pool
 
 class ctd_stats:
     def __init__(self):
@@ -175,8 +178,7 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     scaler = MinMaxScaler()
     avail_sel = [(x["S1_3"].shape[1] >= n_sel and x["S2_3"].shape[1] >= n_sel)
                  for x in features_per_su]
-    clf = LinearSVC()
-    # bins, trials
+    clf = SVC(kernel='linear')    # bins, trials
     one_dir = []
     rng = np.random.default_rng()
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
@@ -233,9 +235,7 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     fh.savefig("same_time_decoding.png", dpi=300, bbox_inches="tight")
 
 
-def cross_time_decoding(
-        features_per_su, n_sel, delay=3, limit_bins=None, reg_name="All"
-):
+def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, reg_name="All"):
     keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
 
     scaler = MinMaxScaler()
@@ -248,8 +248,7 @@ def cross_time_decoding(
         print('Not enough SU with suffcient trials')
         return None
 
-    clf = LinearSVC()
-    # bins, trials
+    clf = SVC(kernel='linear')    # bins, trials
 
     if limit_bins is None:
         limit_bins = features_per_su[0][keys[0]].shape[0]
@@ -311,8 +310,166 @@ def cross_time_decoding(
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
 
+
+def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=1000, wrs_thres=0, decoder='MCC',reg='PIR'):
+    if denovo:
+        fstr = np.load("ctd.npz", allow_pickle=True)
+        features_per_su = fstr["features_per_su"].tolist()
+        # baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
+        # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
+        wrs_p = np.ones(len(features_per_su))
+        reg_arr = fstr["reg_list"].tolist()
+        sus_trans_flag = per_second_stats.process_all(denovo=False,
+                                                      delay=delay)  # 33172 x 4, sust,trans,switch,unclassified
+        sus_feat = [features_per_su[i] for i in np.nonzero(np.logical_and(sus_trans_flag[0, :], wrs_p > wrs_thres))[0]]
+        trans_feat = [features_per_su[i] for i in
+                      np.nonzero(np.logical_and(sus_trans_flag[1, :], wrs_p > wrs_thres))[0]]
+        sus50 = []
+        trans50 = []
+        trans1000 = []
+        sust_proc = []
+        trans50_proc = []
+        trans1000_proc = []
+        if cpu > 1:
+            curr_pool = Pool(processes=cpu)
+            for i in range(np.ceil(repeats / 20).astype(np.int)):
+                sust_proc.append(curr_pool.apply_async(ctd_actual, args=(sus_feat,),
+                                                       kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
+                                                             "bin_range": np.arange(4, 52), "decoder": decoder}))
+
+                trans50_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
+                                                          kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
+                                                                "bin_range": np.arange(4, 52), "decoder": decoder}))
+                trans1000_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
+                                                            kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
+                                                                  "bin_range": np.arange(4, 52), "decoder": decoder}))
+            for one_proc in sust_proc:
+                sus50.append(one_proc.get())
+
+            for one_proc in trans50_proc:
+                trans50.append(one_proc.get())
+
+            for one_proc in trans1000_proc:
+                trans1000.append(one_proc.get())
+
+            curr_pool.close()
+            curr_pool.join()
+        else:
+            sus50.append(ctd_actual(sus_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                                    decoder=decoder))
+            trans50.append(
+                ctd_actual(trans_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                           decoder=decoder))
+            trans1000.append(
+                ctd_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                           decoder=decoder))
+
+        np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
+                            trans1000=trans1000)
+    else:
+        fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_1000.npz'), 'r')
+        sus50 = fstr['sus50']
+        trans50 = fstr['trans50']
+        trans1000 = fstr['trans1000']
+
+    if to_plot:
+        (fig, ax) = plt.subplots(1, 3, figsize=[110 / 25.4, 37 / 25.4], dpi=300)
+        ax[0].imshow(np.array(sus50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
+                     vmax=100)
+        ax[0].set_title('50 sustained SU')
+        ax[0].set_ylabel('template time (s)')
+        ax[1].imshow(np.array(trans50).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower', vmin=0,
+                     vmax=100)
+        ax[1].set_title('50 transient SU')
+        im2 = ax[2].imshow(np.array(trans1000).mean(axis=0).mean(axis=0), cmap="jet", aspect="auto", origin='lower',
+                           vmin=0,
+                           vmax=100)
+        ax[2].set_title('1000 transient SU')
+        plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
+
+        for oneax in ax:
+            oneax.set_xticks([7.5, 27.5])
+            oneax.set_xticklabels([0, 5])
+            oneax.set_xlabel('scoring time (s)')
+            oneax.set_yticks([7.5, 27.5])
+            oneax.set_yticklabels([0, 5])
+
+            if delay == 6:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+            elif delay == 3:
+                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+
+        fig.savefig(f'ctd_{delay}_{repeats}.pdf', bbox_inches='tight')
+
+        plt.show()
+        return (sus50, trans50, trans1000)
+
+
+def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_range=None, decoder='MCC'):
+    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
+    avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
+
+    if sum(avail_sel) < n_neuron:
+        print('Not enough SU with suffcient trials')
+        return None
+
+    # bins, trials
+    if bin_range is None:
+        bin_range = np.arange(features_per_su[0][keys[0]].shape[0])
+
+    scaler = MinMaxScaler()
+    if decoder == 'MCC':
+        clf = MaximumCorrelationClassifier(n_neuron)
+    elif decoder == 'SVC':
+        clf = SVC(kernel='linear')
+
+    kf = KFold(10)
+    one_cv = []
+    for i in range(20):
+        su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
+        su_selected_features = [features_per_su[i] for i in su_index]
+        X1 = []
+        X2 = []
+        trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
+        for one_su in su_selected_features:
+            X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select])
+            X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select])
+
+        X1 = np.array(X1).transpose((1, 0, 2))
+        X2 = np.array(X2).transpose((1, 0, 2))  # trial, SU, bin
+
+        for (templates, tests) in kf.split(X1):
+            score_mat = np.ones((bin_range.shape[0], bin_range.shape[0]))
+            for template_bin_idx in np.arange(bin_range.shape[0]):
+                X_templates = np.vstack((X1[templates, :, template_bin_idx], X2[templates, :, template_bin_idx]))
+                y_templates = np.hstack((np.ones_like(templates) * -1, np.ones_like(templates) * 1)).T
+                # np.random.shuffle(y_templates)
+                scaler = scaler.fit(X_templates)
+                X_templates = scaler.transform(X_templates)
+                clf.fit(X_templates, y_templates)
+                for test_bin_idx in np.arange(bin_range.shape[0]):
+                    X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
+                    y_test = np.hstack((np.ones_like(tests) * 1, np.ones_like(tests) * 2)).T
+                    # y_shuf=y.copy()
+                    # rng.shuffle(y_shuf)
+                    X_test = scaler.transform(X_test)
+                    if decoder == 'MCC':
+                        score_mat[template_bin_idx, test_bin_idx] = np.mean(np.hstack(
+                            (clf.predict(X1[tests, :, test_bin_idx]) <= 0,
+                             clf.predict(X2[tests, :, test_bin_idx]) > 0)))
+                    else:
+                        score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
+
+            score_mat = score_mat * 100
+            one_cv.append(score_mat)
+
+    return one_cv
+
+
 def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, proc_n=2):
-    breakpoint()
+    # breakpoint()
     # be noted n_sel was not used until later stage, e.g. saved dataset is complete
     (features_per_su, reg_list) = get_dataset(denovo)
 
@@ -323,15 +480,17 @@ def ctd_par(denovo=False, n_sel=25, delay=3, limit_bins=None, reg_onset=None, pr
 
         reg_set = sorted(set(reg_list))
         reg_count = [reg_list.count(x) for x in reg_set]
-        reg_set = [reg for (reg, count) in zip(reg_set, reg_count) if count >= 48]
+        reg_set = [reg for (reg, count) in zip(reg_set, reg_count) if count >= 50]
 
         curr_pool = Pool(processes=proc_n)
 
         if reg_onset < len(reg_set):
             all_proc = []
-            reg_offset = (
-                (reg_onset + proc_n) if (reg_onset <= len(reg_set) - proc_n) else len(reg_set)
-            )
+            # reg_offset = (
+            #     (reg_onset + proc_n) if (reg_onset <= len(reg_set) - proc_n) else len(reg_set)
+            # )
+
+            reg_offset=len(reg_set)
             for reg_idx in range(reg_onset, reg_offset):
                 curr_feat_su = [
                     f
