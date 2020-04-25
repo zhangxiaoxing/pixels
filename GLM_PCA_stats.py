@@ -20,8 +20,7 @@ class GLM_PCA_stats:
         )
         self.row_sel_3 = np.arange(56)
         
-        self.use_ranksum=True
-        
+
     def baselineVector(self, one_su_trial_FR):
         base = one_su_trial_FR[:, 2:10].flatten()
         if np.std(base):
