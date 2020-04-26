@@ -23,6 +23,7 @@ import su_region_align as align
 # from matplotlib import rcParams
 from sklearn.decomposition import PCA
 from mpl_toolkits import mplot3d
+import scipy.stats as stats
 
 
 class GLM_PCA_stats:
@@ -105,7 +106,7 @@ class ctd_stats:
                 base = one_su_trial_FR.flatten()
                 return (np.mean(base), np.std(base))
 
-    def splitMean(self, FR, su_idx, mm, std, repeats=50):
+    def splitMean(self, FR, su_idx, mm, std, repeats=20):
         h1 = []
         h2 = []
         for i in range(repeats):
@@ -257,15 +258,15 @@ def get_dataset(denovo):
             #     break
 
         ### save to npz file
-        np.savez_compressed("ctd_prev.npz", features_per_su=features_per_su, reg_list=reg_list, avail=avail)
+        np.savez_compressed("ctd_prev.npz", features_per_su=features_per_su, reg_list=reg_list, avails=avails)
 
     ### load from npz file
     else:
         fstr = np.load("ctd_prev.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
         reg_list = fstr["reg_list"].tolist()
-        avail = fstr['avail']
-    return (features_per_su, reg_list, avail)
+        avails = fstr['avaisl']
+    return (features_per_su, reg_list, avails)
 
 
 def plotPCA3D_FR(fr):
@@ -298,14 +299,164 @@ def plotPCA3D_FR(fr):
 if __name__ == "__main__":
     delay = 6
     (features_per_su, reg_list, avail) = get_dataset(True)
-    pass
-    # trans_fstr = np.load(f'sus_trans_pie_{delay}.npz')
-    # # list(trans6.keys())
-    # sust = trans_fstr['sust']
-    # trans = trans_fstr['transient']
-    # # reg_arr = trans_fstr['reg_arr']
-    #
-    # fr_trans = [f for (f, t) in zip(features_per_su, trans) if t]
+    trans_fstr = np.load(f'sus_trans_pie_{delay}.npz')
+    # list(trans6.keys())
+    sust = trans_fstr['sust']
+    trans = trans_fstr['transient']
+    # reg_arr = trans_fstr['reg_arr']
+    
+    trans_avail=trans[avail]
+    
+    fr_trans = [f for (f, t) in zip(features_per_su, trans_avail) if t]
     # fr_sust = [f for (f, t) in zip(features_per_su, sust) if t]
     # plotPCA3D_FR(fr_sust)
     # plotPCA3D_FR(fr_trans)
+    
+    fr=fr_trans
+    same_prev=np.zeros((20,68))
+    oppo_prev=np.zeros((20,68))
+    
+    for bidx in range(fr[0]['S1_S1_6m'][0][0].size): # 68 bins
+        for ridx in range(len(fr[0]['S1_S1_6m'][0])):
+            S1S1H1=np.array([x['S1_S1_6m'][0][ridx][bidx] for x in fr])
+            S1S1H2=np.array([x['S1_S1_6m'][1][ridx][bidx] for x in fr])
+            S2S1H1=np.array([x['S2_S1_6m'][0][ridx][bidx] for x in fr])
+            S2S1H2=np.array([x['S2_S1_6m'][1][ridx][bidx] for x in fr])
+
+            S1S2H1=np.array([x['S1_S2_6m'][0][ridx][bidx] for x in fr])
+            S1S2H2=np.array([x['S1_S2_6m'][1][ridx][bidx] for x in fr])
+            S2S2H1=np.array([x['S2_S2_6m'][0][ridx][bidx] for x in fr])
+            S2S2H2=np.array([x['S2_S2_6m'][1][ridx][bidx] for x in fr])
+
+
+            
+            S1S1In=np.sqrt(np.sum(np.square(S1S1H1-S1S1H2)))
+            S1S2In=np.sqrt(np.sum(np.square(S1S2H1-S1S2H2)))
+            S2S1In=np.sqrt(np.sum(np.square(S2S1H1-S2S1H2)))
+            S2S2In=np.sqrt(np.sum(np.square(S2S2H1-S2S2H2)))
+            
+            S1Out1=np.sqrt(np.sum(np.square(S1S1H1-S2S1H1)))
+            S1Out2=np.sqrt(np.sum(np.square(S1S1H1-S2S1H2)))
+            S1Out3=np.sqrt(np.sum(np.square(S1S1H2-S2S1H1)))
+            S1Out4=np.sqrt(np.sum(np.square(S1S1H2-S2S1H2)))
+            
+            S2Out1=np.sqrt(np.sum(np.square(S1S2H1-S2S2H1)))
+            S2Out2=np.sqrt(np.sum(np.square(S1S2H1-S2S2H2)))
+            S2Out3=np.sqrt(np.sum(np.square(S1S2H2-S2S2H1)))
+            S2Out4=np.sqrt(np.sum(np.square(S1S2H2-S2S2H2)))
+            
+            same_prev[ridx,bidx]=np.mean([S1S1In,S1S2In,S2S1In,S2S2In])
+            oppo_prev[ridx,bidx]=np.mean([S1Out1,S1Out2,S1Out3,S1Out4,S2Out1,S2Out2,S2Out3,S2Out4,])
+
+
+
+    same_mm=np.mean(same_prev,axis=0)            
+    oppo_mm=np.mean(oppo_prev,axis=0)
+    same_sem=stats.sem(same_prev)
+    oppo_sem=stats.sem(oppo_prev)
+    
+    wrs=np.zeros(same_mm.shape[0])
+    for bidx in range(same_mm.shape[0]):
+        wrs[bidx]=stats.ranksums(same_prev[:,bidx],oppo_prev[:,bidx])[1]
+
+    (fig,ax)=plt.subplots(1,1,figsize=(2,2),dpi=300)
+    plt.fill_between(np.arange(same_mm.shape[0]), same_mm - same_sem, same_mm + same_sem, color="b", alpha=0.2)
+    plt.fill_between(np.arange(oppo_mm.shape[0]), oppo_mm - oppo_sem, oppo_mm + oppo_sem, color="r", alpha=0.2)
+    
+    ph0=ax.plot(same_mm,'b-',lw=1)
+    ph1=ax.plot(oppo_mm,'r-',lw=1)
+    for bidx in range(same_mm.shape[0]):
+        if wrs[bidx]*same_mm.size < 0.05:
+            ax.plot(bidx,120,'k.',markersize=1)
+    
+    ax.set_xticks([12,32,52])
+    ax.set_xticklabels([0,5,10])
+    ax.set_xlabel('time (s)')
+    ax.set_ylabel('trajectory distance (A.U.)')
+    [ax.axvline(x, color='k', ls=':',lw=0.5) for x in [11.5, 15.5, 39.5, 43.5]]
+    ax.set_xlim([4,40])
+    # ax.legend((ph0[0], ph1[0]), ('same','oppo.'))
+    fig.savefig('transient_6_hist_traj_dist.pdf',bbox_inches='tight')
+
+    plt.show()
+    
+
+    sust_avail=sust[avail]
+    fr_sust = [f for (f, t) in zip(features_per_su, sust_avail) if t]
+
+    fr=fr_sust
+    same_prev=np.zeros((20,68))
+    oppo_prev=np.zeros((20,68))
+    
+    for bidx in range(fr[0]['S1_S1_6m'][0][0].size): # 68 bins
+        for ridx in range(len(fr[0]['S1_S1_6m'][0])):
+            S1S1H1=np.array([x['S1_S1_6m'][0][ridx][bidx] for x in fr])
+            S1S1H2=np.array([x['S1_S1_6m'][1][ridx][bidx] for x in fr])
+            S2S1H1=np.array([x['S2_S1_6m'][0][ridx][bidx] for x in fr])
+            S2S1H2=np.array([x['S2_S1_6m'][1][ridx][bidx] for x in fr])
+
+            S1S2H1=np.array([x['S1_S2_6m'][0][ridx][bidx] for x in fr])
+            S1S2H2=np.array([x['S1_S2_6m'][1][ridx][bidx] for x in fr])
+            S2S2H1=np.array([x['S2_S2_6m'][0][ridx][bidx] for x in fr])
+            S2S2H2=np.array([x['S2_S2_6m'][1][ridx][bidx] for x in fr])
+
+
+            
+            S1S1In=np.sqrt(np.sum(np.square(S1S1H1-S1S1H2)))
+            S1S2In=np.sqrt(np.sum(np.square(S1S2H1-S1S2H2)))
+            S2S1In=np.sqrt(np.sum(np.square(S2S1H1-S2S1H2)))
+            S2S2In=np.sqrt(np.sum(np.square(S2S2H1-S2S2H2)))
+            
+            S1Out1=np.sqrt(np.sum(np.square(S1S1H1-S2S1H1)))
+            S1Out2=np.sqrt(np.sum(np.square(S1S1H1-S2S1H2)))
+            S1Out3=np.sqrt(np.sum(np.square(S1S1H2-S2S1H1)))
+            S1Out4=np.sqrt(np.sum(np.square(S1S1H2-S2S1H2)))
+            
+            S2Out1=np.sqrt(np.sum(np.square(S1S2H1-S2S2H1)))
+            S2Out2=np.sqrt(np.sum(np.square(S1S2H1-S2S2H2)))
+            S2Out3=np.sqrt(np.sum(np.square(S1S2H2-S2S2H1)))
+            S2Out4=np.sqrt(np.sum(np.square(S1S2H2-S2S2H2)))
+            
+            same_prev[ridx,bidx]=np.mean([S1S1In,S1S2In,S2S1In,S2S2In])
+            oppo_prev[ridx,bidx]=np.mean([S1Out1,S1Out2,S1Out3,S1Out4,S2Out1,S2Out2,S2Out3,S2Out4,])
+
+
+
+    same_mm=np.mean(same_prev,axis=0)            
+    oppo_mm=np.mean(oppo_prev,axis=0)
+    same_sem=stats.sem(same_prev)
+    oppo_sem=stats.sem(oppo_prev)
+    
+    wrs=np.zeros(same_mm.shape[0])
+    for bidx in range(same_mm.shape[0]):
+        wrs[bidx]=stats.ranksums(same_prev[:,bidx],oppo_prev[:,bidx])[1]
+
+    (fig,ax)=plt.subplots(1,1,figsize=(2,2),dpi=300)
+    plt.fill_between(np.arange(same_mm.shape[0]), same_mm - same_sem, same_mm + same_sem, color="b", alpha=0.2)
+    plt.fill_between(np.arange(oppo_mm.shape[0]), oppo_mm - oppo_sem, oppo_mm + oppo_sem, color="r", alpha=0.2)
+    
+    ph0=ax.plot(same_mm,'b-',lw=1)
+    ph1=ax.plot(oppo_mm,'r-',lw=1)
+    for bidx in range(same_mm.shape[0]):
+        if wrs[bidx]*same_mm.size < 0.05:
+            ax.plot(bidx,45,'k.',markersize=1)
+    
+    ax.set_xticks([12,32,52])
+    ax.set_xticklabels([0,5,10])
+    ax.set_xlabel('time (s)')
+    ax.set_ylabel('trajectory distance (A.U.)')
+    [ax.axvline(x, color='k', ls=':',lw=0.5) for x in [11.5, 15.5, 39.5, 43.5]]
+    # ax.legend((ph0[0], ph1[0]), ('same','oppo.'))
+    ax.set_xlim([4,40])
+    fig.savefig('sust_6_hist_traj_dist.pdf',bbox_inches='tight')
+
+    plt.show()
+        
+    
+    
+    
+    
+    
+    
+    
+    
