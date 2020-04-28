@@ -318,7 +318,7 @@ def cross_time_decoding(
         n_neuron=n_neuron,
         n_trial=(20, 25),
         delay=delay,
-        bin_range=np.arange(4, 52),
+        bin_range=np.arange(8, 40),
         decoder=decoder,
         repeats=repeats,
     )
@@ -327,27 +327,28 @@ def cross_time_decoding(
         return (False, reg, None)
 
     elif to_plot:
-        (fig, ax) = plt.subplots(1, 1, figsize=[15 / 25.4, 15 / 25.4], dpi=300)
+        (fig, ax) = plt.subplots(1, 1, figsize=[16 / 25.4, 16 / 25.4], dpi=300)
 
         # ax.set_ylabel("template time (s)")
         # ax[1].set_title("50 transient SU")
         im2 = ax.imshow(np.array(decode_mat).mean(axis=0), cmap="jet", aspect="auto", origin="lower", vmin=0, vmax=100)
         # plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
-
-        ax.set_xticks([7.5, 27.5])
+        ax.tick_params(direction='in', length=2, width=0.5, colors='k')
+        ax.set_xticks([3.5, 23.5])
         ax.set_xticklabels([])
         ax.set_xlabel(f"{reg}_{actual_number}SU")
-        ax.set_yticks([7.5, 27.5])
+        ax.set_yticks([3.5, 23.5])
         ax.set_yticklabels([])
 
         if delay == 6:
-            [ax.axhline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 35.5, 39.5]]
-            [ax.axvline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 35.5, 39.5]]
+            [ax.axhline(x, color="k", ls=":", lw=0.5) for x in [3.5, 7.5]]
+            [ax.axvline(x, color="k", ls=":", lw=0.5) for x in [3.5, 7.5]]
         elif delay == 3:
-            [ax.axhline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 23.5, 27.5]]
-            [ax.axvline(x, color="w", ls=":", lw=0.5) for x in [7.5, 11.5, 23.5, 27.5]]
+            [ax.axhline(x, color="k", ls=":", lw=0.5) for x in [3.5, 7.5]]
+            [ax.axvline(x, color="k", ls=":", lw=0.5) for x in [3.5, 7.5]]
 
-        fig.savefig(f"ctd_{delay}_{repeats}_{reg}.pdf", bbox_inches="tight")
+        fig.savefig(f"ctd_{delay}_{repeats}_{reg}_{decoder}.pdf", bbox_inches="tight")
+        fig.savefig(f"ctd_{delay}_{repeats}_{reg}_{decoder}.png", bbox_inches="tight")
 
         plt.show()
     return (True, reg, decode_mat, actual_number)
@@ -432,7 +433,7 @@ def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_rang
     return (True, one_cv, actual_number)
 
 
-def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neuron=50):
+def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neuron=50,decoder="SVC"):
     # be noted n_sel was not used until later stage, e.g. saved dataset is complete
     (features_per_su, reg_list) = get_dataset(denovo)
     trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
@@ -449,8 +450,8 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neur
     reg_count = [[reg, np.sum(np.logical_and([x == reg for x in reg_list], trans))] for reg in reg_set]
 
     reg_set = [x[0] for x in reg_count if x[1] >= 50]
-
-    curr_pool = Pool(processes=proc_n)
+    if proc_n>1:
+        curr_pool = Pool(processes=proc_n)
 
     all_proc = []
     # reg_offset = (
@@ -463,32 +464,40 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neur
                             (reg == reg_set[reg_idx] and t)]
         else:
             curr_feat_su = [f for (f, reg) in zip(features_per_su, reg_list) if reg == reg_set[reg_idx]]
-
+            
         # trans_feat, to_plot=False, delay=6, repeats=10, decoder="SVC", reg="RND",
-        all_proc.append(
-            curr_pool.apply_async(
-                cross_time_decoding,
-                args=(curr_feat_su,),
-                kwds={"to_plot": True, "n_neuron": n_neuron, "delay": delay, "repeats": repeats, "decoder": "SVC",
-                      "reg": reg_set[reg_idx], },
+        if proc_n>1:
+            all_proc.append(
+                curr_pool.apply_async(
+                    cross_time_decoding,
+                    args=(curr_feat_su,),
+                    kwds={"to_plot": True, "n_neuron": n_neuron, "delay": delay, "repeats": repeats, "decoder": decoder,
+                          "reg": reg_set[reg_idx], },
+                )
             )
-        )
+        else:
+            (avail,reg,decode_mat,actual_number)=cross_time_decoding(curr_feat_su,
+                 to_plot=True, n_neuron=n_neuron, delay=delay, repeats=repeats,
+                 reg=reg_set[reg_idx]
+                )
+            decode_mat_all.append(decode_mat)
+            actual_number_all.append(actual_number)
 
         # print("set")
-
-    for one_proc in all_proc:
-        (avail, reg, decode_mat, actual_number) = one_proc.get()
-        decode_mat_all.append(decode_mat)
-        actual_number_all.append(actual_number)
-        # print("get")
-
-    curr_pool.close()
-    curr_pool.join()
+    if proc_n>1:
+        for one_proc in all_proc:
+            (avail, reg, decode_mat, actual_number) = one_proc.get()
+            decode_mat_all.append(decode_mat)
+            actual_number_all.append(actual_number)
+            # print("get")
+    
+        curr_pool.close()
+        curr_pool.join()
 
     decode_avail = [x for x in decode_mat_all if x is not None]
     reg_set_avail = [reg_set[i] for i in range(len(decode_mat_all)) if decode_mat_all[i] is not None]
     actual_number_avail = [actual_number_all[i] for i in range(len(decode_mat_all)) if decode_mat_all[i] is not None]
-    np.savez_compressed(f"per_region_ctd_{delay}_{repeats}.npz", decode_mat=decode_avail, reg_set=reg_set_avail,
+    np.savez_compressed(f"per_region_ctd_{delay}_{repeats}_{decoder}.npz", decode_mat=decode_avail, reg_set=reg_set_avail,
                         actual_number=actual_number_avail)
 
     return [reg_set, decode_mat_all]
@@ -525,6 +534,7 @@ def per_region_corr():
         ax.plot(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], 'r.')
         ax.text(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], f'{reg_list[tidx]}')
         # plt.text(tidx,tidx,'test')
+    plot([0,0],[100,100],'--k',lw=0.5)        
     ax.set_xlim([50, 80])
     ax.set_ylim([50, 70])
     ax.set_xlabel('early delay decoding accuracy')
@@ -540,6 +550,7 @@ def per_region_corr():
         ax.plot(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], 'r.')
         ax.text(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], f'{reg_list[tidx]}')
         # plt.text(tidx,tidx,'test')
+    plot([0,0],[100,100],'--k',lw=0.5)        
     ax.set_xlim([50, 75])
     ax.set_ylim([50, 65])
     ax.set_xlabel('diagonal decoding accuracy')
@@ -556,5 +567,6 @@ if __name__ == "__main__":
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     # (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=2)
-    (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=16, repeats=2, n_neuron=None)
+    (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=100, only_trans=False, n_neuron=None,decoder="SVC")
     per_region_corr()
+    # per_region_corr()
