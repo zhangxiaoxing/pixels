@@ -519,10 +519,34 @@ def per_region_corr():
 
     reg_dist_arr = np.array(reg_dist)
 
-    (fig, ax) = plt.subplots(1, 1, figsize=(8.5 / 2.54, 4.5 / 2.54), dpi=300)
+    (fig, ax) = plt.subplots(1, 1, figsize=(8.5 / 2.54, 4 / 2.54), dpi=300)
 
     for tidx in range(trans50.shape[0]):
-        ax.text(reg_dist_arr[tidx, 1], reg_dist_arr[tidx, 2], f'{tidx}')
+        ax.plot(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], 'r.')
+        ax.text(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], f'{reg_list[tidx]}')
+        # plt.text(tidx,tidx,'test')
+    ax.set_xlim([50, 80])
+    ax.set_ylim([50, 70])
+    ax.set_xlabel('early delay decoding accuracy')
+    ax.set_ylabel('late delay')
+    ax.set_xticks([50, 60, 70, 80])
+    ax.set_yticks([50, 60, 70])
+    fig.savefig('per_region_early_late.pdf', bbox_inches='tight')
+    plt.show()
+
+    (fig, ax) = plt.subplots(1, 1, figsize=(8.5 / 2.54, 4 / 2.54), dpi=300)
+
+    for tidx in range(trans50.shape[0]):
+        ax.plot(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], 'r.')
+        ax.text(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], f'{reg_list[tidx]}')
+        # plt.text(tidx,tidx,'test')
+    ax.set_xlim([50, 75])
+    ax.set_ylim([50, 65])
+    ax.set_xlabel('diagonal decoding accuracy')
+    ax.set_ylabel('off-diagonal')
+    ax.set_xticks([50, 60, 70])
+    ax.set_yticks([50, 60])
+    fig.savefig('per_region_diag_off.pdf', bbox_inches='tight')
     plt.show()
 
 
