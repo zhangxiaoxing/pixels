@@ -24,6 +24,7 @@ import su_region_align as align
 from sklearn.decomposition import PCA
 from mpl_toolkits import mplot3d
 import scipy.stats as stats
+from pixelStats import baselineVector
 
 
 class GLM_PCA_stats:
@@ -38,13 +39,6 @@ class GLM_PCA_stats:
             (np.arange(16), np.arange(16, 40, 2), np.arange(40, 68))
         )
         self.row_sel_3 = np.arange(56)
-
-    def baselineVector(self, one_su_trial_FR):
-        base = one_su_trial_FR[:, 2:10].flatten()
-        if np.std(base):
-            return (np.mean(base), np.std(base))
-        print("Constant baseline")
-        return (np.mean(base), 0.5)
 
     def processGLMStats(self, trial_FR, trials, welltrain_window=[], correct_resp=[]):
 
@@ -71,7 +65,7 @@ class GLM_PCA_stats:
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(FR_scale[:, :, su_idx]).T
 
-            (base_mean, base_std) = self.baselineVector(onesu)
+            (base_mean, base_std) = baselineVector(onesu)
 
             onesu = (onesu - base_mean) / base_std
             self.S1T1[:, su_idx] = np.mean(onesu[trial_S1T1, :], axis=0)
@@ -93,18 +87,6 @@ class ctd_stats:
         self.kf = KFold(2, shuffle=True)
         self.avail = []
 
-    def baselineVector(self, one_su_trial_FR):
-        base = one_su_trial_FR[2:10, :].flatten()
-        if np.std(base):
-            return (np.mean(base), np.std(base))
-        else:
-            base = one_su_trial_FR[-10:-1, :].flatten()
-            if np.std(base):
-                return (np.mean(base), np.std(base))
-            else:
-                print('flat base')
-                base = one_su_trial_FR.flatten()
-                return (np.mean(base), np.std(base))
 
     def splitMean(self, FR, su_idx, mm, std, repeats=20):
         h1 = []
@@ -164,7 +146,7 @@ class ctd_stats:
                       ]
 
         for su_idx in range(trial_FR.shape[2]):
-            (mm, std) = self.baselineVector(
+            (mm, std) = baselineVector(
                 np.squeeze(trial_FR[:, np.logical_and(welltrain_window, correct_resp), su_idx]))
 
             if std > 0 and np.all([x.shape[1] >= 2 for x in (

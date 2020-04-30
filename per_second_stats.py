@@ -420,7 +420,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
 
         all_sess_arr = np.vstack(
-            (sust, transient, switched, sample_only, non_sel_mod, non_mod, early_in_6s, late_in_6s))
+            (sust, transient, sample_only, non_sel_mod, non_mod, early_in_6s, late_in_6s))
 
         reg_set = list(set(reg_arr.tolist()))
         su_factors = []
@@ -439,7 +439,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         su_factors = [list(i) for i in zip(*su_factors)]
 
         ### export csv for matlab GLM
-        with open("glm_coding_features.csv", "w", newline="") as cf:
+        with open("glm_coding_features_per_second.csv", "w", newline="") as cf:
             cwriter = csv.writer(cf, dialect="excel")
             for row in su_factors:
                 cwriter.writerow(row)
@@ -661,8 +661,8 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=True, toPlot=True, toExport=True, delay=6, counterclock=False)
-    process_all(denovo=True, toPlot=True, toExport=True, delay=3, counterclock=True)
+    process_all(denovo=False, toPlot=False, toExport=True, delay=6, counterclock=False)
+    # process_all(denovo=True, toPlot=True, toExport=True, delay=3, counterclock=True)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
 

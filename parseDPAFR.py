@@ -34,7 +34,7 @@ def trialAlign(trials, oneTS):
     return (oneTS, trial_id)
 
 
-def baselineVector(oneTS, trial_id, trials, SU_id):
+def parseBaselineVector(oneTS, trial_id, trials, SU_id):
     tIdices = range(trials.shape[0])
     base = []
     for trial_index in tIdices:
@@ -105,7 +105,7 @@ def alignHeatmap(spkTS, spkCluster, unitInfo, trials):
                 "int64"
             )  # oneTSAll, all time stamp of a SU
             (oneTS, trial_id) = trialAlign(trials, oneTSAll)
-            baseVec = baselineVector(oneTS, trial_id, trials, SU_id)
+            baseVec = parseBaselineVector(oneTS, trial_id, trials, SU_id)
             baseVecAll.append(baseVec)
             bySample43.append(toHist(trials, oneTS, trial_id, 4, 3))
             bySample46.append(toHist(trials, oneTS, trial_id, 4, 6))

@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import scipy.stats as stats
 import sklearn.metrics as metrics
+from pixelStats import baselineVector
 
 
 class zxStats:
@@ -53,13 +54,6 @@ class zxStats:
     def gauss_average(self, x):
         return np.convolve(x, [0.1968, 0.6063, 0.1968], "same")
 
-    def baselineVector(self, one_su_trial_FR):
-        base = one_su_trial_FR[:, 0:8].flatten()
-        if np.std(base):
-            return (np.mean(base), np.std(base))
-        print("Constant baseline")
-        return (np.mean(base), 0.5)
-
     def addTrialFRs(self, trial_FR, trials, su_sel=[], welltrain_window=[], correctResp=[]):
         if isinstance(su_sel, np.ndarray):
             trial_FR_sel = trial_FR[:, :, su_sel]
@@ -88,7 +82,7 @@ class zxStats:
             onesu = np.squeeze(trial_FR[:, (welltrain_window
                                             & correctResp
                                             & (trials[:, 5] == 6)), su_idx]).T
-            (base_mean, base_std) = self.baselineVector(onesu)
+            (base_mean, base_std) = baselineVector(onesu)
             allbins = np.mean((onesu - base_mean) / base_std, axis=0)
             self.modulation.append(
                 np.abs([np.mean(allbins[i:i + 4]) for i in np.arange(4, 56, 4)])
@@ -289,7 +283,7 @@ class zxStats:
 
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(trial_FR[:, :, su_idx]).T
-            (base_mean, base_std) = self.baselineVector(onesu)
+            (base_mean, base_std) = baselineVector(onesu)
 
             left_3_trials = onesu[np.logical_and(trial_sel_left, trial_sel_3), :][:, self.row_sel_3]
             left_6_trials = onesu[np.logical_and(trial_sel_left, trial_sel_6), :][:, self.row_sel_6]
@@ -353,7 +347,7 @@ class zxStats:
 
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(trial_FR[:, :, su_idx]).T
-            (base_mean, base_std) = self.baselineVector(onesu)
+            (base_mean, base_std) = baselineVector(onesu)
             left_trials_3 = onesu[
                             trial_sel_left_3, 20:52
                             ]  # 28 is test start, aka, -2s to +6s

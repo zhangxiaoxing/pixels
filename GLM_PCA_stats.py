@@ -6,6 +6,8 @@ Created on Wed Feb 12 21:08:04 2020
 """
 
 import numpy as np
+from pixelStats import baselineVector
+
 
 class GLM_PCA_stats:
     def __init__(self):
@@ -21,13 +23,6 @@ class GLM_PCA_stats:
         self.row_sel_3 = np.arange(56)
         
 
-    def baselineVector(self, one_su_trial_FR):
-        base = one_su_trial_FR[:, 2:10].flatten()
-        if np.std(base):
-            return (np.mean(base), np.std(base))
-        print("Constant baseline")
-        return (np.mean(base), 0.5)
-        
     def processGLMStats(self, trial_FR, trials, welltrain_window=[],correct_resp=[]):
 
         ### TODO: when variables are empty
@@ -53,7 +48,7 @@ class GLM_PCA_stats:
         for su_idx in range(trial_FR.shape[2]):
             onesu = np.squeeze(FR_scale[:, :, su_idx]).T
 
-            (base_mean, base_std) = self.baselineVector(onesu)
+            (base_mean, base_std) = baselineVector(onesu)
             
             onesu=(onesu-base_mean)/base_std
             self.S1T1[:,su_idx] = np.mean(onesu[trial_S1T1,:],axis=0)
