@@ -200,14 +200,14 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=10
             for i in range(np.ceil(repeats / 20).astype(np.int)):
                 sust_proc.append(curr_pool.apply_async(ctd_actual, args=(sus_feat,),
                                                        kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
-                                                             "bin_range": np.arange(4, 52), "decoder": decoder}))
+                                                             "bin_range": np.arange(8, 40), "decoder": decoder}))
 
                 trans50_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
                                                           kwds={"n_neuron": 50, "n_trial": (20, 25), "delay": delay,
-                                                                "bin_range": np.arange(4, 52), "decoder": decoder}))
+                                                                "bin_range": np.arange(8, 40), "decoder": decoder}))
                 trans1000_proc.append(curr_pool.apply_async(ctd_actual, args=(trans_feat,),
                                                             kwds={"n_neuron": 1000, "n_trial": (20, 25), "delay": delay,
-                                                                  "bin_range": np.arange(4, 52), "decoder": decoder}))
+                                                                  "bin_range": np.arange(8, 40), "decoder": decoder}))
             for one_proc in sust_proc:
                 sus50.append(one_proc.get())
 
@@ -220,13 +220,13 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=10
             curr_pool.close()
             curr_pool.join()
         else:
-            sus50.append(ctd_actual(sus_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+            sus50.append(ctd_actual(sus_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(8, 40),
                                     decoder=decoder))
             trans50.append(
-                ctd_actual(trans_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                ctd_actual(trans_feat, n_neuron=50, n_trial=(20, 25), delay=delay, bin_range=np.arange(8, 40),
                            decoder=decoder))
             trans1000.append(
-                ctd_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=delay, bin_range=np.arange(4, 52),
+                ctd_actual(trans_feat, n_neuron=1000, n_trial=(20, 25), delay=delay, bin_range=np.arange(8, 40),
                            decoder=decoder))
 
         np.savez_compressed(f'sus_trans_ctd_{delay}_{repeats}.npz', sus50=sus50, trans50=trans50,
@@ -253,18 +253,18 @@ def cross_time_decoding(denovo=False, to_plot=False, delay=6, cpu=30, repeats=10
         plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
 
         for oneax in ax:
-            oneax.set_xticks([7.5, 27.5])
+            oneax.set_xticks([3.5, 23.5])
             oneax.set_xticklabels([0, 5])
             oneax.set_xlabel('scoring time (s)')
-            oneax.set_yticks([7.5, 27.5])
+            oneax.set_yticks([3.5, 23.5])
             oneax.set_yticklabels([0, 5])
 
             if delay == 6:
-                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
-                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+                [oneax.axhline(x, color='w', ls=':') for x in [3.5, 7.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [3.5, 7.5]]
             elif delay == 3:
-                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
-                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+                [oneax.axhline(x, color='w', ls=':') for x in [3.5, 7.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [3.5, 7.5]]
 
         fig.savefig(f'ctd_{delay}_{repeats}.pdf', bbox_inches='tight')
 
@@ -382,16 +382,16 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
             sust_proc.append(curr_pool.apply_async(ctd_correct_error, args=(sus_feat,),
                                                    kwds={"n_neuron": 50, "n_trial": (20, 25, 2, 4),
                                                          "template_delay": delay,
-                                                         "bin_range": np.arange(4, 52), 'decoder': decoder}))
+                                                         "bin_range": np.arange(8, 40), 'decoder': decoder}))
 
             trans50_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
                                                       kwds={"n_neuron": 50, "n_trial": (20, 25, 2, 4),
                                                             "template_delay": delay,
-                                                            "bin_range": np.arange(4, 52), 'decoder': decoder}))
+                                                            "bin_range": np.arange(8, 40), 'decoder': decoder}))
             trans1000_proc.append(curr_pool.apply_async(ctd_correct_error, args=(trans_feat,),
                                                         kwds={"n_neuron": 1000, "n_trial": (20, 25, 2, 4),
                                                               "template_delay": delay,
-                                                              "bin_range": np.arange(4, 52), 'decoder': decoder}))
+                                                              "bin_range": np.arange(8, 40), 'decoder': decoder}))
         for one_proc in sust_proc:
             sus50.append(one_proc.get())
 
@@ -426,18 +426,18 @@ def ctd_correct_error_all(denovo=False, to_plot=False, delay=3, cpu=30, repeats=
         plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
 
         for oneax in ax:
-            oneax.set_xticks([7.5, 27.5])
+            oneax.set_xticks([3.5, 23.5])
             oneax.set_xticklabels([0, 5])
             oneax.set_xlabel('scoring time (s)')
-            oneax.set_yticks([7.5, 27.5])
+            oneax.set_yticks([3.5, 23.5])
             oneax.set_yticklabels([0, 5])
 
             if delay == 6:
-                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
-                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 35.5, 39.5]]
+                [oneax.axhline(x, color='w', ls=':') for x in [3.5, 7.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [3.5, 7.5]]
             elif delay == 3:
-                [oneax.axhline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
-                [oneax.axvline(x, color='w', ls=':') for x in [7.5, 11.5, 23.5, 27.5]]
+                [oneax.axhline(x, color='w', ls=':') for x in [3.5, 7.5, 15.5, 19.5]]
+                [oneax.axvline(x, color='w', ls=':') for x in [3.5, 7.5, 15.5, 19.5]]
 
         fig.savefig(f'ctd_correct_error_{delay}.pdf', bbox_inches='tight')
         plt.show()
@@ -489,7 +489,7 @@ def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_rang
                 clf.fit(X_templates, y_templates)
                 for test_bin_idx in np.arange(bin_range.shape[0]):
                     X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
-                    y_test = np.hstack((np.ones_like(tests) * 1, np.ones_like(tests) * 2)).T
+                    y_test = np.hstack((np.ones_like(tests) * -1, np.ones_like(tests) * 1)).T
                     # y_shuf=y.copy()
                     # rng.shuffle(y_shuf)
                     X_test = scaler.transform(X_test)
@@ -660,14 +660,7 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25, 2, 4), tem
     # for su in features_per_su:
     #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
 
-
-def statistical_test_correct_error(delay=6, repeats=1000):
-    fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_{repeats}.npz'), 'r')
-    fstr_Err = np.load(os.path.join('ctd', f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz'), 'r')
-
-    correct_mat = fstr['trans1000']
-    err_mat = fstr_Err['trans1000']
-
+def plotOne(correct_mat,err_mat,delay,ax):
     err_mean = np.ones((correct_mat.shape[2:4]))
     cr_mean = np.ones((correct_mat.shape[2:4]))
     for template_bin in range(correct_mat.shape[2]):
@@ -678,19 +671,60 @@ def statistical_test_correct_error(delay=6, repeats=1000):
     p_mat = np.ones((correct_mat.shape[2:4]))
     for template_bin in range(correct_mat.shape[2]):
         for score_bin in range(correct_mat.shape[3]):
-            # (_stat, p_mat[template_bin, score_bin]) = stats.mannwhitneyu(
-            #     correct_mat[:, :, template_bin, score_bin].flatten(),
-            #     err_mat[:, :, template_bin, score_bin].flatten(),
-            #     alternative="two-sided")
             p_mat[template_bin, score_bin] = stats.binom_test(
                 np.sum(err_mat[:, :, template_bin, score_bin] / 25),
                 err_mat.shape[0] * err_mat.shape[1] * 4,
                 np.mean(correct_mat[:, :, template_bin, score_bin] / 100),
                 alternative="two-sided")
     p_mat = p_mat * correct_mat.shape[2] * correct_mat.shape[3]
-    (fig, ax) = plt.subplots(1, 1)
-    ax.imshow(p_mat < 0.05)
-    plt.show()
+    # (fig, ax) = plt.subplots(1, 1)
+    im=ax.imshow(np.log10(p_mat),cmap='Wistia',origin='lower',aspect='auto',vmin=-6,vmax=0)
+
+    
+    ax.set_xticks([3.5, 23.5])
+    ax.set_xticklabels([0, 5])
+    ax.set_xlabel('scoring time (s)')
+    ax.set_yticks([3.5, 23.5])
+    ax.set_yticklabels([0, 5])
+
+    if delay == 6:
+        [ax.axhline(x, color='k', ls=':') for x in [3.5, 7.5]]
+        [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5]]
+    elif delay == 3:
+        [ax.axhline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5,23.5]]
+        [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5,19.5,23.5]]
+    return (im,ax)
+
+
+def statistical_test_correct_error(delay=6, repeats=100):
+    # fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_{repeats}.npz'), 'r')
+    # fstr_Err = np.load(os.path.join('ctd', f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz'), 'r')
+    
+    # fstr = np.load(os.path.join('ctd', f'sus_trans_ctd_{delay}_{repeats}.npz'), 'r')
+    # fstr_Err = np.load(os.path.join('ctd', f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz'), 'r')
+
+    fstr = np.load(f'sus_trans_ctd_{delay}_{repeats}.npz', 'r')
+    fstr_Err = np.load(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz', 'r')
+    
+    fstr = np.load(f'sus_trans_ctd_{delay}_{repeats}.npz', 'r')
+    fstr_Err = np.load(f'sus_trans_ctd_correct_error_{delay}_{repeats}.npz', 'r')
+
+
+    (fig,ax)=plt.subplots(1, 3, figsize=[110 / 25.4, 37 / 25.4], dpi=300)
+    correct_mat = fstr['sus50']
+    err_mat = fstr_Err['sus50']
+    plotOne(correct_mat, err_mat, delay, ax[0])
+    
+    correct_mat = fstr['trans50']
+    err_mat = fstr_Err['trans50']
+    plotOne(correct_mat, err_mat, delay, ax[1])
+    
+    correct_mat = fstr['trans1000']
+    err_mat = fstr_Err['trans1000']
+    (im2,ax2)=plotOne(correct_mat, err_mat, delay, ax[2])
+    plt.colorbar(im2, ticks=[-6,-3,0], format="%d",)    
+    fig.savefig(f'sus_trans_ctd_stats_{delay}.pdf',bbox_inches='tight')
+
 
 
 def baseline_statstics(features_per_su):
@@ -763,21 +797,23 @@ if __name__ == "__main__":
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
-    last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, cpu=7, repeats=100,bins=(24,28),prev=True,classify_test=True)
-    last_bin_decoding(delay=3, wrs_thres=0, denovo_per_sec_stats=False, cpu=7, repeats=100,bins=(24,28),prev=True,classify_test=True)
-    sys.exit(0)
+    # last_bin_decoding(delay=6, wrs_thres=0, denovo_per_sec_stats=False, cpu=7, repeats=100,bins=(24,28),prev=True,classify_test=True)
+    # last_bin_decoding(delay=3, wrs_thres=0, denovo_per_sec_stats=False, cpu=7, repeats=100,bins=(24,28),prev=True,classify_test=True)
+    # sys.exit(0)
 
-    repeat = 1000
-    cpus = 1
-    decoder = 'SVC'
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=False, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
-                                                        wrs_thres=0, decoder=decoder)
-    (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=False, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
-                                                        wrs_thres=0, decoder=decoder)
+    statistical_test_correct_error(delay=3, repeats=100)
 
-    # cross_time_decoding(denovo=False, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
+    # repeat = 100
+    # cpus = 12
+    # decoder = 'SVC'
+    # (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
+    #                                                     wrs_thres=0, decoder=decoder)
+    # (sus50, trans50, trans1000) = ctd_correct_error_all(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
+    #                                                     wrs_thres=0, decoder=decoder)
+
+    # cross_time_decoding(denovo=True, to_plot=True, delay=6, cpu=cpus, repeats=repeat,
     #                     wrs_thres=0, decoder=decoder)
-    # cross_time_decoding(denovo=False, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
+    # cross_time_decoding(denovo=True, to_plot=True, delay=3, cpu=cpus, repeats=repeat,
     #                     wrs_thres=0, decoder=decoder)
 
     # ctd_cross_all(denovo=False, to_plot=True, delay=3, cpu=cpus, repeats=repeat,

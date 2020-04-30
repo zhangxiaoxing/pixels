@@ -21,6 +21,7 @@ import su_region_align as align
 import per_second_stats
 from multiprocessing import Pool
 from matplotlib import rcParams
+import csv
 
 
 class ctd_stats:
@@ -504,59 +505,68 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neur
 
 
 def per_region_corr():
-    fstr = np.load('per_region_ctd_6_100.npz')
+    fstr = np.load('per_region_ctd_6_100_SVC.npz')
     # list(fstr.keys())
     # Out[3]: ['trans50', 'reg_set']
-    trans50 = fstr['trans50']
+    decode_mat = fstr['decode_mat']
+    actual_number=fstr['actual_number']
     reg_set = fstr['reg_set']
     reg_list = reg_set.tolist()
 
     exclude = [reg_list.index('Unlabeled'), reg_list.index('int')]
-    trans50 = trans50[np.hstack((np.arange(23), 24)), :, :, :]
+    decode_mat = decode_mat[np.hstack((np.arange(23), 24)), :, :, :]
 
     reg_dist = []
     # early, late, diag, off-diag
-    for i in range(trans50.shape[0]):
-        early = np.mean([trans50[i, :, x, x] for x in range(16, 20)])
-        late = np.mean([trans50[i, :, x, x] for x in range(36, 40)])
+    for i in range(decode_mat.shape[0]):
+        early = np.mean([decode_mat[i, :, x, x] for x in range(8, 20)])
+        late = np.mean([decode_mat[i, :, x, x] for x in range(20, 32)])
         diag = np.mean([early, late])
-        offdiagMat = np.mean(np.squeeze(trans50[i, :, 16:40, 16:40]), axis=0)
+        offdiagMat = np.mean(np.squeeze(decode_mat[i, :, 8:32, 8:32]), axis=0)
         for odi in range(offdiagMat.shape[0]):
             offdiagMat[odi, odi] = np.nan
         offdiag = np.nanmean(offdiagMat)
         reg_dist.append([early, late, diag, offdiag])
 
     reg_dist_arr = np.array(reg_dist)
+    for tidx in range(decode_mat.shape[0]):
+        reg_dist[tidx].insert(0,actual_number[tidx])
+        reg_dist[tidx].insert(0,reg_list[tidx])
+    
+    with open("all_neuron_decoding.csv", "w", newline="") as cf:
+        cwriter = csv.writer(cf, dialect="excel")
+        for row in reg_dist:
+            cwriter.writerow(row)
+    
+    (fig, ax) = plt.subplots(1, 1, figsize=(17 / 2.54, 8 / 2.54), dpi=300)
 
-    (fig, ax) = plt.subplots(1, 1, figsize=(8.5 / 2.54, 4 / 2.54), dpi=300)
-
-    for tidx in range(trans50.shape[0]):
+    for tidx in range(decode_mat.shape[0]):
         ax.plot(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], 'r.')
         ax.text(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], f'{reg_list[tidx]}')
         # plt.text(tidx,tidx,'test')
-    plot([0,0],[100,100],'--k',lw=0.5)        
-    ax.set_xlim([50, 80])
-    ax.set_ylim([50, 70])
+    ax.plot([0,100],[0,100],'--k',lw=0.5)        
+    ax.set_xlim([50, 90])
+    ax.set_ylim([50, 80])
     ax.set_xlabel('early delay decoding accuracy')
     ax.set_ylabel('late delay')
-    ax.set_xticks([50, 60, 70, 80])
-    ax.set_yticks([50, 60, 70])
+    ax.set_xticks([50, 60, 70, 80, 90])
+    ax.set_yticks([50, 60, 70, 80])
     fig.savefig('per_region_early_late.pdf', bbox_inches='tight')
     plt.show()
 
-    (fig, ax) = plt.subplots(1, 1, figsize=(8.5 / 2.54, 4 / 2.54), dpi=300)
+    (fig, ax) = plt.subplots(1, 1, figsize=(17 / 2.54, 8 / 2.54), dpi=300)
 
-    for tidx in range(trans50.shape[0]):
+    for tidx in range(decode_mat.shape[0]):
         ax.plot(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], 'r.')
         ax.text(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], f'{reg_list[tidx]}')
         # plt.text(tidx,tidx,'test')
-    plot([0,0],[100,100],'--k',lw=0.5)        
-    ax.set_xlim([50, 75])
-    ax.set_ylim([50, 65])
+    ax.plot([0,100],[0,100],'--k',lw=0.5)        
+    ax.set_xlim([50, 80])
+    ax.set_ylim([50, 80])
     ax.set_xlabel('diagonal decoding accuracy')
     ax.set_ylabel('off-diagonal')
-    ax.set_xticks([50, 60, 70])
-    ax.set_yticks([50, 60])
+    ax.set_xticks([50, 60, 70, 80])
+    ax.set_yticks([50, 60, 70, 80])
     fig.savefig('per_region_diag_off.pdf', bbox_inches='tight')
     plt.show()
 
@@ -567,6 +577,6 @@ if __name__ == "__main__":
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     # (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=2)
-    (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=100, only_trans=False, n_neuron=None,decoder="SVC")
+    # (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=100, only_trans=False, n_neuron=None,decoder="SVC")
     per_region_corr()
     # per_region_corr()
