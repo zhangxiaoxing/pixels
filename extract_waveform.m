@@ -11,10 +11,10 @@ fl=dir([disk,':\**\cluster_info.tsv']);
 for onefile=fl'
     tic
     rootpath=onefile.folder;
-    if isfolder(replace(rootpath,'E:','D:\WF'))
+    if isfolder(replace(rootpath,[disk,':'],'D:\WF'))
         disp('Folder exists, please double check! Press Ctrl-C to break')
     else
-        mkdir(replace(rootpath,'E:','D:\WF'));
+        mkdir(replace(rootpath,[disk,':'],'D:\WF'));
     end
     
     metaf=ls(fullfile(rootpath,'*.ap.meta'));
@@ -29,15 +29,15 @@ for onefile=fl'
     
     if numel(cluster_ids)>0
         waveform=cell(0,4);
-        
         ks=Neuropixel.KiloSortDataset(rootpath,'channelMap',channelMapFile);
         ks.load();
         
         for cidx=1:numel(cluster_ids)
-            snippetSetTet = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 200, 'best_n_channels', 4, 'car', true, ...
+            
+            snippetSetTet = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 100, 'best_n_channels', 4, 'car', true, ...
                 'subtractOtherClusters', false,'window', [-30 60]);
             
-            snippetSetBest = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 5000, 'best_n_channels', 1, 'car', true, ...
+            snippetSetBest = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 500, 'best_n_channels', 1, 'car', true, ...
                 'subtractOtherClusters', false,'window', [-30 60]);
             
             waveform{end+1,1}=rootpath;
