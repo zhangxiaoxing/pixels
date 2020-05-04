@@ -10,18 +10,19 @@ channelMapFile='D:\code\neuropixel-utils\map_files\neuropixPhase3B2_kilosortChan
 fl=dir([disk,':\**\cluster_info.tsv']);
 errors=cell(0);
 for onefile=fl'
+    rootpath=onefile.folder;
     try
         if isfile(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'))
             fstr=load(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'));
             if size(fstr.waveform,2)==4
-                fprintf('Exist file %s, skipped',fl.folder)
+                fprintf('Exist file %s, skipped\n\n',fl.folder)
                 continue
             end
         end
-        disp(onefile.folder)
+        disp(rootpath)
 
         tic
-        rootpath=onefile.folder;
+        
         if isfolder(replace(rootpath,[disk,':'],'D:\WF'))
             disp('Folder exists, please double check! Press Ctrl-C to break')
         else
@@ -67,7 +68,7 @@ for onefile=fl'
         save(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'),'waveform');
         toc
     catch ME
-        errors(end+1)=onefile.folder;
+        errors{end+1}=onefile.folder;
     end
 end
 end
