@@ -168,17 +168,17 @@ def get_dataset(denovo=False, delay=6):
     return (features_per_su, reg_list)
 
 
-def plotPCA3D_FR(fr):
+def plotPCA3D_FR(fr,delay=6):
     pcamat = np.hstack(
         [
-            np.vstack([x["S1_S1_3m"] for x in fr]),
-            np.vstack([x["S2_S1_3m"] for x in fr]),
-            np.vstack([x["S1_S2_3m"] for x in fr]),
-            np.vstack([x["S2_S2_3m"] for x in fr]),
-            np.vstack([x["S1_S1_6m"] for x in fr]),
-            np.vstack([x["S2_S1_6m"] for x in fr]),
-            np.vstack([x["S1_S2_6m"] for x in fr]),
-            np.vstack([x["S2_S2_6m"] for x in fr]),
+            np.squeeze(np.mean(np.vstack([x["S1_S1_3m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S2_S1_3m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S1_S2_3m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S2_S2_3m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S1_S1_6m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S2_S1_6m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S1_S2_6m"] for x in fr]),axis=1)),
+            np.squeeze(np.mean(np.vstack([x["S2_S2_6m"] for x in fr]),axis=1)),
         ]
     )
     np.save(f"pcamat_{delay}_sust.npy", pcamat)
