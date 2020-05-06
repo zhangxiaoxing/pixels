@@ -27,6 +27,8 @@ import su_region_align as align
 from sklearn.decomposition import PCA
 from mpl_toolkits import mplot3d
 from pixelStats import baselineVector
+from Arrow3D import Arrow3D
+from matplotlib import rcParams
 
 
 class ctd_stats:
@@ -76,26 +78,31 @@ class ctd_stats:
             (mm, std) = baselineVector(
                 np.squeeze(trial_FR[:, np.logical_and(welltrain_window, correct_resp), su_idx])
             )
-            self.su_list.append(
-                {
-                    # "S1_S1_3": np.squeeze(FR_D3_S1_S1[:, :, su_idx]),
-                    # "S2_S1_3": np.squeeze(FR_D3_S2_S1[:, :, su_idx]),
-                    # "S1_S2_3": np.squeeze(FR_D3_S1_S2[:, :, su_idx]),
-                    # "S2_S2_3": np.squeeze(FR_D3_S2_S2[:, :, su_idx]),
-                    # "S1_S1_6": np.squeeze(FR_D6_S1_S1[:, :, su_idx]),
-                    # "S2_S1_6": np.squeeze(FR_D6_S2_S1[:, :, su_idx]),
-                    # "S1_S2_6": np.squeeze(FR_D6_S1_S2[:, :, su_idx]),
-                    # "S2_S2_6": np.squeeze(FR_D6_S2_S2[:, :, su_idx]),
-                    "S1_S1_3m": np.squeeze(np.mean((FR_D3_S1_S1[:, :, su_idx] - mm) / std, axis=1)),
-                    "S1_S2_3m": np.squeeze(np.mean((FR_D3_S1_S2[:, :, su_idx] - mm) / std, axis=1)),
-                    "S2_S1_3m": np.squeeze(np.mean((FR_D3_S2_S1[:, :, su_idx] - mm) / std, axis=1)),
-                    "S2_S2_3m": np.squeeze(np.mean((FR_D3_S2_S2[:, :, su_idx] - mm) / std, axis=1)),
-                    "S1_S1_6m": np.squeeze(np.mean((FR_D6_S1_S1[:, :, su_idx] - mm) / std, axis=1)),
-                    "S1_S2_6m": np.squeeze(np.mean((FR_D6_S1_S2[:, :, su_idx] - mm) / std, axis=1)),
-                    "S2_S1_6m": np.squeeze(np.mean((FR_D6_S2_S1[:, :, su_idx] - mm) / std, axis=1)),
-                    "S2_S2_6m": np.squeeze(np.mean((FR_D6_S2_S2[:, :, su_idx] - mm) / std, axis=1)),
-                }
-            )
+            if std>0:
+                self.su_list.append(
+                    {
+                        "S1_S1_3m": np.squeeze(np.mean((FR_D3_S1_S1[:, :, su_idx] - mm) / std, axis=1)),
+                        "S1_S2_3m": np.squeeze(np.mean((FR_D3_S1_S2[:, :, su_idx] - mm) / std, axis=1)),
+                        "S2_S1_3m": np.squeeze(np.mean((FR_D3_S2_S1[:, :, su_idx] - mm) / std, axis=1)),
+                        "S2_S2_3m": np.squeeze(np.mean((FR_D3_S2_S2[:, :, su_idx] - mm) / std, axis=1)),
+                        "S1_S1_6m": np.squeeze(np.mean((FR_D6_S1_S1[:, :, su_idx] - mm) / std, axis=1)),
+                        "S1_S2_6m": np.squeeze(np.mean((FR_D6_S1_S2[:, :, su_idx] - mm) / std, axis=1)),
+                        "S2_S1_6m": np.squeeze(np.mean((FR_D6_S2_S1[:, :, su_idx] - mm) / std, axis=1)),
+                        "S2_S2_6m": np.squeeze(np.mean((FR_D6_S2_S2[:, :, su_idx] - mm) / std, axis=1)),
+                    })
+            else:
+                self.su_list.append(
+                    {
+                        "S1_S1_3m": np.zeros_like(FR_D3_S1_S1[:, 1, su_idx]),
+                        "S1_S2_3m": np.zeros_like(FR_D3_S1_S2[:, 1, su_idx]),
+                        "S2_S1_3m": np.zeros_like(FR_D3_S2_S1[:, 1, su_idx]),
+                        "S2_S2_3m": np.zeros_like(FR_D3_S2_S2[:, 1, su_idx]),
+                        "S1_S1_6m": np.zeros_like(FR_D6_S1_S1[:, 1, su_idx]),
+                        "S1_S2_6m": np.zeros_like(FR_D6_S1_S2[:, 1, su_idx]),
+                        "S2_S1_6m": np.zeros_like(FR_D6_S2_S1[:, 1, su_idx]),
+                        "S2_S2_6m": np.zeros_like(FR_D6_S2_S2[:, 1, su_idx]),
+                    }
+                    )
 
     def get_features(self):
         # breakpoint()
@@ -171,17 +178,17 @@ def get_dataset(denovo=False, delay=6):
 def plotPCA3D_FR(fr,delay=6):
     pcamat = np.hstack(
         [
-            np.squeeze(np.mean(np.vstack([x["S1_S1_3m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S2_S1_3m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S1_S2_3m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S2_S2_3m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S1_S1_6m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S2_S1_6m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S1_S2_6m"] for x in fr]),axis=1)),
-            np.squeeze(np.mean(np.vstack([x["S2_S2_6m"] for x in fr]),axis=1)),
+            np.vstack([np.mean(np.vstack((x["S1_S1_3m"][8:28],x["S1_S2_3m"][8:28])),axis=0) for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S2_S1_3m"][8:28],x["S2_S2_3m"][8:28])),axis=0) for x in fr]),
+            # np.vstack([x["S1_S2_3m"][8:28] for x in fr]),
+            # np.vstack([x["S2_S2_3m"][8:28] for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S1_S1_6m"][8:40],x["S1_S2_6m"][8:40])),axis=0) for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S2_S1_6m"][8:40],x["S2_S2_6m"][8:40])),axis=0) for x in fr]),
+            # np.vstack([x["S1_S2_6m"][8:40] for x in fr]),
+            # np.vstack([x["S2_S2_6m"][8:40] for x in fr]),
         ]
     )
-    np.save(f"pcamat_{delay}_sust.npy", pcamat)
+    # np.save(f"pcamat_{delay}_sust.npy", pcamat)
 
     pca = PCA(n_components=20)
     comp = pca.fit_transform(pcamat.T)
@@ -190,58 +197,56 @@ def plotPCA3D_FR(fr,delay=6):
 
     fig = plt.figure(figsize=(5, 5), dpi=300)
     ax = plt.axes(projection="3d")
+    
+    for i in range(1,20):
 
-    ax.plot3D(
-        comp[(68 * 0 + 4): (68 * 0 + 40), 0], comp[(68 * 0 + 4): (68 * 0 + 40), 1],
-        comp[(68 * 0 + 4): (68 * 0 + 40), 2], "r-", alpha=0.4
-    )  # S1S1
-    # S1S1
-    ax.plot3D(
-        comp[(68 * 1 + 4): (68 * 1 + 40), 0], comp[(68 * 1 + 4): (68 * 1 + 40), 1],
-        comp[(68 * 1 + 4): (68 * 1 + 40), 2], "b-", alpha=0.4
-    )
-    ax.plot3D(
-        comp[(68 * 4 + 4): (68 * 4 + 40), 0], comp[(68 * 4 + 4): (68 * 4 + 40), 1],
-        comp[(68 * 4 + 4): (68 * 4 + 40), 2], "r-", alpha=0.4
-    )  # S1S1
-    # S1S1
-    ax.plot3D(
-        comp[(68 * 5 + 4): (68 * 5 + 40), 0], comp[(68 * 5 + 4): (68 * 5 + 40), 1],
-        comp[(68 * 5 + 4): (68 * 5 + 40), 2], "b-", alpha=0.4
-    )  # S2S1
-    # ax.plot3D(
-    #     comp[(68 * 6 + 4): (68 * 6 + 40), 0], comp[(68 * 6 + 4): (68 * 6 + 40), 1],
-    #     comp[(68 * 6 + 4): (68 * 6 + 40), 2], "m-", alpha=0.4
-    # )
-    # ax.plot3D(
-    #     comp[(68 * 7 + 4): (68 * 7 + 40), 0], comp[(68 * 7 + 4): (68 * 7 + 40), 1],
-    #     comp[(68 * 7 + 4): (68 * 7 + 40), 2], "c-", alpha=0.4
-    # )
-    for bidx in [0, 1, 4, 5]:
+        arr = Arrow3D([comp[i-1,0],comp[i,0]], [comp[i-1,1], comp[i,1]], 
+                    [comp[i-1,2], comp[i,2]], mutation_scale=20, 
+                    lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="r",alpha=0.5)
+        ax.add_artist(arr)
+        j=i+20
+        arr = Arrow3D([comp[j-1,0],comp[j,0]], [comp[j-1,1], comp[j,1]], 
+            [comp[j-1,2], comp[j,2]], mutation_scale=20, 
+            lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="b",alpha=0.5)
+        ax.add_artist(arr)
+
+    for i in range(41,72):
+
+        # arr = Arrow3D([comp[i-1,0],comp[i,0]], [comp[i-1,1], comp[i,1]], 
+        #             [comp[i-1,2], comp[i,2]], mutation_scale=20, 
+        #             lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="m",alpha=0.5)
+        # ax.add_artist(arr)
+        j=i+32
+        arr = Arrow3D([comp[j-1,0],comp[j,0]], [comp[j-1,1], comp[j,1]], 
+            [comp[j-1,2], comp[j,2]], mutation_scale=20, 
+            lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="c",alpha=0.5)
+        ax.add_artist(arr)
+
+    for bidx in [0, 20, 72]:
         ax.plot3D(
-            comp[(68 * bidx + 4): (68 * bidx + 12), 0], comp[(68 * bidx + 4): (68 * bidx + 12), 1],
-            comp[(68 * bidx + 4): (68 * bidx + 12), 2], "k.", markersize=1, alpha=0.2
+            comp[bidx:bidx+4, 0], comp[bidx:bidx+4, 1],
+            comp[bidx:bidx+4, 2], "k.", markersize=1, alpha=0.25
         )  # S1S1
-    # S1S1
-    # ax.plot3D(
-    #     comp[(68 * 5 + 4): (68 * 5 + 12), 0], comp[(68 * 5 + 4): (68 * 5 + 12), 1],
-    #     comp[(68 * 5 + 4): (68 * 5 + 12), 2], "k.", markersize=1, alpha=0.2
-    # )  # S2S1
-    # ax.plot3D(
-    #     comp[(68 * 6 + 4): (68 * 6 + 12), 0], comp[(68 * 6 + 4): (68 * 6 + 12), 1],
-    #     comp[(68 * 6 + 4): (68 * 6 + 12), 2], "k.", markersize=1, alpha=0.2
-    # )
-    # ax.plot3D(
-    #     comp[(68 * 7 + 4): (68 * 7 + 12), 0], comp[(68 * 7 + 4): (68 * 7 + 12), 1],
-    #     comp[(68 * 7 + 4): (68 * 7 + 12), 2], "k.", markersize=1, alpha=0.2
-    # )
+        
+        ax.plot3D(
+            comp[bidx+4:bidx+8, 0], comp[bidx+4:bidx+8, 1],
+            comp[bidx+4:bidx+8, 2], "k*", markersize=4, alpha=0.25
+        ) 
+        
+        
+    for bidx in [72]:
+        ax.plot3D(
+            comp[bidx+20:bidx+32, 0], comp[bidx+20:bidx+32, 1],
+            comp[bidx+20:bidx+32, 2], "k+", markersize=3, alpha=0.25
+        )     
+
 
     plt.show()
-    return pcamat
+    return (fig,ax)
 
 
 if __name__ == "__main__":
-    delay = 6
+    delay = 3
     (features_per_su, reg_list) = get_dataset(False)
     trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
     # list(trans6.keys())
@@ -249,7 +254,35 @@ if __name__ == "__main__":
     trans = trans_fstr["transient"]
     # reg_arr = trans_fstr['reg_arr']
 
+
     fr_trans = [f for (f, t) in zip(features_per_su, trans) if t]
     fr_sust = [f for (f, t) in zip(features_per_su, sust) if t]
-    plotPCA3D_FR(fr_sust)
-    plotPCA3D_FR(fr_trans)
+
+
+
+    rcParams['pdf.fonttype'] = 42
+    rcParams['ps.fonttype'] = 42
+    rcParams['font.family'] = 'sans-serif'
+    rcParams['font.sans-serif'] = ['Arial']
+
+    (fig_all,ax_all)=plotPCA3D_FR(features_per_su)
+    (fig_sust,ax_sust)=plotPCA3D_FR(fr_sust)
+    (fig_trans,ax_trans)=plotPCA3D_FR(fr_trans)
+    
+    ax_all.set_ylim(-60,65)
+    ax_sust.set_zlim(-15,20)
+    ax_trans.set_ylim(-50,50)
+    ax_trans.set_zlim(-30,30)
+
+    for oneax in [ax_all,ax_sust,ax_trans]:
+        oneax.set_xlabel('PC1')
+        oneax.set_ylabel('PC2')
+        oneax.set_zlabel('PC3')
+    
+    for onefig in [fig_all, fig_sust, fig_trans]:
+        onefig.set_size_inches(65/25.4, 65/25.4)
+
+    fig_all.savefig('traj_all.pdf',dpi=300,bbox_inches='tight')
+    fig_sust.savefig('traj_sust.pdf',dpi=300,bbox_inches='tight')
+    fig_trans.savefig('traj_trans.pdf',dpi=300,bbox_inches='tight')
+

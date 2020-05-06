@@ -1,5 +1,5 @@
 function errors=extract_waveform(disk)
-to_plot=false;
+% to_plot=false;
 s1s=30000;
 FR_Th=1.0;
 
@@ -45,24 +45,26 @@ for onefile=fl'
             ks.load();
 
             for cidx=1:numel(cluster_ids)
+                try
+                    snippetSetTet = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 100, 'best_n_channels', 4, 'car', true, ...
+                        'subtractOtherClusters', false,'window', [-30 60]);
 
-                snippetSetTet = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 100, 'best_n_channels', 4, 'car', true, ...
-                    'subtractOtherClusters', false,'window', [-30 60]);
+                    snippetSetBest = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 500, 'best_n_channels', 1, 'car', true, ...
+                        'subtractOtherClusters', false,'window', [-30 60]);
 
-                snippetSetBest = ks.getWaveformsFromRawData('cluster_ids',cluster_ids(cidx),'num_waveforms', 500, 'best_n_channels', 1, 'car', true, ...
-                    'subtractOtherClusters', false,'window', [-30 60]);
-
-                waveform{end+1,1}=rootpath;
-                waveform{end,2}=cluster_ids(cidx);
-                waveform{end,3}=snippetSetTet;
-                waveform{end,4}=mean(snippetSetBest.data,3);
-
-                if to_plot
-                    fh=figure();
-                    plot(cell2mat(arrayfun(@(x) mean(squeeze(snippetSet.data(x,:,:))'), 1:4,'UniformOutput',false)));
-                    pause
-                    close(fh);
+                    waveform{end+1,1}=rootpath;
+                    waveform{end,2}=cluster_ids(cidx);
+                    waveform{end,3}=snippetSetTet.data;
+                    waveform{end,4}=mean(snippetSetBest.data,3);
+                catch ME
+                    errors{end+1}=sprintf('%s %d waveform error',onefile.folder,cidx);
                 end
+%                 if to_plot
+%                     fh=figure();
+%                     plot(cell2mat(arrayfun(@(x) mean(squeeze(snippetSet.data(x,:,:))'), 1:4,'UniformOutput',false)));
+%                     pause
+%                     close(fh);
+%                 end
             end
         end
         save(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'),'waveform');
