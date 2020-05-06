@@ -5,27 +5,12 @@ Created on Mon Feb 17 14:49:17 2020
 @author: Libra
 """
 import os
-
-import sys
 import csv
 import h5py
 import numpy as np
-
-# import scipy.stats as stats
-# from sklearn.svm import SVC
-from sklearn.model_selection import KFold
-
-# from mcc.mcc import MaximumCorrelationClassifier
-# from sklearn.model_selection import cross_val_score
-# from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 import su_region_align as align
-
-# import per_second_stats
-# from multiprocessing import Pool
-# from matplotlib import rcParams
 from sklearn.decomposition import PCA
-from mpl_toolkits import mplot3d
 from pixelStats import baselineVector
 from Arrow3D import Arrow3D
 from matplotlib import rcParams
@@ -34,6 +19,7 @@ from matplotlib import rcParams
 class ctd_stats:
     def __init__(self):
         self.su_list = []
+        self.avail = []
 
     def splitMean(self, FR, suidx, mm, std):
         sel = list(self.kf.split(np.arange(FR.shape[1])))[0]
@@ -78,7 +64,16 @@ class ctd_stats:
             (mm, std) = baselineVector(
                 np.squeeze(trial_FR[:, np.logical_and(welltrain_window, correct_resp), su_idx])
             )
-            if std>0:
+            if std > 0 and np.all([x.shape[1] >= 2 for x in (
+                    FR_D3_S1_S1,
+                    FR_D3_S1_S2,
+                    FR_D3_S2_S1,
+                    FR_D3_S2_S2,
+                    FR_D6_S1_S1,
+                    FR_D6_S1_S2,
+                    FR_D6_S2_S1,
+                    FR_D6_S2_S2,
+            )]):
                 self.su_list.append(
                     {
                         "S1_S1_3m": np.squeeze(np.mean((FR_D3_S1_S1[:, :, su_idx] - mm) / std, axis=1)),
@@ -90,27 +85,18 @@ class ctd_stats:
                         "S2_S1_6m": np.squeeze(np.mean((FR_D6_S2_S1[:, :, su_idx] - mm) / std, axis=1)),
                         "S2_S2_6m": np.squeeze(np.mean((FR_D6_S2_S2[:, :, su_idx] - mm) / std, axis=1)),
                     })
+                self.avail.append(True)
             else:
-                self.su_list.append(
-                    {
-                        "S1_S1_3m": np.zeros_like(FR_D3_S1_S1[:, 1, su_idx]),
-                        "S1_S2_3m": np.zeros_like(FR_D3_S1_S2[:, 1, su_idx]),
-                        "S2_S1_3m": np.zeros_like(FR_D3_S2_S1[:, 1, su_idx]),
-                        "S2_S2_3m": np.zeros_like(FR_D3_S2_S2[:, 1, su_idx]),
-                        "S1_S1_6m": np.zeros_like(FR_D6_S1_S1[:, 1, su_idx]),
-                        "S1_S2_6m": np.zeros_like(FR_D6_S1_S2[:, 1, su_idx]),
-                        "S2_S1_6m": np.zeros_like(FR_D6_S2_S1[:, 1, su_idx]),
-                        "S2_S2_6m": np.zeros_like(FR_D6_S2_S2[:, 1, su_idx]),
-                    }
-                    )
+                self.avail.append(False)
 
     def get_features(self):
         # breakpoint()
-        return self.su_list
+        return (self.su_list, self.avail)
 
 
 def get_dataset(denovo=False, delay=6):
     features_per_su = []
+    avails = []
     reg_list = []
     if denovo:
         dpath = align.get_root_path()
@@ -156,7 +142,9 @@ def get_dataset(denovo=False, delay=6):
 
             currStats = ctd_stats()
             currStats.processCTDStats(trial_FR, trials, welltrain_window, correct_resp)
-            features_per_su.extend(currStats.get_features())
+            (feat, avail) = currStats.get_features()
+            features_per_su.extend(feat)
+            avails.extend(avail)
             reg_list.extend(suid_reg[1])
 
             ### DEBUG in small subsets
@@ -164,26 +152,27 @@ def get_dataset(denovo=False, delay=6):
             #     break
 
         ### save to npz file
-        np.savez_compressed("ctd_prev.npz", features_per_su=features_per_su, reg_list=reg_list)
+        np.savez_compressed("ctd_prev_stats.npz", features_per_su=features_per_su, reg_list=reg_list)
 
     ### load from npz file
     else:
-        fstr = np.load("ctd_prev.npz", allow_pickle=True)
-        features_per_su = fstr["features_per_su"].tolist()
-        reg_list = fstr["reg_list"].tolist()
+        pass
+        # fstr = np.load("ctd_prev_stats.npz", allow_pickle=True)
+        # features_per_su = fstr["features_per_su"].tolist()
+        # reg_list = fstr["reg_list"].tolist()
 
-    return (features_per_su, reg_list)
+    return (features_per_su, reg_list,avails)
 
 
-def plotPCA3D_FR(fr,delay=6):
+def plotPCA3D_FR(fr, delay=6):
     pcamat = np.hstack(
         [
-            np.vstack([np.mean(np.vstack((x["S1_S1_3m"][8:28],x["S1_S2_3m"][8:28])),axis=0) for x in fr]),
-            np.vstack([np.mean(np.vstack((x["S2_S1_3m"][8:28],x["S2_S2_3m"][8:28])),axis=0) for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S1_S1_3m"][8:28], x["S1_S2_3m"][8:28])), axis=0) for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S2_S1_3m"][8:28], x["S2_S2_3m"][8:28])), axis=0) for x in fr]),
             # np.vstack([x["S1_S2_3m"][8:28] for x in fr]),
             # np.vstack([x["S2_S2_3m"][8:28] for x in fr]),
-            np.vstack([np.mean(np.vstack((x["S1_S1_6m"][8:40],x["S1_S2_6m"][8:40])),axis=0) for x in fr]),
-            np.vstack([np.mean(np.vstack((x["S2_S1_6m"][8:40],x["S2_S2_6m"][8:40])),axis=0) for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S1_S1_6m"][8:40], x["S1_S2_6m"][8:40])), axis=0) for x in fr]),
+            np.vstack([np.mean(np.vstack((x["S2_S1_6m"][8:40], x["S2_S2_6m"][8:40])), axis=0) for x in fr]),
             # np.vstack([x["S1_S2_6m"][8:40] for x in fr]),
             # np.vstack([x["S2_S2_6m"][8:40] for x in fr]),
         ]
@@ -197,92 +186,98 @@ def plotPCA3D_FR(fr,delay=6):
 
     fig = plt.figure(figsize=(5, 5), dpi=300)
     ax = plt.axes(projection="3d")
-    
-    for i in range(1,20):
 
-        arr = Arrow3D([comp[i-1,0],comp[i,0]], [comp[i-1,1], comp[i,1]], 
-                    [comp[i-1,2], comp[i,2]], mutation_scale=20, 
-                    lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="r",alpha=0.5)
+    for i in range(1, 20):
+        arr = Arrow3D([comp[i - 1, 0], comp[i, 0]], [comp[i - 1, 1], comp[i, 1]],
+                      [comp[i - 1, 2], comp[i, 2]], mutation_scale=20,
+                      lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="r", alpha=0.5)
         ax.add_artist(arr)
-        j=i+20
-        arr = Arrow3D([comp[j-1,0],comp[j,0]], [comp[j-1,1], comp[j,1]], 
-            [comp[j-1,2], comp[j,2]], mutation_scale=20, 
-            lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="b",alpha=0.5)
+        j = i + 20
+        arr = Arrow3D([comp[j - 1, 0], comp[j, 0]], [comp[j - 1, 1], comp[j, 1]],
+                      [comp[j - 1, 2], comp[j, 2]], mutation_scale=20,
+                      lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="b", alpha=0.5)
         ax.add_artist(arr)
 
-    for i in range(41,72):
-
-        # arr = Arrow3D([comp[i-1,0],comp[i,0]], [comp[i-1,1], comp[i,1]], 
-        #             [comp[i-1,2], comp[i,2]], mutation_scale=20, 
+    for i in range(41, 72):
+        # arr = Arrow3D([comp[i-1,0],comp[i,0]], [comp[i-1,1], comp[i,1]],
+        #             [comp[i-1,2], comp[i,2]], mutation_scale=20,
         #             lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="m",alpha=0.5)
         # ax.add_artist(arr)
-        j=i+32
-        arr = Arrow3D([comp[j-1,0],comp[j,0]], [comp[j-1,1], comp[j,1]], 
-            [comp[j-1,2], comp[j,2]], mutation_scale=20, 
-            lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="c",alpha=0.5)
+        j = i + 32
+        arr = Arrow3D([comp[j - 1, 0], comp[j, 0]], [comp[j - 1, 1], comp[j, 1]],
+                      [comp[j - 1, 2], comp[j, 2]], mutation_scale=20,
+                      lw=1, arrowstyle="->,head_length=0.1, head_width=0.05", color="c", alpha=0.5)
         ax.add_artist(arr)
 
     for bidx in [0, 20, 72]:
         ax.plot3D(
-            comp[bidx:bidx+4, 0], comp[bidx:bidx+4, 1],
-            comp[bidx:bidx+4, 2], "k.", markersize=1, alpha=0.25
+            comp[bidx:bidx + 4, 0], comp[bidx:bidx + 4, 1],
+            comp[bidx:bidx + 4, 2], "k.", markersize=1, alpha=0.25
         )  # S1S1
-        
+
         ax.plot3D(
-            comp[bidx+4:bidx+8, 0], comp[bidx+4:bidx+8, 1],
-            comp[bidx+4:bidx+8, 2], "k*", markersize=4, alpha=0.25
-        ) 
-        
-        
+            comp[bidx + 4:bidx + 8, 0], comp[bidx + 4:bidx + 8, 1],
+            comp[bidx + 4:bidx + 8, 2], "k*", markersize=4, alpha=0.25
+        )
+
     for bidx in [72]:
         ax.plot3D(
-            comp[bidx+20:bidx+32, 0], comp[bidx+20:bidx+32, 1],
-            comp[bidx+20:bidx+32, 2], "k+", markersize=3, alpha=0.25
-        )     
-
+            comp[bidx + 20:bidx + 32, 0], comp[bidx + 20:bidx + 32, 1],
+            comp[bidx + 20:bidx + 32, 2], "k+", markersize=3, alpha=0.25
+        )
 
     plt.show()
-    return (fig,ax)
+    return (fig, ax)
 
 
-if __name__ == "__main__":
+def plot3d_all():
     delay = 3
-    (features_per_su, reg_list) = get_dataset(False)
+    (features_per_su, reg_list, avails) = get_dataset(True)
     trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
-    # list(trans6.keys())
     sust = trans_fstr["sust"]
     trans = trans_fstr["transient"]
-    # reg_arr = trans_fstr['reg_arr']
 
+    trans_avail = trans[avails]
+    fr_trans = [f for (f, t) in zip(features_per_su, trans_avail) if t]
+    sust_avail = sust[avails]
+    fr_sust = [f for (f, t) in zip(features_per_su, sust_avail) if t]
+    # reg_arr = trans_fstr['reg_arr']
 
     fr_trans = [f for (f, t) in zip(features_per_su, trans) if t]
     fr_sust = [f for (f, t) in zip(features_per_su, sust) if t]
 
+    (fig_all, ax_all) = plotPCA3D_FR(features_per_su)
+    (fig_sust, ax_sust) = plotPCA3D_FR(fr_sust)
+    (fig_trans, ax_trans) = plotPCA3D_FR(fr_trans)
+
+    ax_all.set_ylim(-60, 65)
+    ax_sust.set_zlim(-15, 20)
+    ax_trans.set_ylim(-50, 50)
+    ax_trans.set_zlim(-30, 30)
+
+    for oneax in [ax_all, ax_sust, ax_trans]:
+        oneax.set_xlabel('PC1')
+        oneax.set_ylabel('PC2')
+        oneax.set_zlabel('PC3')
+
+    for onefig in [fig_all, fig_sust, fig_trans]:
+        onefig.set_size_inches(65 / 25.4, 65 / 25.4)
+
+    fig_all.savefig('traj_all.pdf', dpi=300, bbox_inches='tight')
+    fig_sust.savefig('traj_sust.pdf', dpi=300, bbox_inches='tight')
+    fig_trans.savefig('traj_trans.pdf', dpi=300, bbox_inches='tight')
 
 
+if __name__ == "__main__":
     rcParams['pdf.fonttype'] = 42
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
 
-    (fig_all,ax_all)=plotPCA3D_FR(features_per_su)
-    (fig_sust,ax_sust)=plotPCA3D_FR(fr_sust)
-    (fig_trans,ax_trans)=plotPCA3D_FR(fr_trans)
-    
-    ax_all.set_ylim(-60,65)
-    ax_sust.set_zlim(-15,20)
-    ax_trans.set_ylim(-50,50)
-    ax_trans.set_zlim(-30,30)
-
-    for oneax in [ax_all,ax_sust,ax_trans]:
-        oneax.set_xlabel('PC1')
-        oneax.set_ylabel('PC2')
-        oneax.set_zlabel('PC3')
-    
-    for onefig in [fig_all, fig_sust, fig_trans]:
-        onefig.set_size_inches(65/25.4, 65/25.4)
-
-    fig_all.savefig('traj_all.pdf',dpi=300,bbox_inches='tight')
-    fig_sust.savefig('traj_sust.pdf',dpi=300,bbox_inches='tight')
-    fig_trans.savefig('traj_trans.pdf',dpi=300,bbox_inches='tight')
-
+    plot3d_all()
+    # delay = 3
+    # (features_per_su, reg_list) = get_dataset(True, rnd_half=True)
+    # trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
+    # # list(trans6.keys())
+    # sust = trans_fstr["sust"]
+    # trans = trans_fstr["transient"]

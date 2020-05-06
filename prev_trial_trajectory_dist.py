@@ -29,7 +29,6 @@ from pixelStats import baselineVector
 
 class GLM_PCA_stats:
     def __init__(self):
-
         self.S1T1 = None
         self.S1T2 = None
         self.S2T1 = None
@@ -41,7 +40,6 @@ class GLM_PCA_stats:
         self.row_sel_3 = np.arange(56)
 
     def processGLMStats(self, trial_FR, trials, welltrain_window=[], correct_resp=[]):
-
         ### TODO: when variables are empty
 
         FR_scale = np.concatenate(
@@ -74,7 +72,6 @@ class GLM_PCA_stats:
             self.S2T2[:, su_idx] = np.mean(onesu[trial_S2T2, :], axis=0)
 
     def getFeatures(self):
-
         return np.concatenate((self.S1T1,
                                self.S1T2,
                                self.S2T1,
@@ -87,14 +84,10 @@ class ctd_stats:
         self.kf = KFold(2, shuffle=True)
         self.avail = []
 
-
-    def splitMean(self, FR, su_idx, mm, std, repeats=20):
-        h1 = []
-        h2 = []
-        for i in range(repeats):
-            sel = list(self.kf.split(np.arange(FR.shape[1])))[0]
-            h1.append(np.squeeze(np.mean((FR[:, sel[0], su_idx] - mm) / std, axis=1)))
-            h2.append(np.squeeze(np.mean((FR[:, sel[1], su_idx] - mm) / std, axis=1)))
+    def splitMean(self, FR, su_idx, mm, std):
+        sel = list(self.kf.split(np.arange(FR.shape[1])))[0]
+        h1 = np.squeeze(np.mean((FR[:, sel[0], su_idx] - mm) / std, axis=1))
+        h2 = np.squeeze(np.mean((FR[:, sel[1], su_idx] - mm) / std, axis=1))
         return (h1, h2)
 
         ### unprocessed data entry point
@@ -161,7 +154,6 @@ class ctd_stats:
             )]):
                 self.su_list.append(
                     {
-
                         "S1_S1_3m": self.splitMean(FR_D3_S1_S1, su_idx, mm, std),
                         "S1_S2_3m": self.splitMean(FR_D3_S1_S2, su_idx, mm, std),
                         "S2_S1_3m": self.splitMean(FR_D3_S2_S1, su_idx, mm, std),
@@ -170,7 +162,6 @@ class ctd_stats:
                         "S1_S2_6m": self.splitMean(FR_D6_S1_S2, su_idx, mm, std),
                         "S2_S1_6m": self.splitMean(FR_D6_S2_S1, su_idx, mm, std),
                         "S2_S2_6m": self.splitMean(FR_D6_S2_S2, su_idx, mm, std),
-
                     }
                 )
                 self.avail.append(True)
@@ -240,205 +231,158 @@ def get_dataset(denovo):
             #     break
 
         ### save to npz file
-        np.savez_compressed("ctd_prev.npz", features_per_su=features_per_su, reg_list=reg_list, avails=avails)
+        # np.savez_compressed(f"ctd_prev_stats.npz", features_per_su=features_per_su, reg_list=reg_list, avails=avails)
 
     ### load from npz file
     else:
-        fstr = np.load("ctd_prev.npz", allow_pickle=True)
+        fstr = np.load("ctd_prev_stats.npz", allow_pickle=True)
         features_per_su = fstr["features_per_su"].tolist()
         reg_list = fstr["reg_list"].tolist()
-        avails = fstr['avaisl']
+        avails = fstr['avails']
     return (features_per_su, reg_list, avails)
 
 
-def plotPCA3D_FR(fr):
-    pcamat = np.hstack([np.vstack([x['S1_S1_3m'] for x in fr]),
-                        np.vstack([x['S2_S1_3m'] for x in fr]),
-                        np.vstack([x['S1_S2_3m'] for x in fr]),
-                        np.vstack([x['S2_S2_3m'] for x in fr]),
-                        np.vstack([x['S1_S1_6m'] for x in fr]),
-                        np.vstack([x['S2_S1_6m'] for x in fr]),
-                        np.vstack([x['S1_S2_6m'] for x in fr]),
-                        np.vstack([x['S2_S2_6m'] for x in fr]), ])
-    np.save(f'pcamat_{delay}_sust.npy', pcamat)
-
-    pca = PCA(n_components=20)
-    comp = pca.fit_transform(pcamat.T)
-    coeff = pca.components_
-    ratio = pca.explained_variance_ratio_
-
-    fig = plt.figure(figsize=(5, 5), dpi=300)
-    ax = plt.axes(projection="3d")
-
-    ax.plot3D(comp[(68 * 4):(68 * 5), 0], comp[(68 * 4):(68 * 5), 1], comp[(68 * 4):(68 * 5), 2], 'r-')  # S1S1
-    ax.plot3D(comp[(68 * 5):(68 * 6), 0], comp[(68 * 5):(68 * 6), 1], comp[(68 * 5):(68 * 6), 2], 'b-')  # S2S1
-    ax.plot3D(comp[(68 * 6):(68 * 7), 0], comp[(68 * 6):(68 * 7), 1], comp[(68 * 6):(68 * 7), 2], 'm-')
-    ax.plot3D(comp[(68 * 7):(68 * 8), 0], comp[(68 * 7):(68 * 8), 1], comp[(68 * 7):(68 * 8), 2], 'c-')
-    plt.show()
-    return pcamat
-
-
 if __name__ == "__main__":
-    delay = 6
-    (features_per_su, reg_list, avail) = get_dataset(True)
+    delay = 3
     trans_fstr = np.load(f'sus_trans_pie_{delay}.npz')
-    # list(trans6.keys())
     sust = trans_fstr['sust']
     trans = trans_fstr['transient']
+
+    (features_per_su, reg_list, avail) = get_dataset(True)
     # reg_arr = trans_fstr['reg_arr']
-    
-    trans_avail=trans[avail]
-    
+    trans_avail = trans[avail]
     fr_trans = [f for (f, t) in zip(features_per_su, trans_avail) if t]
-    # fr_sust = [f for (f, t) in zip(features_per_su, sust) if t]
-    # plotPCA3D_FR(fr_sust)
-    # plotPCA3D_FR(fr_trans)
-    
-    fr=fr_trans
-    same_prev=np.zeros((20,68))
-    oppo_prev=np.zeros((20,68))
-    
-    for bidx in range(fr[0]['S1_S1_6m'][0][0].size): # 68 bins
-        for ridx in range(len(fr[0]['S1_S1_6m'][0])):
-            S1S1H1=np.array([x['S1_S1_6m'][0][ridx][bidx] for x in fr])
-            S1S1H2=np.array([x['S1_S1_6m'][1][ridx][bidx] for x in fr])
-            S2S1H1=np.array([x['S2_S1_6m'][0][ridx][bidx] for x in fr])
-            S2S1H2=np.array([x['S2_S1_6m'][1][ridx][bidx] for x in fr])
-
-            S1S2H1=np.array([x['S1_S2_6m'][0][ridx][bidx] for x in fr])
-            S1S2H2=np.array([x['S1_S2_6m'][1][ridx][bidx] for x in fr])
-            S2S2H1=np.array([x['S2_S2_6m'][0][ridx][bidx] for x in fr])
-            S2S2H2=np.array([x['S2_S2_6m'][1][ridx][bidx] for x in fr])
-
-
-            
-            S1S1In=np.sqrt(np.sum(np.square(S1S1H1-S1S1H2)))
-            S1S2In=np.sqrt(np.sum(np.square(S1S2H1-S1S2H2)))
-            S2S1In=np.sqrt(np.sum(np.square(S2S1H1-S2S1H2)))
-            S2S2In=np.sqrt(np.sum(np.square(S2S2H1-S2S2H2)))
-            
-            S1Out1=np.sqrt(np.sum(np.square(S1S1H1-S2S1H1)))
-            S1Out2=np.sqrt(np.sum(np.square(S1S1H1-S2S1H2)))
-            S1Out3=np.sqrt(np.sum(np.square(S1S1H2-S2S1H1)))
-            S1Out4=np.sqrt(np.sum(np.square(S1S1H2-S2S1H2)))
-            
-            S2Out1=np.sqrt(np.sum(np.square(S1S2H1-S2S2H1)))
-            S2Out2=np.sqrt(np.sum(np.square(S1S2H1-S2S2H2)))
-            S2Out3=np.sqrt(np.sum(np.square(S1S2H2-S2S2H1)))
-            S2Out4=np.sqrt(np.sum(np.square(S1S2H2-S2S2H2)))
-            
-            same_prev[ridx,bidx]=np.mean([S1S1In,S1S2In,S2S1In,S2S2In])
-            oppo_prev[ridx,bidx]=np.mean([S1Out1,S1Out2,S1Out3,S1Out4,S2Out1,S2Out2,S2Out3,S2Out4,])
-
-
-
-    same_mm=np.mean(same_prev,axis=0)            
-    oppo_mm=np.mean(oppo_prev,axis=0)
-    same_sem=stats.sem(same_prev)
-    oppo_sem=stats.sem(oppo_prev)
-    
-    wrs=np.zeros(same_mm.shape[0])
-    for bidx in range(same_mm.shape[0]):
-        wrs[bidx]=stats.ranksums(same_prev[:,bidx],oppo_prev[:,bidx])[1]
-
-    (fig,ax)=plt.subplots(1,1,figsize=(2,2),dpi=300)
-    plt.fill_between(np.arange(same_mm.shape[0]), same_mm - same_sem, same_mm + same_sem, color="b", alpha=0.2)
-    plt.fill_between(np.arange(oppo_mm.shape[0]), oppo_mm - oppo_sem, oppo_mm + oppo_sem, color="r", alpha=0.2)
-    
-    ph0=ax.plot(same_mm,'b-',lw=1)
-    ph1=ax.plot(oppo_mm,'r-',lw=1)
-    for bidx in range(same_mm.shape[0]):
-        if wrs[bidx]*same_mm.size < 0.05:
-            ax.plot(bidx,120,'k.',markersize=1)
-    
-    ax.set_xticks([12,32,52])
-    ax.set_xticklabels([0,5,10])
-    ax.set_xlabel('time (s)')
-    ax.set_ylabel('trajectory distance (A.U.)')
-    [ax.axvline(x, color='k', ls=':',lw=0.5) for x in [11.5, 15.5, 39.5, 43.5]]
-    ax.set_xlim([4,40])
-    # ax.legend((ph0[0], ph1[0]), ('same','oppo.'))
-    fig.savefig('transient_6_hist_traj_dist.pdf',bbox_inches='tight')
-
-    plt.show()
-    
-
-    sust_avail=sust[avail]
+    sust_avail = sust[avail]
     fr_sust = [f for (f, t) in zip(features_per_su, sust_avail) if t]
 
-    fr=fr_sust
-    same_prev=np.zeros((20,68))
-    oppo_prev=np.zeros((20,68))
-    
-    for bidx in range(fr[0]['S1_S1_6m'][0][0].size): # 68 bins
+    fr = fr_trans
+    same_prev = np.zeros((20, 68))
+    oppo_prev = np.zeros((20, 68))
+
+
+    for bidx in range(fr[0]['S1_S1_6m'][0][0].size):  # 68 bins
         for ridx in range(len(fr[0]['S1_S1_6m'][0])):
-            S1S1H1=np.array([x['S1_S1_6m'][0][ridx][bidx] for x in fr])
-            S1S1H2=np.array([x['S1_S1_6m'][1][ridx][bidx] for x in fr])
-            S2S1H1=np.array([x['S2_S1_6m'][0][ridx][bidx] for x in fr])
-            S2S1H2=np.array([x['S2_S1_6m'][1][ridx][bidx] for x in fr])
+            S1S1H1 = np.array([x['S1_S1_6m'][0][ridx][bidx] for x in fr])
+            S1S1H2 = np.array([x['S1_S1_6m'][1][ridx][bidx] for x in fr])
+            S2S1H1 = np.array([x['S2_S1_6m'][0][ridx][bidx] for x in fr])
+            S2S1H2 = np.array([x['S2_S1_6m'][1][ridx][bidx] for x in fr])
 
-            S1S2H1=np.array([x['S1_S2_6m'][0][ridx][bidx] for x in fr])
-            S1S2H2=np.array([x['S1_S2_6m'][1][ridx][bidx] for x in fr])
-            S2S2H1=np.array([x['S2_S2_6m'][0][ridx][bidx] for x in fr])
-            S2S2H2=np.array([x['S2_S2_6m'][1][ridx][bidx] for x in fr])
+            S1S2H1 = np.array([x['S1_S2_6m'][0][ridx][bidx] for x in fr])
+            S1S2H2 = np.array([x['S1_S2_6m'][1][ridx][bidx] for x in fr])
+            S2S2H1 = np.array([x['S2_S2_6m'][0][ridx][bidx] for x in fr])
+            S2S2H2 = np.array([x['S2_S2_6m'][1][ridx][bidx] for x in fr])
 
+            S1S1In = np.sqrt(np.sum(np.square(S1S1H1 - S1S1H2)))
+            S1S2In = np.sqrt(np.sum(np.square(S1S2H1 - S1S2H2)))
+            S2S1In = np.sqrt(np.sum(np.square(S2S1H1 - S2S1H2)))
+            S2S2In = np.sqrt(np.sum(np.square(S2S2H1 - S2S2H2)))
 
-            
-            S1S1In=np.sqrt(np.sum(np.square(S1S1H1-S1S1H2)))
-            S1S2In=np.sqrt(np.sum(np.square(S1S2H1-S1S2H2)))
-            S2S1In=np.sqrt(np.sum(np.square(S2S1H1-S2S1H2)))
-            S2S2In=np.sqrt(np.sum(np.square(S2S2H1-S2S2H2)))
-            
-            S1Out1=np.sqrt(np.sum(np.square(S1S1H1-S2S1H1)))
-            S1Out2=np.sqrt(np.sum(np.square(S1S1H1-S2S1H2)))
-            S1Out3=np.sqrt(np.sum(np.square(S1S1H2-S2S1H1)))
-            S1Out4=np.sqrt(np.sum(np.square(S1S1H2-S2S1H2)))
-            
-            S2Out1=np.sqrt(np.sum(np.square(S1S2H1-S2S2H1)))
-            S2Out2=np.sqrt(np.sum(np.square(S1S2H1-S2S2H2)))
-            S2Out3=np.sqrt(np.sum(np.square(S1S2H2-S2S2H1)))
-            S2Out4=np.sqrt(np.sum(np.square(S1S2H2-S2S2H2)))
-            
-            same_prev[ridx,bidx]=np.mean([S1S1In,S1S2In,S2S1In,S2S2In])
-            oppo_prev[ridx,bidx]=np.mean([S1Out1,S1Out2,S1Out3,S1Out4,S2Out1,S2Out2,S2Out3,S2Out4,])
+            S1Out1 = np.sqrt(np.sum(np.square(S1S1H1 - S2S1H1)))
+            S1Out2 = np.sqrt(np.sum(np.square(S1S1H1 - S2S1H2)))
+            S1Out3 = np.sqrt(np.sum(np.square(S1S1H2 - S2S1H1)))
+            S1Out4 = np.sqrt(np.sum(np.square(S1S1H2 - S2S1H2)))
 
+            S2Out1 = np.sqrt(np.sum(np.square(S1S2H1 - S2S2H1)))
+            S2Out2 = np.sqrt(np.sum(np.square(S1S2H1 - S2S2H2)))
+            S2Out3 = np.sqrt(np.sum(np.square(S1S2H2 - S2S2H1)))
+            S2Out4 = np.sqrt(np.sum(np.square(S1S2H2 - S2S2H2)))
 
+            same_prev[ridx, bidx] = np.mean([S1S1In, S1S2In, S2S1In, S2S2In])
+            oppo_prev[ridx, bidx] = np.mean([S1Out1, S1Out2, S1Out3, S1Out4, S2Out1, S2Out2, S2Out3, S2Out4, ])
 
-    same_mm=np.mean(same_prev,axis=0)            
-    oppo_mm=np.mean(oppo_prev,axis=0)
-    same_sem=stats.sem(same_prev)
-    oppo_sem=stats.sem(oppo_prev)
-    
-    wrs=np.zeros(same_mm.shape[0])
+    same_mm = np.mean(same_prev, axis=0)
+    oppo_mm = np.mean(oppo_prev, axis=0)
+    same_sem = stats.sem(same_prev)
+    oppo_sem = stats.sem(oppo_prev)
+
+    wrs = np.zeros(same_mm.shape[0])
     for bidx in range(same_mm.shape[0]):
-        wrs[bidx]=stats.ranksums(same_prev[:,bidx],oppo_prev[:,bidx])[1]
+        wrs[bidx] = stats.ranksums(same_prev[:, bidx], oppo_prev[:, bidx])[1]
 
-    (fig,ax)=plt.subplots(1,1,figsize=(2,2),dpi=300)
+    (fig, ax) = plt.subplots(1, 1, figsize=(2, 2), dpi=300)
     plt.fill_between(np.arange(same_mm.shape[0]), same_mm - same_sem, same_mm + same_sem, color="b", alpha=0.2)
     plt.fill_between(np.arange(oppo_mm.shape[0]), oppo_mm - oppo_sem, oppo_mm + oppo_sem, color="r", alpha=0.2)
-    
-    ph0=ax.plot(same_mm,'b-',lw=1)
-    ph1=ax.plot(oppo_mm,'r-',lw=1)
+
+    ph0 = ax.plot(same_mm, 'b-', lw=1)
+    ph1 = ax.plot(oppo_mm, 'r-', lw=1)
     for bidx in range(same_mm.shape[0]):
-        if wrs[bidx]*same_mm.size < 0.05:
-            ax.plot(bidx,45,'k.',markersize=1)
-    
-    ax.set_xticks([12,32,52])
-    ax.set_xticklabels([0,5,10])
+        if wrs[bidx] * same_mm.size < 0.05:
+            ax.plot(bidx, 120, 'k.', markersize=1)
+
+    ax.set_xticks([12, 32, 52])
+    ax.set_xticklabels([0, 5, 10])
     ax.set_xlabel('time (s)')
     ax.set_ylabel('trajectory distance (A.U.)')
-    [ax.axvline(x, color='k', ls=':',lw=0.5) for x in [11.5, 15.5, 39.5, 43.5]]
+    [ax.axvline(x, color='k', ls=':', lw=0.5) for x in [11.5, 15.5, 39.5, 43.5]]
+    ax.set_xlim([4, 40])
     # ax.legend((ph0[0], ph1[0]), ('same','oppo.'))
-    ax.set_xlim([4,40])
-    fig.savefig('sust_6_hist_traj_dist.pdf',bbox_inches='tight')
+    fig.savefig('transient_6_hist_traj_dist.pdf', bbox_inches='tight')
 
     plt.show()
-        
-    
-    
-    
-    
-    
-    
-    
-    
+
+    sust_avail = sust[avail]
+    fr_sust = [f for (f, t) in zip(features_per_su, sust_avail) if t]
+
+    fr = fr_sust
+    same_prev = np.zeros((20, 68))
+    oppo_prev = np.zeros((20, 68))
+
+    for bidx in range(fr[0]['S1_S1_6m'][0][0].size):  # 68 bins
+        for ridx in range(len(fr[0]['S1_S1_6m'][0])):
+            S1S1H1 = np.array([x['S1_S1_6m'][0][ridx][bidx] for x in fr])
+            S1S1H2 = np.array([x['S1_S1_6m'][1][ridx][bidx] for x in fr])
+            S2S1H1 = np.array([x['S2_S1_6m'][0][ridx][bidx] for x in fr])
+            S2S1H2 = np.array([x['S2_S1_6m'][1][ridx][bidx] for x in fr])
+
+            S1S2H1 = np.array([x['S1_S2_6m'][0][ridx][bidx] for x in fr])
+            S1S2H2 = np.array([x['S1_S2_6m'][1][ridx][bidx] for x in fr])
+            S2S2H1 = np.array([x['S2_S2_6m'][0][ridx][bidx] for x in fr])
+            S2S2H2 = np.array([x['S2_S2_6m'][1][ridx][bidx] for x in fr])
+
+            S1S1In = np.sqrt(np.sum(np.square(S1S1H1 - S1S1H2)))
+            S1S2In = np.sqrt(np.sum(np.square(S1S2H1 - S1S2H2)))
+            S2S1In = np.sqrt(np.sum(np.square(S2S1H1 - S2S1H2)))
+            S2S2In = np.sqrt(np.sum(np.square(S2S2H1 - S2S2H2)))
+
+            S1Out1 = np.sqrt(np.sum(np.square(S1S1H1 - S2S1H1)))
+            S1Out2 = np.sqrt(np.sum(np.square(S1S1H1 - S2S1H2)))
+            S1Out3 = np.sqrt(np.sum(np.square(S1S1H2 - S2S1H1)))
+            S1Out4 = np.sqrt(np.sum(np.square(S1S1H2 - S2S1H2)))
+
+            S2Out1 = np.sqrt(np.sum(np.square(S1S2H1 - S2S2H1)))
+            S2Out2 = np.sqrt(np.sum(np.square(S1S2H1 - S2S2H2)))
+            S2Out3 = np.sqrt(np.sum(np.square(S1S2H2 - S2S2H1)))
+            S2Out4 = np.sqrt(np.sum(np.square(S1S2H2 - S2S2H2)))
+
+            same_prev[ridx, bidx] = np.mean([S1S1In, S1S2In, S2S1In, S2S2In])
+            oppo_prev[ridx, bidx] = np.mean([S1Out1, S1Out2, S1Out3, S1Out4, S2Out1, S2Out2, S2Out3, S2Out4, ])
+
+    same_mm = np.mean(same_prev, axis=0)
+    oppo_mm = np.mean(oppo_prev, axis=0)
+    same_sem = stats.sem(same_prev)
+    oppo_sem = stats.sem(oppo_prev)
+
+    wrs = np.zeros(same_mm.shape[0])
+    for bidx in range(same_mm.shape[0]):
+        wrs[bidx] = stats.ranksums(same_prev[:, bidx], oppo_prev[:, bidx])[1]
+
+    (fig, ax) = plt.subplots(1, 1, figsize=(2, 2), dpi=300)
+    plt.fill_between(np.arange(same_mm.shape[0]), same_mm - same_sem, same_mm + same_sem, color="b", alpha=0.2)
+    plt.fill_between(np.arange(oppo_mm.shape[0]), oppo_mm - oppo_sem, oppo_mm + oppo_sem, color="r", alpha=0.2)
+
+    ph0 = ax.plot(same_mm, 'b-', lw=1)
+    ph1 = ax.plot(oppo_mm, 'r-', lw=1)
+    for bidx in range(same_mm.shape[0]):
+        if wrs[bidx] * same_mm.size < 0.05:
+            ax.plot(bidx, 45, 'k.', markersize=1)
+
+    ax.set_xticks([12, 32, 52])
+    ax.set_xticklabels([0, 5, 10])
+    ax.set_xlabel('time (s)')
+    ax.set_ylabel('trajectory distance (A.U.)')
+    [ax.axvline(x, color='k', ls=':', lw=0.5) for x in [11.5, 15.5, 39.5, 43.5]]
+    # ax.legend((ph0[0], ph1[0]), ('same','oppo.'))
+    ax.set_xlim([4, 40])
+    fig.savefig('sust_6_hist_traj_dist.pdf', bbox_inches='tight')
+
+    plt.show()
