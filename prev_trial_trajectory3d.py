@@ -408,10 +408,15 @@ class Dist_stats:
         self.ref_comp = ref_comp
         self.S1_S2_3_dist = []
         self.S1_S2_6_dist = []
-        self.deci_vec_dist_3_S1 = []
-        self.deci_vec_dist_3_S2 = []
-        self.deci_vec_dist_6_S1 = []
-        self.deci_vec_dist_6_S2 = []
+        self.exit_dist_3_S1 = []
+        self.exit_dist_3_S2 = []
+        self.exit_dist_6_S1 = []
+        self.exit_dist_6_S2 = []
+
+        self.latedelay_dist_3_S1 = []
+        self.latedelay_dist_3_S2 = []
+        self.latedelay_dist_6_S1 = []
+        self.latedelay_dist_6_S2 = []
 
         self.ref_dist_3_S1 = []
         self.ref_dist_3_S2 = []
@@ -440,34 +445,46 @@ class Dist_stats:
         S1_S2_3 = []
         deci_vec_S1_3 = []
         deci_vec_S2_3 = []
+        late_vec_S1_3 = []
+        late_vec_S2_3 = []
         ref_S1_3 = []
         ref_S2_3 = []
         for bin in range(20):  # time range
             S1_S2_3.append(euclidean(comp[bin, :3], comp[bin + 20, :3]))  # comp range
             deci_vec_S1_3.append(euclidean(comp[bin, :3], self.ref_comp[19, :3]))
             deci_vec_S2_3.append(euclidean(comp[bin + 20, :3], self.ref_comp[39, :3]))
+            late_vec_S1_3.append(euclidean(comp[bin, :3], self.ref_comp[17, :3]))
+            late_vec_S2_3.append(euclidean(comp[bin + 20, :3], self.ref_comp[37, :3]))
             ref_S1_3.append(euclidean(comp[bin, :3], self.ref_comp[bin, :3]))
             ref_S2_3.append(euclidean(comp[bin + 20, :3], self.ref_comp[bin + 20, :3]))
         self.S1_S2_3_dist.append(S1_S2_3)
-        self.deci_vec_dist_3_S1.append(deci_vec_S1_3)
-        self.deci_vec_dist_3_S2.append(deci_vec_S2_3)
+        self.exit_dist_3_S1.append(deci_vec_S1_3)
+        self.exit_dist_3_S2.append(deci_vec_S2_3)
+        self.latedelay_dist_3_S1.append(late_vec_S1_3)
+        self.latedelay_dist_3_S2.append(late_vec_S2_3)
         self.ref_dist_3_S1.append(ref_S1_3)
         self.ref_dist_3_S2.append(ref_S2_3)
         S1_S2_6 = []
         deci_vec_S1_6 = []
         deci_vec_S2_6 = []
+        late_vec_S1_6 = []
+        late_vec_S2_6 = []
         ref_S1_6 = []
         ref_S2_6 = []
         for bin in range(40, 72):  # time range
             S1_S2_6.append(euclidean(comp[bin, :3], comp[bin + 32, :3]))  # comp range
             deci_vec_S1_6.append(euclidean(comp[bin, :3], self.ref_comp[19, :3]))
             deci_vec_S2_6.append(euclidean(comp[bin + 32, :3], self.ref_comp[39, :3]))
+            late_vec_S1_6.append(euclidean(comp[bin, :3], self.ref_comp[17, :3]))
+            late_vec_S2_6.append(euclidean(comp[bin + 32, :3], self.ref_comp[37, :3]))
             ref_S1_6.append(euclidean(comp[bin, :3], self.ref_comp[bin, :3]))
             ref_S2_6.append(euclidean(comp[bin + 32, :3], self.ref_comp[bin + 32, :3]))
 
         self.S1_S2_6_dist.append(S1_S2_6)
-        self.deci_vec_dist_6_S1.append(deci_vec_S1_6)
-        self.deci_vec_dist_6_S2.append(deci_vec_S2_6)
+        self.exit_dist_6_S1.append(deci_vec_S1_6)
+        self.exit_dist_6_S2.append(deci_vec_S2_6)
+        self.latedelay_dist_6_S1.append(late_vec_S1_6)
+        self.latedelay_dist_6_S2.append(late_vec_S2_6)
         self.ref_dist_6_S1.append(ref_S1_6)
         self.ref_dist_6_S2.append(ref_S2_6)
 
@@ -488,9 +505,10 @@ class Dist_stats:
         return coeff
 
     def get_data(self):
-        return (self.S1_S2_3_dist, self.S1_S2_6_dist, self.deci_vec_dist_3_S1,
-                self.deci_vec_dist_3_S2, self.deci_vec_dist_6_S1, self.deci_vec_dist_6_S2,
-                self.ref_dist_3_S1, self.ref_dist_3_S2, self.ref_dist_6_S1, self.ref_dist_6_S2)
+        return (self.S1_S2_3_dist, self.S1_S2_6_dist, self.exit_dist_3_S1,
+                self.exit_dist_3_S2, self.exit_dist_6_S1, self.exit_dist_6_S2,
+                self.ref_dist_3_S1, self.ref_dist_3_S2, self.ref_dist_6_S1, self.ref_dist_6_S2,
+                self.latedelay_dist_3_S1, self.latedelay_dist_3_S2, self.latedelay_dist_6_S1, self.latedelay_dist_6_S2)
 
 
 def dist_all(repeats=2):
@@ -542,7 +560,7 @@ def dist_all(repeats=2):
     return (dist_all_list, dist_sust_list, dist_trans_list)
 
 
-def plot_dist_one(d_one,subgroup,repeats):
+def plot_dist_one(d_one, subgroup, repeats):
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[0]), axis=0)
     sem = stats.sem(np.vstack(d_one[0]))
@@ -558,7 +576,7 @@ def plot_dist_one(d_one,subgroup,repeats):
     ax.set_xticklabels([0, 5])
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
-    fig.savefig(f'Sample_PC_Dist_{subgroup}_{repeats}.pdf',bbox_inches='tight')
+    fig.savefig(f'Sample_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[2]), axis=0)
@@ -573,7 +591,7 @@ def plot_dist_one(d_one,subgroup,repeats):
     ax.set_xticklabels([0, 5])
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
-    fig.savefig(f'S1_exit_PC_Dist_{subgroup}_{repeats}.pdf',bbox_inches='tight')
+    fig.savefig(f'S1_exit_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[3]), axis=0)
@@ -598,12 +616,12 @@ def plot_dist_one(d_one,subgroup,repeats):
     mm = np.mean(np.vstack(d_one[8]), axis=0)
     ax.plot(mm, '-b', lw=1, alpha=0.5)
     ax.plot(np.arange(32), np.vstack(d_one[8]).T, '-b', alpha=0.1, lw=0.25)
-    ax.set_ylabel('S1-pop. mean PC distance')
+    ax.set_ylabel('S1-all trial mean distance')
     ax.set_xticks([3.5, 23.5])
     ax.set_xticklabels([0, 5])
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
-    fig.savefig(f'S1_popmean_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
+    fig.savefig(f'S1_alltrial_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[7]), axis=0)
@@ -613,13 +631,46 @@ def plot_dist_one(d_one,subgroup,repeats):
     mm = np.mean(np.vstack(d_one[9]), axis=0)
     ax.plot(mm, '-b', lw=1, alpha=0.5)
     ax.plot(np.arange(32), np.vstack(d_one[9]).T, '-b', alpha=0.1, lw=0.25)
-    ax.set_ylabel('S2-pop. mean PC distance')
+    ax.set_ylabel('S2-all trial mean PC distance')
     ax.set_xticks([3.5, 23.5])
     ax.set_xticklabels([0, 5])
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
-    fig.savefig(f'S2_popmean_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
+    fig.savefig(f'S2_alltrial_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
     plt.show()
+
+
+    (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
+    mm = np.mean(np.vstack(d_one[10]), axis=0)
+    ax.plot(np.arange(20), np.vstack(d_one[10]).T, '-r', alpha=0.1, lw=0.25)
+    ax.plot(mm, '-r', lw=1, alpha=0.5)
+
+    mm = np.mean(np.vstack(d_one[12]), axis=0)
+    ax.plot(np.arange(32), np.vstack(d_one[12]).T, '-b', alpha=0.1, lw=0.25)
+    ax.plot(mm, '-b', lw=1, alpha=0.5)
+    ax.set_ylabel('S1-late delay PC distance')
+    ax.set_xticks([3.5, 23.5])
+    ax.set_xticklabels([0, 5])
+    ax.set_xlabel('time (s)')
+    [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
+    fig.savefig(f'S1_latedelay_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
+
+    (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
+    mm = np.mean(np.vstack(d_one[11]), axis=0)
+    ax.plot(np.arange(20), np.vstack(d_one[11]).T, '-r', alpha=0.1, lw=0.25)
+    ax.plot(mm, '-r', lw=1, alpha=0.5)
+
+    mm = np.mean(np.vstack(d_one[13]), axis=0)
+    ax.plot(mm, '-b', lw=1, alpha=0.5)
+    ax.plot(np.arange(32), np.vstack(d_one[13]).T, '-b', alpha=0.1, lw=0.25)
+    ax.set_ylabel('S2-late delay PC distance')
+    ax.set_xticks([3.5, 23.5])
+    ax.set_xticklabels([0, 5])
+    ax.set_xlabel('time (s)')
+    [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
+    fig.savefig(f'S2_latedelay_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
+
+
 
 
 def plot_dist(repeats):
@@ -628,9 +679,9 @@ def plot_dist(repeats):
     dist_sust = fstr['dist_sust']
     dist_trans = fstr['dist_trans']
 
-    plot_dist_one(dist_all,'all',repeats)
-    plot_dist_one(dist_sust,'sust',repeats)
-    plot_dist_one(dist_trans,'trans',repeats)
+    plot_dist_one(dist_all, 'all', repeats)
+    plot_dist_one(dist_sust, 'sust', repeats)
+    plot_dist_one(dist_trans, 'trans', repeats)
 
 
 if __name__ == "__main__":
@@ -642,8 +693,8 @@ if __name__ == "__main__":
 
     # # plot_dist()
     # (fig_all, ax_all, fig_sust, ax_sust, fig_trans, ax_trans) = plot3d_all(plot_delay=plot_delay, repeats=0)
-    (dist_all_list, dist_sust_list, dist_trans_list) = dist_all(repeats=2)
-    plot_dist(repeats=2)
+    # (dist_all_list, dist_sust_list, dist_trans_list) = dist_all(repeats=100)
+    plot_dist(repeats=100)
     # delay = 3
     # (features_per_su, reg_list) = get_dataset(True, rnd_half=True)
     # trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
