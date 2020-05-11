@@ -217,27 +217,29 @@ def plotPCA3D_FR(fr, plot_delay=6, to_plot=True, fig=None, ax=None, the_ref=True
     if to_plot:
         if plot_delay == 'delay_diff':
 
-            for i in range(21, 40):
+            # for i in range(36, 40):
+            for i in range(16, 20):
                 arr = Arrow3D([comp[i - 1, 0], comp[i, 0]], [comp[i - 1, 1], comp[i, 1]],
                               [comp[i - 1, 2], comp[i, 2]], mutation_scale=20,
                               lw=lw, arrowstyle="->,head_length=0.1, head_width=0.05", color="b", alpha=alpha)
                 ax.add_artist(arr)
-            for i in range(73, 104):
+            # for i in range(88, 104):
+                for i in range(56, 72):
                 arr = Arrow3D([comp[i - 1, 0], comp[i, 0]], [comp[i - 1, 1], comp[i, 1]],
                               [comp[i - 1, 2], comp[i, 2]], mutation_scale=20,
                               lw=lw, arrowstyle="->,head_length=0.1, head_width=0.05", color="c", alpha=alpha)
                 ax.add_artist(arr)
-            if the_ref:
-                for bidx in [0, 20]:
-                    ax.plot3D(
-                        comp[bidx:bidx + 4, 0], comp[bidx:bidx + 4, 1],
-                        comp[bidx:bidx + 4, 2], "k.", markersize=1, alpha=0.25
-                    )  # S1S1
+            # if the_ref:
+                # for bidx in [35, 40]:
+                    # ax.plot3D(
+                    #     comp[bidx:bidx + 4, 0], comp[bidx:bidx + 4, 1],
+                    #     comp[bidx:bidx + 4, 2], "k.", markersize=1, alpha=0.25
+                    # )  # S1S1
 
-                    ax.plot3D(
-                        comp[bidx + 4:bidx + 8, 0], comp[bidx + 4:bidx + 8, 1],
-                        comp[bidx + 4:bidx + 8, 2], "k+", markersize=4, alpha=0.25
-                    )
+                    # ax.plot3D(
+                    #     comp[bidx + 4:bidx + 8, 0], comp[bidx + 4:bidx + 8, 1],
+                    #     comp[bidx + 4:bidx + 8, 2], "k+", markersize=4, alpha=0.25
+                    # )
 
         else:
             if plot_delay == 3:
@@ -356,17 +358,17 @@ def plot3d_all(plot_delay=3, repeats=5, to_plot=True):
 
     if plot_delay == 'delay_diff':
 
-        ax_all.set_xlim(-10, 200)
-        ax_all.set_ylim(-60, 60)
-        ax_all.set_zlim(-40, 40)
+        ax_all.set_xlim(-40, -20)
+        ax_all.set_ylim(-50, 10)
+        ax_all.set_zlim(5, 35)
 
-        ax_sust.set_xlim(-15, 45)
-        ax_sust.set_zlim(-12, 10)
-        ax_sust.set_ylim(-15, 23)
+        ax_sust.set_xlim(-12.5, 12.5)
+        ax_sust.set_ylim(-20, 0)
+        ax_sust.set_zlim(-10, 7)
 
-        ax_trans.set_xlim(-35, 120)
-        ax_trans.set_ylim(-45, 50)
-        ax_trans.set_zlim(-30, 30)
+        ax_trans.set_xlim(-35, -15)
+        ax_trans.set_ylim(-45, 5)
+        ax_trans.set_zlim(-30, 0)
 
     elif plot_delay == 3:
         ax_all.set_ylim(-60, 65)
@@ -561,6 +563,10 @@ def dist_all(repeats=2):
 
 
 def plot_dist_one(d_one, subgroup, repeats):
+    #plot time-distance 2d figure
+    
+    #S1-S2 distance
+    
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[0]), axis=0)
     sem = stats.sem(np.vstack(d_one[0]))
@@ -578,6 +584,8 @@ def plot_dist_one(d_one, subgroup, repeats):
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
     fig.savefig(f'Sample_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
+
+    #S1-Exit
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[2]), axis=0)
     ax.plot(np.arange(20), np.vstack(d_one[2]).T, '-r', alpha=0.1, lw=0.25)
@@ -592,7 +600,8 @@ def plot_dist_one(d_one, subgroup, repeats):
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
     fig.savefig(f'S1_exit_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
-
+    
+    #S2-Exit
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[3]), axis=0)
     ax.plot(np.arange(20), np.vstack(d_one[3]).T, '-r', alpha=0.1, lw=0.25)
@@ -608,6 +617,7 @@ def plot_dist_one(d_one, subgroup, repeats):
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
     fig.savefig(f'S2_exit_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
+    #S1-all trial mean distance
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[6]), axis=0)
     ax.plot(np.arange(20), np.vstack(d_one[6]).T, '-r', alpha=0.1, lw=0.25)
@@ -623,6 +633,7 @@ def plot_dist_one(d_one, subgroup, repeats):
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
     fig.savefig(f'S1_alltrial_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
+    #S2-all trial mean distance
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[7]), axis=0)
     ax.plot(np.arange(20), np.vstack(d_one[7]).T, '-r', alpha=0.1, lw=0.25)
@@ -639,7 +650,7 @@ def plot_dist_one(d_one, subgroup, repeats):
     fig.savefig(f'S2_alltrial_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
     plt.show()
 
-
+    #S1-late delay distance
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[10]), axis=0)
     ax.plot(np.arange(20), np.vstack(d_one[10]).T, '-r', alpha=0.1, lw=0.25)
@@ -653,8 +664,10 @@ def plot_dist_one(d_one, subgroup, repeats):
     ax.set_xticklabels([0, 5])
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
+    ax.set_yscale('log')
     fig.savefig(f'S1_latedelay_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
+    #S2-late delay distance
     (fig, ax) = plt.subplots(1, 1, figsize=(90 / 25.4, 90 / 25.4), dpi=300)
     mm = np.mean(np.vstack(d_one[11]), axis=0)
     ax.plot(np.arange(20), np.vstack(d_one[11]).T, '-r', alpha=0.1, lw=0.25)
@@ -668,6 +681,7 @@ def plot_dist_one(d_one, subgroup, repeats):
     ax.set_xticklabels([0, 5])
     ax.set_xlabel('time (s)')
     [ax.axvline(x, color='k', ls=':') for x in [3.5, 7.5, 19.5]]
+    ax.set_yscale('log')
     fig.savefig(f'S2_latedelay_PC_Dist_{subgroup}_{repeats}.pdf', bbox_inches='tight')
 
 
@@ -690,9 +704,8 @@ if __name__ == "__main__":
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     # plot_delay = 'delay_diff'
+    # (fig_all, ax_all, fig_sust, ax_sust, fig_trans, ax_trans) = plot3d_all(plot_delay=plot_delay, repeats=100)
 
-    # # plot_dist()
-    # (fig_all, ax_all, fig_sust, ax_sust, fig_trans, ax_trans) = plot3d_all(plot_delay=plot_delay, repeats=0)
     # (dist_all_list, dist_sust_list, dist_trans_list) = dist_all(repeats=100)
     plot_dist(repeats=100)
     # delay = 3

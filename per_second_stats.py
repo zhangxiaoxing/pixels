@@ -31,6 +31,7 @@ from matplotlib import rcParams
 class per_sec_stats:
     def __init__(self):
         self.per_sec_sel = None  # 7 x SU , sample + 6s delay
+        self.per_sec_sel_raw = None  # 7 x SU , sample + 6s delay
         self.per_sec_prefS1 = None  # 7 x SU , sample + 6s delay
         self.per_sec_prefS2 = None  # 7 x SU , sample + 6s delay
         self.non_sel_mod = None  # 7 x SU
@@ -80,8 +81,10 @@ class per_sec_stats:
         trial_sel_left_3 = trial_perf_sel_3[:, 2] == 4
         if delay == 6:
             self.per_sec_sel = np.zeros((7, trial_FR.shape[2]))
+            self.per_sec_sel_raw = np.zeros((7, trial_FR.shape[2]))
         else:
             self.per_sec_sel = np.zeros((4, trial_FR.shape[2]))
+            self.per_sec_sel_raw = np.zeros((4, trial_FR.shape[2]))
 
         self.per_sec_prefS1 = np.zeros_like(self.per_sec_sel)
         self.per_sec_prefS2 = np.zeros_like(self.per_sec_sel)
@@ -109,6 +112,15 @@ class per_sec_stats:
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
                                                                              right_trials_6[:, bins], 7)
+                    seldiff=(np.sum(left_trials_6[:, bins])-np.sum(right_trials_6[:, bins]))
+                    if seldiff==0:
+                        self.per_sec_sel_raw[bin_idx, su_idx]=0
+                    else:
+                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff/(np.sum(left_trials_6[:, bins])+np.sum(right_trials_6[:, bins]))
+                    
+
+                    
+                    
                     if self.per_sec_sel[bin_idx, su_idx]:
                         if np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]):
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
@@ -123,6 +135,13 @@ class per_sec_stats:
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
                                                                              right_trials_3[:, bins], 4)
+                    
+                    seldiff=(np.sum(left_trials_6[:, bins])-np.sum(right_trials_6[:, bins]))
+                    if seldiff==0:
+                        self.per_sec_sel_raw[bin_idx, su_idx]=0
+                    else:
+                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff/(np.sum(left_trials_6[:, bins])+np.sum(right_trials_6[:, bins]))
+                        
                     if self.per_sec_sel[bin_idx, su_idx]:
                         if np.mean(left_trials_3[:, bins]) > np.mean(right_trials_3[:, bins]):
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
@@ -136,7 +155,7 @@ class per_sec_stats:
                 #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
 
     def getFeatures(self):
-        return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2, self.baseline_sel)
+        return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2, self.baseline_sel, self.per_sec_sel_raw)
 
 
 ### all brain region entry point
@@ -148,6 +167,7 @@ def prepare_data(delay=6, reg_idx=1):
     bs_sel_list = []
     perfS1_list = []
     perfS2_list = []
+    raw_sel_list=[]
     # non_mod_list = []
     reg_list = []
     dpath = align.get_root_path()
@@ -190,7 +210,7 @@ def prepare_data(delay=6, reg_idx=1):
 
         curr_stats.process_select_stats(trial_FR, trials, welltrain_window, correct_resp, delay=delay)
 
-        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel) = curr_stats.getFeatures()
+        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel,raw_sel) = curr_stats.getFeatures()
         per_sec_sel_list.append(per_sec_sel)
         non_sel_mod_list.append(non_sel_mod)
         bs_sel_list.append(bs_sel)
@@ -198,7 +218,8 @@ def prepare_data(delay=6, reg_idx=1):
         perfS1_list.append(perfS1)
         perfS2_list.append(perfS2)
         reg_list.extend(suid_reg[reg_idx])
-    return (per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list)
+        raw_sel_list.append(raw_sel)
+    return (per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list,raw_sel_list)
 
 
 def prepare_data_sync():
@@ -268,7 +289,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
     if delay == 'early3in6' or delay == 'late3in6':
         delay_num = 6
     if denovo:
-        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list) = prepare_data(delay=delay,
+        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list,raw_sel_list) = prepare_data(delay=delay,
                                                                                                          reg_idx=reg_idx)
         ### save raw data file
         reg_arr = np.array(reg_list)
@@ -277,6 +298,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         perfS1_arr = np.hstack(perfS1_list)
         perfS2_arr = np.hstack(perfS2_list)
         bs_sel = np.hstack(bs_sel_list)
+        raw_sel_arr=np.hstack(raw_sel_list)
         np.savez_compressed(f'per_sec_sel_{delay_num}.npz', per_sec_sel_arr=per_sec_sel_arr,
                             non_sel_mod_arr=non_sel_mod_arr,
                             # non_mod_arr=non_mod_arr,
@@ -284,7 +306,8 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
                             perfS2_arr=perfS2_arr,
                             reg_arr=reg_arr,
                             delay=delay,
-                            bs_sel=bs_sel)
+                            bs_sel=bs_sel,
+                            raw_sel_arr=raw_sel_arr)
     else:
         ### load back saved raw data
         if not os.path.isfile(f"per_sec_sel_{delay_num}.npz"):
@@ -299,6 +322,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         perfS2_arr = fstr['perfS2_arr']
         reg_arr = fstr['reg_arr']
         bs_sel = fstr['bs_sel']
+        raw_sel_arr=fstr['raw_sel_arr']
 
     if delay == 6:
         delay_bins = np.arange(1, 7)
@@ -407,17 +431,22 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         fh.savefig(f'sus_trans_pie_{delay}.pdf')
 
     ### export list
-
-    export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s))
+    prefer_s = perfS1_arr + perfS2_arr * 2
+    export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s, prefer_s))
     np.savez_compressed(f'sus_trans_pie_{delay}.npz', sust=sust, transient=transient,
                         switched=switched, unclassified=unclassified, sample_only=sample_only,
-                        non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr)
+                        non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr,raw_sel_arr=raw_sel_arr)
 
     if toExport:
-        np.savetxt(f'transient_{delay}.csv', export_arr, fmt='%d', delimiter=',',
-                   header='Sustained,transient,switched,unclassified')
+        # np.savetxt(f'transient_{delay}.csv', export_arr, fmt='%d', delimiter=',',
+        #            header='Sustained,transient,switched,unclassified,early_in_6s,late_in_6s,preferred)
 
-        np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
+        with h5py.File(f'transient_{delay}.hdf5', "w") as fw:
+            fw.create_dataset('sus_trans',data=export_arr.astype('int8'))
+            fw.create_dataset('raw_selectivity',data=raw_sel_arr.astype('float64'))
+            fw.create_dataset('reg',data=reg_arr.astype('S10'))
+
+        # np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
 
         all_sess_arr = np.vstack(
             (sust, transient, sample_only, non_sel_mod, non_mod, early_in_6s, late_in_6s))
