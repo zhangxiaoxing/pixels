@@ -1,60 +1,77 @@
 %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 %  chan2. Thus, a negative lag represents a spike in the second dimension of
 %  stat.xcorr before the channel in the third dimension of stat.stat.
-
+delay=6;
+bin_range=[2 3];
 addpath('npy-matlab-master\npy-matlab')
 addpath('fieldtrip-20200320')
 ft_defaults
-tfs=importdata('transient_6.csv');
+% tfs=importdata('transient_6.csv');
+sus_trans=h5read('..\transient_6.hdf5','/sus_trans');
+reg_list=h5read('..\transient_6.hdf5','/reg');
 sufs=importdata('su_list.csv',',');
 
-sust=find(tfs.data(1,:)>0);
-trans=find(tfs.data(2,:)>0);
+sust=find(sus_trans(:,1));
+trans=find(sus_trans(:,2));
+supool=[sust;trans]';
 counter=[];
 done=[];
-sums=cell(0,5);
-for i=1:length(sust)
-    if ismember(sust(i),done)
+sums=cell(0,8);
+for i=1:length(supool)
+    if ismember(supool(i),done)
         continue
     end
-    folder=sufs.textdata{sust(i)};
+%     if i>5
+%         return
+%     end
+    folder=sufs.textdata{supool(i)};
     wffile=fullfile(replace(folder,'D:','D:'),'wf_stats.hdf5');
     if isfile(wffile)
-        sustIds=sufs.data(strcmp(sufs.textdata,folder)' & tfs.data(1,:)>0);
-        sameFolder=find(strcmp(sufs.textdata,folder)' & tfs.data(1,:)>0);
-        done=[done,sameFolder];
+        sustIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,1));
+        transIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,2));
+        sameFolder=find(strcmp(sufs.textdata,folder) & (sus_trans(:,1)| sus_trans(:,2)));
+        done=[done;sameFolder];
         sustCount=numel(sustIds);
-        transIds=sufs.data(strcmp(sufs.textdata,folder)' & tfs.data(2,:)>0);
         transCount=numel(transIds);
         if transCount<1
             continue
         end
         [avail,spktrial]=pre_process(replace(folder,'D:','D:'),sustIds,transIds);
         if avail
-            xc=plotxcorr(spktrial);
+            [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
         end
         % waveform data
         
         wfstats=h5read(wffile,'/wf');
-        for lblidx=1:size(xc.label,1)
-            wfidx=find(wfstats(:,1)==str2double(xc.label{lblidx,1}));
+        for lblidx=1:size(xc_s1.label,1)
+            wfidx=find(wfstats(:,1)==str2double(xc_s1.label{lblidx,1}));
             if ~isempty(wfidx)
-                xc.label{lblidx,2}=wfstats(wfidx,:);
+                xc_s1.label{lblidx,2}=wfstats(wfidx,:);
                 raw_wf_file=fullfile(replace(folder,'D:\neupix\DataSum','D:\neupix\WF\neuropixel'),'waveform.mat');
                 raw_fstr=load(raw_wf_file);
                 raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
-                xc.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
+                xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
+                %% prefered sample, reg,
+                suid=find(strcmp(sufs.textdata,folder) & sufs.data==str2double(xc_s1.label{lblidx,1}));
+                % sust, transient, switched, unclassified, early_in_6s,
+                % late_in_6s, 7X prefer_s
+                prefered_sample=sus_trans(suid,7:end);
+                reg=regexp(reg_list{suid},'(\w|\d)+','match','once');
+                xc_s1.label{lblidx,4}=prefered_sample;
+                xc_s1.label{lblidx,5}=reg;
+%%                
             end
         end
     else
         continue
     end
-    sums(end+1,:)={i,folder,sustIds,transIds,xc};
-    save('XCORR_delay.mat','sums')
-    
+    sums(end+1,:)={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2};
+    save(sprintf('XCORR_delay_%d_%d_%d_2msbin.mat',delay,bin_range(1),bin_range(2)),'sums','-v7.3')
+	fprintf('%d of %d\n',i,length(supool))
+    pause(10)
 end
-% save('x_corr_delay.mat','sufs','tfs','counter')
 
+return 
 
 function [avail,out]=pre_process(folder,sustIds,transIds)
 sps=30000;
@@ -128,21 +145,38 @@ end
 end
 
 
-function Xc=plotxcorr(spikeTrials)
+function [Xc_S1,Xshuff_S1,Xc_S2,Xshuff_S2]=plotxcorr(spikeTrials,delay,bin_range)
+% https://www.nature.com/articles/nn799
+% A role for inhibition in shaping the temporal flow of information in prefrontal cortex
+% Christos Constantinidis, Graham V. Williams & Patricia S. Goldman-Rakic 
+% Nature Neuroscience volume 5, pages175–180(2002)
+% 
+% Neuron, Volume 76
+% Functional Microcircuit Recruited during Retrieval of Object Association Memory in Monkey Perirhinal Cortex
+% Toshiyuki Hirabayashi, Daigo Takeuchi, Keita Tamura, and Yasushi Miyashita
+
+
 cfg             = [];
-cfg.maxlag      = 0.02; % maximum 50 ms
-cfg.binsize     = 0.0005; % bins of 0.5 ms
+cfg.maxlag      = 0.1; % maximum 100 ms
+cfg.binsize     = 0.002; % bins of 2 ms
 cfg.outputunit  = 'raw'; % make unit area
-cfg.latency     = [1 5];
-cfg.vartriallen = 'yes'; % do not allow variable trial lengths
-cfg.method      = 'xcorr'; % compute the normal cross-correlogram
+cfg.latency     = bin_range; % time bin based on sample onset
+cfg.vartriallen = 'no'; % allow variable trial lengths
 cfg.debias      = 'no';
-Xc = ft_spike_xcorr(cfg,spikeTrials);
 
+cfg.trials      = find(spikeTrials.trialinfo(:,5)==4 & spikeTrials.trialinfo(:,8)==delay);
+cfg.method      = 'xcorr'; % compute the normal cross-correlogram
+Xc_S1 = ft_spike_xcorr(cfg,spikeTrials);
+cfg.method      = 'shiftpredictor'; % compute the shift predictor
+Xshuff_S1 = ft_spike_xcorr(cfg,spikeTrials);
+
+
+cfg.trials      = find(spikeTrials.trialinfo(:,5)==8 & spikeTrials.trialinfo(:,8)==delay);
+cfg.method      = 'xcorr'; % compute the normal cross-correlogram
+Xc_S2 = ft_spike_xcorr(cfg,spikeTrials);
+cfg.method      = 'shiftpredictor'; % compute the shift predictor
+Xshuff_S2 = ft_spike_xcorr(cfg,spikeTrials);
 % compute the shuffled correlogram
-% cfg.method      = 'shiftpredictor'; % compute the shift predictor
-% Xshuff = ft_spike_xcorr(cfg,spikeTrials);
-
 end
 
 
@@ -225,8 +259,6 @@ function misc()
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % for all stats
 
-
-
 for i=1:size(y,1)
     y{i,12}=sums{y{i,1},2};
 end
@@ -240,7 +272,7 @@ end
 
 
 sufs=importdata('su_list.csv',',');
-tfs=importdata('transient_6.csv');
+
 
 for i=1:size(y,1)
     path=y{i,12};
