@@ -22,6 +22,7 @@ import per_second_stats
 from multiprocessing import Pool
 from matplotlib import rcParams
 import csv
+from sus_transient_decoding import ctd_actual, ctd_correct_error
 
 
 class ctd_stats:
@@ -236,93 +237,31 @@ def same_time_decoding(denovo, n_sel, delay=3, limit_bins=None):
     fh.savefig("same_time_decoding.png", dpi=300, bbox_inches="tight")
 
 
-def cross_time_decoding_old(features_per_su, n_sel, delay=3, limit_bins=None, reg_name="All"):
-    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
-
-    scaler = MinMaxScaler()
-    avail_sel = [(x[keys[0]].shape[1] >= n_sel and x[keys[1]].shape[1] >= n_sel) for x in features_per_su]
-
-    if sum(avail_sel) < 10:
-        print("Not enough SU with suffcient trials")
-        return None
-
-    clf = SVC(kernel="linear")  # bins, trials
-
-    if limit_bins is None:
-        limit_bins = features_per_su[0][keys[0]].shape[0]
-
-    score_mat = np.zeros((limit_bins, limit_bins))
-    for template_bin_idx in range(limit_bins):
-        X1 = np.vstack(
-            tuple([su[keys[0]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
-        ).T
-        X2 = np.vstack(
-            tuple([su[keys[1]][template_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
-        ).T
-        y1 = np.ones((X1.shape[0]))
-        y2 = np.zeros_like(y1)
-        y = np.hstack((y1, y2))
-        # y_shuf=y.copy()
-        # rng.shuffle(y_shuf)
-        template_X = scaler.fit_transform(np.vstack((X1, X2)))
-        clf.fit(template_X, y)
-        for test_bin_idx in range(limit_bins):
-            XX1 = np.vstack(
-                tuple([su[keys[0]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
-            ).T
-            XX2 = np.vstack(
-                tuple([su[keys[1]][test_bin_idx, :n_sel] for (su, tf) in zip(features_per_su, avail_sel) if tf])
-            ).T
-
-            test_X = scaler.fit_transform(np.vstack((XX1, XX2)))
-            score_mat[template_bin_idx, test_bin_idx] = clf.score(test_X, y)
-
-    score_mat = score_mat * 100
-    (fh, ax) = plt.subplots()
-    im = plt.imshow(score_mat, cmap="jet", aspect="auto", origin="lower", vmin=50, vmax=100)
-    plt.colorbar(im, ticks=[50, 75, 100], format="%d")
-    suffix = None
-    if delay == 3:
-        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
-        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 27.5, 31.5]]
-        suffix = "3S"
-    else:
-        [ax.axvline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
-        [ax.axhline(x, lw=0.5, ls=":", c="w") for x in [11.5, 15.5, 39.5, 43.5]]
-        suffix = "6S"
-
-    ax.set_xticks([11.5, 31.5, 51.5])
-    ax.set_xticklabels([0, 5, 10])
-    ax.set_xlabel("Time (s)")
-    ax.set_yticks([11.5, 31.5, 51.5])
-    ax.set_yticklabels([0, 5, 10])
-    ax.set_ylabel("Time (s)")
-    ax.set_title(f"{reg_name} CTD {suffix} delay")
-    fh.savefig(f"cross_time_decoding_{suffix}_{reg_name}.png", dpi=300, bbox_inches="tight")
-    np.save(f"score_mat_{suffix}_{reg_name}.npy", score_mat)
-    return score_mat
-
-    ### disabled due to missing trials
-    # availErrTrials=[]
-    # for su in features_per_su:
-    #     availErrTrials.append([su['S1_3_ERR'].shape[1],su['S2_3_ERR'].shape[1],su['S1_6_ERR'].shape[1],su['S2_6_ERR'].shape[1]])
-
-
 def cross_time_decoding(
-        trans_feat, to_plot=False, n_neuron=50, delay=6, repeats=10, decoder="SVC", reg="RND",
+        trans_feat, to_plot=False, n_neuron=50, delay=6, repeats=10, decoder="SVC", reg="RND", correct_error=None
 ):
     # baseline_WRS_p3_p6 = baseline_statstics(features_per_su)
     # wrs_p = baseline_WRS_p3_p6[:, 0] if delay == 3 else baseline_WRS_p3_p6[:, 1]
-
-    (avail, decode_mat, actual_number) = ctd_actual(
-        trans_feat,
-        n_neuron=n_neuron,
-        n_trial=(20, 25),
-        delay=delay,
-        bin_range=np.arange(8, 40),
-        decoder=decoder,
-        repeats=repeats,
-    )
+    if correct_error is None:
+        (avail, decode_mat, actual_number) = ctd_actual(
+            trans_feat,
+            n_neuron=n_neuron,
+            n_trial=(20, 25),
+            delay=delay,
+            bin_range=np.arange(8, 40),
+            decoder=decoder,
+            repeats=repeats,
+        )
+    else:
+        (avail, decode_mat, actual_number) = ctd_correct_error(
+            trans_feat,
+            n_neuron=n_neuron,
+            n_trial=(20, 25, 2, 4),
+            template_delay=6,
+            bin_range=np.arange(8, 40),
+            decoder=decoder,
+            repeats=repeats,
+        )
 
     if not avail:
         return (False, reg, None)
@@ -332,7 +271,7 @@ def cross_time_decoding(
 
         # ax.set_ylabel("template time (s)")
         # ax[1].set_title("50 transient SU")
-        im2 = ax.imshow(np.array(decode_mat).mean(axis=0), cmap="jet", aspect="auto", origin="lower", vmin=0, vmax=100)
+        im2 = ax.imshow(np.array(decode_mat).mean(axis=0), cmap="jet", aspect="auto", origin="lower", vmin=25, vmax=75)
         # plt.colorbar(im2, ticks=[0, 50, 100], format="%d")
         ax.tick_params(direction='in', length=2, width=0.5, colors='k')
         ax.set_xticks([3.5, 23.5])
@@ -348,93 +287,21 @@ def cross_time_decoding(
             [ax.axhline(x, color="k", ls=":", lw=0.5) for x in [3.5, 7.5]]
             [ax.axvline(x, color="k", ls=":", lw=0.5) for x in [3.5, 7.5]]
 
-        fig.savefig(f"ctd_{delay}_{repeats}_{reg}_{decoder}.pdf", bbox_inches="tight")
-        fig.savefig(f"ctd_{delay}_{repeats}_{reg}_{decoder}.png", bbox_inches="tight")
+        if correct_error is None:
+            suffix=''
+        else:
+            suffix='_error'
 
-        plt.show()
+        fig.savefig(f"ctd_{suffix}{delay}_{repeats}_{reg}_{decoder}.pdf", bbox_inches="tight")
+        fig.savefig(f"ctd_{suffix}{delay}_{repeats}_{reg}_{decoder}.png", bbox_inches="tight")
+
+        if rcParams['backend'] != 'pdf':
+            plt.show()
     return (True, reg, decode_mat, actual_number)
 
 
-def ctd_actual(features_per_su, n_neuron=50, n_trial=(20, 25), delay=6, bin_range=None, decoder="MCC", repeats=20):
-    keys = ["S1_3", "S2_3"] if delay == 3 else ["S1_6", "S2_6"]
-    avail_sel = [(x[keys[0]].shape[1] >= n_trial[1] and x[keys[1]].shape[1] >= n_trial[1]) for x in features_per_su]
-
-    if n_neuron is None:
-        pass
-    elif sum(avail_sel) < n_neuron:
-        print("Not enough SU with suffcient trials")
-        return (False, None, sum(avail_sel))
-
-    # bins, trials
-    if bin_range is None:
-        bin_range = np.arange(features_per_su[0][keys[0]].shape[0])
-
-    scaler = MinMaxScaler()
-    if decoder == "MCC":
-        if n_neuron is None:
-            clf = MaximumCorrelationClassifier(sum(avail_sel))
-        else:
-            clf = MaximumCorrelationClassifier(n_neuron)
-    elif decoder == "SVC":
-        clf = SVC(kernel="linear")
-
-    kf = KFold(10)
-    one_cv = []
-    for i in range(repeats):
-        if n_neuron is None:
-            su_index = np.nonzero(avail_sel)[0]
-        else:
-            su_index = np.random.choice(np.nonzero(avail_sel)[0], n_neuron, replace=False)
-
-        su_selected_features = [features_per_su[i] for i in su_index]
-        X1 = []
-        X2 = []
-        trial_to_select = np.random.choice(n_trial[1], n_trial[0], replace=False)
-        for one_su in su_selected_features:
-            X1.append([one_su[keys[0]][bin_range, t] for t in trial_to_select])
-            X2.append([one_su[keys[1]][bin_range, t] for t in trial_to_select])
-
-        X1 = np.array(X1).transpose((1, 0, 2))
-        X2 = np.array(X2).transpose((1, 0, 2))  # trial, SU, bin
-
-        for (templates, tests) in kf.split(X1):
-            score_mat = np.ones((bin_range.shape[0], bin_range.shape[0]))
-            for template_bin_idx in np.arange(bin_range.shape[0]):
-                X_templates = np.vstack((X1[templates, :, template_bin_idx], X2[templates, :, template_bin_idx]))
-                y_templates = np.hstack((np.ones_like(templates) * -1, np.ones_like(templates) * 1)).T
-                # np.random.shuffle(y_templates)
-                scaler = scaler.fit(X_templates)
-                X_templates = scaler.transform(X_templates)
-                clf.fit(X_templates, y_templates)
-                for test_bin_idx in np.arange(bin_range.shape[0]):
-                    X_test = np.vstack((X1[tests, :, test_bin_idx], X2[tests, :, test_bin_idx]))
-                    y_test = np.hstack((np.ones_like(tests) * -1, np.ones_like(tests) * 1)).T
-                    # y_shuf=y.copy()
-                    # rng.shuffle(y_shuf)
-                    X_test = scaler.transform(X_test)
-                    if decoder == "MCC":
-                        score_mat[template_bin_idx, test_bin_idx] = np.mean(
-                            np.hstack(
-                                (
-                                    clf.predict(X1[tests, :, test_bin_idx]) <= 0,
-                                    clf.predict(X2[tests, :, test_bin_idx]) > 0,
-                                )
-                            )
-                        )
-                    else:
-                        score_mat[template_bin_idx, test_bin_idx] = clf.score(X_test, y_test)
-
-            score_mat = score_mat * 100
-            one_cv.append(score_mat)
-    if n_neuron is None:
-        actual_number = sum(avail_sel)
-    else:
-        actual_number = n_neuron
-
-    return (True, one_cv, actual_number)
-
-
-def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neuron=50,decoder="SVC"):
+def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neuron=50, decoder="SVC",
+            correct_error=None):
     # be noted n_sel was not used until later stage, e.g. saved dataset is complete
     (features_per_su, reg_list) = get_dataset(denovo)
     trans_fstr = np.load(f"sus_trans_pie_{delay}.npz")
@@ -451,7 +318,7 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neur
     reg_count = [[reg, np.sum(np.logical_and([x == reg for x in reg_list], trans))] for reg in reg_set]
 
     reg_set = [x[0] for x in reg_count if x[1] >= 50]
-    if proc_n>1:
+    if proc_n > 1:
         curr_pool = Pool(processes=proc_n)
 
     all_proc = []
@@ -460,45 +327,52 @@ def ctd_par(denovo=False, delay=6, proc_n=2, repeats=2, only_trans=False, n_neur
     # )
 
     for reg_idx in range(len(reg_set)):
+
         if only_trans:
             curr_feat_su = [f for (f, reg, t) in zip(features_per_su, reg_list, trans) if
                             (reg == reg_set[reg_idx] and t)]
         else:
             curr_feat_su = [f for (f, reg) in zip(features_per_su, reg_list) if reg == reg_set[reg_idx]]
-            
+
         # trans_feat, to_plot=False, delay=6, repeats=10, decoder="SVC", reg="RND",
-        if proc_n>1:
+        if proc_n > 1:
             all_proc.append(
                 curr_pool.apply_async(
                     cross_time_decoding,
                     args=(curr_feat_su,),
                     kwds={"to_plot": True, "n_neuron": n_neuron, "delay": delay, "repeats": repeats, "decoder": decoder,
-                          "reg": reg_set[reg_idx], },
+                          "reg": reg_set[reg_idx], "correct_error": ctd_correct_error, },
                 )
             )
         else:
-            (avail,reg,decode_mat,actual_number)=cross_time_decoding(curr_feat_su,
-                 to_plot=True, n_neuron=n_neuron, delay=delay, repeats=repeats,
-                 reg=reg_set[reg_idx]
-                )
+            (avail, reg, decode_mat, actual_number) = cross_time_decoding(curr_feat_su,
+                                                                          to_plot=True, n_neuron=n_neuron, delay=delay,
+                                                                          repeats=repeats,
+                                                                          reg=reg_set[reg_idx],
+                                                                          correct_error=ctd_correct_error,
+                                                                          )
             decode_mat_all.append(decode_mat)
             actual_number_all.append(actual_number)
 
         # print("set")
-    if proc_n>1:
+    if proc_n > 1:
         for one_proc in all_proc:
             (avail, reg, decode_mat, actual_number) = one_proc.get()
             decode_mat_all.append(decode_mat)
             actual_number_all.append(actual_number)
             # print("get")
-    
         curr_pool.close()
         curr_pool.join()
 
     decode_avail = [x for x in decode_mat_all if x is not None]
     reg_set_avail = [reg_set[i] for i in range(len(decode_mat_all)) if decode_mat_all[i] is not None]
     actual_number_avail = [actual_number_all[i] for i in range(len(decode_mat_all)) if decode_mat_all[i] is not None]
-    np.savez_compressed(f"per_region_ctd_{delay}_{repeats}_{decoder}.npz", decode_mat=decode_avail, reg_set=reg_set_avail,
+    if correct_error is None:
+        suffix = ''
+    else:
+        suffix = '_error'
+    np.savez_compressed(f"per_region_ctd_{delay}_{repeats}_{decoder}{suffix}.npz", decode_mat=decode_avail,
+                        reg_set=reg_set_avail,
                         actual_number=actual_number_avail)
 
     return [reg_set, decode_mat_all]
@@ -509,7 +383,7 @@ def per_region_corr():
     # list(fstr.keys())
     # Out[3]: ['trans50', 'reg_set']
     decode_mat = fstr['decode_mat']
-    actual_number=fstr['actual_number']
+    actual_number = fstr['actual_number']
     reg_set = fstr['reg_set']
     reg_list = reg_set.tolist()
 
@@ -530,21 +404,21 @@ def per_region_corr():
 
     reg_dist_arr = np.array(reg_dist)
     for tidx in range(decode_mat.shape[0]):
-        reg_dist[tidx].insert(0,actual_number[tidx])
-        reg_dist[tidx].insert(0,reg_list[tidx])
-    
+        reg_dist[tidx].insert(0, actual_number[tidx])
+        reg_dist[tidx].insert(0, reg_list[tidx])
+
     with open("all_neuron_decoding.csv", "w", newline="") as cf:
         cwriter = csv.writer(cf, dialect="excel")
         for row in reg_dist:
             cwriter.writerow(row)
-    
+
     (fig, ax) = plt.subplots(1, 1, figsize=(17 / 2.54, 8 / 2.54), dpi=300)
 
     for tidx in range(decode_mat.shape[0]):
         ax.plot(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], 'r.')
         ax.text(reg_dist_arr[tidx, 0], reg_dist_arr[tidx, 1], f'{reg_list[tidx]}')
         # plt.text(tidx,tidx,'test')
-    ax.plot([0,100],[0,100],'--k',lw=0.5)        
+    ax.plot([0, 100], [0, 100], '--k', lw=0.5)
     ax.set_xlim([50, 90])
     ax.set_ylim([50, 80])
     ax.set_xlabel('early delay decoding accuracy')
@@ -552,7 +426,8 @@ def per_region_corr():
     ax.set_xticks([50, 60, 70, 80, 90])
     ax.set_yticks([50, 60, 70, 80])
     fig.savefig('per_region_early_late.pdf', bbox_inches='tight')
-    plt.show()
+    if rcParams['backend'] != 'pdf':
+        plt.show()
 
     (fig, ax) = plt.subplots(1, 1, figsize=(17 / 2.54, 8 / 2.54), dpi=300)
 
@@ -560,7 +435,7 @@ def per_region_corr():
         ax.plot(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], 'r.')
         ax.text(reg_dist_arr[tidx, 2], reg_dist_arr[tidx, 3], f'{reg_list[tidx]}')
         # plt.text(tidx,tidx,'test')
-    ax.plot([0,100],[0,100],'--k',lw=0.5)        
+    ax.plot([0, 100], [0, 100], '--k', lw=0.5)
     ax.set_xlim([50, 80])
     ax.set_ylim([50, 80])
     ax.set_xlabel('diagonal decoding accuracy')
@@ -568,15 +443,19 @@ def per_region_corr():
     ax.set_xticks([50, 60, 70, 80])
     ax.set_yticks([50, 60, 70, 80])
     fig.savefig('per_region_diag_off.pdf', bbox_inches='tight')
-    plt.show()
+    if rcParams['backend'] != 'pdf':
+        plt.show()
 
 
 if __name__ == "__main__":
+    # rcParams['backend'] = 'pdf'
     rcParams['pdf.fonttype'] = 42
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
+
     # (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=2)
-    # (reg_set, trans50) = ctd_par(denovo=False, delay=6, proc_n=8, repeats=100, only_trans=False, n_neuron=None,decoder="SVC")
-    per_region_corr()
+    (reg_set, all_su) = ctd_par(denovo=False, delay=6, proc_n=64, repeats=100, only_trans=False, n_neuron=None,
+                                decoder="SVC", correct_error='error')
+    # per_region_corr()
     # per_region_corr()
