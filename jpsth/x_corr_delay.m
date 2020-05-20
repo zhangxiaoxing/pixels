@@ -1,22 +1,24 @@
 %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 %  chan2. Thus, a negative lag represents a spike in the second dimension of
 %  stat.xcorr before the channel in the third dimension of stat.stat.
-% delay=6;
-% bin_range=[1 2];
-% addpath(fullfile('npy-matlab-master','npy-matlab'))
-% addpath('fieldtrip-20200320')
-% ft_defaults
-% % tfs=importdata('transient_6.csv');
-% sus_trans=h5read('../transient_6.hdf5','/sus_trans');
-% reg_list=h5read('../transient_6.hdf5','/reg');
-% sufs=importdata('su_list.csv',',');
-% 
-% sust=find(sus_trans(:,1));
-% trans=find(sus_trans(:,2));
-% supool=[sust;trans]';
-% counter=[];
-% done=[];
-for i=5:length(supool)
+homedir='/home/zx';
+currmodel='error';
+delay=6;
+bin_range=[1 2];
+addpath(fullfile('npy-matlab-master','npy-matlab'))
+addpath('fieldtrip-20200320')
+ft_defaults
+% tfs=importdata('transient_6.csv');
+sus_trans=h5read('../transient_6.hdf5','/sus_trans');
+reg_list=h5read('../transient_6.hdf5','/reg');
+sufs=importdata('su_list.csv',',');
+
+sust=find(sus_trans(:,1));
+trans=find(sus_trans(:,2));
+supool=[sust;trans]';
+counter=[];
+done=[];
+for i=1:length(supool)
     if ismember(supool(i),done)
         continue
     end
@@ -24,7 +26,7 @@ for i=5:length(supool)
 %         return
 %     end
     folder=sufs.textdata{supool(i)};
-    wffile=fullfile(replace(replace(folder,'D:','/home/zx'),'\','/'),'wf_stats.hdf5');
+    wffile=fullfile(replace(replace(folder,'D:',homedir),'\','/'),'wf_stats.hdf5');% posix
     if isfile(wffile)
         sustIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,1));
         transIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,2));
@@ -35,7 +37,7 @@ for i=5:length(supool)
         if transCount<1
             continue
         end
-        [avail,spktrial]=pre_process(replace(replace(folder,'D:','/home/zx'),'\','/'),sustIds,transIds);
+        [avail,spktrial]=pre_process(replace(replace(folder,'D:',homedir),'\','/'),sustIds,transIds,currmodel); % posix
         if avail
             [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
         end
@@ -46,7 +48,7 @@ for i=5:length(supool)
             wfidx=find(wfstats(:,1)==str2double(xc_s1.label{lblidx,1}));
             if ~isempty(wfidx)
                 xc_s1.label{lblidx,2}=wfstats(wfidx,:);
-                raw_wf_file=fullfile(replace(replace(folder,'D:\neupix\DataSum','/home/zx/neupix/WF/neuropixel'),'\','/'),'waveform.mat');
+                raw_wf_file=fullfile(replace(replace(folder,'D:\neupix\DataSum',[homedir,'/neupix/WF/neuropixel']),'\','/'),'waveform.mat'); %posix
                 raw_fstr=load(raw_wf_file);
                 raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
                 xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
@@ -64,16 +66,16 @@ for i=5:length(supool)
     else
         continue
     end
-    sums={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2};
-    save(sprintf('all_su_XCORR_f%d_delay_%d_%d_%d_2msbin.mat',i,delay,bin_range(1),bin_range(2)),'sums','-v7.3')
+    sums={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
+    save(sprintf('%s_XCORR_f%d_delay_%d_%d_%d_2msbin.mat',currmodel,i,delay,bin_range(1),bin_range(2)),'sums','-v7.3') %prefix
  	fprintf('%d of %d\n',i,length(supool))
 end
 
 return 
 
-function [avail,out]=pre_process(folder,sustIds,transIds)
+function [avail,out]=pre_process(folder,sustIds,transIds,model)
 sps=30000;
-trials=clearBadPerf(h5read(fullfile(folder,'events.hdf5'),'/trials')');
+trials=clearBadPerf(h5read(fullfile(folder,'events.hdf5'),'/trials')',model);
 if isempty(trials)
     avail=false;
     out=[];
@@ -82,21 +84,23 @@ end
 
 %     trials=double(trials);
 %     info=[trials(:,1)/s1s,trials(:,2)/s1s,trials(:,5),trials(:,6),trials(:,7),trials(:,8)];
+if strcmp(model, 'full')
+    rootpath=folder;
+    s1s=30000;
+    FR_Th=1.0;
 
-rootpath=folder;
-s1s=30000;
-FR_Th=1.0;
-
-metaf=strtrim(ls(fullfile(rootpath,'*.meta')));
-fh=fopen(metaf);
-ts=textscan(fh,'%s','Delimiter',{'\n'});
-nSample=str2double(replace(ts{1}{startsWith(ts{1},'fileSizeBytes')},'fileSizeBytes=',''));
-spkNThresh=nSample/385/s1s/2*FR_Th;
-clusterInfo = readtable(fullfile(rootpath,'cluster_info.tsv'),'FileType','text','Delimiter','tab');
-waveformGood=strcmp(clusterInfo{:,4},'good');
-freqGood=clusterInfo{:,10}>spkNThresh;
-cluster_ids = table2array(clusterInfo(waveformGood & freqGood,1));
-% cluster_ids=[sustIds;transIds];
+    metaf=strtrim(ls(fullfile(rootpath,'*.meta')));
+    fh=fopen(metaf);
+    ts=textscan(fh,'%s','Delimiter',{'\n'});
+    nSample=str2double(replace(ts{1}{startsWith(ts{1},'fileSizeBytes')},'fileSizeBytes=',''));
+    spkNThresh=nSample/385/s1s/2*FR_Th;
+    clusterInfo = readtable(fullfile(rootpath,'cluster_info.tsv'),'FileType','text','Delimiter','tab');
+    waveformGood=strcmp(clusterInfo{:,4},'good');
+    freqGood=clusterInfo{:,10}>spkNThresh;
+    cluster_ids = table2array(clusterInfo(waveformGood & freqGood,1));
+else
+    cluster_ids=[sustIds;transIds];
+end
 
 %  single-unit candidate
 
@@ -125,21 +129,29 @@ end
 
 
 
-function out=clearBadPerf(facSeq)
-
-if length(facSeq)>=40
-    facSeq(:,9)=0;
-    i=40;
-    while i<=length(facSeq)
-        goodOff=nnz(xor(facSeq(i-39:i,5)==facSeq(i-39:i,6) , facSeq(i-39:i,7)>0));
-        if goodOff>=30 %.75 correct rate
-            facSeq(i-39:i,9)=1;
-        end
-        i=i+1;
+function out=clearBadPerf(facSeq, model)
+if strcmp(model, 'error')
+    if length(facSeq)>=40
+        errorsel=~xor(facSeq(:,5)==facSeq(:,6) , facSeq(:,7)>0);
+        out=facSeq(errorsel,:);
+    else
+        out=[];
     end
-    out=facSeq(facSeq(:,9)==1,:);
 else
-    out=[];
+    if length(facSeq)>=40
+        facSeq(:,9)=0;
+        i=40;
+        while i<=length(facSeq)
+            goodOff=nnz(xor(facSeq(i-39:i,5)==facSeq(i-39:i,6) , facSeq(i-39:i,7)>0));
+            if goodOff>=30 %.75 correct rate
+                facSeq(i-39:i,9)=1;
+            end
+            i=i+1;
+        end
+        out=facSeq(facSeq(:,9)==1,:);
+    else
+        out=[];
+    end
 end
 end
 
@@ -148,7 +160,7 @@ function [Xc_S1,Xshuff_S1,Xc_S2,Xshuff_S2]=plotxcorr(spikeTrials,delay,bin_range
 % https://www.nature.com/articles/nn799
 % A role for inhibition in shaping the temporal flow of information in prefrontal cortex
 % Christos Constantinidis, Graham V. Williams & Patricia S. Goldman-Rakic 
-% Nature Neuroscience volume 5, pages175�180(2002)
+% Nature Neuroscience volume 5, pages175-180(2002)
 % 
 % Neuron, Volume 76
 % Functional Microcircuit Recruited during Retrieval of Object Association Memory in Monkey Perirhinal Cortex
@@ -164,17 +176,26 @@ cfg.vartriallen = 'no'; % allow variable trial lengths
 cfg.debias      = 'no';
 
 cfg.trials      = find(spikeTrials.trialinfo(:,5)==4 & spikeTrials.trialinfo(:,8)==delay);
-cfg.method      = 'xcorr'; % compute the normal cross-correlogram
-Xc_S1 = ft_spike_xcorr(cfg,spikeTrials);
-cfg.method      = 'shiftpredictor'; % compute the shift predictor
-Xshuff_S1 = ft_spike_xcorr(cfg,spikeTrials);
-
+if numel(cfg.trials)<2
+    Xc_S1=[];
+    Xshuff_S1=[];
+else
+    cfg.method      = 'xcorr'; % compute the normal cross-correlogram
+    Xc_S1 = ft_spike_xcorr(cfg,spikeTrials);
+    cfg.method      = 'shiftpredictor'; % compute the shift predictor
+    Xshuff_S1 = ft_spike_xcorr(cfg,spikeTrials);
+end
 
 cfg.trials      = find(spikeTrials.trialinfo(:,5)==8 & spikeTrials.trialinfo(:,8)==delay);
-cfg.method      = 'xcorr'; % compute the normal cross-correlogram
-Xc_S2 = ft_spike_xcorr(cfg,spikeTrials);
-cfg.method      = 'shiftpredictor'; % compute the shift predictor
-Xshuff_S2 = ft_spike_xcorr(cfg,spikeTrials);
+if numel(cfg.trials)<2
+    Xc_S2=[];
+    Xshuff_S2=[];
+else
+    cfg.method      = 'xcorr'; % compute the normal cross-correlogram
+    Xc_S2 = ft_spike_xcorr(cfg,spikeTrials);
+    cfg.method      = 'shiftpredictor'; % compute the shift predictor
+    Xshuff_S2 = ft_spike_xcorr(cfg,spikeTrials);
+end
 % compute the shuffled correlogram
 end
 
