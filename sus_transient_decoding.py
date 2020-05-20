@@ -610,7 +610,9 @@ def ctd_correct_error(features_per_su, n_neuron=300, n_trial=(20, 25, 2, 4), tem
                           x[template_keys[0]].shape[1] >= n_trial[1]) and (x[template_keys[1]].shape[1] >= n_trial[1]
                                                                            )) for x in features_per_su]
     if n_neuron is None:
-        pass
+        if sum(avail_sel) < 10:
+            print('Not enough SU with suffcient trials')
+            return (False, None, sum(avail_sel))
     elif sum(avail_sel) < n_neuron:
         print('Not enough SU with suffcient trials')
         return (False, None, sum(avail_sel))

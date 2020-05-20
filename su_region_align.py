@@ -79,6 +79,8 @@ def get_root_path():
         dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
     elif os.path.exists(r"K:\neupix\DataSum"):
         dpath = r"K:\neupix\DataSum"
+    elif os.path.exists("/public1/home/sc51281/neupix/DataSum/"):
+        dpath = "/public1/home/sc51281/neupix/DataSum/"
     else:
         dpath = r"D:\neupix\DataSum"
 
