@@ -264,7 +264,7 @@ def cross_time_decoding(
         )
 
     if not avail:
-        return (False, reg, None)
+        return (False, reg, None, None)
 
     elif to_plot:
         (fig, ax) = plt.subplots(1, 1, figsize=[16 / 25.4, 16 / 25.4], dpi=300)

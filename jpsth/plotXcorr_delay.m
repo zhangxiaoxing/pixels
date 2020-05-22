@@ -1,9 +1,20 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
+
+fs=dir('select*delay_6_-2_-1*');
+sums=cell(0);
+for i=1:size(fs,1)
+    fprintf('%d of %d\n',i,size(fs,1));
+    fstr=load(fullfile(fs(i).folder,fs(i).name));
+    sums(end+1,:)=fstr.sums(1,:);
+end
+
+
+
 to_plot=false;
 stats=cell(0);
 thresh=norminv(0.995);
-bin_range=[1,2];
+bin_range=[-2,-1];
 for sidx=1:size(sums,1)
     xc_s1=sums{sidx,5};
     xshuf_s1=sums{sidx,6};
@@ -73,7 +84,6 @@ for sidx=1:size(sums,1)
                 AIs2=0;
             end
             
-            
             onepair.fileidx=sidx;
             onepair.su1_label_idx=si;
             onepair.su2_label_idx=sj;
@@ -100,7 +110,8 @@ for sidx=1:size(sums,1)
             onepair.prefered_sample_su2=xc_s1.label{sj,4};
             onepair.reg_su1=xc_s1.label{si,5};
             onepair.reg_su2=xc_s1.label{sj,5};
-            
+            onepair.s1_trialNum=numel(sums{sidx,5}.cfg.trials);
+            onepair.s2_trialNum=numel(sums{sidx,7}.cfg.trials);
             stats{end+1}=onepair;
             
             %TODO: plot
@@ -118,7 +129,7 @@ for sidx=1:size(sums,1)
         end
     end
 end
-save(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)),'stats','bin_range')
+save(sprintf('selective_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)),'stats','bin_range')
 % autoCount=sum(strcmp(stats(:,5),'auto-corr'));
 % stCount=sum(strcmp(stats(:,4),'sust') & strcmp(stats(:,5),'transient'));
 % stCount50=sum(strcmp(stats(:,4),'sust') & strcmp(stats(:,5),'transient') & cell2mat(stats(:,6))>=50);
@@ -158,33 +169,58 @@ save(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)),'
 
 
 
-conn_dirs=cell(0,4);
+c_conn_dirs=cell(0,4);
 tbin=1;
-for pidx=1:length(stats)
-    onepair=stats{pidx};
+for pidx=1:length(cfstr.stats)
+    onepair=cfstr.stats{pidx};
     if onepair.prefered_sample_su1(tbin+1)>0 && onepair.prefered_sample_su2(tbin+1)>0 &&...
         onepair.s1_peak_significant && ~strcmp(onepair.reg_su1,onepair.reg_su2) && ...
             ~strcmp(onepair.reg_su1,'Unlabeled') && ~strcmp(onepair.reg_su2,'Unlabeled')
         if onepair.AIs1>0
-            conn_dirs(end+1,:)={onepair.reg_su1,onepair.reg_su2,onepair.AIs1,onepair.totalcount};
+            c_conn_dirs(end+1,:)={onepair.reg_su1,onepair.reg_su2,onepair.AIs1,onepair.totalcount};
         elseif onepair.AIs1<0  %=0 is possible
-            conn_dirs(end+1,:)={onepair.reg_su2,onepair.reg_su1,-onepair.AIs1,onepair.totalcount};
+            c_conn_dirs(end+1,:)={onepair.reg_su2,onepair.reg_su1,-onepair.AIs1,onepair.totalcount};
+        end
+    end
+end
+
+e_conn_dirs=cell(0,4);
+tbin=1;
+for pidx=1:length(efstr.stats)
+    onepair=efstr.stats{pidx};
+    if onepair.prefered_sample_su1(tbin+1)>0 && onepair.prefered_sample_su2(tbin+1)>0 &&...
+        onepair.s1_peak_significant && ~strcmp(onepair.reg_su1,onepair.reg_su2) && ...
+            ~strcmp(onepair.reg_su1,'Unlabeled') && ~strcmp(onepair.reg_su2,'Unlabeled')
+        if onepair.AIs1>0
+            e_conn_dirs(end+1,:)={onepair.reg_su1,onepair.reg_su2,onepair.AIs1,onepair.totalcount};
+        elseif onepair.AIs1<0  %=0 is possible
+            e_conn_dirs(end+1,:)={onepair.reg_su2,onepair.reg_su1,-onepair.AIs1,onepair.totalcount};
         end
     end
 end
 
 
-reg_set=unique([conn_dirs(:,1);conn_dirs(:,2)]);
-conn_mat=zeros(length(reg_set),length(reg_set));
+reg_set=unique([c_conn_dirs(:,1);c_conn_dirs(:,2)]);
+c_conn_mat=zeros(length(reg_set),length(reg_set));
+e_conn_mat=zeros(length(reg_set),length(reg_set));
 
-for i=1:length(conn_dirs)
-    conn_from_idx=find(strcmp(conn_dirs{i,1},reg_set));
-    conn_to_idx=find(strcmp(conn_dirs{i,2},reg_set));
-    conn_mat(conn_from_idx,conn_to_idx)=conn_mat(conn_from_idx,conn_to_idx)+1;
+for i=1:length(c_conn_dirs)
+    conn_from_idx=find(strcmp(c_conn_dirs{i,1},reg_set));
+    conn_to_idx=find(strcmp(c_conn_dirs{i,2},reg_set));
+    c_conn_mat(conn_from_idx,conn_to_idx)=c_conn_mat(conn_from_idx,conn_to_idx)+1;
 end
 
-figure('Color','w')
-imagesc(conn_mat)
+
+for i=1:length(e_conn_dirs)
+    conn_from_idx=find(strcmp(c_conn_dirs{i,1},reg_set));
+    conn_to_idx=find(strcmp(c_conn_dirs{i,2},reg_set));
+    e_conn_mat(conn_from_idx,conn_to_idx)=e_conn_mat(conn_from_idx,conn_to_idx)+1;
+end
+
+
+fh=figure('Color','w');
+subplot(1,2,1)
+imagesc(c_conn_mat)
 colormap('jet')
 set(gca(),'XTick',1:length(reg_set),'XTickLabel',reg_set,'XTickLabelRotation',90,...
     'YTick',1:length(reg_set),'YTickLabel',reg_set)
@@ -192,28 +228,80 @@ xlabel('target')
 ylabel('source')
 xlim([-0.5,length(reg_set)+0.5])
 ylim([-0.5,length(reg_set)+0.5])
-colorbar
-print(sprintf('fullmap_%d_%d.png',bin_range(1),bin_range(2)),'-dpng')
+title('correct trials');
 
-coremap=conn_mat;
+subplot(1,2,2)
+imagesc(e_conn_mat)
+colormap('jet')
+set(gca(),'XTick',1:length(reg_set),'XTickLabel',reg_set,'XTickLabelRotation',90,...
+    'YTick',1:length(reg_set),'YTickLabel',reg_set)
+xlabel('target')
+ylabel('source')
+xlim([-0.5,length(reg_set)+0.5])
+ylim([-0.5,length(reg_set)+0.5])
+title('error trials');
+colorbar
+set(fh,'visible','off')
+set(fh,'PaperSize',[41,20])
+print(fh,sprintf('all_reg_corr_err_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 41 20])
+print(fh,sprintf('all_reg_corr_err_%d_%d.pngf',bin_range(1),bin_range(2)),'-dpng','-r300')
+
+
+
 keep=[];
 for i=1:length(reg_set)
-    if sum([conn_mat(i,:),conn_mat(:,i)'])>100
+    if sum([c_conn_mat(i,:),c_conn_mat(:,i)'])>100
         keep(end+1)=i;
     end
 end
-coremap=conn_mat(keep,keep)
+c_coremap=c_conn_mat(keep,keep);
+e_coremap=e_conn_mat(keep,keep);
 
-figure('Color','w')
-imagesc(coremap,[0,100])
+diff_coremap=(c_coremap-e_coremap)./(c_coremap+e_coremap);
+diff_coremap(c_coremap==e_coremap)=0;
+
+fh=figure('Color','w');
+subplot(1,3,1);
+imagesc(c_coremap,[0,100])
 colormap('jet')
-set(gca(),'XTick',1:length(coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
-    'YTick',1:length(coremap),'YTickLabel',reg_set(keep))
+set(gca(),'XTick',1:length(c_coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
+    'YTick',1:length(c_coremap),'YTickLabel',reg_set(keep))
 xlabel('target')
 ylabel('source')
-xlim([0.5,length(coremap)+0.5])
-ylim([0.5,length(coremap)+0.5])
+xlim([0.5,length(c_coremap)+0.5])
+ylim([0.5,length(c_coremap)+0.5])
+title('correct trials')
 colorbar
-print(sprintf('core_%d_%d.png',bin_range(1),bin_range(2)),'-dpng')
+
+subplot(1,3,2);
+imagesc(e_coremap,[0,100])
+colormap('jet')
+set(gca(),'XTick',1:length(e_coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
+    'YTick',1:length(e_coremap),'YTickLabel',reg_set(keep))
+xlabel('target')
+ylabel('source')
+xlim([0.5,length(e_coremap)+0.5])
+ylim([0.5,length(e_coremap)+0.5])
+title('error trials')
+colorbar
+
+subplot(1,3,3);
+imagesc(diff_coremap,[-1,1])
+colormap('jet')
+set(gca(),'XTick',1:length(e_coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
+    'YTick',1:length(e_coremap),'YTickLabel',reg_set(keep))
+xlabel('target')
+ylabel('source')
+xlim([0.5,length(e_coremap)+0.5])
+ylim([0.5,length(e_coremap)+0.5])
+title('correct-error/correct+error')
+colorbar
+
+set(fh,'visible','off')
+set(fh,'PaperSize',[12.5,4])
+print(fh,sprintf('core_corr_err_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 12.5 4])
+print(fh,sprintf('corr_corr_err_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
 
 
