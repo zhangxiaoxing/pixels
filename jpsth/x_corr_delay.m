@@ -1,68 +1,98 @@
 %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 %  chan2. Thus, a negative lag represents a spike in the second dimension of
 %  stat.xcorr before the channel in the third dimension of stat.stat.
-homedir='/home/zx';
-currmodel='error';
-delay=6;
-bin_range=[1 2];
-addpath(fullfile('npy-matlab-master','npy-matlab'))
-addpath('fieldtrip-20200320')
-ft_defaults
-% tfs=importdata('transient_6.csv');
-sus_trans=h5read('../transient_6.hdf5','/sus_trans');
-reg_list=h5read('../transient_6.hdf5','/reg');
-sufs=importdata('su_list.csv',',');
-
-sust=find(sus_trans(:,1));
-trans=find(sus_trans(:,2));
-supool=[sust;trans]';
-counter=[];
-done=[];
-for i=1:length(supool)
+% cd('~/pixels/jpsth')
+% homedir='/home/zx/neupix/wyt';
+% currmodel='selec';
+% delay=6;
+% bin_range=[1 2];
+% addpath(fullfile('npy-matlab-master','npy-matlab'))
+% addpath('fieldtrip-20200320')
+% ft_defaults
+% % tfs=importdata('transient_6.csv');
+% sus_trans=h5read('../transient_6.hdf5','/sus_trans');
+% reg_list=h5read('../transient_6.hdf5','/reg');
+% cid_list=h5read('../transient_6.hdf5','/cluster_id');
+% path_list=h5read('../transient_6.hdf5','/path');
+% 
+% sust=find(sus_trans(:,1));
+% trans=find(sus_trans(:,2));
+% supool=[sust;trans]';
+% counter=[];
+% done=[];
+for i=28:length(supool)
     if ismember(supool(i),done)
         continue
     end
 %     if i>5
 %         return
 %     end
-    folder=sufs.textdata{supool(i)};
-    wffile=fullfile(replace(replace(folder,'D:',homedir),'\','/'),'wf_stats.hdf5');% posix
+    folder=regexp(path_list{supool(i)},'(\w|\\|-)*','match','once');
+    [folderType,file,spkFolder,metaFolder]=jointFolder(folder);
+    if folderType<0
+        continue
+    end
+    wffile=fullfile(metaFolder,'wf_stats.hdf5');% posix
     if isfile(wffile)
-        sustIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,1));
-        transIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,2));
-        sameFolder=find(strcmp(sufs.textdata,folder) & (sus_trans(:,1)| sus_trans(:,2)));
-        done=[done;sameFolder];
-        sustCount=numel(sustIds);
-        transCount=numel(transIds);
+        if folderType==1
+%             sustIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,1));
+            sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1));
+%             transIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,2));
+            transIds=cid_list(startsWith(path_list,folder) & sus_trans(:,2));
+            sameFolder=find(startsWith(path_list,folder) & (sus_trans(:,1)| sus_trans(:,2)));
+            done=[done;sameFolder];
+            sustCount=numel(sustIds);
+            transCount=numel(transIds);
+        elseif folderType==2
+            fimec0=replace(folder,'imec1','imec0');
+            fimec1=replace(folder,'imec0','imec1');
+            
+            sustIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,1));
+            transIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,2));
+            
+            sustIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,1))+10000;
+            transIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,2))+10000;
+            
+            sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & (sus_trans(:,1)| sus_trans(:,2)));
+            done=[done;sameFolder];
+            
+            sustIds=[sustIds0(:);sustIds1(:)];
+            transIds=[transIds0(:);transIds1(:)];
+            
+            sustCount=numel(sustIds);
+            transCount=numel(transIds);            
+           
+        end
+        
         if transCount<1
             continue
         end
-        [avail,spktrial]=pre_process(replace(replace(folder,'D:',homedir),'\','/'),sustIds,transIds,currmodel); % posix
+        [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,currmodel); % posix
         if avail
             [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
         end
         % waveform data
         
-        wfstats=h5read(wffile,'/wf');
-        for lblidx=1:size(xc_s1.label,1)
-            wfidx=find(wfstats(:,1)==str2double(xc_s1.label{lblidx,1}));
-            if ~isempty(wfidx)
-                xc_s1.label{lblidx,2}=wfstats(wfidx,:);
-                raw_wf_file=fullfile(replace(replace(folder,'D:\neupix\DataSum',[homedir,'/neupix/WF/neuropixel']),'\','/'),'waveform.mat'); %posix
-                raw_fstr=load(raw_wf_file);
-                raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
-                xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
+%         wfstats0=h5read(wffile,'/wf');TEMP
+%         for lblidx=1:size(xc_s1.label,1)
+%             wfidx=find(wfstats(:,1)==str2double(xc_s1.label{lblidx,1}));TEMP
+%             if ~isempty(wfidx)
+%                 xc_s1.label{lblidx,2}=wfstats(wfidx,:);TEMP
+%                 raw_wf_file=fullfile(replace(replace(folder,'D:\neupix\DataSum',[homedir,'/neupix/WF/neuropixel']),'\','/'),'waveform.mat'); %posix
+%                 raw_fstr=load(raw_wf_file);
+%                 raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
+%                 xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
                 %% prefered sample, reg,
-                suid=find(strcmp(sufs.textdata,folder) & sufs.data==str2double(xc_s1.label{lblidx,1}));
+%                 suid=find(strcmp(sufs.textdata,folder) & sufs.data==str2double(xc_s1.label{lblidx,1}));
                 % sust, transient, switched, unclassified, early_in_6s,
                 % late_in_6s, 7X prefer_s
-                prefered_sample=sus_trans(suid,7:end);
-                reg=regexp(reg_list{suid},'(\w|\d)+','match','once');
-                xc_s1.label{lblidx,4}=prefered_sample;
-                xc_s1.label{lblidx,5}=reg;
+%                 prefered_sample=sus_trans(suid,7:end);
+%                 reg=regexp(reg_list{suid},'(\w|\d)+','match','once');
+%                 xc_s1.label{lblidx,4}=prefered_sample;
+%                 xc_s1.label{lblidx,5}=reg;
 %%                
-            end
-        end
+%             end
+%         end
     else
         continue
     end
@@ -72,10 +102,43 @@ for i=1:length(supool)
 end
 
 return 
+function [folderType,file,spkFolder,metaFolder]=jointFolder(folder)
+    metaFolder=replace(folder,'\','/');
+    metaFolder=fullfile('/home/zx/neupix/wyt/DataSum',metaFolder);
+    if isfolder(metaFolder)
+        spkFolder=replace(metaFolder,'imec1','imec0');
+        file=dir(fullfile(spkFolder,'spike_info.mat'));
+        if isempty(file)
+            folderType=-1;
+            file=[];
+            spkFolder=[];
+            disp('Error processing file 2-tracks');
+            disp(metaFolder);
+            pause;
+            return
+        end
+        folderType=2;
+    else
+        metaFolder=replace(metaFolder,'DataSum','DataSum/singleProbe');
+        spkFolder=metaFolder;
+        file=dir(fullfile(spkFolder,'spike_times.npy'));
+        if isempty(file)
+            folderType=-1;
+            file=[];
+            spkFolder=[];
+            disp('Error processing file 1-track');
+            disp(metaFolder);
+            pause;
+            return
+        end
+        folderType=1;        
+    end
+end
 
-function [avail,out]=pre_process(folder,sustIds,transIds,model)
+
+function [avail,out]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,model)
 sps=30000;
-trials=clearBadPerf(h5read(fullfile(folder,'events.hdf5'),'/trials')',model);
+trials=clearBadPerf(h5read(fullfile(metaFolder,'events.hdf5'),'/trials')',model);
 if isempty(trials)
     avail=false;
     out=[];
@@ -85,16 +148,15 @@ end
 %     trials=double(trials);
 %     info=[trials(:,1)/s1s,trials(:,2)/s1s,trials(:,5),trials(:,6),trials(:,7),trials(:,8)];
 if strcmp(model, 'full')
-    rootpath=folder;
     s1s=30000;
     FR_Th=1.0;
 
-    metaf=strtrim(ls(fullfile(rootpath,'*.meta')));
+    metaf=strtrim(ls(fullfile(metaFolder,'*.meta')));
     fh=fopen(metaf);
     ts=textscan(fh,'%s','Delimiter',{'\n'});
     nSample=str2double(replace(ts{1}{startsWith(ts{1},'fileSizeBytes')},'fileSizeBytes=',''));
     spkNThresh=nSample/385/s1s/2*FR_Th;
-    clusterInfo = readtable(fullfile(rootpath,'cluster_info.tsv'),'FileType','text','Delimiter','tab');
+    clusterInfo = readtable(fullfile(metaFolder,'cluster_info.tsv'),'FileType','text','Delimiter','tab');
     waveformGood=strcmp(clusterInfo{:,4},'good');
     freqGood=clusterInfo{:,10}>spkNThresh;
     cluster_ids = table2array(clusterInfo(waveformGood & freqGood,1));
@@ -104,16 +166,20 @@ end
 
 %  single-unit candidate
 
-
-spkTS=readNPY(fullfile(folder,'spike_times.npy'));
-spkId=readNPY(fullfile(folder,'spike_clusters.npy'));
-
+if folderType==1
+    spkTS=readNPY(fullfile(spkFolder,'spike_times.npy'));
+    spkId=readNPY(fullfile(spkFolder,'spike_clusters.npy'));
+elseif folderType==2
+    fstr=load(fullfile(spkFolder,'spike_info.mat'));
+    spkId=double([fstr.spike_info{1}{1};fstr.spike_info{1}{2}]);
+    spkTS=double([fstr.spike_info{2}{1};fstr.spike_info{2}{2}]);
+end
 FT_SPIKE=struct();
 
 FT_SPIKE.label=strtrim(cellstr(num2str(cluster_ids)));
 FT_SPIKE.timestamp=cell(1,numel(cluster_ids));
 for i=1:numel(cluster_ids)
-    FT_SPIKE.timestamp{i}=spkTS(spkId==i)';
+    FT_SPIKE.timestamp{i}=spkTS(spkId==cluster_ids(i))';
 end
 %  continuous format F T struct file
 cfg=struct();

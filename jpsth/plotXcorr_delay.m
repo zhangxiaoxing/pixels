@@ -1,7 +1,7 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
 
-fs=dir('select*delay_6_-2_-1*');
+fs=dir('all*delay_6_1_2*');
 sums=cell(0);
 for i=1:size(fs,1)
     fprintf('%d of %d\n',i,size(fs,1));
@@ -14,7 +14,7 @@ end
 to_plot=false;
 stats=cell(0);
 thresh=norminv(0.995);
-bin_range=[-2,-1];
+bin_range=[1,2];
 for sidx=1:size(sums,1)
     xc_s1=sums{sidx,5};
     xshuf_s1=sums{sidx,6};
@@ -25,15 +25,25 @@ for sidx=1:size(sums,1)
         su1id=str2double(xc_s1.label{si,1});
         if ismember(su1id,sums{sidx,3})
             su1='sust';
-        else
+%             continue;
+        elseif ismember(su1id,sums{sidx,4})
             su1='transient';
+%             continue;
+        else
+            su1='non-selective';
+            continue;
         end
         for sj=(si+1):size(xc_s1.xcorr,2)
             su2id=str2double(xc_s1.label{sj,1});
             if ismember(su2id,sums{sidx,3})
                 su2='sust';
-            else
+%                 continue
+            elseif ismember(su1id,sums{sidx,4})
                 su2='transient';
+%                 continue
+            else
+                su2='non-selective';
+                continue;
             end
             totalCount=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
             if totalCount<100
@@ -129,7 +139,7 @@ for sidx=1:size(sums,1)
         end
     end
 end
-save(sprintf('selective_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)),'stats','bin_range')
+save(sprintf('non-selective_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)),'stats','bin_range')
 % autoCount=sum(strcmp(stats(:,5),'auto-corr'));
 % stCount=sum(strcmp(stats(:,4),'sust') & strcmp(stats(:,5),'transient'));
 % stCount50=sum(strcmp(stats(:,4),'sust') & strcmp(stats(:,5),'transient') & cell2mat(stats(:,6))>=50);
@@ -219,15 +229,15 @@ end
 
 
 fh=figure('Color','w');
-subplot(1,2,1)
+% subplot(1,2,1)
 imagesc(c_conn_mat)
 colormap('jet')
 set(gca(),'XTick',1:length(reg_set),'XTickLabel',reg_set,'XTickLabelRotation',90,...
     'YTick',1:length(reg_set),'YTickLabel',reg_set)
 xlabel('target')
 ylabel('source')
-xlim([-0.5,length(reg_set)+0.5])
-ylim([-0.5,length(reg_set)+0.5])
+xlim([0.5,length(reg_set)+0.5])
+ylim([0.5,length(reg_set)+0.5])
 title('correct trials');
 
 subplot(1,2,2)
@@ -242,10 +252,10 @@ ylim([-0.5,length(reg_set)+0.5])
 title('error trials');
 colorbar
 set(fh,'visible','off')
-set(fh,'PaperSize',[41,20])
-print(fh,sprintf('all_reg_corr_err_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
-set(fh, 'PaperPosition', [0 0 41 20])
-print(fh,sprintf('all_reg_corr_err_%d_%d.pngf',bin_range(1),bin_range(2)),'-dpng','-r300')
+set(fh,'PaperSize',[21,20])
+print(fh,sprintf('all_reg_non_sel_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 21 20])
+print(fh,sprintf('all_reg_non_sel_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
 
 
 
@@ -299,9 +309,9 @@ title('correct-error/correct+error')
 colorbar
 
 set(fh,'visible','off')
-set(fh,'PaperSize',[12.5,4])
-print(fh,sprintf('core_corr_err_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
-set(fh, 'PaperPosition', [0 0 12.5 4])
-print(fh,sprintf('corr_corr_err_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
+set(fh,'PaperSize',[4.5,4])
+print(fh,sprintf('core_all_su_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 4.5 4])
+print(fh,sprintf('corr_all_su_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
 
 
