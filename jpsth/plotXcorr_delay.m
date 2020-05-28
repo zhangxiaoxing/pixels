@@ -1,7 +1,7 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
 
-fs=dir('all*delay_6_1_2*');
+fs=dir('selec*delay_6_1_2*');
 sums=cell(0);
 for i=1:size(fs,1)
     fprintf('%d of %d\n',i,size(fs,1));

@@ -1,26 +1,29 @@
 %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 %  chan2. Thus, a negative lag represents a spike in the second dimension of
 %  stat.xcorr before the channel in the third dimension of stat.stat.
-% cd('~/pixels/jpsth')
-% homedir='/home/zx/neupix/wyt';
-% currmodel='selec';
-% delay=6;
-% bin_range=[1 2];
-% addpath(fullfile('npy-matlab-master','npy-matlab'))
-% addpath('fieldtrip-20200320')
-% ft_defaults
-% % tfs=importdata('transient_6.csv');
-% sus_trans=h5read('../transient_6.hdf5','/sus_trans');
-% reg_list=h5read('../transient_6.hdf5','/reg');
-% cid_list=h5read('../transient_6.hdf5','/cluster_id');
-% path_list=h5read('../transient_6.hdf5','/path');
-% 
-% sust=find(sus_trans(:,1));
-% trans=find(sus_trans(:,2));
-% supool=[sust;trans]';
-% counter=[];
-% done=[];
-for i=28:length(supool)
+cd('~/pixels/jpsth')
+homedir='/home/zx/neupix/wyt';
+currmodel='select';
+delay=6;
+bin_range=[2 3];
+addpath(fullfile('npy-matlab-master','npy-matlab'))
+addpath('fieldtrip-20200320')
+ft_defaults
+% tfs=importdata('transient_6.csv');
+sus_trans=h5read('../transient_6.hdf5','/sus_trans');
+reg_list=h5read('../transient_6.hdf5','/reg');
+cid_list=h5read('../transient_6.hdf5','/cluster_id');
+path_list=h5read('../transient_6.hdf5','/path');
+
+sust=find(sus_trans(:,1));
+trans=find(sus_trans(:,2));
+supool=[sust;trans]';
+counter=[];
+done=[];
+
+error_list=cell(0);
+
+for i=1:length(supool)
     if ismember(supool(i),done)
         continue
     end
@@ -28,7 +31,7 @@ for i=28:length(supool)
 %         return
 %     end
     folder=regexp(path_list{supool(i)},'(\w|\\|-)*','match','once');
-    [folderType,file,spkFolder,metaFolder]=jointFolder(folder);
+    [folderType,file,spkFolder,metaFolder,error_list]=jointFolder(folder,error_list);
     if folderType<0
         continue
     end
@@ -102,7 +105,7 @@ for i=28:length(supool)
 end
 
 return 
-function [folderType,file,spkFolder,metaFolder]=jointFolder(folder)
+function [folderType,file,spkFolder,metaFolder,error_list]=jointFolder(folder,error_list)
     metaFolder=replace(folder,'\','/');
     metaFolder=fullfile('/home/zx/neupix/wyt/DataSum',metaFolder);
     if isfolder(metaFolder)
@@ -114,7 +117,8 @@ function [folderType,file,spkFolder,metaFolder]=jointFolder(folder)
             spkFolder=[];
             disp('Error processing file 2-tracks');
             disp(metaFolder);
-            pause;
+            error_list(end+1,:)={folderType,metaFolder};
+%             pause;
             return
         end
         folderType=2;
@@ -128,7 +132,7 @@ function [folderType,file,spkFolder,metaFolder]=jointFolder(folder)
             spkFolder=[];
             disp('Error processing file 1-track');
             disp(metaFolder);
-            pause;
+            error_list(end+1,:)={folderType,metaFolder};
             return
         end
         folderType=1;        
