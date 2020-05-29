@@ -26,6 +26,7 @@ from matplotlib.colors import Normalize
 import scipy.stats as stats
 import su_region_align as align
 from matplotlib import rcParams
+import re
 
 
 class per_sec_stats:
@@ -112,15 +113,13 @@ class per_sec_stats:
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
                                                                              right_trials_6[:, bins], 7)
-                    seldiff=(np.sum(left_trials_6[:, bins])-np.sum(right_trials_6[:, bins]))
-                    if seldiff==0:
-                        self.per_sec_sel_raw[bin_idx, su_idx]=0
+                    seldiff = (np.sum(left_trials_6[:, bins]) - np.sum(right_trials_6[:, bins]))
+                    if seldiff == 0:
+                        self.per_sec_sel_raw[bin_idx, su_idx] = 0
                     else:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff/(np.sum(left_trials_6[:, bins])+np.sum(right_trials_6[:, bins]))
-                    
+                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff / (
+                                np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
 
-                    
-                    
                     if self.per_sec_sel[bin_idx, su_idx]:
                         if np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]):
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
@@ -135,13 +134,14 @@ class per_sec_stats:
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
                     self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
                                                                              right_trials_3[:, bins], 4)
-                    
-                    seldiff=(np.sum(left_trials_6[:, bins])-np.sum(right_trials_6[:, bins]))
-                    if seldiff==0:
-                        self.per_sec_sel_raw[bin_idx, su_idx]=0
+
+                    seldiff = (np.sum(left_trials_6[:, bins]) - np.sum(right_trials_6[:, bins]))
+                    if seldiff == 0:
+                        self.per_sec_sel_raw[bin_idx, su_idx] = 0
                     else:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff/(np.sum(left_trials_6[:, bins])+np.sum(right_trials_6[:, bins]))
-                        
+                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff / (
+                                np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
+
                     if self.per_sec_sel[bin_idx, su_idx]:
                         if np.mean(left_trials_3[:, bins]) > np.mean(right_trials_3[:, bins]):
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
@@ -155,27 +155,27 @@ class per_sec_stats:
                 #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
 
     def getFeatures(self):
-        return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2, self.baseline_sel, self.per_sec_sel_raw)
+        return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2, self.baseline_sel,
+                self.per_sec_sel_raw)
 
 
 ### all brain region entry point
 
-def prepare_data(delay=6, reg_idx=1):
+def prepare_data(delay=6):
     curr_stats = per_sec_stats()
     per_sec_sel_list = []
     non_sel_mod_list = []
     bs_sel_list = []
     perfS1_list = []
     perfS2_list = []
-    raw_sel_list=[]
+    raw_sel_list = []
     # non_mod_list = []
+    folder_list = []
+    cluster_id_list = []
     reg_list = []
     dpath = align.get_root_path()
     for path in sorted(align.traverse(dpath)):
         print(path)
-        # SU_ids = []
-        trial_FR = None
-        trials = None
         if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
             continue
         done_read = False
@@ -187,8 +187,8 @@ def prepare_data(delay=6, reg_idx=1):
                         done_read = True
                         print("missing su_id key in path ", path)
                         continue
-                    # dset = ffr["SU_id"]
-                    # SU_ids = np.array(dset, dtype="uint16")
+                    dset = ffr["SU_id"]
+                    SU_ids = np.array(dset, dtype="uint16")
                     dset = ffr["FR_All"]
                     trial_FR = np.array(dset, dtype="double")
                     dset = ffr["Trials"]
@@ -198,7 +198,6 @@ def prepare_data(delay=6, reg_idx=1):
                 print("h5py read error handled")
         if trials is None:
             continue
-        suid_reg = []
         with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
             l = list(csv.reader(csvfile))[1:]
             suid_reg = [list(i) for i in zip(*l)]
@@ -210,16 +209,25 @@ def prepare_data(delay=6, reg_idx=1):
 
         curr_stats.process_select_stats(trial_FR, trials, welltrain_window, correct_resp, delay=delay)
 
-        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel,raw_sel) = curr_stats.getFeatures()
+        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel, raw_sel) = curr_stats.getFeatures()
         per_sec_sel_list.append(per_sec_sel)
         non_sel_mod_list.append(non_sel_mod)
         bs_sel_list.append(bs_sel)
         # non_mod_list.append(non_sel_mod)
         perfS1_list.append(perfS1)
         perfS2_list.append(perfS2)
-        reg_list.extend(suid_reg[reg_idx])
         raw_sel_list.append(raw_sel)
-    return (per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list,raw_sel_list)
+        cluster_id_list.append(SU_ids)
+        folder_list.append([re.search(r"(?<=DataSum\\)(.*)", path)[1]] * SU_ids.shape[1])
+
+        for i in range(SU_ids.shape[1]):
+            if suid_reg[0][i] != str(SU_ids[0, i]):
+                print(f"unmatch cluster id and id_reg, {path}, {SU_ids[0, i]}")
+                input("press Enter to continue")
+        reg_list.append(suid_reg[1])
+    return (
+        per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list, raw_sel_list,
+        cluster_id_list, folder_list)
 
 
 def prepare_data_sync():
@@ -255,7 +263,7 @@ def prepare_data_sync():
             suid_reg = [list(i) for i in zip(*l)]
 
         (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
-
+        
         if perf_code != 3:
             continue
         ### TODO: export per su per file alignment file
@@ -279,7 +287,7 @@ def plot_features():
 
 
 ### entry point
-def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, counterclock=False):
+def process_all(denovo=False, toPlot=False, toExport=False, delay=6, counterclock=False):
     per_sec_sel_arr = None
     non_sel_mod_arr = None
     perfS1_arr = None
@@ -289,16 +297,18 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
     if delay == 'early3in6' or delay == 'late3in6':
         delay_num = 6
     if denovo:
-        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list,raw_sel_list) = prepare_data(delay=delay,
-                                                                                                         reg_idx=reg_idx)
+        (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list, raw_sel_list, cluster_id,
+         path_list) = prepare_data(delay=delay)
         ### save raw data file
-        reg_arr = np.array(reg_list)
         per_sec_sel_arr = np.hstack(per_sec_list)
         non_sel_mod_arr = np.hstack(non_sel_mod_list)
         perfS1_arr = np.hstack(perfS1_list)
         perfS2_arr = np.hstack(perfS2_list)
         bs_sel = np.hstack(bs_sel_list)
-        raw_sel_arr=np.hstack(raw_sel_list)
+        raw_sel_arr = np.hstack(raw_sel_list)
+        reg_arr = np.hstack(reg_list)
+        clusterid_arr = np.hstack(cluster_id)
+        path_arr = np.hstack(path_list)
         np.savez_compressed(f'per_sec_sel_{delay_num}.npz', per_sec_sel_arr=per_sec_sel_arr,
                             non_sel_mod_arr=non_sel_mod_arr,
                             # non_mod_arr=non_mod_arr,
@@ -307,13 +317,15 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
                             reg_arr=reg_arr,
                             delay=delay,
                             bs_sel=bs_sel,
-                            raw_sel_arr=raw_sel_arr)
+                            raw_sel_arr=raw_sel_arr,
+                            clusterid_arr=clusterid_arr,
+                            path_arr=path_arr)
     else:
         ### load back saved raw data
         if not os.path.isfile(f"per_sec_sel_{delay_num}.npz"):
             print('missing data file!')
             return
-        fstr = np.load(f'per_sec_sel_{delay_num}.npz')
+        fstr = np.load(f'per_sec_sel_{delay_num}.npz', allow_pickle=True)
         per_sec_sel_arr = fstr['per_sec_sel_arr']
         non_sel_mod_arr = fstr['non_sel_mod_arr']
         if fstr['delay'] != delay_num:
@@ -322,7 +334,9 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
         perfS2_arr = fstr['perfS2_arr']
         reg_arr = fstr['reg_arr']
         bs_sel = fstr['bs_sel']
-        raw_sel_arr=fstr['raw_sel_arr']
+        raw_sel_arr = fstr['raw_sel_arr']
+        clusterid_arr = fstr['clusterid_arr']
+        path_arr = fstr['path_arr']
 
     if delay == 6:
         delay_bins = np.arange(1, 7)
@@ -435,16 +449,19 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, reg_idx=1, 
     export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s, prefer_s))
     np.savez_compressed(f'sus_trans_pie_{delay}.npz', sust=sust, transient=transient,
                         switched=switched, unclassified=unclassified, sample_only=sample_only,
-                        non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr,raw_sel_arr=raw_sel_arr)
+                        non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr,
+                        raw_sel_arr=raw_sel_arr)
 
     if toExport:
         # np.savetxt(f'transient_{delay}.csv', export_arr, fmt='%d', delimiter=',',
         #            header='Sustained,transient,switched,unclassified,early_in_6s,late_in_6s,preferred)
 
         with h5py.File(f'transient_{delay}.hdf5', "w") as fw:
-            fw.create_dataset('sus_trans',data=export_arr.astype('int8'))
-            fw.create_dataset('raw_selectivity',data=raw_sel_arr.astype('float64'))
-            fw.create_dataset('reg',data=reg_arr.astype('S10'))
+            fw.create_dataset('sus_trans', data=export_arr.astype('int8'))
+            fw.create_dataset('raw_selectivity', data=raw_sel_arr.astype('float64'))
+            fw.create_dataset('reg', data=reg_arr.astype('S10'))
+            fw.create_dataset('path', data=path_arr.astype('S200'))
+            fw.create_dataset('cluster_id', data=clusterid_arr.astype('uint16'))
 
         # np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
 
@@ -668,29 +685,28 @@ def bars():
     # plt.show()
     # 6s transient from
     # 6s transient to
-    
+
+
 def quickStats(delay=6):
-    trans_fstr=np.load(f'sus_trans_pie_{delay}.npz')
+    trans_fstr = np.load(f'sus_trans_pie_{delay}.npz')
     # list(trans6.keys())
-    sust=trans_fstr['sust']
-    trans=trans_fstr['transient']
-    reg_arr=trans_fstr['reg_arr']
-    
-    reg_set=tuple(set(reg_arr.tolist()))
-    
-    count=[]
+    sust = trans_fstr['sust']
+    trans = trans_fstr['transient']
+    reg_arr = trans_fstr['reg_arr']
+
+    reg_set = tuple(set(reg_arr.tolist()))
+
+    count = []
     for one_reg in reg_set:
-        sust_count=np.count_nonzero(np.logical_and(reg_arr==one_reg,sust))
-        trans_count=np.count_nonzero(np.logical_and(reg_arr==one_reg,trans))
-        count.append([one_reg,sust_count, trans_count])
-    
-    
+        sust_count = np.count_nonzero(np.logical_and(reg_arr == one_reg, sust))
+        trans_count = np.count_nonzero(np.logical_and(reg_arr == one_reg, trans))
+        count.append([one_reg, sust_count, trans_count])
 
 
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=False, toExport=True, delay=6, counterclock=False)
+    process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
     # process_all(denovo=True, toPlot=True, toExport=True, delay=3, counterclock=True)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')

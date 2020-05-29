@@ -220,6 +220,19 @@ for i=1:length(c_conn_dirs)
     c_conn_mat(conn_from_idx,conn_to_idx)=c_conn_mat(conn_from_idx,conn_to_idx)+1;
 end
 
+c_conn_list=cell(0);
+for i=1:length(c_conn_mat)
+    for j=1:length(c_conn_mat)
+        c_conn_list(end+1,:)={reg_set{i},reg_set{j},c_conn_mat(i,j)};
+    end
+end
+keep=[];
+for i=1:length(reg_set)
+    if sum([c_conn_mat(i,:),c_conn_mat(:,i)'])>100
+        keep(end+1)=i;
+    end
+end
+
 
 for i=1:length(e_conn_dirs)
     conn_from_idx=find(strcmp(c_conn_dirs{i,1},reg_set));
@@ -227,6 +240,51 @@ for i=1:length(e_conn_dirs)
     e_conn_mat(conn_from_idx,conn_to_idx)=e_conn_mat(conn_from_idx,conn_to_idx)+1;
 end
 
+%%%% connection graph
+G = digraph(c_conn_mat(keep,keep),reg_set(keep),'omitselfloops');
+GE = digraph(e_conn_mat(keep,keep),reg_set(keep),'omitselfloops');
+
+
+fh=figure('Color','w','Position',[100,100,900,600]);
+Gh=plot(G, 'LineWidth', G.Edges.Weight/20,'EdgeAlpha',0.5,'ArrowSize',5,'XData',Gref.XData,'YData',Gref.YData);
+
+set(fh,'visible','off')
+set(fh,'PaperSize',[15,10])
+print(fh,sprintf('connection_layer_%d_%d.pdf',bin_range(1),bin_range(2)),'-painters','-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 12 12])
+print(fh,sprintf('connection_layer_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
+
+
+
+fh=figure('Color','w');
+plot(G, 'LineWidth', G.Edges.Weight/20,'EdgeAlpha',0.5,'ArrowSize',6,'Layout','force')
+set(fh,'visible','off')
+set(fh,'PaperSize',[15,10])
+print(fh,sprintf('connection_force_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 12 12])
+print(fh,sprintf('connection_force_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
+
+
+fh=figure('Color','w','Position',[100,100,900,600]);
+GEh=plot(GE, 'LineWidth', GE.Edges.Weight/20,'EdgeAlpha',0.5,'ArrowSize',5,'XData',Gh.XData,'YData',Gh.YData);
+title('error trials');
+set(fh,'visible','off')
+set(fh,'PaperSize',[15,10])
+print(fh,sprintf('connection_error_layer_%d_%d.eps',bin_range(1),bin_range(2)),'-depsc','-r300')
+set(fh, 'PaperPosition', [0 0 12 12])
+print(fh,sprintf('connection_error_layer_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
+
+
+
+fh=figure('Color','w');
+plot(GE, 'LineWidth', GE.Edges.Weight/20,'EdgeAlpha',0.25,'ArrowSize',10,'Layout','force')
+set(fh,'visible','off')
+set(fh,'PaperSize',[12,12])
+print(fh,sprintf('connection_force_%d_%d.pdf',bin_range(1),bin_range(2)),'-dpdf','-r300')
+set(fh, 'PaperPosition', [0 0 12 12])
+print(fh,sprintf('connection_force_%d_%d.png',bin_range(1),bin_range(2)),'-dpng','-r300')
+
+%%
 
 fh=figure('Color','w');
 % subplot(1,2,1)

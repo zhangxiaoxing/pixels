@@ -2,18 +2,18 @@ function errors=extract_waveform(disk)
 % to_plot=false;
 s1s=30000;
 FR_Th=1.0;
-
+disk='k';
 addpath('D:\code\neuropixel-utils')
 addpath(genpath('D:\code\Kilosort2'))
 channelMapFile='D:\code\neuropixel-utils\map_files\neuropixPhase3B2_kilosortChanMap.mat';
 
-fl=dir([disk,':\**\cluster_info.tsv']);
+fl=dir([disk,':\neupix\DataSum\**\cluster_info.tsv']);
 errors=cell(0);
 for onefile=fl'
     rootpath=onefile.folder;
     try
-        if isfile(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'))
-            fstr=load(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'));
+        if isfile(fullfile(replace(rootpath,[disk,':'],'\neupix\WF\'),'waveform.mat'))
+            fstr=load(fullfile(replace(rootpath,[disk,':'],'\neupix\WF\'),'waveform.mat'));
             if size(fstr.waveform,2)==4
                 fprintf('Exist file %s, skipped\n\n',fl.folder)
                 continue
@@ -23,10 +23,10 @@ for onefile=fl'
 
         tic
         
-        if isfolder(replace(rootpath,[disk,':'],'D:\WF'))
+        if isfolder(replace(rootpath,[disk,':'],'\neupix\WF\'))
             disp('Folder exists, please double check! Press Ctrl-C to break')
         else
-            mkdir(replace(rootpath,[disk,':'],'D:\WF'));
+            mkdir(replace(rootpath,[disk,':'],'\neupix\WF\'));
         end
 
         metaf=ls(fullfile(rootpath,'*.ap.meta'));
@@ -67,7 +67,7 @@ for onefile=fl'
 %                 end
             end
         end
-        save(fullfile(replace(rootpath,[disk,':'],'D:\WF'),'waveform.mat'),'waveform');
+        save(fullfile(replace(rootpath,[disk,':'],'\neupix\WF\'),'waveform.mat'),'waveform');
         toc
     catch ME
         errors{end+1}=onefile.folder;

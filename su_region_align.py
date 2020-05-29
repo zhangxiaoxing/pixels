@@ -5,6 +5,8 @@ Created on Fri Dec 13 17:29:29 2019
 @author: Libra
 
 This script is responsible for generating the  su_id2reg.csv which is further used by other statistics
+first column is cluster id, second is current alignment, third is old alignment
+
 
 """
 
