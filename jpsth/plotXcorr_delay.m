@@ -1,3 +1,8 @@
+%  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
+%  chan2. Thus, a negative lag represents a spike in the second dimension of
+%  stat.xcorr before the channel in the third dimension of stat.stat.
+
+
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
 
@@ -66,11 +71,15 @@ for sidx=1:size(sums,1)
                 if sumdiffs1==0
                     AIs1=0;
                 else
-                    AIs1=sumdiffs1/(sum(bincounts1(1:10))+sum(bincounts1(11:end)));
+                    AIs1=sumdiffs1/(sum(bincounts1(1:5))+sum(bincounts1(6:10)));
                 end
             else
                 AIs1=0;
             end
+            
+            %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
+            %  chan2. Thus, a negative lag represents a spike in the second dimension of
+            %  stat.xcorr before the channel in the third dimension of stat.stat.
 
             
             %sample 2 stats, duplicate of sample 1. TODO:DRY
@@ -88,7 +97,7 @@ for sidx=1:size(sums,1)
                 if sumdiffs2==0
                     AIs2=0;
                 else
-                    AIs2=sumdiffs2/(sum(bincounts2(1:10))+sum(bincounts2(11:end)));
+                    AIs2=sumdiffs2/(sum(bincounts2(1:5))+sum(bincounts2(6:10)));
                 end
             else
                 AIs2=0;
@@ -179,31 +188,31 @@ save(sprintf('non-selective_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin_range(1),b
 
 
 
-c_conn_dirs=cell(0,4);
+c_conn_dirs=cell(0,4);%{to, from, AI,count}
 tbin=1;
 for pidx=1:length(cfstr.stats)
     onepair=cfstr.stats{pidx};
     if onepair.prefered_sample_su1(tbin+1)>0 && onepair.prefered_sample_su2(tbin+1)>0 &&...
         onepair.s1_peak_significant && ~strcmp(onepair.reg_su1,onepair.reg_su2) && ...
             ~strcmp(onepair.reg_su1,'Unlabeled') && ~strcmp(onepair.reg_su2,'Unlabeled')
-        if onepair.AIs1>0
+        if onepair.AIs1>0  %<0 is 1 leading 2 >0 is 2 leading 1, =0 is possible
             c_conn_dirs(end+1,:)={onepair.reg_su1,onepair.reg_su2,onepair.AIs1,onepair.totalcount};
-        elseif onepair.AIs1<0  %=0 is possible
+        elseif onepair.AIs1<0  %
             c_conn_dirs(end+1,:)={onepair.reg_su2,onepair.reg_su1,-onepair.AIs1,onepair.totalcount};
         end
     end
 end
 
-e_conn_dirs=cell(0,4);
+e_conn_dirs=cell(0,4); %{to, from, AI,count}
 tbin=1;
 for pidx=1:length(efstr.stats)
     onepair=efstr.stats{pidx};
     if onepair.prefered_sample_su1(tbin+1)>0 && onepair.prefered_sample_su2(tbin+1)>0 &&...
         onepair.s1_peak_significant && ~strcmp(onepair.reg_su1,onepair.reg_su2) && ...
             ~strcmp(onepair.reg_su1,'Unlabeled') && ~strcmp(onepair.reg_su2,'Unlabeled')
-        if onepair.AIs1>0
+        if onepair.AIs1>0 %<0 is 1 leading 2 >0 is 2 leading 1, =0 is possible
             e_conn_dirs(end+1,:)={onepair.reg_su1,onepair.reg_su2,onepair.AIs1,onepair.totalcount};
-        elseif onepair.AIs1<0  %=0 is possible
+        elseif onepair.AIs1<0  
             e_conn_dirs(end+1,:)={onepair.reg_su2,onepair.reg_su1,-onepair.AIs1,onepair.totalcount};
         end
     end
@@ -215,9 +224,9 @@ c_conn_mat=zeros(length(reg_set),length(reg_set));
 e_conn_mat=zeros(length(reg_set),length(reg_set));
 
 for i=1:length(c_conn_dirs)
-    conn_from_idx=find(strcmp(c_conn_dirs{i,1},reg_set));
-    conn_to_idx=find(strcmp(c_conn_dirs{i,2},reg_set));
-    c_conn_mat(conn_from_idx,conn_to_idx)=c_conn_mat(conn_from_idx,conn_to_idx)+1;
+    conn_to_idx=find(strcmp(c_conn_dirs{i,1},reg_set)); 
+    conn_from_idx=find(strcmp(c_conn_dirs{i,2},reg_set));
+    c_conn_mat(conn_to_idx,conn_from_idx)=c_conn_mat(conn_to_idx,conn_from_idx)+1;
 end
 
 c_conn_list=cell(0);
@@ -235,9 +244,9 @@ end
 
 
 for i=1:length(e_conn_dirs)
-    conn_from_idx=find(strcmp(c_conn_dirs{i,1},reg_set));
-    conn_to_idx=find(strcmp(c_conn_dirs{i,2},reg_set));
-    e_conn_mat(conn_from_idx,conn_to_idx)=e_conn_mat(conn_from_idx,conn_to_idx)+1;
+    conn_to_idx=find(strcmp(c_conn_dirs{i,1},reg_set));
+    conn_from_idx=find(strcmp(c_conn_dirs{i,2},reg_set));
+    e_conn_mat(conn_to_idx,conn_from_idx)=e_conn_mat(conn_to_idx,conn_from_idx)+1;
 end
 
 %%%% connection graph
@@ -292,8 +301,8 @@ imagesc(c_conn_mat)
 colormap('jet')
 set(gca(),'XTick',1:length(reg_set),'XTickLabel',reg_set,'XTickLabelRotation',90,...
     'YTick',1:length(reg_set),'YTickLabel',reg_set)
-xlabel('target')
-ylabel('source')
+xlabel('source')
+ylabel('target')
 xlim([0.5,length(reg_set)+0.5])
 ylim([0.5,length(reg_set)+0.5])
 title('correct trials');
@@ -303,8 +312,8 @@ imagesc(e_conn_mat)
 colormap('jet')
 set(gca(),'XTick',1:length(reg_set),'XTickLabel',reg_set,'XTickLabelRotation',90,...
     'YTick',1:length(reg_set),'YTickLabel',reg_set)
-xlabel('target')
-ylabel('source')
+ylabel('target')
+xlabel('source')
 xlim([-0.5,length(reg_set)+0.5])
 ylim([-0.5,length(reg_set)+0.5])
 title('error trials');
@@ -335,8 +344,8 @@ imagesc(c_coremap,[0,100])
 colormap('jet')
 set(gca(),'XTick',1:length(c_coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
     'YTick',1:length(c_coremap),'YTickLabel',reg_set(keep))
-xlabel('target')
-ylabel('source')
+ylabel('target')
+xlabel('source')
 xlim([0.5,length(c_coremap)+0.5])
 ylim([0.5,length(c_coremap)+0.5])
 title('correct trials')
@@ -347,8 +356,8 @@ imagesc(e_coremap,[0,100])
 colormap('jet')
 set(gca(),'XTick',1:length(e_coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
     'YTick',1:length(e_coremap),'YTickLabel',reg_set(keep))
-xlabel('target')
-ylabel('source')
+ylabel('target')
+xlabel('source')
 xlim([0.5,length(e_coremap)+0.5])
 ylim([0.5,length(e_coremap)+0.5])
 title('error trials')
@@ -359,8 +368,8 @@ imagesc(diff_coremap,[-1,1])
 colormap('jet')
 set(gca(),'XTick',1:length(e_coremap),'XTickLabel',reg_set(keep),'XTickLabelRotation',90,...
     'YTick',1:length(e_coremap),'YTickLabel',reg_set(keep))
-xlabel('target')
-ylabel('source')
+ylabel('target')
+xlabel('source')
 xlim([0.5,length(e_coremap)+0.5])
 ylim([0.5,length(e_coremap)+0.5])
 title('correct-error/correct+error')
