@@ -3,9 +3,10 @@
 %  stat.xcorr before the channel in the third dimension of stat.stat.
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='select';
+currmodel='selec';
+prefix='0604';
 delay=6;
-bin_range=[2 3];
+bin_range=[1 2];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
@@ -27,9 +28,7 @@ for i=1:length(supool)
     if ismember(supool(i),done)
         continue
     end
-%     if i>5
-%         return
-%     end
+
     folder=regexp(path_list{supool(i)},'(\w|\\|-)*','match','once');
     [folderType,file,spkFolder,metaFolder,error_list]=jointFolder(folder,error_list);
     if folderType<0
@@ -38,9 +37,7 @@ for i=1:length(supool)
     wffile=fullfile(metaFolder,'wf_stats.hdf5');% posix
     if isfile(wffile)
         if folderType==1
-%             sustIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,1));
             sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1));
-%             transIds=sufs.data(strcmp(sufs.textdata,folder) & sus_trans(:,2));
             transIds=cid_list(startsWith(path_list,folder) & sus_trans(:,2));
             sameFolder=find(startsWith(path_list,folder) & (sus_trans(:,1)| sus_trans(:,2)));
             done=[done;sameFolder];
@@ -74,33 +71,11 @@ for i=1:length(supool)
         if avail
             [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
         end
-        % waveform data
-        
-%         wfstats0=h5read(wffile,'/wf');TEMP
-%         for lblidx=1:size(xc_s1.label,1)
-%             wfidx=find(wfstats(:,1)==str2double(xc_s1.label{lblidx,1}));TEMP
-%             if ~isempty(wfidx)
-%                 xc_s1.label{lblidx,2}=wfstats(wfidx,:);TEMP
-%                 raw_wf_file=fullfile(replace(replace(folder,'D:\neupix\DataSum',[homedir,'/neupix/WF/neuropixel']),'\','/'),'waveform.mat'); %posix
-%                 raw_fstr=load(raw_wf_file);
-%                 raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
-%                 xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
-                %% prefered sample, reg,
-%                 suid=find(strcmp(sufs.textdata,folder) & sufs.data==str2double(xc_s1.label{lblidx,1}));
-                % sust, transient, switched, unclassified, early_in_6s,
-                % late_in_6s, 7X prefer_s
-%                 prefered_sample=sus_trans(suid,7:end);
-%                 reg=regexp(reg_list{suid},'(\w|\d)+','match','once');
-%                 xc_s1.label{lblidx,4}=prefered_sample;
-%                 xc_s1.label{lblidx,5}=reg;
-%%                
-%             end
-%         end
     else
         continue
     end
     sums={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
-    save(sprintf('%s_XCORR_f%d_delay_%d_%d_%d_2msbin.mat',currmodel,i,delay,bin_range(1),bin_range(2)),'sums','-v7.3') %prefix
+    save(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'sums','-v7.3','sust','trans','supool','counter','done') %prefix
  	fprintf('%d of %d\n',i,length(supool))
 end
 

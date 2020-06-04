@@ -1,8 +1,11 @@
 function CQ_transient(nPool)
+
+onebatch(32386,32390)
+
+
 addpath('CQDecoding')
 datapath='su_trials_fr_6.hdf5';
 count=h5read(datapath,'/count');
-%parpool(nPool);
 
 batchLen=ceil(count/nPool);
 batchStart=1:batchLen:count;
@@ -34,8 +37,8 @@ for i=ubegin:uend
     disp(i);
     S1_trials=h5read(datapath,['/',num2str(i-1),'/S1']);
     S2_trials=h5read(datapath,['/',num2str(i-1),'/S2']);
-    [~,~,transient(i),~,~,~]=TestSecondSelectivityChange_lite(S1_trials,S2_trials,2000,1:3,1:3);
-    save(['transient_6_early3',num2str(ubegin),'_',num2str(uend),'.mat'],'transient','i','ubegin','uend')
+    [~,~,transient(i),~,~,~]=TestSecondSelectivityChange_lite(S1_trials,S2_trials,2000,1:6,1:6);
+    save(['transient_6_',num2str(ubegin),'_',num2str(uend),'.mat'],'transient','i','ubegin','uend')
     toc
 end
 end

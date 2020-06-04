@@ -4,7 +4,7 @@ close('all')
 prefix='selec';
 suffix='duo';
 
-to_plot=true;
+to_plot=false;
 to_save=false;
 prepare_stats_file=true;
 if prepare_stats_file
