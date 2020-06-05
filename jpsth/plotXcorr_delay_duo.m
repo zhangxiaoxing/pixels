@@ -1,12 +1,11 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
 close('all')
-prefix='selec';
-suffix='duo';
-
+prefix='selec_duo_';
+bin_range=[1 2];
 to_plot=false;
-to_save=false;
-prepare_stats_file=true;
+to_save=true;
+prepare_stats_file=false;
 if prepare_stats_file
     %debugging
     %fs=dir('selec_duo_XCORR_de*');
@@ -39,7 +38,7 @@ if prepare_stats_file
                         su2='transient';
                     end
                     totalCount=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
-                    if totalCount<100
+                    if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || totalCount<1000
                         onepair=struct();
                         onepair.fileidx=sidx;
                         onepair.su1_label_idx=si;
@@ -57,6 +56,8 @@ if prepare_stats_file
                         onepair.prefered_sample_su2=xc_s1.label{sj,4};
                         onepair.reg_su1=xc_s1.label{si,5};
                         onepair.reg_su2=xc_s1.label{sj,5};
+                        onepair.s1_trials=numel(xc_s1.cfg.trials);
+                        onepair.s2_trials=numel(xc_s2.cfg.trials);
                         stats{end+1}=onepair;
                         clear onepair
                         continue
@@ -132,7 +133,8 @@ if prepare_stats_file
                     onepair.prefered_sample_su2=xc_s1.label{sj,4};
                     onepair.reg_su1=xc_s1.label{si,5};
                     onepair.reg_su2=xc_s1.label{sj,5};
-
+                    onepair.s1_trials=numel(xc_s1.cfg.trials);
+                    onepair.s2_trials=numel(xc_s2.cfg.trials);
                     stats{end+1}=onepair;
                     
                     %TODO: plot
@@ -193,49 +195,72 @@ if prepare_stats_file
                     end 
                     
                     clear onepair
-                    %TODO: plot
-        %             if to_plot
-        %                 fh=figure('Color','w','Position',[100,100,400,300]);
-        %                 stem(xc_s1.time*1000,squeeze(xc_s1.xcorr(si,sj,:)),'Marker','none','LineWidth',10)
-        %                 title(sprintf('%s-%s,%d,%d,%d',su1,su2,sidx,si,sj))
-        %                 xlabel('time (ms)')
-        %                 ylabel('spike-pair count')
-        %                 print(fh,sprintf('%s_%s_%d_%d_%d.png',su1,su2,sidx,si,sj),'-dpng')
-        % 
-        % %                 pause
-        %                 close(fh)
-        %             end
+
                 end
             end
         end
         if to_save
-        save(sprintf('%s_XCORR_%s_stats_delay_6_%d_%d_2msbin.mat',prefix, suffix, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
+            keyboard
+            save(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
         end
     end
 return
 end
 
+gen_join_set=false;
+if gen_join_set
+    join_reg_list=cell(0);
+    for sidx=1:length(stats)
+        s=stats{sidx};
+        join_reg_list{end+1}=s.reg_su1;
+        join_reg_list{end+1}=s.reg_su2;
+    end
+    join_reg_set=unique(join_reg_list);
+    save(fullfile('..','join_reg_set.mat'),'join_reg_set');
+end
+
 gen_pair_mat=false;
-load(fullfile('..','join_reg_set.mat')) ;
-reg_set=join_reg_set;
 if gen_pair_mat
+    if ~exist('join_reg_set','var')
+        load(fullfile('..','join_reg_set.mat'));
+        reg_set=join_reg_set;
+    end
+    
+    reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
+    reg_set=reg_set(~strcmp(reg_set,'root'));
+    
     pair_mat=zeros(length(reg_set),length(reg_set));
-    for stat=stats
-        s=stat{1};
-        conn_from_idx=find(strcmp(s.reg_su1,reg_set));
-        conn_to_idx=find(strcmp(s.reg_su2,reg_set));
-        if isempty(conn_from_idx) || isempty(conn_to_idx)
-%             disp(s.reg_su1);
-%             disp(s.reg_su2);
-            continue;
+    for sidx=1:length(stats)
+        s=stats{sidx};
+        
+        if s.s1_trials<20 || s.s2_trials<20 || strcmp(s.reg_su1,'Unlabeled') || strcmp(s.reg_su2,'Unlabeled') || strcmp(s.reg_su1,'root') || strcmp(s.reg_su2,'root')
+            continue
         end
-        pair_mat(conn_from_idx,conn_to_idx)=pair_mat(conn_from_idx,conn_to_idx)+1;
-        pair_mat(conn_to_idx,conn_from_idx)=pair_mat(conn_to_idx,conn_from_idx)+1;
+
+        su1reg_idx=find(strcmp(s.reg_su1,reg_set));
+        su2reg_idx=find(strcmp(s.reg_su2,reg_set));
+        if isempty(su1reg_idx) || isempty(su2reg_idx)
+            keyboard
+            continue
+        end
+        
+        pair_mat(su1reg_idx,su2reg_idx)=pair_mat(su1reg_idx,su2reg_idx)+1;
+        pair_mat(su2reg_idx,su1reg_idx)=pair_mat(su2reg_idx,su1reg_idx)+1;
     end
 save('pair_mat_duo_6s_1_2.mat','pair_mat');
 return
 end
 
+
+test_selectivity=false;
+if test_selectivity
+    for sidx=1:length(stats)
+        s=stats{sidx};
+        if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su1(2:end))
+            keyboard
+        end
+    end
+end
 
 
 
@@ -244,8 +269,12 @@ if gen_conn_mat
     conn_mat_all=cell(0);
     if ~exist('join_reg_set','var')
         load(fullfile('..','join_reg_set.mat'));
+        reg_set=join_reg_set;
     end
-    reg_set=join_reg_set;
+    
+    reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
+    reg_set=reg_set(~strcmp(reg_set,'root'));
+    
     for bin=1
 %         load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
         conn_mat=zeros(length(reg_set),length(reg_set));
@@ -253,22 +282,21 @@ if gen_conn_mat
         tbin=bin;
         for pidx=1:length(stats)
             s=stats{pidx};
-            if s.totalcount<100
+            if s.totalcount<1000 || s.s1_trials<20 || s.s2_trials<20 || strcmp(s.reg_su1,'Unlabeled') || strcmp(s.reg_su2,'Unlabeled') || strcmp(s.reg_su1,'root') || strcmp(s.reg_su2,'root')
                 continue
             end
-            
             
             su1reg_idx=find(strcmp(s.reg_su1,reg_set));
             su2reg_idx=find(strcmp(s.reg_su2,reg_set));
             if isempty(su1reg_idx) || isempty(su2reg_idx)
+                keyboard
                 continue
             end
             
-            
-            
-            if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su2(2:end))
-                continue
-            end
+%             not helpful in selective type of datasets
+%             if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su2(2:end))
+%                 continue
+%             end
             
             if s.prefered_sample_su1(2) && s.prefered_sample_su2(2)
                 sel_flag=true;
@@ -277,7 +305,7 @@ if gen_conn_mat
             end
 
             if s.s1_peak_significant && s.s2_peak_significant
-                if (s.AIs1>0 && s.AIs2>=0) || (s.AIs1>=0 && s.AIs2>0)
+                if (s.AIs1>0 && s.AIs2>=0) || (s.AIs1>=0 && s.AIs2>0) %2 to 1
                     conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
                     if sel_flag
                         conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
@@ -324,46 +352,72 @@ if gen_conn_mat
                 
         end
     end
-save('conn_mat_duo_6s_1_2.mat','conn_mat')    
+disp('check file name')
+keyboard
+save('conn_mat_duo_6s_1_2.mat','conn_mat','conn_sel_mat')    
 return
 end
 
-gen_ratio_map=false;
+gen_ratio_map=true;
 if gen_ratio_map
-    load('pair_mat_duo_6s_1_2.mat','pair_mat');
-    load('conn_mat_duo_6s_1_2.mat','conn_mat');
+%     load('pair_mat_duo_6s_1_2.mat','pair_mat');
+%     load('conn_mat_duo_6s_1_2.mat','conn_mat');
 %     pair_mat(pair_mat<=20)=0;
+load(fullfile('..','join_reg_set.mat'));
+reg_set=join_reg_set;
+reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
+reg_set=reg_set(~strcmp(reg_set,'root'));
+for bin=1
+    load(sprintf('conn_mat_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('pair_mat_duo_6s_%d_%d.mat',bin,bin+1));
+
+    pair_mat(pair_mat<10)=0;
     keep=false(length(pair_mat),1);
     for i=1:length(pair_mat)
-        if nnz(pair_mat(i,:)>=10)+nnz(pair_mat(:,i)>=10)>=60
+        if nnz(pair_mat(i,:)>=10)+nnz(pair_mat(:,i)>=10)>=64
             keep(i)=true;
         end
     end
-    
+%     keyboard
     pair_mat_k=pair_mat(keep,keep);
     conn_mat_k=conn_mat(keep,keep);
-    reg_set=join_reg_set(keep);
+    reg_keep=reg_set(keep);
 
     ratio_mat=conn_mat_k./pair_mat_k;
+    sum_ratio=zeros(length(ratio_mat),1);
+    for i=1:length(ratio_mat)
+        sum_ratio(i)=nansum(ratio_mat(i,:))+nansum(ratio_mat(:,i));
+    end
+%     
     sort_mat=ratio_mat;
     sort_mat(isnan(sort_mat))=nanmean(ratio_mat(:));
     
 %     T=clusterdata(sort_mat,'criterion','distance','linkage','complete','maxclust',3);
-    T = kmeans(sort_mat,3,'Distance','sqeuclidean','Display','off','MaxIter',100000); 
-    I=T*1000+(1:length(sort_mat))';
-    [~,idices]=sort(I);
+%     T = kmeans(sort_mat,3,'Distance','sqeuclidean','Display','off','MaxIter',100000); 
+%     I=T*1000+(1:length(sort_mat))';
+    [~,indices]=sort(sum_ratio);
+%     [~,indices]=sort(I);
     figure('Color','w','Position',[100,100,450,400])
-    h=imagesc(ratio_mat(idices,idices),[0,0.6]);
+    h=imagesc(ratio_mat(indices,indices),[0,0.3]);
 
-    set(h,'alphadata',~isnan(ratio_mat(idices,idices))); 
+    set(h,'alphadata',~isnan(ratio_mat(indices,indices))); 
     ax=gca();
-%     ax.YTick=(1:length());
-%     ax.XTick=(1:103);
+    ax.YTick=(1:nnz(keep));
+    ax.YTickLabel=reg_keep(indices);
+    
+    
+    ax.XTick=(1:nnz(keep));
+    ax.XTickLabel=reg_keep(indices);
+    ax.XTickLabelRotation=90;
     
     ax.YDir='normal';
-    colormap('jet')  
+    ax.Color=[0.5,0.5,0.5];
+%     colormap('jet')  
     colorbar;
-    
+
+    print(sprintf('ratio_map_%d_%d.pdf',bin,bin+1),'-dpdf','-painters','-r300')
+    print(sprintf('ratio_map_%d_%d.png',bin,bin+1),'-dpng','-painters','-r300')
+end
 return
 end
 
