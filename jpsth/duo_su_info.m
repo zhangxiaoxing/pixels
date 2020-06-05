@@ -2,7 +2,7 @@
 % Appends per-neuron infomation in the sums file
 % input is list of files, output is cell of sums.
 
-bin_range=[1 2];
+bin_range=[2 3];
 rpt_workaround={'M23_20191109_g0';'191018-DPA-Learning5_28_g1';'191226_64_learning6_g0_imec1_cleaned'};
 
 sus_trans=h5read('../transient_6.hdf5','/sus_trans');
@@ -27,8 +27,9 @@ singleTracks=dir('/home/zx/neupix/wyt/DataSum/singleProbe');
 singleTrackList={singleTracks(3:end).name};
 % error_list=cell(0);
 sums=cell(0,8);
-fs=dir(sprintf('/home/zx/neupix/duo_xcorr_perfile/0604_selec_XCORR_duo_*_%d*%d*',bin_range(1),bin_range(2)));
+fs=dir(sprintf('/home/zx/neupix/duo_xcorr_perfile/0604_selec_XCORR_duo_*_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)));
 disp(length(fs))
+keyboard
 % pause
 for i=1:length(fs)
     tracks=2;
@@ -134,6 +135,6 @@ for i=1:length(fs)
     sums(end+1,:)=fstr.sums;
 end
 disp('check the file name is correct!')
-keyboard
-save('selec_duo_XCORR_sums_delay_6_1_2_2msbin.mat','sums','-v7.3')
+% keyboard
+save(sprintf('selec_duo_XCORR_sums_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)),'sums','-v7.3')
 

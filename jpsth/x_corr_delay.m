@@ -3,7 +3,7 @@
 %  stat.xcorr before the channel in the third dimension of stat.stat.
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='selec';
+currmodel='nonsel';
 prefix='0604';
 delay=6;
 bin_range=[1 2];
@@ -11,7 +11,7 @@ addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
 % tfs=importdata('transient_6.csv');
-sus_trans=h5read('../transient_6.hdf5','/sus_trans');
+sus_trans=h5read('../transient_6.hdf5','/sus_trans'); %export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s, prefer_s))
 reg_list=h5read('../transient_6.hdf5','/reg');
 cid_list=h5read('../transient_6.hdf5','/cluster_id');
 path_list=h5read('../transient_6.hdf5','/path');

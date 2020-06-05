@@ -1,15 +1,15 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
+currbin=2;
 close('all')
 prefix='selec_duo_';
-bin_range=[1 2];
 to_plot=false;
 to_save=true;
-prepare_stats_file=false;
+prepare_stats_file=true;
 if prepare_stats_file
     %debugging
     %fs=dir('selec_duo_XCORR_de*');
-    for bin=1 %:6 % debuging
+    for bin=currbin %:6 % debuging
         % debuging
         % load(fullfile(fs(bin).folder,fs(bin).name));
         
@@ -138,7 +138,7 @@ if prepare_stats_file
                     stats{end+1}=onepair;
                     
                     %TODO: plot
-                    if to_plot && abs(onepair.AIs1)>0.9 && onepair.totalcount>2000 && onepair.wf_stats_su2(4)>390 && onepair.wf_stats_su1(4)>390 && nnz(scores1>thresh)>2  && onepair.prefered_sample_su1(2)>0 && onepair.prefered_sample_su2(2)>0 && onepair.prefered_sample_su1(2)==onepair.prefered_sample_su2(2)
+                    if to_plot && abs(onepair.AIs1)>0.9 && onepair.totalcount>2000 && onepair.wf_stats_su2(4)>390 && onepair.wf_stats_su1(4)>390 && nnz(scores1>thresh)>2  && onepair.prefered_sample_su1(currbin+1)>0 && onepair.prefered_sample_su2(currbin+1)>0 && onepair.prefered_sample_su1(currbin+1)==onepair.prefered_sample_su2(currbin+1)
                         fh=figure('Color','w','Position',[100,100,600,800]);
                         subplot(3,2,1);
                         hold on
@@ -200,11 +200,12 @@ if prepare_stats_file
             end
         end
         if to_save
-            keyboard
+            disp(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)));
+%             keyboard
             save(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
         end
     end
-return
+% return
 end
 
 gen_join_set=false;
@@ -216,10 +217,12 @@ if gen_join_set
         join_reg_list{end+1}=s.reg_su2;
     end
     join_reg_set=unique(join_reg_list);
-    save(fullfile('..','join_reg_set.mat'),'join_reg_set');
+    keyboard
+    save(fullfile('..',sprintf('join_reg_set_%d_%d.mat',bin_range(1),bin_range(2))),'join_reg_set');
+return
 end
 
-gen_pair_mat=false;
+gen_pair_mat=true;
 if gen_pair_mat
     if ~exist('join_reg_set','var')
         load(fullfile('..','join_reg_set.mat'));
@@ -247,8 +250,9 @@ if gen_pair_mat
         pair_mat(su1reg_idx,su2reg_idx)=pair_mat(su1reg_idx,su2reg_idx)+1;
         pair_mat(su2reg_idx,su1reg_idx)=pair_mat(su2reg_idx,su1reg_idx)+1;
     end
-save('pair_mat_duo_6s_1_2.mat','pair_mat');
-return
+% keyboard   
+save(sprintf('pair_mat_duo_6s_%d_%d.mat',bin_range(1),bin_range(2)),'pair_mat');
+% return
 end
 
 
@@ -264,7 +268,7 @@ end
 
 
 
-gen_conn_mat=false;
+gen_conn_mat=true;
 if gen_conn_mat
     conn_mat_all=cell(0);
     if ~exist('join_reg_set','var')
@@ -275,7 +279,7 @@ if gen_conn_mat
     reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
     reg_set=reg_set(~strcmp(reg_set,'root'));
     
-    for bin=1
+    for bin=currbin
 %         load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
         conn_mat=zeros(length(reg_set),length(reg_set));
         conn_sel_mat=zeros(length(reg_set),length(reg_set));
@@ -298,7 +302,7 @@ if gen_conn_mat
 %                 continue
 %             end
             
-            if s.prefered_sample_su1(2) && s.prefered_sample_su2(2)
+            if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1)
                 sel_flag=true;
             else
                 sel_flag=false;
@@ -353,9 +357,9 @@ if gen_conn_mat
         end
     end
 disp('check file name')
-keyboard
-save('conn_mat_duo_6s_1_2.mat','conn_mat','conn_sel_mat')    
-return
+% keyboard
+save(sprintf('conn_mat_duo_6s_%d_%d.mat',bin_range(1),bin_range(2)),'conn_mat','conn_sel_mat')    
+% return
 end
 
 gen_ratio_map=true;
@@ -367,7 +371,7 @@ load(fullfile('..','join_reg_set.mat'));
 reg_set=join_reg_set;
 reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
 reg_set=reg_set(~strcmp(reg_set,'root'));
-for bin=1
+for bin=currbin
     load(sprintf('conn_mat_duo_6s_%d_%d.mat',bin,bin+1));
     load(sprintf('pair_mat_duo_6s_%d_%d.mat',bin,bin+1));
 
