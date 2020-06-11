@@ -225,4 +225,4 @@ def get_dataset(denovo=False, prevTrial=False,classify_test=False):
 
 
 if __name__ == "__main__":
-    (feat, regs) = get_dataset(denovo=True,prevTrial=True,classify_test=True)
+    (feat, regs) = get_dataset(denovo=True,prevTrial=False,classify_test=False)

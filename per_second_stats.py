@@ -288,11 +288,28 @@ def plot_features():
 
 ### entry point
 def process_all(denovo=False, toPlot=False, toExport=False, delay=6, counterclock=False):
-    per_sec_sel_arr = None
-    non_sel_mod_arr = None
-    perfS1_arr = None
-    perfS2_arr = None
-    reg_arr = None
+
+    # output from CQ's algorithm of transient coding, both 3s and 6s obtained
+    with h5py.File('CQ_transient.hdf5', 'r') as fr:
+        if delay == 6:
+            CQ_transient = np.array(fr["transient6"]).T
+        elif delay == 3:
+            CQ_transient = np.array(fr["transient3"]).T
+        elif delay == 'early3in6':
+            CQ_transient = np.array(fr['transient_early3in6']).T
+        elif delay == 'late3in6':
+            CQ_transient = np.array(fr['transient_late3in6']).T
+        else:
+            print("error delay time")
+            sys.exit(-1)
+
+
+
+    # per_sec_sel_arr = None
+    # non_sel_mod_arr = None
+    # perfS1_arr = None
+    # perfS2_arr = None
+    # reg_arr = None
     delay_num = delay
     if delay == 'early3in6' or delay == 'late3in6':
         delay_num = 6
@@ -338,6 +355,9 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         clusterid_arr = fstr['clusterid_arr']
         path_arr = fstr['path_arr']
 
+
+
+
     if delay == 6:
         delay_bins = np.arange(1, 7)
         early_bins = np.arange(1, 4)
@@ -374,19 +394,6 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
     non_mod = np.logical_and(non_sel, np.logical_not(non_sel_mod))
     non_mod_count = np.count_nonzero(non_mod)
 
-    # output from CQ's algorithm of transient coding, both 3s and 6s obtained
-    with h5py.File(os.path.join('transient', 'CQ_transient.hdf5'), 'r') as fr:
-        if delay == 6:
-            CQ_transient = np.array(fr["transient6"]).T
-        elif delay == 3:
-            CQ_transient = np.array(fr["transient3"]).T
-        elif delay == 'early3in6':
-            CQ_transient = np.array(fr['transient_early3in6']).T
-        elif delay == 'late3in6':
-            CQ_transient = np.array(fr['transient_late3in6']).T
-        else:
-            print("error delay time")
-            sys.exit(-1)
 
     sust = np.logical_and(delay_sel, np.logical_and(
         np.logical_xor(
@@ -706,7 +713,7 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
+    process_all(denovo=True, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=True, toPlot=True, toExport=True, delay=3, counterclock=True)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')

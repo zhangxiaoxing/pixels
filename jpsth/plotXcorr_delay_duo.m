@@ -5,7 +5,7 @@ close('all')
 prefix='selec_duo_';
 to_plot=false;
 to_save=true;
-prepare_stats_file=true;
+prepare_stats_file=false;
 if prepare_stats_file
     %debugging
     %fs=dir('selec_duo_XCORR_de*');
@@ -222,7 +222,7 @@ if gen_join_set
 return
 end
 
-gen_pair_mat=true;
+gen_pair_mat=false;
 if gen_pair_mat
     if ~exist('join_reg_set','var')
         load(fullfile('..','join_reg_set.mat'));
@@ -268,7 +268,7 @@ end
 
 
 
-gen_conn_mat=true;
+gen_conn_mat=false;
 if gen_conn_mat
     conn_mat_all=cell(0);
     if ~exist('join_reg_set','var')
@@ -419,8 +419,8 @@ for bin=currbin
 %     colormap('jet')  
     colorbar;
 
-    print(sprintf('ratio_map_%d_%d.pdf',bin,bin+1),'-dpdf','-painters','-r300')
-    print(sprintf('ratio_map_%d_%d.png',bin,bin+1),'-dpng','-painters','-r300')
+%     print(sprintf('ratio_map_%d_%d.pdf',bin,bin+1),'-dpdf','-painters','-r300')
+%     print(sprintf('ratio_map_%d_%d.png',bin,bin+1),'-dpng','-painters','-r300')
 end
 return
 end
