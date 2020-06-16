@@ -1,6 +1,6 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
-currbin=2;
+currbin=1;
 close('all')
 prefix='selec_duo_';
 to_plot=false;
