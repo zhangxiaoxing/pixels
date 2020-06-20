@@ -9,6 +9,8 @@ Only produce intermediate data
 For transient sustained percentage pie chart, use per_second_stats.py
 For 1D and 2D decoding, use sus_transient_decoding.py
 
+2020-06-03, su_trials_fr_6.hdf5 is updated without duplication, su_trials_fr_3.hdf5 remains to be updated
+
 """
 
 import numpy as np
@@ -55,6 +57,9 @@ def create_3s_dataset():
 
 
 if __name__=="__main__":
+    create_3s_dataset()
+    sys.exit(0)
+
 
     if not os.path.isfile("per_sec_sel.npz"):
         print('missing data file!')
