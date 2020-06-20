@@ -1,5 +1,7 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
+% A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
+% chan2.
 currbin=1;
 close('all')
 prefix='selec_duo_';
@@ -74,6 +76,8 @@ if prepare_stats_file
                     if any(scores1>thresh)
                         bincounts1=diffs1(46:55);
                         bincounts1(scores1<=thresh)=0;
+                        % A peak at a negative lag (I.E. AI>0) for stat.xcorr(chan1,chan2,:) means that chan1 is leading
+                        % chan2.
                         sumdiffs1=(sum(bincounts1(1:5))-sum(bincounts1(6:10)));
                         if sumdiffs1==0
                             AIs1=0;
@@ -309,7 +313,7 @@ if gen_conn_mat
             end
 
             if s.s1_peak_significant && s.s2_peak_significant
-                if (s.AIs1>0 && s.AIs2>=0) || (s.AIs1>=0 && s.AIs2>0) %2 to 1
+                if (s.AIs1>0 && s.AIs2>=0) || (s.AIs1>=0 && s.AIs2>0) %1 to 2
                     conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
                     if sel_flag
                         conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
@@ -328,7 +332,7 @@ if gen_conn_mat
                     end
                 end
             elseif s.s1_peak_significant
-                if s.AIs1>0 % su2 to su1
+                if s.AIs1>0 % su1 to su2
                     conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
                     if sel_flag
                         conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
@@ -341,7 +345,7 @@ if gen_conn_mat
                 end
                 
             elseif s.s2_peak_significant
-                if s.AIs2>0 % su2 to su1
+                if s.AIs2>0 % su1 to su2
                     conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
                     if sel_flag
                         conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
@@ -498,3 +502,18 @@ colorbar()
 print('cross_bin_corr_coef.pdf','-dpdf')
 
 
+
+%% check effect of spike-pair criteria on available pairs, not frequently used
+function sum_criteria_pairs()
+statemp=zeros(length(sums),2);
+totsum=[];
+for sidx=1:size(sums,1)
+    xc_s1=sums{sidx,5};
+    xshuf_s1=sums{sidx,6};
+    xc_s2=sums{sidx,7};
+    xshuf_s2=sums{sidx,8};
+    totalCount=nansum(xc_s1.xcorr,3);
+    totsum=[totsum;totalCount(:)];
+    statemp(sidx,:)=[nnz(totalCount>=1000),nnz(totalCount<1000)];
+end
+end
