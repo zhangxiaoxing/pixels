@@ -1,17 +1,17 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
-currbin=2;
+currbin=1;
 close('all')
-prefix='selec_duo_';
+prefix='0613_sel_';
 to_plot=false;
 to_save=true;
-prepare_stats_file=true;
+prepare_stats_file=false;
 if prepare_stats_file
     %debugging
-    %fs=dir('selec_duo_XCORR_de*');
+    %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
     for bin=currbin %:6 % debuging
         % debuging
-        % load(fullfile(fs(bin).folder,fs(bin).name));
+        %load(fullfile(fs(bin).folder,fs(bin).name));
         
         stats=cell(0);
         thresh=norminv(0.995); %0.05 bonferroni corrected
@@ -27,15 +27,19 @@ if prepare_stats_file
                 su1id=str2double(xc_s1.label{si,1});
                 if ismember(su1id,sums{sidx,3})
                     su1='sust';
-                else
+                elseif ismember(su1id,sums{sidx,4})
                     su1='transient';
+                else
+                    su1='non_selective';
                 end
                 for sj=(si+1):size(xc_s1.xcorr,2)
                     su2id=str2double(xc_s1.label{sj,1});
                     if ismember(su2id,sums{sidx,3})
                         su2='sust';
-                    else
+                    elseif ismember(su2id,sums{sidx,4})
                         su2='transient';
+                    else
+                        su2='non_selective';
                     end
                     totalCount=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
                     if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || totalCount<1000
@@ -233,25 +237,32 @@ if gen_pair_mat
     reg_set=reg_set(~strcmp(reg_set,'root'));
     
     pair_mat=zeros(length(reg_set),length(reg_set));
+    pair_sel_mat=zeros(length(reg_set),length(reg_set));
     for sidx=1:length(stats)
         s=stats{sidx};
         
-        if s.s1_trials<20 || s.s2_trials<20 || strcmp(s.reg_su1,'Unlabeled') || strcmp(s.reg_su2,'Unlabeled') || strcmp(s.reg_su1,'root') || strcmp(s.reg_su2,'root')
+        if s.s1_trials<20 || s.s2_trials<20 
             continue
         end
 
         su1reg_idx=find(strcmp(s.reg_su1,reg_set));
         su2reg_idx=find(strcmp(s.reg_su2,reg_set));
         if isempty(su1reg_idx) || isempty(su2reg_idx)
-            keyboard
+            fprintf('%s, %s\n',s.reg_su1,s.reg_su2);
+            %keyboard
             continue
         end
         
         pair_mat(su1reg_idx,su2reg_idx)=pair_mat(su1reg_idx,su2reg_idx)+1;
         pair_mat(su2reg_idx,su1reg_idx)=pair_mat(su2reg_idx,su1reg_idx)+1;
+
+        if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
+            pair_sel_mat(su1reg_idx,su2reg_idx)=pair_sel_mat(su1reg_idx,su2reg_idx)+1;
+            pair_sel_mat(su2reg_idx,su1reg_idx)=pair_sel_mat(su2reg_idx,su1reg_idx)+1;
+        end
     end
 % keyboard   
-save(sprintf('pair_mat_duo_6s_%d_%d.mat',bin_range(1),bin_range(2)),'pair_mat');
+save(sprintf('%s_pair_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'pair_mat','pair_sel_mat');
 % return
 end
 
@@ -293,16 +304,17 @@ if gen_conn_mat
             su1reg_idx=find(strcmp(s.reg_su1,reg_set));
             su2reg_idx=find(strcmp(s.reg_su2,reg_set));
             if isempty(su1reg_idx) || isempty(su2reg_idx)
-                keyboard
+                fprintf('%s, %s\n', s.reg_su1, s.reg_su2);
+                %keyboard
                 continue
             end
             
-%             not helpful in selective type of datasets
+%             not helpful in selective or non-selective type of datasets
 %             if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su2(2:end))
 %                 continue
 %             end
             
-            if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1)
+            if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
                 sel_flag=true;
             else
                 sel_flag=false;
@@ -358,11 +370,11 @@ if gen_conn_mat
     end
 disp('check file name')
 % keyboard
-save(sprintf('conn_mat_duo_6s_%d_%d.mat',bin_range(1),bin_range(2)),'conn_mat','conn_sel_mat')    
+save(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'conn_mat','conn_sel_mat')    
 % return
 end
 
-gen_ratio_map=true;
+gen_ratio_map=false;
 if gen_ratio_map
 %     load('pair_mat_duo_6s_1_2.mat','pair_mat');
 %     load('conn_mat_duo_6s_1_2.mat','conn_mat');
@@ -425,7 +437,7 @@ end
 return
 end
 
-
+return
 
 
 
