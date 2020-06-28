@@ -4,21 +4,27 @@
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
 currmodel='nonsel';
-prefix='0604';
+prefix='0618';
 delay=6;
-bin_range=[1 2];
+bin_range=[6 7];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
-% tfs=importdata('transient_6.csv');
 sus_trans=h5read('../transient_6.hdf5','/sus_trans'); %export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s, prefer_s))
 reg_list=h5read('../transient_6.hdf5','/reg');
 cid_list=h5read('../transient_6.hdf5','/cluster_id');
 path_list=h5read('../transient_6.hdf5','/path');
-
-sust=find(sus_trans(:,1));
-trans=find(sus_trans(:,2));
-supool=[sust;trans]';
+if startsWith(currmodel,'selec')
+    sust=find(sus_trans(:,1));
+    trans=find(sus_trans(:,2));
+    supool=[sust;trans]';
+elseif startsWith(currmodel,'nonsel')
+    sust=[];
+    trans=[];
+    nonsel_logic=~(sus_trans(:,1) | sus_trans(:,2) | sus_trans(:,3)|sus_trans(:,4));
+    supool=find(nonsel_logic);
+    keyboard
+end
 counter=[];
 done=[];
 
@@ -36,38 +42,69 @@ for i=1:length(supool)
     end
     wffile=fullfile(metaFolder,'wf_stats.hdf5');% posix
     if isfile(wffile)
-        if folderType==1
-            sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1));
-            transIds=cid_list(startsWith(path_list,folder) & sus_trans(:,2));
-            sameFolder=find(startsWith(path_list,folder) & (sus_trans(:,1)| sus_trans(:,2)));
-            done=[done;sameFolder];
-            sustCount=numel(sustIds);
-            transCount=numel(transIds);
-        elseif folderType==2
-            fimec0=replace(folder,'imec1','imec0');
-            fimec1=replace(folder,'imec0','imec1');
-            
-            sustIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,1));
-            transIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,2));
-            
-            sustIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,1))+10000;
-            transIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,2))+10000;
-            
-            sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & (sus_trans(:,1)| sus_trans(:,2)));
-            done=[done;sameFolder];
-            
-            sustIds=[sustIds0(:);sustIds1(:)];
-            transIds=[transIds0(:);transIds1(:)];
-            
-            sustCount=numel(sustIds);
-            transCount=numel(transIds);            
-           
-        end
+        if startsWith(currmodel,'selec')
+            if folderType==1
+                sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1));
+                transIds=cid_list(startsWith(path_list,folder) & sus_trans(:,2));
+                sameFolder=find(startsWith(path_list,folder) & (sus_trans(:,1)| sus_trans(:,2)));
+                done=[done;sameFolder];
+                sustCount=numel(sustIds);
+                transCount=numel(transIds);
+            elseif folderType==2
+                fimec0=replace(folder,'imec1','imec0');
+                fimec1=replace(folder,'imec0','imec1');
+
+                sustIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,1));
+                transIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,2));
+
+                sustIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,1))+10000;
+                transIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,2))+10000;
+
+                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & (sus_trans(:,1)| sus_trans(:,2)));
+                done=[done;sameFolder];
+
+                sustIds=[sustIds0(:);sustIds1(:)];
+                transIds=[transIds0(:);transIds1(:)];
+
+                sustCount=numel(sustIds);
+                transCount=numel(transIds);            
+
+            end
+
+            if transCount<1
+                continue
+            end
+            nonselIds=[];
+            [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+        elseif startsWith(currmodel,'nonsel')
+            if folderType==1
+                sameFolder=find(startsWith(path_list,folder) & nonsel_logic);
+                nonselIds=cid_list(startsWith(path_list,folder) & nonsel_logic);
+                done=[done;sameFolder];
+            elseif folderType==2
+                fimec0=replace(folder,'imec1','imec0');
+                fimec1=replace(folder,'imec0','imec1');
+
+                nonselIds0=cid_list(startsWith(path_list,fimec0) & nonsel_logic);
+
+                nonselIds1=cid_list(startsWith(path_list,fimec1) & nonsel_logic)+10000;
+
+
+                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & nonsel_logic);
+                done=[done;sameFolder];
+
+                nonselIds=[nonselIds0(:);nonselIds1(:)];
+                sustIds=[];
+                transIds=[];
+
+            end
+
+            if numel(nonselIds)<1
+                continue
+            end
+            [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
         
-        if transCount<1
-            continue
         end
-        [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,currmodel); % posix
         if avail
             [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
         end
@@ -115,7 +152,7 @@ function [folderType,file,spkFolder,metaFolder,error_list]=jointFolder(folder,er
 end
 
 
-function [avail,out]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,model)
+function [avail,out]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,model)
 sps=30000;
 trials=clearBadPerf(h5read(fullfile(metaFolder,'events.hdf5'),'/trials')',model);
 if isempty(trials)
@@ -139,8 +176,12 @@ if strcmp(model, 'full')
     waveformGood=strcmp(clusterInfo{:,4},'good');
     freqGood=clusterInfo{:,10}>spkNThresh;
     cluster_ids = table2array(clusterInfo(waveformGood & freqGood,1));
-else
+elseif startsWith(model,'selec')
     cluster_ids=[sustIds;transIds];
+elseif startsWith(model,'nonsel')
+    cluster_ids=nonselIds;
+else
+    keyboard
 end
 
 %  single-unit candidate
