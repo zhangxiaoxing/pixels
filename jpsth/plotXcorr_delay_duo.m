@@ -1,20 +1,19 @@
 % assume 'sums' is loaded in workspace. Otherwise load corresponding
 % XCORR_delay_bin.mat file first
-% A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
+% A peak at a negative lag (i.e., AI>0,. i.e. L-R>0) for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 % chan2.
 currbin=1;
 close('all')
-prefix='0613_sel_';
+prefix='0626_selec';
 to_plot=false;
 to_save=true;
-prepare_stats_file=false;
+prepare_stats_file=true;
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=currbin %:6 % debuging
-        % debuging
+    for bin=1:6 
         %load(fullfile(fs(bin).folder,fs(bin).name));
-        
+        sums=sums_bins{bin}
         stats=cell(0);
         thresh=norminv(0.995); %0.05 bonferroni corrected
         bin_range=[bin,bin+1];
@@ -44,7 +43,7 @@ if prepare_stats_file
                         su2='non_selective';
                     end
                     totalCount=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
-                    if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || totalCount<1000
+                    if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || totalCount<250
                         onepair=struct();
                         onepair.fileidx=sidx;
                         onepair.su1_label_idx=si;
@@ -213,7 +212,8 @@ if prepare_stats_file
             save(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
         end
     end
-% return
+%%%%%%%%%%%%%%%%%%%%%%%% will return for batch data generation
+    return
 end
 
 gen_join_set=false;
@@ -230,7 +230,7 @@ if gen_join_set
 return
 end
 
-gen_pair_mat=false;
+gen_pair_mat=true;
 if gen_pair_mat
     if ~exist('join_reg_set','var')
         load(fullfile('..','join_reg_set.mat'));
@@ -260,7 +260,8 @@ if gen_pair_mat
         pair_mat(su1reg_idx,su2reg_idx)=pair_mat(su1reg_idx,su2reg_idx)+1;
         pair_mat(su2reg_idx,su1reg_idx)=pair_mat(su2reg_idx,su1reg_idx)+1;
 
-        if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
+
+        if currbin>0 && s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
             pair_sel_mat(su1reg_idx,su2reg_idx)=pair_sel_mat(su1reg_idx,su2reg_idx)+1;
             pair_sel_mat(su2reg_idx,su1reg_idx)=pair_sel_mat(su2reg_idx,su1reg_idx)+1;
         end
@@ -283,7 +284,7 @@ end
 
 
 
-gen_conn_mat=false;
+gen_conn_mat=true;
 if gen_conn_mat
     conn_mat_all=cell(0);
     if ~exist('join_reg_set','var')
@@ -318,7 +319,7 @@ if gen_conn_mat
 %                 continue
 %             end
             
-            if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
+            if currbin>0 && s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
                 sel_flag=true;
             else
                 sel_flag=false;
@@ -378,7 +379,7 @@ save(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'c
 % return
 end
 
-gen_ratio_map=false;
+gen_ratio_map=true;
 if gen_ratio_map
 %     load('pair_mat_duo_6s_1_2.mat','pair_mat');
 %     load('conn_mat_duo_6s_1_2.mat','conn_mat');
@@ -388,8 +389,8 @@ reg_set=join_reg_set;
 reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
 reg_set=reg_set(~strcmp(reg_set,'root'));
 for bin=currbin
-    load(sprintf('conn_mat_duo_6s_%d_%d.mat',bin,bin+1));
-    load(sprintf('pair_mat_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin,bin+1));
+    load(sprintf('%s_pair_mat_duo_6s_%d_%d.mat',prefix,bin,bin+1));
 
     pair_mat(pair_mat<10)=0;
     keep=false(length(pair_mat),1);
@@ -436,7 +437,7 @@ for bin=currbin
     colorbar;
 
 %     print(sprintf('ratio_map_%d_%d.pdf',bin,bin+1),'-dpdf','-painters','-r300')
-%     print(sprintf('ratio_map_%d_%d.png',bin,bin+1),'-dpng','-painters','-r300')
+     print(sprintf('%s_ratio_map_%d_%d.png',prefix,bin,bin+1),'-dpng','-painters','-r300')
 end
 return
 end

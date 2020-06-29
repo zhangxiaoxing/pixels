@@ -3,10 +3,10 @@
 %  stat.xcorr before the channel in the third dimension of stat.stat.
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='nonsel';
-prefix='0618';
+currmodel='selec';
+prefix='0623';
 delay=6;
-bin_range=[6 7];
+bin_range=[-2,-1];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
