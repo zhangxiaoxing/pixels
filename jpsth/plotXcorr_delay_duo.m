@@ -4,10 +4,10 @@
 % chan2.
 currbin=1;
 close('all')
-prefix='0626_selec';
+prefix='0720_selec';
 to_plot=false;
-to_save=true;
-prepare_stats_file=true;
+to_save=false;
+prepare_stats_file=false;
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
@@ -230,79 +230,71 @@ if gen_join_set
 return
 end
 
-gen_pair_mat=true;
-if gen_pair_mat
-    if ~exist('join_reg_set','var')
-        load(fullfile('..','join_reg_set.mat'));
-        reg_set=join_reg_set;
+regfstr=load('reg_keep.mat');
+reg_set=regfstr.reg_set;
+
+reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
+reg_set=reg_set(~strcmp(reg_set,'root'));
+
+for bin=1:6
+    bin_range=[bin,bin+1];
+%    load(sprintf('0626_selec_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
+    stats=stats_bins{bin};
+    gen_pair_mat=true;
+    if gen_pair_mat
+        pair_mat=zeros(length(reg_set),length(reg_set));
+        pair_sel_mat=zeros(length(reg_set),length(reg_set));
+        for sidx=1:length(stats)
+            s=stats{sidx};
+            
+            if s.s1_trials<20 || s.s2_trials<20 || s.totalcount<250 
+                continue
+            end
+
+            su1reg_idx=find(strcmp(s.reg_su1,reg_set));
+            su2reg_idx=find(strcmp(s.reg_su2,reg_set));
+            if isempty(su1reg_idx) || isempty(su2reg_idx)
+                fprintf('%s, %s\n',s.reg_su1,s.reg_su2);
+                %keyboard
+                continue
+            end
+            
+            pair_mat(su1reg_idx,su2reg_idx)=pair_mat(su1reg_idx,su2reg_idx)+1;
+            pair_mat(su2reg_idx,su1reg_idx)=pair_mat(su2reg_idx,su1reg_idx)+1;
+
+            if bin>0 && s.prefered_sample_su1(bin+1) && s.prefered_sample_su2(bin+1) && s.prefered_sample_su1(bin+1)==s.prefered_sample_su2(bin+1)  
+                pair_sel_mat(su1reg_idx,su2reg_idx)=pair_sel_mat(su1reg_idx,su2reg_idx)+1;
+                pair_sel_mat(su2reg_idx,su1reg_idx)=pair_sel_mat(su2reg_idx,su1reg_idx)+1;
+            end
+        end
+        save(sprintf('%s_pair_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'pair_mat','pair_sel_mat');
     end
-    
-    reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
-    reg_set=reg_set(~strcmp(reg_set,'root'));
-    
-    pair_mat=zeros(length(reg_set),length(reg_set));
-    pair_sel_mat=zeros(length(reg_set),length(reg_set));
-    for sidx=1:length(stats)
-        s=stats{sidx};
+
+
+    test_selectivity=false;
+    if test_selectivity
+        for sidx=1:length(stats)
+            s=stats{sidx};
+            if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su1(2:end))
+                keyboard
+            end
+        end
+    end
+
+
+
+    gen_conn_mat=true;
+    if gen_conn_mat
+        %conn_mat_all=cell(0);
         
-        if s.s1_trials<20 || s.s2_trials<20 
-            continue
-        end
-
-        su1reg_idx=find(strcmp(s.reg_su1,reg_set));
-        su2reg_idx=find(strcmp(s.reg_su2,reg_set));
-        if isempty(su1reg_idx) || isempty(su2reg_idx)
-            fprintf('%s, %s\n',s.reg_su1,s.reg_su2);
-            %keyboard
-            continue
-        end
-        
-        pair_mat(su1reg_idx,su2reg_idx)=pair_mat(su1reg_idx,su2reg_idx)+1;
-        pair_mat(su2reg_idx,su1reg_idx)=pair_mat(su2reg_idx,su1reg_idx)+1;
-
-
-        if currbin>0 && s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
-            pair_sel_mat(su1reg_idx,su2reg_idx)=pair_sel_mat(su1reg_idx,su2reg_idx)+1;
-            pair_sel_mat(su2reg_idx,su1reg_idx)=pair_sel_mat(su2reg_idx,su1reg_idx)+1;
-        end
-    end
-% keyboard   
-save(sprintf('%s_pair_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'pair_mat','pair_sel_mat');
-% return
-end
-
-
-test_selectivity=false;
-if test_selectivity
-    for sidx=1:length(stats)
-        s=stats{sidx};
-        if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su1(2:end))
-            keyboard
-        end
-    end
-end
-
-
-
-gen_conn_mat=true;
-if gen_conn_mat
-    conn_mat_all=cell(0);
-    if ~exist('join_reg_set','var')
-        load(fullfile('..','join_reg_set.mat'));
-        reg_set=join_reg_set;
-    end
-    
-    reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
-    reg_set=reg_set(~strcmp(reg_set,'root'));
-    
-    for bin=currbin
 %         load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-        conn_mat=zeros(length(reg_set),length(reg_set));
-        conn_sel_mat=zeros(length(reg_set),length(reg_set));
-        tbin=bin;
+        conn_mat_S1=zeros(length(reg_set),length(reg_set));
+        conn_sel_mat_S1=zeros(length(reg_set),length(reg_set));
+        conn_mat_S2=zeros(length(reg_set),length(reg_set));
+        conn_sel_mat_S2=zeros(length(reg_set),length(reg_set));
         for pidx=1:length(stats)
             s=stats{pidx};
-            if s.totalcount<1000 || s.s1_trials<20 || s.s2_trials<20 || strcmp(s.reg_su1,'Unlabeled') || strcmp(s.reg_su2,'Unlabeled') || strcmp(s.reg_su1,'root') || strcmp(s.reg_su2,'root')
+            if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20 
                 continue
             end
             
@@ -310,76 +302,55 @@ if gen_conn_mat
             su2reg_idx=find(strcmp(s.reg_su2,reg_set));
             if isempty(su1reg_idx) || isempty(su2reg_idx)
                 fprintf('%s, %s\n', s.reg_su1, s.reg_su2);
-                %keyboard
                 continue
             end
             
-%             not helpful in selective or non-selective type of datasets
-%             if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su2(2:end))
-%                 continue
-%             end
             
-            if currbin>0 && s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
+            if bin>0 && s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
                 sel_flag=true;
             else
                 sel_flag=false;
             end
 
-            if s.s1_peak_significant && s.s2_peak_significant
-                if (s.AIs1>0 && s.AIs2>=0) || (s.AIs1>=0 && s.AIs2>0) %1 to 2
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
+            if s.s1_peak_significant
+                if s.AIs1>0.4 % su1 to su2
+                    conn_mat_S1(su1reg_idx,su2reg_idx)=conn_mat_S1(su1reg_idx,su2reg_idx)+1;
                     if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                    end
-                elseif (s.AIs1<0 && s.AIs2<=0) || (s.AIs1<=0 && s.AIs2<0)
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
+                        conn_sel_mat_S1(su1reg_idx,su2reg_idx)=conn_sel_mat_S1(su1reg_idx,su2reg_idx)+1;
                     end                    
-                elseif (s.AIs1<0 && s.AIs2>0) || (s.AIs1>0 && s.AIs2<0)
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
+                elseif s.AIs1<-0.4  %=0 is possible
+                    conn_mat_S1(su2reg_idx,su1reg_idx)=conn_mat_S1(su2reg_idx,su1reg_idx)+1;
                     if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
+                        conn_sel_mat_S1(su2reg_idx,su1reg_idx)=conn_sel_mat_S1(su2reg_idx,su1reg_idx)+1;
                     end
                 end
-            elseif s.s1_peak_significant
-                if s.AIs1>0 % su1 to su2
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
+            end    
+            if s.s2_peak_significant
+                if s.AIs2>0.4 % su1 to su2
+                    conn_mat_S2(su1reg_idx,su2reg_idx)=conn_mat_S2(su1reg_idx,su2reg_idx)+1;
                     if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                    end                    
-                elseif s.AIs1<0  %=0 is possible
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
+                        conn_sel_mat_S2(su1reg_idx,su2reg_idx)=conn_sel_mat_S2(su1reg_idx,su2reg_idx)+1;
                     end
-                end
-                
-            elseif s.s2_peak_significant
-                if s.AIs2>0 % su1 to su2
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
+                elseif s.AIs2<-0.4  %=0 is possible
+                    conn_mat_S2(su2reg_idx,su1reg_idx)=conn_mat_S2(su2reg_idx,su1reg_idx)+1;
                     if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                    end
-                elseif s.AIs2<0  %=0 is possible
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
+                        conn_sel_mat_S2(su2reg_idx,su1reg_idx)=conn_sel_mat_S2(su2reg_idx,su1reg_idx)+1;
                     end
                 end
             end
                 
         end
+    disp(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)));
+    save(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'conn_mat_S1','conn_sel_mat_S1','conn_mat_S2','conn_sel_mat_S2')    
+    % return
     end
-disp('check file name')
-% keyboard
-save(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'conn_mat','conn_sel_mat')    
-% return
 end
+return
 
-gen_ratio_map=true;
+
+
+
+gen_ratio_map=false;
 if gen_ratio_map
 %     load('pair_mat_duo_6s_1_2.mat','pair_mat');
 %     load('conn_mat_duo_6s_1_2.mat','conn_mat');
