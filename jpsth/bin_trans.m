@@ -36,6 +36,87 @@
 % histogram(dbin)
 % 
 % return
+%% one side
+if true
+
+%     para_pre_bin_S2=[];
+%     para_ctrl_bin_S2=[];
+% 
+%     para_pre_bin_both=[];
+%     para_ctrl_bin_both=[];
+
+    curr_code=[];
+    curr_none=[];
+    prev_code=[];
+    prev_none=[];
+    for bin=1:6
+        disp(bin);
+        load(sprintf('0629_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        for i=1:length(pref_chain_S1)
+            if pref_chain_S1(i,bin)>0
+                curr_code(end+1)=pref_chain_S1(i,bin+6);
+            else 
+                curr_none(end+1)=pref_chain_S1(i,bin+6);
+            end
+            
+            if bin<6 && pref_chain_S1(i,bin)>0
+                prev_code(end+1)=pref_chain_S1(i,bin+7);
+            elseif bin<6 && pref_chain_S1(i,bin)==0
+                prev_none(end+1)=pref_chain_S1(i,bin+7);
+            end
+        end
+
+        
+%         for i=1:length(pref_chain_S2)
+%             if pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin-1)==0 && pref_chain_S2(i,bin+1)==0
+%                 para_pre_bin_S2(end+1,:)=pref_chain_S2(i,(bin+5):(bin+7));
+%             elseif pref_chain_S2(i,bin)==0 && pref_chain_S2(i,bin-1)==0 && pref_chain_S2(i,bin+1)==0
+%                 para_ctrl_bin_S2(end+1,:)=pref_chain_S2(i,(bin+5):(bin+7));
+%             end
+%         end
+% 
+%         for i=1:length(pref_chain_both)
+%             if pref_chain_both(i,bin)>0 && pref_chain_both(i,bin-1)==0 && pref_chain_both(i,bin+1)==0
+%                 para_pre_bin_both(end+1,:)=pref_chain_both(i,(bin+5):(bin+7));
+%             elseif pref_chain_both(i,bin)==0 && pref_chain_both(i,bin-1)==0 && pref_chain_both(i,bin+1)==0
+%                 para_ctrl_bin_both(end+1,:)=pref_chain_both(i,(bin+5):(bin+7));
+%             end
+%         end
+    end
+%     mm=[mean(curr_none>0),mean(curr_code>0),mean(prev_none>0),mean(prev_code>0)];
+    [phat(1),pci(1,:)]=binofit(nnz(curr_none>0),numel(curr_none));
+    [phat(2),pci(2,:)]=binofit(nnz(curr_code>0),numel(curr_code));
+    [phat(3),pci(3,:)]=binofit(nnz(prev_none>0),numel(prev_none));
+    [phat(4),pci(4,:)]=binofit(nnz(prev_code>0),numel(prev_code));
+    
+    figure('Color','w','Position',[100,100,235,260])
+    hold on
+    bar(1,phat(1),0.8,'EdgeColor','k','FaceColor','k')
+    bar(4,phat(3),0.8,'EdgeColor','k','FaceColor','k')
+    bar(2,phat(2),0.8,'EdgeColor','k','FaceColor','w')
+    bar(5,phat(4),0.8,'EdgeColor','k','FaceColor','w')
+    errorbar([1 2 4 5],phat,pci(:,1)'-phat,pci(:,2)'-phat,'.','Color',[0.4,0.4,0.4],'LineWidth',1,'CapSize',12)
+    xlim([0.25,5.75])
+    set(gca,'YTick',0:0.2:0.4,'XTick',[1 2 4 5],'XTickLabel',{'PlaceHolder','PlaceHolder','PlaceHolder','PlaceHolder'},'XTickLabelRotation',90);
+    ylabel('post-synaptic coding fraction');
+    exportgraphics(gcf,'bin_transfer_coding.pdf','ContentType','vector');
+% 
+%     subplot(1,3,2)
+%     bar([mean(para_pre_bin_S2>0)',mean(para_ctrl_bin_S2>0)'])
+% 
+%     subplot(1,3,3)
+%     bar([mean(para_pre_bin_both>0)',mean(para_ctrl_bin_both >0)'])
+
+    [tbl,chi,p]=crosstab((1:numel(curr_code)+numel(curr_none))>numel(curr_code),[curr_code>0,curr_none>0])
+    [tbl,chi,p]=crosstab((1:numel(prev_code)+numel(prev_none))>numel(prev_code),[prev_code>0,prev_none>0])
+    return
+end
+
+%%
+
+
+
+
 
 if false
 %% test last current next bin selectivity
