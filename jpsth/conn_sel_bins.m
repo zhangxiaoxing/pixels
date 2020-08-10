@@ -56,7 +56,7 @@ if to_plot
 
     %assumes su_var_t etc in memory
     close all
-    if false
+    if true
         figure('Color','w','Position',[20,20,280,700])
         %% TODO: sort 
         sort_mat=su_var_t(:,2:end)>0;
@@ -78,7 +78,7 @@ if to_plot
         exportgraphics(gcf(),'conn_per_bin_change.pdf','Resolution',300)
     end
     
-    if false
+    if true
         figure('Color','w','Position',[100,100,220,250])
     %     subplot(3,1,2);
 
