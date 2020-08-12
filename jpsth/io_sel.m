@@ -1,27 +1,27 @@
-regline=textread('K:\neupix\meta\regClass.csv','%s');
-regclass=struct();
-regclass.reg=cell(0);
-regclass.id=[];
-for i=1:length(regline)
-    regclassT=regexp(regline{i},'(.*),(?>STR|TH|CTX|ELSE)','tokens','once');
-    if isempty(regclassT)
-        continue
-    end
-    regclassT=regclassT{1};
-    if endsWith(regline{i},',CTX')
-        regclass.reg{end+1}=regclassT;
-        regclass.id(end+1)=0;
-    elseif endsWith(regline{i},',TH')
-        regclass.reg{end+1}=regclassT;
-        regclass.id(end+1)=1;
-    elseif endsWith(regline{i},',STR')
-        regclass.reg{end+1}=regclassT;
-        regclass.id(end+1)=2;
-    else
-        regclass.reg{end+1}=regclassT;
-        regclass.id(end+1)=3;
-    end
-end
+% regline=textread('K:\neupix\meta\regClass.csv','%s');
+% regclass=struct();
+% regclass.reg=cell(0);
+% regclass.id=[];
+% for i=1:length(regline)
+%     regclassT=regexp(regline{i},'(.*),(?>STR|TH|CTX|ELSE)','tokens','once');
+%     if isempty(regclassT)
+%         continue
+%     end
+%     regclassT=regclassT{1};
+%     if endsWith(regline{i},',CTX')
+%         regclass.reg{end+1}=regclassT;
+%         regclass.id(end+1)=0;
+%     elseif endsWith(regline{i},',TH')
+%         regclass.reg{end+1}=regclassT;
+%         regclass.id(end+1)=1;
+%     elseif endsWith(regline{i},',STR')
+%         regclass.reg{end+1}=regclassT;
+%         regclass.id(end+1)=2;
+%     else
+%         regclass.reg{end+1}=regclassT;
+%         regclass.id(end+1)=3;
+%     end
+% end
 
 
 
@@ -32,12 +32,12 @@ load('reg_keep.mat');
 % reg_set=reg_set(~strcmp(reg_set,'root'));
 % reg_set=reg_set(greymatter);
 plot_per_bin=false;
-plot_entire=true;
+plot_entire=false;
 plot_early_late=false;
 
 ioselstats=cell(1,6);
 for bin=1:6
-load(sprintf('0712_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+load(sprintf('0810_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 in_out_sel=nan(length(reg_set),12);
 for reg_idx=1:length(reg_set)
     pair_fw= nnz((pair_reg(:,1)~=reg_idx) & (pair_reg(:,2)==reg_idx));
@@ -62,7 +62,7 @@ end
 
 ioselstats{bin}=in_out_sel;
 if plot_per_bin
-    plotOne(in_out_sel,reg_set,sprintf('bin %d',bin),sprintf('0714_io_selec_bin%d.png',bin),regclass);
+    plotOne(in_out_sel,reg_set,sprintf('bin %d',bin),sprintf('0714_io_selec_bin%d.png',bin));
 end
 end
 
@@ -76,9 +76,9 @@ end
 io_entire_delay(:,[3 5 7 9])=io_entire_delay(:,[2 4 6 8])./io_entire_delay(:,1);
 io_entire_delay(:,12)=io_entire_delay(:,11)./io_entire_delay(:,10);
 if plot_entire
-%     plotOne(io_entire_delay,reg_set,'sum of all bins','0714_io_congruent_bin_sum.png',[4,5,8,9],regclass);
-plotOne(io_entire_delay,reg_set,'sum of all bins','0714_io_congruent_bin_sum.png',[2,3,11,12],regclass);    
-% plotOne(io_entire_delay,reg_set,'sum of all bins','0714_io_selective_bin_sum.png',[2,3,6,7],regclass);
+%     plotOne(io_entire_delay,reg_set,'sum of all bins','0714_io_congruent_bin_sum.png',[4,5,8,9]);
+% plotOne(io_entire_delay,reg_set,'sum of all bins','0714_io_congruent_bin_sum.png',[2,3,11,12]);    
+plotOne(io_entire_delay,reg_set,'sum of all bins','810_io_selective_in_out_bin_sum_.png',[2,3,6,7]);
 end
 
 %% early delay late delay
@@ -98,13 +98,13 @@ io_late_delay(:,12)=io_late_delay(:,11)./io_late_delay(:,10);
 
 if plot_early_late
 %     plotOne(io_early_delay,reg_set,'early delay','0714_io_selec_early_delay.png',[4,5,8,9]);
-    plotOne(io_late_delay,reg_set,'late delay','0714_io_selec_late_delay.png',[2 3 6 7],regclass);
+%     plotOne(io_late_delay,reg_set,'late delay','0810_io_selec_late_delay.png',[2 3 6 7]);
 end
 
 save('io_sel.mat','ioselstats','io_entire_delay','io_early_delay','io_late_delay','reg_set');
 
 
-function plotOne(in_out_sel,reg_set,str_title,fname,v_idx,regclass)
+function plotOne(in_out_sel,reg_set,str_title,fname,v_idx)
     if ~exist('v_idx','var') 
         v_idx=[4,5,8,9];
     end
@@ -147,13 +147,13 @@ function plotOne(in_out_sel,reg_set,str_title,fname,v_idx,regclass)
     % disp(regsel(source_sel));
     % disp('sink')
     % disp(regsel(sink_sel));
-    for i=reshape(find(source_sel | sink_sel),1,[])
-        text(iosel(i,inFrac),iosel(i,outFrac),regsel(i),'HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',8)
-    end
+%     for i=reshape(find(source_sel | sink_sel),1,[])
+%         text(iosel(i,inFrac),iosel(i,outFrac),regsel(i),'HorizontalAlignment','center','VerticalAlignment','bottom','FontSize',8)
+%     end
     
     plot([0,1],[0,1],'k:');
-    xlim([0,0.15]);
-    ylim([0,0.15]);
+    xlim([0,0.2]);
+    ylim([0,0.2]);
     xlabel('in-density');
     ylabel('out-density');
     title(str_title);
