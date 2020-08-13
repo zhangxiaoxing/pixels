@@ -1,4 +1,4 @@
-prefix='0712_selec';
+prefix='0810_selec';
 gen_conn_chain=true;
 if gen_conn_chain
     load(fullfile('reg_keep.mat'));
@@ -42,7 +42,7 @@ if gen_conn_chain
                 continue;
             end
 
-            if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20
+            if s.s1_trials<20 || s.s2_trials<20
                 continue
             end
 
@@ -53,7 +53,9 @@ if gen_conn_chain
 %                fprintf('%s, %s\n', s.reg_su1, s.reg_su2);
 %                continue
 %            end
-            
+            if s.totalcount<250
+                continue
+            end
             if s.prefered_sample_su1(bin+1) && s.prefered_sample_su2(bin+1) && s.prefered_sample_su1(bin+1)==s.prefered_sample_su2(bin+1)  
                 sel_flag=true;
             else
@@ -111,102 +113,9 @@ if gen_conn_chain
 return
 end
 
-gen_conn_mat=false;
-if gen_conn_mat
-    conn_mat_all=cell(0);
-    if ~exist('join_reg_set','var')
-        load(fullfile('..','join_reg_set.mat'));
-        reg_set=join_reg_set;
-    end
-    
-    reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
-    reg_set=reg_set(~strcmp(reg_set,'root'));
-    
-    for bin=currbin
-%         load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-        conn_mat=zeros(length(reg_set),length(reg_set));
-        conn_sel_mat=zeros(length(reg_set),length(reg_set));
-        tbin=bin;
-        for pidx=1:length(stats)
-            s=stats{pidx};
-            if s.totalcount<1000 || s.s1_trials<20 || s.s2_trials<20 || strcmp(s.reg_su1,'Unlabeled') || strcmp(s.reg_su2,'Unlabeled') || strcmp(s.reg_su1,'root') || strcmp(s.reg_su2,'root')
-                continue
-            end
-            
-            su1reg_idx=find(strcmp(s.reg_su1,reg_set));
-            su2reg_idx=find(strcmp(s.reg_su2,reg_set));
-            if isempty(su1reg_idx) || isempty(su2reg_idx)
-                fprintf('%s, %s\n', s.reg_su1, s.reg_su2);
-                %keyboard
-                continue
-            end
-            
-%             not helpful in selective or non-selective type of datasets
-%             if ~any(s.prefered_sample_su1(2:end)) || ~any(s.prefered_sample_su2(2:end))
-%                 continue
-%             end
-            
-            if s.prefered_sample_su1(currbin+1) && s.prefered_sample_su2(currbin+1) && s.prefered_sample_su1(currbin+1)==s.prefered_sample_su2(currbin+1)  
-                sel_flag=true;
-            else
-                sel_flag=false;
-            end
+return
 
-            if s.s1_peak_significant && s.s2_peak_significant
-                if (s.AIs1>0 && s.AIs2>=0) || (s.AIs1>=0 && s.AIs2>0) %2 to 1
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                    end
-                elseif (s.AIs1<0 && s.AIs2<=0) || (s.AIs1<=0 && s.AIs2<0)
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
-                    end                    
-                elseif (s.AIs1<0 && s.AIs2>0) || (s.AIs1>0 && s.AIs2<0)
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
-                    end
-                end
-            elseif s.s1_peak_significant
-                if s.AIs1>0 % su2 to su1
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                    end                    
-                elseif s.AIs1<0  %=0 is possible
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
-                    end
-                end
-                
-            elseif s.s2_peak_significant
-                if s.AIs2>0 % su2 to su1
-                    conn_mat(su1reg_idx,su2reg_idx)=conn_mat(su1reg_idx,su2reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su1reg_idx,su2reg_idx)=conn_sel_mat(su1reg_idx,su2reg_idx)+1;
-                    end
-                elseif s.AIs2<0  %=0 is possible
-                    conn_mat(su2reg_idx,su1reg_idx)=conn_mat(su2reg_idx,su1reg_idx)+1;
-                    if sel_flag
-                        conn_sel_mat(su2reg_idx,su1reg_idx)=conn_sel_mat(su2reg_idx,su1reg_idx)+1;
-                    end
-                end
-            end
-                
-        end
-    end
-disp('check file name')
-% keyboard
-save(sprintf('%s_conn_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'conn_mat','conn_sel_mat')    
-% return
-end
-
-count2order=true;
+count2order=false;
 if count2order
     done=[];
     found_2nd=[];
@@ -229,7 +138,6 @@ if count2order
     end
 end
 
-keyboard
 count3order=false;
 if count3order
     done=[];

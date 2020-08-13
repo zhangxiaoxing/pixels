@@ -4,16 +4,17 @@
 % chan2.
 currbin=1;
 close('all')
-prefix='0720_selec';
+prefix='0729_nonsel';
 to_plot=false;
 to_save=false;
 prepare_stats_file=false;
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=1:6 
+    for bin=2:3 
         %load(fullfile(fs(bin).folder,fs(bin).name));
-        sums=sums_bins{bin}
+        load(sprintf('0729_nonsel_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',bin,bin+1))
+%        sums=sums_bins{bin}
         stats=cell(0);
         thresh=norminv(0.995); %0.05 bonferroni corrected
         bin_range=[bin,bin+1];
@@ -145,7 +146,8 @@ if prepare_stats_file
                     stats{end+1}=onepair;
                     
                     %TODO: plot
-                    if to_plot && abs(onepair.AIs1)>0.9 && onepair.totalcount>2000 && onepair.wf_stats_su2(4)>390 && onepair.wf_stats_su1(4)>390 && nnz(scores1>thresh)>2  && onepair.prefered_sample_su1(currbin+1)>0 && onepair.prefered_sample_su2(currbin+1)>0 && onepair.prefered_sample_su1(currbin+1)==onepair.prefered_sample_su2(currbin+1)
+                    %if to_plot && abs(onepair.AIs1)>0.9 && onepair.totalcount>2000 && onepair.wf_stats_su2(4)>390 && onepair.wf_stats_su1(4)>390 && nnz(scores1>thresh)>2  && onepair.prefered_sample_su1(currbin+1)>0 && onepair.prefered_sample_su2(currbin+1)>0 && onepair.prefered_sample_su1(currbin+1)==onepair.prefered_sample_su2(currbin+1)
+                    if to_plot && onepair.su1_clusterid==10163 && onepair.su2_clusterid==10196
                         fh=figure('Color','w','Position',[100,100,600,800]);
                         subplot(3,2,1);
                         hold on
@@ -196,6 +198,17 @@ if prepare_stats_file
                         hold on
                         text(0,0.6,sums{sidx,2});
                         text(0,0.3,sprintf('%d, %d',onepair.su1_clusterid,onepair.su2_clusterid));
+                        
+                        subplot(3,2,6)
+                        hold on;
+                        plot(-99:2:99,hists1,'-b');
+                        %plot(-99:2:99,hists2,'-r');
+                        arrayfun(@(x) xline(x,':k'),[-10,0,10])
+                        set(gca,'XTick',[-100,0,100])
+                        xlim([-100,100]);
+
+                        
+
                         print(sprintf('xcorr_showcase_%d_%d_%d.pdf',sidx,onepair.su1_clusterid,onepair.su2_clusterid),'-dpdf','-painters');
                         print(sprintf('xcorr_showcase_%d_%d_%d.png',sidx,onepair.su1_clusterid,onepair.su2_clusterid),'-dpng','-painters');
                         close(fh)
@@ -206,6 +219,7 @@ if prepare_stats_file
                 end
             end
         end
+        stats_bins{bin}=stats;
         if to_save
             disp(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)));
 %             keyboard
@@ -229,17 +243,17 @@ if gen_join_set
     save(fullfile('..',sprintf('join_reg_set_%d_%d.mat',bin_range(1),bin_range(2))),'join_reg_set');
 return
 end
-
+%% post stats statistics
 regfstr=load('reg_keep.mat');
 reg_set=regfstr.reg_set;
 
 reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
 reg_set=reg_set(~strcmp(reg_set,'root'));
 
-for bin=1:6
+for bin=1:4
     bin_range=[bin,bin+1];
 %    load(sprintf('0626_selec_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-    stats=stats_bins{bin};
+    %stats=stats_bins{bin};
     gen_pair_mat=true;
     if gen_pair_mat
         pair_mat=zeros(length(reg_set),length(reg_set));
@@ -247,7 +261,7 @@ for bin=1:6
         for sidx=1:length(stats)
             s=stats{sidx};
             
-            if s.s1_trials<20 || s.s2_trials<20 || s.totalcount<250 
+            if s.s1_trials<20 || s.s2_trials<20 
                 continue
             end
 
@@ -267,7 +281,7 @@ for bin=1:6
                 pair_sel_mat(su2reg_idx,su1reg_idx)=pair_sel_mat(su2reg_idx,su1reg_idx)+1;
             end
         end
-        save(sprintf('%s_pair_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'pair_mat','pair_sel_mat');
+        save(sprintf('true%s_pair_mat_duo_6s_%d_%d.mat',prefix,bin_range(1),bin_range(2)),'pair_mat','pair_sel_mat');
     end
 
 

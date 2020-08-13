@@ -5,13 +5,13 @@ if findIdx
     [row,col]=ind2sub(size(subtotal),idx);
 end
 % assumes all stats file in memory for data generation
-genData=false;
+genData=true;
 if genData
     su_var_t=[];
     for bin=1:6
         disp(bin);
     %     load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-        stats=stats_bin{bin};
+        stats=stats_bins{bin};
         for sidx=1:length(stats)
             s=stats{sidx};
             if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20 || abs(s.AIs1)<=0.4
@@ -19,7 +19,7 @@ if genData
             end
     %         keyboard
             if s.s1_peak_significant && any(s.prefered_sample_su1(2:end)) && any(s.prefered_sample_su2(2:end))
-                key=s.fileidx*1000*1000+s.su1_label_idx*1000+s.su2_label_idx;
+                key=s.fileidx*100000*100000+s.su1_clusterid*100000+s.su2_clusterid;
                 if ~isempty(su_var_t)
                     idx=find(su_var_t(:,1)==key);
                 else
@@ -51,7 +51,7 @@ for bin=2:6
 end
 
 
-to_plot=true;
+to_plot=false;
 if to_plot
 
     %assumes su_var_t etc in memory
