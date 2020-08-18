@@ -4,9 +4,9 @@
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
 currmodel='nonsel';
-prefix='0721';
+prefix='0729';
 delay=6;
-bin_range=[4,5];
+bin_range=[3,4];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
