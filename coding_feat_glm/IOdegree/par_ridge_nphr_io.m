@@ -1,8 +1,6 @@
 function results=par_ridge_nphr_selectivity(effs, tasks,lambda,use_mean,early_late)
 addpath('FastRidge');
-if ~exist('subset','var')
-    subset=false;
-end
+
 if ~exist('lambda','var')
    lambda=0.1; 
 end
@@ -12,12 +10,12 @@ end
 
 transFrac=transientFraction();%early col3, late col5
 iostats=ioDegree(); %bin 1-6
-iodiff=ioDiff();
+% iodiff=ioDiff();
 dec_stats=dec_accuracy();%entire col 1, early col 2, late col3
 opgenStats=hemOpgen(use_mean,'nphr');
 results=cell(size(tasks));
 for t=tasks
-    results{t}=one_corr(effs,t, lambda, use_mean, transFrac,iostats,opgenStats,dec_stats,early_late,iodiff);
+    results{t}=one_corr(effs,t, lambda, use_mean, transFrac,iostats,opgenStats,dec_stats,early_late);
 end
 return
 % p = gcp();
@@ -38,7 +36,7 @@ end
 
 
 function int_result=one_corr(use_eff,task_idx,lambda,use_mean,...
-    transFrac,iostats,opgenStats,dec_stats,early_late,iodiff)
+    transFrac,iostats,opgenStats,dec_stats,early_late)
 
 glm_mat=[];
 regions=cell(0,2);
@@ -49,41 +47,42 @@ for i=1:size(opgenStats.Mapping,1)
     opgen_idx=i;
     frac_idx=strcmp(ephys_reg,transFrac.reg);
     io_idx=strcmp(ephys_reg,iostats.reg);
-    iodiff_idx=strcmp(ephys_reg,iodiff.reg);
     dec_idx=strcmp(ephys_reg,dec_stats.reg);
     if nnz(opgen_idx) && nnz(frac_idx) && nnz(io_idx) && nnz(dec_idx)...
             && (transFrac.stats(frac_idx,1)>=50)
-        if ~nnz(iodiff_idx)
-            disp(ephys_reg);
-            keyboard
-            
-        end
+%         if ~nnz(iodiff_idx)
+%             disp(ephys_reg);
+%             keyboard
+%             
+%         end
         
         opgen=opgenStats.value_arr(opgen_idx,task_idx);
         if ~exist('early_late','var') || strcmp(early_late,'entire')
+            disp("not ready")
+            keyboard
             frac=transFrac.stats(frac_idx,[3 5]);% col 3 for early col 5 for late
             iodeg=[mean(iostats.dens(io_idx,1:3)),mean(iostats.dens(io_idx,4:6))]; % % 6 bins 
             dec_diff=dec_stats.stats(dec_idx,[5 6]); % 5 for early decoding 6 for late
-            iodiff_val=iodiff.stats(iodiff_idx,1);
+%             iodiff_val=iodiff.stats(iodiff_idx,1);
         elseif strcmp(early_late,'early')
             frac=transFrac.stats(frac_idx,3);% col 3 for early col 5 for late
-            iodeg=mean(iostats.dens(io_idx,1:3)); % % 6 bins 
-            dec_diff=dec_stats.stats(dec_idx,5);
-            iodiff_val=iodiff.stats(iodiff_idx,2);
+            iodeg=iostats.dens(io_idx,[4:6,11,14]); % % 1-9 (in,out,local) in (entire early late),10-12, io diff, 13-15, io-diff-idx
+            dec_diff=dec_stats.stats(dec_idx,[2 5]);
+%             iodiff_val=iodiff.stats(iodiff_idx,2);
         elseif strcmp(early_late,'late')
             frac=transFrac.stats(frac_idx,5);% col 3 for early col 5 for late
-            iodeg=mean(iostats.dens(io_idx,4:6)); % % 6 bins 
-            dec_diff=dec_stats.stats(dec_idx,6); % 5 for early decoding 6 for late
-            iodiff_val=iodiff.stats(iodiff_idx,3);
+            iodeg=iostats.dens(io_idx,[7:9,12,15]); % % 6 bins 
+            dec_diff=dec_stats.stats(dec_idx,[3 6]); % 5 for early decoding 6 for late
+%             iodiff_val=iodiff.stats(iodiff_idx,3);
         else
             disp('error early late delay parameter');
             keyboard
         end
-        if any(isnan([opgen,frac,iodeg,dec_diff,iodiff_val]))
+        if any(isnan([opgen,frac,iodeg,dec_diff]))
             continue
         end
 
-        glm_mat(end+1,:)=[opgen,frac,iodeg,dec_diff,iodiff_val];
+        glm_mat(end+1,:)=[opgen,frac,dec_diff,iodeg];
         regions(end+1,:)={opgen_reg,ephys_reg};
     elseif transFrac.stats(frac_idx,1)>=50
 %         disp(ephys_reg)
@@ -215,39 +214,48 @@ end
 %%
 function iostats=ioDegree()
 iostats=struct();
-load('k:\code\jpsth\reg_keep.mat')
-dens=nan(140,6);
-for bin=1:6
-load(sprintf('k:\\code\\jpsth\\0626_selec_conn_mat_duo_6s_%d_%d.mat',bin,bin+1))
-load(sprintf('k:\\code\\jpsth\\0626_selec_pair_mat_duo_6s_%d_%d.mat',bin,bin+1))
-for i=1:length(reg_set)
-    outPair=sum(pair_mat(:,i));
-    outConn=sum(conn_mat_S1(:,i));
-    if outPair>0
-        dens(i,bin)=outConn/outPair;
-    end
-end
-end
-iostats.reg=reg_set;
-iostats.dens=dens;
+% load('k:\code\jpsth\reg_keep.mat')
+% dens=nan(140,6);
+% for bin=1:6
+% load(sprintf('k:\\code\\jpsth\\0626_selec_conn_mat_duo_6s_%d_%d.mat',bin,bin+1))
+% load(sprintf('k:\\code\\jpsth\\0810_selec_pair_mat_duo_6s_%d_%d.mat',bin,bin+1))
+% for i=1:length(reg_set)
+%     outPair=sum(pair_mat(:,i));
+%     outConn=sum(conn_mat_S1(:,i));
+%     if outPair>0
+%         dens(i,bin)=outConn/outPair;
+%     end
+% end
+% end
+load('k:\code\jpsth\io_sel.mat');
+reg_sel=io_early_delay(:,1)>=100 & io_late_delay(:,1)>=100 & io_entire_delay(:,1)>=100 & ...
+    io_early_delay(:,10)>=100 & io_late_delay(:,10)>=100 & io_entire_delay(:,10)>=100;
+
+iostats.reg=reg_set(reg_sel);
+stats=[io_entire_delay(reg_sel,[3 7 12]),io_early_delay(reg_sel,[3 7 12]),io_late_delay(reg_sel,[3 7 12])];
+iodiff=[diff(io_entire_delay(reg_sel,[3,7]),1,2),diff(io_early_delay(reg_sel,[3,7]),1,2),diff(io_late_delay(reg_sel,[3,7]),1,2)];
+GAIN=[iodiff(:,1)./sum(io_entire_delay(reg_sel,[3,7]),2),...
+    iodiff(:,1)./sum(io_early_delay(reg_sel,[3,7]),2),...
+    iodiff(:,1)./sum(io_late_delay(reg_sel,[3,7]),2)];
+iostats.dens=[stats,iodiff,GAIN];
 % keyboard
 iostats.reg{strcmp(iostats.reg,'SSp')}='SSp-bfd';
 iostats.reg{strcmp(iostats.reg,'DG')}='DG-mo';
 end
 
-function iodiff=ioDiff()
-load('k:\code\jpsth\io_sel.mat'); %save('io_sel.mat','ioselstats','io_entire_delay','io_early_delay','io_late_delay','reg_set');
-%     in_out_sel(reg_idx,:)=[pair_count,in_conn_S1,in_conn_S1/pair_count, ...%1 2 3
-%         in_sel_S1,in_sel_S1/pair_count,...% 4 5
-%         out_conn_S1,out_conn_S1/pair_count,...% 6 7
-%         out_sel_S1,out_sel_S1/pair_count,...% 8 9
-%         auto_pair,auto_conn_S1,auto_conn_S1/auto_pair]; % 10 11 12
-iodiff=struct();
-iodiff.reg=reg_set;
-iodiff.stats=[diff(io_entire_delay(:,[5,9]),1,2),diff(io_early_delay(:,[5,9]),1,2),diff(io_late_delay(:,[5,9]),1,2)];
-iodiff.reg{strcmp(iodiff.reg,'SSp')}='SSp-bfd';
-iodiff.reg{strcmp(iodiff.reg,'DG')}='DG-mo';
-end
+% function iodiff=ioDiff()
+% load('k:\code\jpsth\io_sel.mat'); %save('io_sel.mat','ioselstats','io_entire_delay','io_early_delay','io_late_delay','reg_set');
+% %     in_out_sel(reg_idx,:)=[pair_count,in_conn_S1,in_conn_S1/pair_count, ...%1 2 3
+% %         in_sel_S1,in_sel_S1/pair_count,...% 4 5
+% %         out_conn_S1,out_conn_S1/pair_count,...% 6 7
+% %         out_sel_S1,out_sel_S1/pair_count,...% 8 9
+% %         auto_pair,auto_conn_S1,auto_conn_S1/auto_pair]; % 10 11 12
+% iodiff=struct();
+% iodiff.reg=reg_set;
+% iodiff.stats=[diff(io_entire_delay(:,[3,7]),1,2),diff(io_early_delay(:,[3,7]),1,2),diff(io_late_delay(:,[3,7]),1,2)];
+% iodiff.reg{strcmp(iodiff.reg,'SSp')}='SSp-bfd';
+% iodiff.reg{strcmp(iodiff.reg,'DG')}='DG-mo';
+% end
 
 
 %%

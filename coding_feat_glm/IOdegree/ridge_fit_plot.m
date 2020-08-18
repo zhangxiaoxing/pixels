@@ -1,18 +1,18 @@
 function ridge_fit_plot(tasks,featRange, effs, lambda,use_mean)
-early_late='early';
+early_late='late';
 
 %% plot
 close all
-fl=ls('Ridge_frac*vgat*early.mat');
+fl=ls('Ridge_frac*nphr*late.mat');
 plot_cv_curve=false;
 plot_table=false;
 if strcmp(early_late,'early')
-    full_features_tag={'','selective fraction early','conn density early','decoding early','out-in density'};
+    full_features_tag={'','selective fraction early','decoding diff','decoding','in-density','out-density','local-density','io-diff','io-diff-idx'};
 elseif strcmp(early_late,'late')
-    full_features_tag={'','selective fraction late','conn density late','decoding late','out-in density'};
+    full_features_tag={'','selective fraction early','decoding diff','decoding','in-density','out-density','local-density','io-diff','io-diff-idx'};
 else
 end
-for i=1:size(fl,1)
+for i=1%1:size(fl,1)
     disp(fl(i,:))
     if contains(fl(i,:),'vgat')
         opsin='vgat';
@@ -27,7 +27,10 @@ for i=1:size(fl,1)
         continue
     end
     sigIdces=reshape(sigIdces,1,[]);
-    for Iaic=13
+    for Iaic=46
+        if numel(int_result{Iaic,6})>3
+            continue
+        end
         fh=figure('Color','w','Position',[100,100,240,500]);
         subplot(2,1,1);
         %         [~,Iaic]=max(cell2mat(int_result(:,3)));

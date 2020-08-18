@@ -70,8 +70,6 @@ if __name__=="__main__":
     # perfS1_arr = fstr['perfS1_arr']
     # perfS2_arr = fstr['perfS2_arr']
     # reg_arr = fstr['reg_arr']
-    transient6=None
-    transient3=None
     with h5py.File(os.path.join('transient','CQ_transient.hdf5'), 'r') as fr:
         transient6 = np.array(fr["transient6"])
         transient3 = np.array(fr["transient3"])

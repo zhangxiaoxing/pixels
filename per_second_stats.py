@@ -263,7 +263,7 @@ def prepare_data_sync():
             suid_reg = [list(i) for i in zip(*l)]
 
         (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
-        
+
         if perf_code != 3:
             continue
         ### TODO: export per su per file alignment file
@@ -288,7 +288,6 @@ def plot_features():
 
 ### entry point
 def process_all(denovo=False, toPlot=False, toExport=False, delay=6, counterclock=False):
-
     # output from CQ's algorithm of transient coding, both 3s and 6s obtained
     with h5py.File('CQ_transient.hdf5', 'r') as fr:
         if delay == 6:
@@ -302,8 +301,6 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         else:
             print("error delay time")
             sys.exit(-1)
-
-
 
     # per_sec_sel_arr = None
     # non_sel_mod_arr = None
@@ -355,7 +352,8 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         clusterid_arr = fstr['clusterid_arr']
         path_arr = fstr['path_arr']
 
-
+    # rpt_workaround = ('M23_20191109_g0', '191018-DPA-Learning5_28_g1', '191226_64_learning6_g0_imec1_cleaned')
+    # rpt = np.zeros_like(path_arr)
 
 
     if delay == 6:
@@ -394,7 +392,6 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
     non_mod = np.logical_and(non_sel, np.logical_not(non_sel_mod))
     non_mod_count = np.count_nonzero(non_mod)
 
-
     sust = np.logical_and(delay_sel, np.logical_and(
         np.logical_xor(
             np.any(perfS1_arr[delay_bins, :], axis=0),
@@ -430,13 +427,12 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = ['Arial']
 
-        frac = [switched_count, unclassified_count, bs_count, sample_only_count, sust_count, transient_count,
-                non_sel_mod_count, non_mod_count, ]
+        frac = [switched_count + unclassified_count + bs_count + sample_only_count, sust_count, transient_count,
+                non_sel_mod_count + non_mod_count, ]
         print(np.sum(frac))
-        explode = (0, 0, 0, 0, 0.1, 0.05, 0, 0)
-        labels = (
-            'transient-switched', 'unclassified', 'biased', 'selective only during sample', 'sustained', 'transient',
-            'Non-selective modulation', 'Unmodulated')
+        explode = (0, 0.1, 0.1, 0)
+        labels = ('unclassified', 'sustained', 'transient',
+                  'non-selective')
 
         (fh, ax) = plt.subplots(1, 1, figsize=(12 / 2.54, 4 / 2.54), dpi=300)
         if counterclock:
@@ -444,7 +440,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         else:
             startangle = 240
         ax.pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=False, startangle=startangle,
-               counterclock=counterclock)
+               counterclock=counterclock, colors=('grey', 'blue', 'red', 'black'))
         # ax.axis('equal')
         ax.set_xlim((-0.7, 0.7))
         fh.suptitle(f'{delay}s delay')
@@ -713,8 +709,8 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=True, toPlot=False, toExport=True, delay=3, counterclock=False)
-    # process_all(denovo=True, toPlot=True, toExport=True, delay=3, counterclock=True)
+    process_all(denovo=False, toPlot=True, toExport=False, delay=6, counterclock=False)
+    process_all(denovo=False, toPlot=True, toExport=False, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
 

@@ -1,38 +1,7 @@
-% regline=textread('K:\neupix\meta\regClass.csv','%s');
-% regclass=struct();
-% regclass.reg=cell(0);
-% regclass.id=[];
-% for i=1:length(regline)
-%     regclassT=regexp(regline{i},'(.*),(?>STR|TH|CTX|ELSE)','tokens','once');
-%     if isempty(regclassT)
-%         continue
-%     end
-%     regclassT=regclassT{1};
-%     if endsWith(regline{i},',CTX')
-%         regclass.reg{end+1}=regclassT;
-%         regclass.id(end+1)=0;
-%     elseif endsWith(regline{i},',TH')
-%         regclass.reg{end+1}=regclassT;
-%         regclass.id(end+1)=1;
-%     elseif endsWith(regline{i},',STR')
-%         regclass.reg{end+1}=regclassT;
-%         regclass.id(end+1)=2;
-%     else
-%         regclass.reg{end+1}=regclassT;
-%         regclass.id(end+1)=3;
-%     end
-% end
-
-
-
 close all
 load('reg_keep.mat');
-% greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
-% reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
-% reg_set=reg_set(~strcmp(reg_set,'root'));
-% reg_set=reg_set(greymatter);
 plot_per_bin=false;
-plot_entire=false;
+plot_entire=true;
 plot_early_late=false;
 
 ioselstats=cell(1,6);
@@ -112,7 +81,7 @@ function plotOne(in_out_sel,reg_set,str_title,fname,v_idx)
     [inCount,inFrac,outCount,outFrac]=t{:};
 
     greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
-    countsel=in_out_sel(:,1)>=100 & greymatter; %121 115 100
+    countsel=in_out_sel(:,1)>=100 & greymatter; %126 115 104
     iosel=in_out_sel(countsel,:);
     sink_sel=false(size(iosel,1),1);
     source_sel=false(size(iosel,1),1);
@@ -138,11 +107,7 @@ function plotOne(in_out_sel,reg_set,str_title,fname,v_idx)
     otherh=scatter(iosel(~(sink_sel|source_sel),inFrac),iosel(~(sink_sel|source_sel),outFrac),'o','MarkerEdgeColor','none','MarkerFaceColor',[0.5,0.5,0.5],'MarkerFaceAlpha',0.5);
     gainh=scatter(iosel(source_sel,inFrac),iosel(source_sel,outFrac),'o','MarkerEdgeColor','none','MarkerFaceColor','r','MarkerFaceAlpha',0.5);
     damph=scatter(iosel(sink_sel,inFrac),iosel(sink_sel,outFrac),'o','MarkerEdgeColor','none','MarkerFaceColor','b','MarkerFaceAlpha',0.5);
-%     othersh=scatter(iosel(regid==3,inFrac),iosel(regid==3,outFrac),8,'o','MarkerEdgeColor',[0.5,0.5,0.5],'MarkerFaceColor','none');    
-%     ctxh=scatter(iosel(regid==0,inFrac),iosel(regid==0,outFrac),8,'o','MarkerEdgeColor','none','MarkerFaceColor','r','MarkerFaceAlpha',0.5);
-%     thh=scatter(iosel(regid==1,inFrac),iosel(regid==1,outFrac),8,'o','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.5);
-%     strh=scatter(iosel(regid==2,inFrac),iosel(regid==2,outFrac),8,'o','MarkerEdgeColor','none','MarkerFaceColor','b','MarkerFaceAlpha',0.5);
-    
+
 % disp('source')
     % disp(regsel(source_sel));
     % disp('sink')
@@ -157,8 +122,10 @@ function plotOne(in_out_sel,reg_set,str_title,fname,v_idx)
     xlabel('in-density');
     ylabel('out-density');
     title(str_title);
-%     legend([ctxh,thh,strh,othersh],{'cortex','thalamus','striatum','others'});
     legend([gainh,damph,otherh],{'gain','damping','others'})
+    
+    [r,p]=corr(iosel(:,inFrac),iosel(:,outFrac));
+    
     keyboard
 %     print(fh,fname,'-dpng','-r300');
     exportgraphics(fh,replace(fname,'.png','.pdf'),'ContentType','vector');
@@ -191,12 +158,12 @@ xlabel(sprintf('r=%.3f,p=%.3f',r,p));
 title('input v.s. local')
 %% %%%%%%%%%%%%%%%%LOCAL V.S IN%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if false
-    in_out_sel=io_entire_delay
+    in_out_sel=io_entire_delay;
     t=num2cell([2,3,6,12]);
     [inCount,inFrac,outCount,outFrac]=t{:};
     
     greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
-    countsel=in_out_sel(:,1)>=100 & in_out_sel(:,10)>=100 & greymatter; %121 115 100
+    countsel=in_out_sel(:,1)>=100 & in_out_sel(:,10)>=100 & greymatter; %126 92 115 77
     iosel=in_out_sel(countsel,:);
     sink_sel=false(size(iosel,1),1);
     source_sel=false(size(iosel,1),1);
@@ -220,13 +187,14 @@ if false
     [r,p]=corr(iosel(:,inFrac),iosel(:,outFrac))
     
     plot([0,1],[0,1],'k:');
-    xlim([0.05,0.25]);
-    ylim([0.05,0.25]);
+    xlim([0,0.22]);
+    ylim([0,0.22]);
     set(gca,'XTick',0:0.1:0.2,'YTick',0:0.1:0.2)
     xlabel('in-density');
     ylabel('local-density');
     title('input vs local');
     legend([gainh,damph,otherh],{'gain','damping','others'})
+    keyboard
     exportgraphics(gcf,'inputdden_localden_corr.pdf')
 end
 
@@ -238,7 +206,7 @@ title('output v.s. local')
 xlabel(sprintf('r=%.3f,p=%.3f',r,p));
 
 if false
-    in_out_sel=io_entire_delay
+    in_out_sel=io_entire_delay;
     t=num2cell([2,7,6,12]);
     [inCount,inFrac,outCount,outFrac]=t{:};
     
@@ -267,13 +235,14 @@ if false
     [r,p]=corr(iosel(:,inFrac),iosel(:,outFrac))
     
     plot([0,1],[0,1],'k:');
-    xlim([0.05,0.275]);
-    ylim([0.05,0.275]);
+    xlim([0,0.22]);
+    ylim([0,0.22]);
     set(gca,'XTick',0:0.1:0.2,'YTick',0:0.1:0.2)
     xlabel('out-density');
     ylabel('local-density');
     title('output vs local');
     legend([gainh,damph,otherh],{'gain','damping','others'})
+    keyboard
     exportgraphics(gcf,'outputden_localden_corr.pdf')
 end
 
@@ -321,7 +290,7 @@ if false
 
     regsel=reg_set(countsel);
     
-    mdl=fitglm([io_entire_delay(countsel,3)],io_entire_delay(countsel,7),'linear');
+    mdl=fitglm(io_entire_delay(countsel,[3 12]),io_entire_delay(countsel,7),'linear');
     scatter(io_entire_delay(countsel,7),mdl.Fitted.Response)
     
     fh=figure('Color','w','Position',[100,100,280,280]);
@@ -331,13 +300,14 @@ if false
     damph=scatter(iosel(sink_sel,7),mdl.Fitted.Response(sink_sel),'o','MarkerEdgeColor','none','MarkerFaceColor','b','MarkerFaceAlpha',0.5);
    
     plot([0,1],[0,1],'k:');
-    xlim([0.1,0.225]);
-    ylim([0.1,0.225]);
+    xlim([0,0.2]);
+    ylim([0,0.2]);
     set(gca,'XTick',0:0.1:0.2,'YTick',0:0.1:0.2)
     xlabel('out-density');
     ylabel('fitted response');
     title('output vs local');
     legend([gainh,damph,otherh],{'gain','damping','others'})
+    keyboard
     exportgraphics(gcf,'outputden_fitted.pdf')
 end
     

@@ -1,14 +1,15 @@
-target='K:\code\showcase\0621_xcorr_showcase_11_10394_10225_b1.png';
+target='K:\code\showcase\0621_xcorr_showcase_24_218_219_b1.png';
 tok=regexp(target,'(?<=showcase_)(\d+)_(\d+)_(\d+)_b(\d+).png','tokens');
 bin=str2double(tok{1}{4});
 fid=str2double(tok{1}{1});
 uid1=str2double(tok{1}{2});
 uid2=str2double(tok{1}{3});
 close all
-fh=figure('Color','w','Position',[100,100,400,400]);
+fh=figure('Color','w','Position',[100,100,200,200]);
 plotOne(bin,fid,uid1,0)
 plotOne(bin,fid,uid2,1)
-print(fh,replace(target,'.png','_psth.png'),'-r300','-dpng');
+% print(fh,replace(target,'.png','_psth.png'),'-r300','-dpng');
+exportgraphics(fh,replace(target,'.png','_psth.pdf'),'ContentType','vector')
 
 function plotOne(bin,fid,uid1,pos)
 % cd('~/pixels/jpsth')
@@ -80,11 +81,12 @@ psth2=ft_spike_psth(cfg,spkTrial);
 
 subplot(2,2,3+pos);
 hold on;
-scatter(spkTrial.time{1}(s2sel),rearr_trial_s2(s2sel),3,'o','MarkerFaceColor','r','MarkerFaceAlpha',0.2,'MarkerEdgeColor','none')
-scatter(spkTrial.time{1}(s1sel),rearr_trial_s1(s1sel),3,'o','MarkerFaceColor','b','MarkerFaceAlpha',0.2,'MarkerEdgeColor','none')
+plot(repmat(spkTrial.time{1}(s2sel),2,1),[rearr_trial_s2(s2sel)-0.5;rearr_trial_s2(s2sel)+0.5],'m-')
+plot(repmat(spkTrial.time{1}(s1sel),2,1),[rearr_trial_s1(s1sel)-0.5;rearr_trial_s1(s1sel)+0.5],'c-')
 arrayfun(@(x) xline(x,'--k'),[0,1]);
 xlim([-1,7]);
 ylim([0,length(s1trial)+length(s2trial)+3]);
+set(gca,'XTick',[0,5])
 
 subplot(2,2,1+pos);
 hold on;
@@ -99,6 +101,7 @@ plot(psth1.time,smooth(psth1.avg,5),'-b','LineWidth',1)
 plot(psth2.time,smooth(psth2.avg,5),'-r','LineWidth',1)
 
 arrayfun(@(x) xline(x,'--k'),[0,1]);
+set(gca,'XTick',[0,5])
 title(sprintf('F%d,B%d,U%d',fid,bin,uid1));
 
 end
