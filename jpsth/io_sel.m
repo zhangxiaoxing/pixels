@@ -3,44 +3,47 @@ load('reg_keep.mat');
 plot_per_bin=false;
 plot_entire=true;
 plot_early_late=false;
+iorepeats=cell(60,1);
+% for rpt=1:60
+    ioselstats=cell(1,6);
+    for bin=1:6
+    load(sprintf('correct_error\\0820_error_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+%     load(sprintf('correct_error\\0820_correct_resample_%03d__conn_chain_duo_6s_%d_%d.mat',rpt,bin,bin+1));
+    in_out_sel=nan(length(reg_set),12);
+    for reg_idx=1:length(reg_set)
+        pair_fw= nnz((pair_reg(:,1)~=reg_idx) & (pair_reg(:,2)==reg_idx));
+        pair_rev= nnz((pair_reg(:,1)==reg_idx) & (pair_reg(:,2)~=reg_idx));
+        pair_count=pair_fw+pair_rev;
 
-ioselstats=cell(1,6);
-for bin=1:6
-load(sprintf('0810_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-in_out_sel=nan(length(reg_set),12);
-for reg_idx=1:length(reg_set)
-    pair_fw= nnz((pair_reg(:,1)~=reg_idx) & (pair_reg(:,2)==reg_idx));
-    pair_rev= nnz((pair_reg(:,1)==reg_idx) & (pair_reg(:,2)~=reg_idx));
-    pair_count=pair_fw+pair_rev;
-    
-    in_conn_S1= nnz((reg_chain_S1(:,1)~=reg_idx) & (reg_chain_S1(:,2)==reg_idx));
-    in_sel_S1=nnz((reg_chain_S1(:,1)~=reg_idx) & (reg_chain_S1(:,2)==reg_idx) & pref_chain_S1(:,bin)>0);
+        in_conn_S1= nnz((reg_chain_S1(:,1)~=reg_idx) & (reg_chain_S1(:,2)==reg_idx));
+        in_sel_S1=nnz((reg_chain_S1(:,1)~=reg_idx) & (reg_chain_S1(:,2)==reg_idx) & pref_chain_S1(:,bin)>0);
 
-    out_conn_S1= nnz((reg_chain_S1(:,2)~=reg_idx) & (reg_chain_S1(:,1)==reg_idx));
-    out_sel_S1=nnz((reg_chain_S1(:,2)~=reg_idx) & (reg_chain_S1(:,1)==reg_idx) & pref_chain_S1(:,bin+6)>0);
-    
-    auto_pair=nnz((pair_reg(:,1)==reg_idx) & (pair_reg(:,2)==reg_idx))*2;
-    auto_conn_S1= nnz((reg_chain_S1(:,1)==reg_idx) & (reg_chain_S1(:,2)==reg_idx));
-    
-    in_out_sel(reg_idx,:)=[pair_count,in_conn_S1,in_conn_S1/pair_count, ...%1 2 3
-        in_sel_S1,in_sel_S1/pair_count,...% 4 5
-        out_conn_S1,out_conn_S1/pair_count,...% 6 7
-        out_sel_S1,out_sel_S1/pair_count,...% 8 9
-        auto_pair,auto_conn_S1,auto_conn_S1/auto_pair]; % 10 11 12
-end
+        out_conn_S1= nnz((reg_chain_S1(:,2)~=reg_idx) & (reg_chain_S1(:,1)==reg_idx));
+        out_sel_S1=nnz((reg_chain_S1(:,2)~=reg_idx) & (reg_chain_S1(:,1)==reg_idx) & pref_chain_S1(:,bin+6)>0);
 
-ioselstats{bin}=in_out_sel;
-if plot_per_bin
-    plotOne(in_out_sel,reg_set,sprintf('bin %d',bin),sprintf('0714_io_selec_bin%d.png',bin));
-end
-end
+        auto_pair=nnz((pair_reg(:,1)==reg_idx) & (pair_reg(:,2)==reg_idx))*2;
+        auto_conn_S1= nnz((reg_chain_S1(:,1)==reg_idx) & (reg_chain_S1(:,2)==reg_idx));
 
+        in_out_sel(reg_idx,:)=[pair_count,in_conn_S1,in_conn_S1/pair_count, ...%1 2 3
+            in_sel_S1,in_sel_S1/pair_count,...% 4 5
+            out_conn_S1,out_conn_S1/pair_count,...% 6 7
+            out_sel_S1,out_sel_S1/pair_count,...% 8 9
+            auto_pair,auto_conn_S1,auto_conn_S1/auto_pair]; % 10 11 12
+    end
 
+    ioselstats{bin}=in_out_sel;
+    if plot_per_bin
+        plotOne(in_out_sel,reg_set,sprintf('bin %d',bin),sprintf('0714_io_selec_bin%d.png',bin));
+    end
+    end
+    iorepeats{rpt}=ioselstats;
+% end
+keyboard
 %% entire delay
 
 io_entire_delay=ioselstats{1};
-for i=2:6
-    io_entire_delay=io_entire_delay+ioselstats{i};
+for bin=2:6
+    io_entire_delay=io_entire_delay+ioselstats{bin};
 end
 io_entire_delay(:,[3 5 7 9])=io_entire_delay(:,[2 4 6 8])./io_entire_delay(:,1);
 io_entire_delay(:,12)=io_entire_delay(:,11)./io_entire_delay(:,10);
@@ -52,15 +55,15 @@ end
 
 %% early delay late delay
 io_early_delay=ioselstats{1};
-for i=2:3
-    io_early_delay=io_early_delay+ioselstats{i};
+for bin=2:3
+    io_early_delay=io_early_delay+ioselstats{bin};
 end
 io_early_delay(:,[3 5 7 9])=io_early_delay(:,[2 4 6 8])./io_early_delay(:,1);
 io_early_delay(:,12)=io_early_delay(:,11)./io_early_delay(:,10);
 
 io_late_delay=ioselstats{4};
-for i=5:6
-    io_late_delay=io_late_delay+ioselstats{i};
+for bin=5:6
+    io_late_delay=io_late_delay+ioselstats{bin};
 end
 io_late_delay(:,[3 5 7 9])=io_late_delay(:,[2 4 6 8])./io_late_delay(:,1);
 io_late_delay(:,12)=io_late_delay(:,11)./io_late_delay(:,10);
@@ -72,6 +75,102 @@ end
 
 save('io_sel.mat','ioselstats','io_entire_delay','io_early_delay','io_late_delay','reg_set');
 
+
+%% correct error
+if false
+    load io_sel_correct_error.mat
+    error_entire=errorio{1};
+    for bin=2:6
+        error_entire=error_entire+errorio{bin};
+    end
+    error_entire(:,[3 5 7 9])=error_entire(:,[2 4 6 8])./error_entire(:,1);
+    error_entire(:,12)=error_entire(:,11)./error_entire(:,10);
+    
+    correct_entire=zeros(140,12);
+    for rpt=1:length(correct_resample)
+        for bin=1:6
+            correct_entire=correct_entire+correct_resample{rpt}{bin};
+        end
+    end
+    correct_entire(:,[3 5 7 9])=correct_entire(:,[2 4 6 8])./correct_entire(:,1);
+    correct_entire(:,12)=correct_entire(:,11)./correct_entire(:,10);
+    
+    load('reg_keep.mat');
+    greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
+    nansel=correct_entire(:,1)<100 | error_entire(:,1)<100
+    sel=~nansel & greymatter;
+        
+    correct_WING=diff(correct_entire(sel,[3,7]),1,2)
+    error_WING=diff(error_entire(sel,[3,7]),1,2)
+    
+    
+    fh=figure('Color','w','Position',[100,100,230,230])
+    hold on
+    scatter(correct_WING,error_WING,10,'MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.5)
+    plot([-0.06,0.06],[-0.06,0.06],'k:');
+    xlabel('correct trials')
+    ylabel('error trials')
+    xlim([-0.06,0.06])
+    ylim([-0.06,0.06])
+    set(gca,'XTick',-0.05:0.05:0.05,'YTick',-0.05:0.05:0.05)
+    [r,p]=corr(correct_WING,error_WING);
+    text(-0.05,0.05,sprintf('r=%.3f,p=%.3f',r,p))
+    exportgraphics(fh,'WING_correct_error.pdf')
+end
+
+%% correct-correct resample
+if false
+    load('reg_keep.mat');
+    greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
+    
+    load io_sel_correct_error.mat
+    error_entire=errorio{1};
+    for bin=2:6
+        error_entire=error_entire+errorio{bin};
+    end
+    error_entire(:,[3 5 7 9])=error_entire(:,[2 4 6 8])./error_entire(:,1);
+    error_entire(:,12)=error_entire(:,11)./error_entire(:,10);
+    
+    rlist=[];
+    for repeat=1:100
+        correct_resample=correct_resample(randperm(length(correct_resample)));
+        correct_entire=zeros(140,12);
+        for rpt=1
+            fprintf('a %d',rpt);
+            for bin=1:6
+                correct_entire=correct_entire+correct_resample{rpt}{bin};
+            end
+        end
+        correct_entire(:,[3 5 7 9])=correct_entire(:,[2 4 6 8])./correct_entire(:,1);
+        correct_entire(:,12)=correct_entire(:,11)./correct_entire(:,10);
+        
+        corr_A=correct_entire;
+        
+        correct_entire=zeros(140,12);
+        for rpt=2%(1:length(correct_resample)/2)+length(correct_resample)/2
+            fprintf('b %d',rpt);
+            for bin=1:6
+                correct_entire=correct_entire+correct_resample{rpt}{bin};
+            end
+        end
+        correct_entire(:,[3 5 7 9])=correct_entire(:,[2 4 6 8])./correct_entire(:,1);
+        correct_entire(:,12)=correct_entire(:,11)./correct_entire(:,10);
+        
+        corr_B=correct_entire;
+        
+        nansel=corr_A(:,1)<100 | corr_B(:,1)<100 | error_entire(:,1)<100;
+        sel=~nansel & greymatter;
+        
+        wingA=diff(corr_A(sel,[3,7]),1,2);
+        wingB=diff(corr_B(sel,[3,7]),1,2);
+        wingE=diff(error_entire(sel,[3,7]),1,2);
+        [r,~]=corr(wingA,wingB);
+        [re,~]=corr(wingE,wingB);
+%         keyboard
+        rlist(repeat,:)=[r,re];
+    end
+    
+end
 
 function plotOne(in_out_sel,reg_set,str_title,fname,v_idx)
     if ~exist('v_idx','var') 

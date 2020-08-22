@@ -234,10 +234,10 @@ reg_sel=io_early_delay(:,1)>=100 & io_late_delay(:,1)>=100 & io_entire_delay(:,1
 iostats.reg=reg_set(reg_sel);
 stats=[io_entire_delay(reg_sel,[3 7 12]),io_early_delay(reg_sel,[3 7 12]),io_late_delay(reg_sel,[3 7 12])];
 iodiff=[diff(io_entire_delay(reg_sel,[3,7]),1,2),diff(io_early_delay(reg_sel,[3,7]),1,2),diff(io_late_delay(reg_sel,[3,7]),1,2)];
-GAIN=[iodiff(:,1)./sum(io_entire_delay(reg_sel,[3,7]),2),...
+iodfIdx=[iodiff(:,1)./sum(io_entire_delay(reg_sel,[3,7]),2),...
     iodiff(:,1)./sum(io_early_delay(reg_sel,[3,7]),2),...
     iodiff(:,1)./sum(io_late_delay(reg_sel,[3,7]),2)];
-iostats.dens=[stats,iodiff,GAIN];
+iostats.dens=[stats,iodiff,iodfIdx];
 % keyboard
 iostats.reg{strcmp(iostats.reg,'SSp')}='SSp-bfd';
 iostats.reg{strcmp(iostats.reg,'DG')}='DG-mo';
