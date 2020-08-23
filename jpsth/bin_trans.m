@@ -1,12 +1,14 @@
 
 %% one side
 local=true;
+coactive()
 
-if true
+function coactive_one_reg()
     load('reg_keep.mat');
     greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
-    
-    
+    per_reg=zeros(0,12);
+    for onereg=greymatter'
+%     keyboard
     curr_code=[];
     curr_none=[];
     prev_code=[];
@@ -16,9 +18,10 @@ if true
     prev2_none=[];
     
     for bin=1:6
-        disp(bin);
+%         disp(bin);
         load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-        localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
+        localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;        
+%         localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
 %         localselS2=(reg_chain_S2(:,1)==reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter);
         if local
             pref_chain_S1=pref_chain_S1(localselS1,:);
@@ -30,7 +33,7 @@ if true
         end
 %             pref_chain_S1=[pref_chain_S1;pref_chain_S2];
         
-        for i=1:length(pref_chain_S1)
+        for i=1:size(pref_chain_S1,1)
             %T+0
             if pref_chain_S1(i,bin)>0
                 curr_code(end+1)=pref_chain_S1(i,bin+6);
@@ -52,45 +55,73 @@ if true
             end
         end
 
-    end
-
-    [phat(1),pci(1,:)]=binofit(nnz(curr_none>0),numel(curr_none));
-    [phat(2),pci(2,:)]=binofit(nnz(curr_code>0),numel(curr_code));
-    [phat(3),pci(3,:)]=binofit(nnz(prev_none>0),numel(prev_none));
-    [phat(4),pci(4,:)]=binofit(nnz(prev_code>0),numel(prev_code));
-    [phat(5),pci(5,:)]=binofit(nnz(prev2_none>0),numel(prev2_none));
-    [phat(6),pci(6,:)]=binofit(nnz(prev2_code>0),numel(prev2_code));
+    end %per bin end
+    per_reg(onereg,:)=[nnz(curr_code),numel(curr_code),...
+        nnz(curr_none),numel(curr_none),...
+        nnz(prev_code),numel(prev_code),...
+        nnz(prev_none),numel(prev_none),...
+        nnz(prev2_code),numel(prev2_code),...
+        nnz(prev2_none),numel(prev2_none)];
+    end %per region end
     
-    
-    figure('Color','w','Position',[100,100,235,260])
+    figure('Color','w','Position',[100,100,400,300]);
     hold on
-    bar(1,phat(1),0.8,'EdgeColor','k','FaceColor','k')
-    bar(4,phat(3),0.8,'EdgeColor','k','FaceColor','k')
-    bar(7,phat(5),0.8,'EdgeColor','k','FaceColor','k')
+    plot([0,1],[0,1],'r:')
+    for i=1:size(per_reg,1)
+        if per_reg(i,12)>=50 && per_reg(i,10)>=50
+            [~,~,p]=crosstab(1:per_reg(i,10)+per_reg(i,12)>per_reg(i,10),[1:per_reg(i,10)>per_reg(i,9),1:per_reg(i,12)>per_reg(i,11)]);
+            if p<0.05
+                mkColor='r';
+            else
+                mkColor='k';
+            end
+            scatter(per_reg(i,11)./per_reg(i,12),per_reg(i,9)./per_reg(i,10),12,'MarkerEdgeColor','none','MarkerFaceColor',mkColor,'MarkerFaceAlpha',0.5)
+        end
+    end
+    xlabel('t+2, pre-unit non-selective');
+    ylabel('t+2, pre-unit selective');
+    xlim([0,0.7])
     
-    bar(2,phat(2),0.8,'EdgeColor','k','FaceColor','w')
-    bar(5,phat(4),0.8,'EdgeColor','k','FaceColor','w')
-    bar(8,phat(6),0.8,'EdgeColor','k','FaceColor','w')
-    
-    
-    
-    errorbar([1 2 4 5 7 8],phat,pci(:,1)'-phat,pci(:,2)'-phat,'.','Color',[0.4,0.4,0.4],'LineWidth',1,'CapSize',10)
-    xlim([0.25,8.75])
-    set(gca,'YTick',0:0.2:0.4,'XTick',[1 2 4 5 7 8],'XTickLabel',{'PlaceHolder','PlaceHolder','PlaceHolder','PlaceHolder','PlaceHolder','PlaceHolder'},'XTickLabelRotation',90);
-    ylabel('post-synaptic coding fraction');
-    exportgraphics(gcf,'bin_transfer_coding.pdf','ContentType','vector');
+    keyboard
+    if to_plot
+
+        [phat(1),pci(1,:)]=binofit(nnz(curr_none>0),numel(curr_none));
+        [phat(2),pci(2,:)]=binofit(nnz(curr_code>0),numel(curr_code));
+        [phat(3),pci(3,:)]=binofit(nnz(prev_none>0),numel(prev_none));
+        [phat(4),pci(4,:)]=binofit(nnz(prev_code>0),numel(prev_code));
+        [phat(5),pci(5,:)]=binofit(nnz(prev2_none>0),numel(prev2_none));
+        [phat(6),pci(6,:)]=binofit(nnz(prev2_code>0),numel(prev2_code));
 
 
-    [tbl,chi,p]=crosstab((1:numel(curr_code)+numel(curr_none))>numel(curr_code),[curr_code>0,curr_none>0])
-    [tbl,chi,p]=crosstab((1:numel(prev_code)+numel(prev_none))>numel(prev_code),[prev_code>0,prev_none>0])
-    [tbl,chi,p]=crosstab((1:numel(prev2_code)+numel(prev2_none))>numel(prev2_code),[prev2_code>0,prev2_none>0])
-    return
+        figure('Color','w','Position',[100,100,235,260])
+        hold on
+        bar(1,phat(1),0.8,'EdgeColor','k','FaceColor','k')
+        bar(4,phat(3),0.8,'EdgeColor','k','FaceColor','k')
+        bar(7,phat(5),0.8,'EdgeColor','k','FaceColor','k')
+
+        bar(2,phat(2),0.8,'EdgeColor','k','FaceColor','w')
+        bar(5,phat(4),0.8,'EdgeColor','k','FaceColor','w')
+        bar(8,phat(6),0.8,'EdgeColor','k','FaceColor','w')
+
+
+
+        errorbar([1 2 4 5 7 8],phat,pci(:,1)'-phat,pci(:,2)'-phat,'.','Color',[0.4,0.4,0.4],'LineWidth',1,'CapSize',10)
+        xlim([0.25,8.75])
+        set(gca,'YTick',0:0.2:0.4,'XTick',[1 2 4 5 7 8],'XTickLabel',{'t->t','t->t','t->t+1','t->t+1','t->t+2','t->t+2'},'XTickLabelRotation',90);
+        ylabel('post-synaptic coding fraction');
+    %     exportgraphics(gcf,'bin_transfer_coding.pdf','ContentType','vector');
+
+
+        [tbl,chi,p]=crosstab((1:numel(curr_code)+numel(curr_none))>numel(curr_code),[curr_code>0,curr_none>0])
+        [tbl,chi,p]=crosstab((1:numel(prev_code)+numel(prev_none))>numel(prev_code),[prev_code>0,prev_none>0])
+        [tbl,chi,p]=crosstab((1:numel(prev2_code)+numel(prev2_none))>numel(prev2_code),[prev2_code>0,prev2_none>0])
+    end
 end
 
 %%
 
 
-
+function otherstats()
 
 
 if false
@@ -296,3 +327,5 @@ end
 
 dbin=diff(pre_post_bin,1,2);
 histogram(dbin)
+
+end
