@@ -1,14 +1,181 @@
 
 %% one side
-local=true;
-coactive()
+close all
+all_reg=false;
+if all_reg
+    [local_hat,local_ci]=coactive_all(true);
+    [inter_hat,inter_ci]=coactive_all(false);
+    plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci);
+end
 
-function coactive_one_reg()
-    load('reg_keep.mat');
-    greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
-    per_reg=zeros(0,12);
-    for onereg=greymatter'
-%     keyboard
+
+
+per_regl=coactive_per_reg('local');
+fhl=plot_coactive_per_reg(per_regl,'local');
+
+per_regi=coactive_per_reg('inter_input');
+fhi=plot_coactive_per_reg(per_regi,'inter region input');
+
+per_rego=coactive_per_reg('inter_output');
+fho=plot_coactive_per_reg(per_rego,'inter region output');
+
+function plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci)
+figure('Color','w','Position',[100,100,400,300]);
+hold on
+hln=plot(local_hat([1 3 5]),'k-');
+hlc=plot(local_hat([2 4 6]),'r-');
+hin=plot(inter_hat([1 3 5]),'b-');
+hic=plot(inter_hat([2 4 6]),'m-');
+
+errorbar(1:3,local_hat([1 3 5]),local_ci([1 3 5],1)'-local_hat([1 3 5]),local_ci([1 3 5],2)'-local_hat([1 3 5]),'k-')
+errorbar(1:3,local_hat([2 4 6]),local_ci([2 4 6],1)'-local_hat([2 4 6]),local_ci([2 4 6],2)'-local_hat([2 4 6]),'r-')
+errorbar(1:3,inter_hat([1 3 5]),inter_ci([1 3 5],1)'-inter_hat([1 3 5]),inter_ci([1 3 5],2)'-inter_hat([1 3 5]),'b-')
+errorbar(1:3,inter_hat([2 4 6]),inter_ci([2 4 6],1)'-inter_hat([2 4 6]),inter_ci([2 4 6],2)'-inter_hat([2 4 6]),'m-')
+xlim([0.5,3.5])
+ylim([0,0.4])
+ylabel('fraction of selective post-unit')
+set(gca,'XTick',1:3,'XTickLabel',{'t','t+1sec','t+2sec'},'YTick',0:0.2:0.4)
+legend([hln hlc hin hic],{'local nonselec. pre','local select. pre','inter-region nonselec. pre','inter-region select. pre'})
+disp('export pdf?')
+keyboard
+print('local_inter_coactivate_all.pdf','-dpdf')
+end
+
+function [phat,pci]=coactive_all(local)
+load('reg_keep.mat');
+greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+per_reg=zeros(0,12);
+
+curr_code=[];
+curr_none=[];
+prev_code=[];
+prev_none=[];
+
+prev2_code=[];
+prev2_none=[];
+
+for bin=1:6
+    %         disp(bin);
+    load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
+    %         localselS2=(reg_chain_S2(:,1)==reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter);
+    if local
+        pref_chain_S1=pref_chain_S1(localselS1,:);
+        %             pref_chain_S2=pref_chain_S2(localselS2,:);
+        
+    else
+        pref_chain_S1=pref_chain_S1(~localselS1,:);
+        %             pref_chain_S2=pref_chain_S2(~localselS2,:);
+    end
+    %             pref_chain_S1=[pref_chain_S1;pref_chain_S2];
+    
+    for i=1:size(pref_chain_S1,1)
+        %T+0
+        if pref_chain_S1(i,bin)>0
+            curr_code(end+1)=pref_chain_S1(i,bin+6);
+        else
+            curr_none(end+1)=pref_chain_S1(i,bin+6);
+        end
+        %T+1
+        if bin<6 && pref_chain_S1(i,bin)>0
+            prev_code(end+1)=pref_chain_S1(i,bin+7);
+        elseif bin<6 && pref_chain_S1(i,bin)==0
+            prev_none(end+1)=pref_chain_S1(i,bin+7);
+        end
+        
+        %T+2
+        if bin<5 && pref_chain_S1(i,bin)>0
+            prev2_code(end+1)=pref_chain_S1(i,bin+8);
+        elseif bin<5 && pref_chain_S1(i,bin)==0
+            prev2_none(end+1)=pref_chain_S1(i,bin+8);
+        end
+    end
+    
+end %per bin end
+
+[phat(1),pci(1,:)]=binofit(nnz(curr_none>0),numel(curr_none));
+[phat(2),pci(2,:)]=binofit(nnz(curr_code>0),numel(curr_code));
+[phat(3),pci(3,:)]=binofit(nnz(prev_none>0),numel(prev_none));
+[phat(4),pci(4,:)]=binofit(nnz(prev_code>0),numel(prev_code));
+[phat(5),pci(5,:)]=binofit(nnz(prev2_none>0),numel(prev2_none));
+[phat(6),pci(6,:)]=binofit(nnz(prev2_code>0),numel(prev2_code));
+
+[tbl,chi,p]=crosstab((1:numel(curr_code)+numel(curr_none))>numel(curr_code),[curr_code>0,curr_none>0])
+[tbl,chi,p]=crosstab((1:numel(prev_code)+numel(prev_none))>numel(prev_code),[prev_code>0,prev_none>0])
+[tbl,chi,p]=crosstab((1:numel(prev2_code)+numel(prev2_none))>numel(prev2_code),[prev2_code>0,prev2_none>0])
+end
+
+function fh=plot_coactive_per_reg(per_reg,figTitle)
+fh=figure('Color','w','Position',[100,100,900,300]);
+
+subplot(1,3,1)
+hold on
+plot([0,1],[0,1],'r:')
+for i=1:size(per_reg,1)
+    if per_reg(i,12)>=50 && per_reg(i,10)>=50
+        [~,~,p]=crosstab(1:per_reg(i,2)+per_reg(i,4)>per_reg(i,2),[1:per_reg(i,2)>per_reg(i,1),1:per_reg(i,4)>per_reg(i,3)]);
+        if p<0.05
+            mkColor='r';
+        else
+            mkColor='k';
+        end
+        scatter(per_reg(i,3)./per_reg(i,4),per_reg(i,1)./per_reg(i,2),12,'MarkerEdgeColor','none','MarkerFaceColor',mkColor,'MarkerFaceAlpha',0.5)
+    end
+end
+xlabel('t, pre-unit non-selective');
+ylabel('t, pre-unit selective');
+xlim([0,0.7])
+ylim([0,0.7])
+set(gca,'XTick',[0,0.5],'YTick',[0,0.5]);
+
+subplot(1,3,2)
+hold on
+plot([0,1],[0,1],'r:')
+for i=1:size(per_reg,1)
+    if per_reg(i,12)>=50 && per_reg(i,10)>=50
+        [~,~,p]=crosstab(1:per_reg(i,6)+per_reg(i,8)>per_reg(i,6),[1:per_reg(i,6)>per_reg(i,5),1:per_reg(i,8)>per_reg(i,7)]);
+        if p<0.05
+            mkColor='r';
+        else
+            mkColor='k';
+        end
+        scatter(per_reg(i,7)./per_reg(i,8),per_reg(i,5)./per_reg(i,6),12,'MarkerEdgeColor','none','MarkerFaceColor',mkColor,'MarkerFaceAlpha',0.5)
+    end
+end
+xlabel('t+1, pre-unit non-selective');
+ylabel('t+1, pre-unit selective');
+xlim([0,0.7])
+ylim([0,0.7])
+set(gca,'XTick',[0,0.5],'YTick',[0,0.5]);
+
+subplot(1,3,3)
+hold on
+plot([0,1],[0,1],'r:')
+for i=1:size(per_reg,1)
+    if per_reg(i,12)>=50 && per_reg(i,10)>=50
+        [~,~,p]=crosstab(1:per_reg(i,10)+per_reg(i,12)>per_reg(i,10),[1:per_reg(i,10)>per_reg(i,9),1:per_reg(i,12)>per_reg(i,11)]);
+        if p<0.05
+            mkColor='r';
+        else
+            mkColor='k';
+        end
+        scatter(per_reg(i,11)./per_reg(i,12),per_reg(i,9)./per_reg(i,10),12,'MarkerEdgeColor','none','MarkerFaceColor',mkColor,'MarkerFaceAlpha',0.5)
+    end
+end
+xlabel('t+2, pre-unit non-selective');
+ylabel('t+2, pre-unit selective');
+xlim([0,0.7])
+ylim([0,0.7])
+set(gca,'XTick',[0,0.5],'YTick',[0,0.5]);
+
+sgtitle(figTitle)
+end
+
+function per_reg=coactive_per_reg(type)
+load('reg_keep.mat');
+greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+per_reg=zeros(0,12);
+for onereg=greymatter'
     curr_code=[];
     curr_none=[];
     prev_code=[];
@@ -18,26 +185,22 @@ function coactive_one_reg()
     prev2_none=[];
     
     for bin=1:6
-%         disp(bin);
         load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-        localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;        
-%         localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
-%         localselS2=(reg_chain_S2(:,1)==reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter);
-        if local
-            pref_chain_S1=pref_chain_S1(localselS1,:);
-%             pref_chain_S2=pref_chain_S2(localselS2,:);
-
-        else
-            pref_chain_S1=pref_chain_S1(~localselS1,:);
-%             pref_chain_S2=pref_chain_S2(~localselS2,:);
+        if strcmp(type,'local')
+            localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;
+        elseif strcmp(type,'inter_input')
+            localselS1=(reg_chain_S1(:,1)~=reg_chain_S1(:,2)) & reg_chain_S1(:,2)==onereg;
+        elseif strcmp(type,'inter_output')
+            localselS1=(reg_chain_S1(:,1)~=reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;
         end
-%             pref_chain_S1=[pref_chain_S1;pref_chain_S2];
+        
+        pref_chain_S1=pref_chain_S1(localselS1,:);
         
         for i=1:size(pref_chain_S1,1)
             %T+0
             if pref_chain_S1(i,bin)>0
                 curr_code(end+1)=pref_chain_S1(i,bin+6);
-            else 
+            else
                 curr_none(end+1)=pref_chain_S1(i,bin+6);
             end
             %T+1
@@ -54,7 +217,7 @@ function coactive_one_reg()
                 prev2_none(end+1)=pref_chain_S1(i,bin+8);
             end
         end
-
+        
     end %per bin end
     per_reg(onereg,:)=[nnz(curr_code),numel(curr_code),...
         nnz(curr_none),numel(curr_none),...
@@ -62,60 +225,7 @@ function coactive_one_reg()
         nnz(prev_none),numel(prev_none),...
         nnz(prev2_code),numel(prev2_code),...
         nnz(prev2_none),numel(prev2_none)];
-    end %per region end
-    
-    figure('Color','w','Position',[100,100,400,300]);
-    hold on
-    plot([0,1],[0,1],'r:')
-    for i=1:size(per_reg,1)
-        if per_reg(i,12)>=50 && per_reg(i,10)>=50
-            [~,~,p]=crosstab(1:per_reg(i,10)+per_reg(i,12)>per_reg(i,10),[1:per_reg(i,10)>per_reg(i,9),1:per_reg(i,12)>per_reg(i,11)]);
-            if p<0.05
-                mkColor='r';
-            else
-                mkColor='k';
-            end
-            scatter(per_reg(i,11)./per_reg(i,12),per_reg(i,9)./per_reg(i,10),12,'MarkerEdgeColor','none','MarkerFaceColor',mkColor,'MarkerFaceAlpha',0.5)
-        end
-    end
-    xlabel('t+2, pre-unit non-selective');
-    ylabel('t+2, pre-unit selective');
-    xlim([0,0.7])
-    
-    keyboard
-    if to_plot
-
-        [phat(1),pci(1,:)]=binofit(nnz(curr_none>0),numel(curr_none));
-        [phat(2),pci(2,:)]=binofit(nnz(curr_code>0),numel(curr_code));
-        [phat(3),pci(3,:)]=binofit(nnz(prev_none>0),numel(prev_none));
-        [phat(4),pci(4,:)]=binofit(nnz(prev_code>0),numel(prev_code));
-        [phat(5),pci(5,:)]=binofit(nnz(prev2_none>0),numel(prev2_none));
-        [phat(6),pci(6,:)]=binofit(nnz(prev2_code>0),numel(prev2_code));
-
-
-        figure('Color','w','Position',[100,100,235,260])
-        hold on
-        bar(1,phat(1),0.8,'EdgeColor','k','FaceColor','k')
-        bar(4,phat(3),0.8,'EdgeColor','k','FaceColor','k')
-        bar(7,phat(5),0.8,'EdgeColor','k','FaceColor','k')
-
-        bar(2,phat(2),0.8,'EdgeColor','k','FaceColor','w')
-        bar(5,phat(4),0.8,'EdgeColor','k','FaceColor','w')
-        bar(8,phat(6),0.8,'EdgeColor','k','FaceColor','w')
-
-
-
-        errorbar([1 2 4 5 7 8],phat,pci(:,1)'-phat,pci(:,2)'-phat,'.','Color',[0.4,0.4,0.4],'LineWidth',1,'CapSize',10)
-        xlim([0.25,8.75])
-        set(gca,'YTick',0:0.2:0.4,'XTick',[1 2 4 5 7 8],'XTickLabel',{'t->t','t->t','t->t+1','t->t+1','t->t+2','t->t+2'},'XTickLabelRotation',90);
-        ylabel('post-synaptic coding fraction');
-    %     exportgraphics(gcf,'bin_transfer_coding.pdf','ContentType','vector');
-
-
-        [tbl,chi,p]=crosstab((1:numel(curr_code)+numel(curr_none))>numel(curr_code),[curr_code>0,curr_none>0])
-        [tbl,chi,p]=crosstab((1:numel(prev_code)+numel(prev_none))>numel(prev_code),[prev_code>0,prev_none>0])
-        [tbl,chi,p]=crosstab((1:numel(prev2_code)+numel(prev2_none))>numel(prev2_code),[prev2_code>0,prev2_none>0])
-    end
+end %per region end
 end
 
 %%
@@ -125,13 +235,13 @@ function otherstats()
 
 
 if false
-%% test last current next bin selectivity
+    %% test last current next bin selectivity
     para_pre_bin_S1=[];
     para_ctrl_bin_S1=[];
-
+    
     para_pre_bin_S2=[];
     para_ctrl_bin_S2=[];
-
+    
     para_pre_bin_both=[];
     para_ctrl_bin_both=[];
     for bin=2:5
@@ -151,7 +261,7 @@ if false
                 para_ctrl_bin_S2(end+1,:)=pref_chain_S2(i,(bin+5):(bin+7));
             end
         end
-
+        
         for i=1:length(pref_chain_both)
             if pref_chain_both(i,bin)>0 && pref_chain_both(i,bin-1)==0 && pref_chain_both(i,bin+1)==0
                 para_pre_bin_both(end+1,:)=pref_chain_both(i,(bin+5):(bin+7));
@@ -163,10 +273,10 @@ if false
     figure()
     subplot(1,3,1)
     bar([mean(para_pre_bin_S1>0)',mean(para_ctrl_bin_S1>0)'])
-
+    
     subplot(1,3,2)
     bar([mean(para_pre_bin_S2>0)',mean(para_ctrl_bin_S2>0)'])
-
+    
     subplot(1,3,3)
     bar([mean(para_pre_bin_both>0)',mean(para_ctrl_bin_both >0)'])
 end
@@ -210,8 +320,8 @@ end
 
 pbin=nan(1,4);
 for bin=1:4
-[~,~,pbin(bin)]=crosstab([zeros(length(para_pre_bin_S1),1);ones(length(para_ctrl_bin_S1),1)],...
-    [para_pre_bin_S1(:,bin)>0;para_ctrl_bin_S1(:,bin)>0]);
+    [~,~,pbin(bin)]=crosstab([zeros(length(para_pre_bin_S1),1);ones(length(para_ctrl_bin_S1),1)],...
+        [para_pre_bin_S1(:,bin)>0;para_ctrl_bin_S1(:,bin)>0]);
 end
 disp(pbin);
 
@@ -245,13 +355,13 @@ bar([mean(para_pre_bin_both>0)',mean(para_ctrl_bin_both >0)'])
 
 %% 3 consec bins
 if false
-
+    
     para_pre_bin_S1=[];
     para_ctrl_bin_S1=[];
-
+    
     para_pre_bin_S2=[];
     para_ctrl_bin_S2=[];
-
+    
     para_pre_bin_both=[];
     para_ctrl_bin_both=[];
     for bin=2:3
@@ -271,7 +381,7 @@ if false
                 para_ctrl_bin_S2(end+1,:)=pref_chain_S2(i,(bin+5):(bin+9));
             end
         end
-
+        
         for i=1:length(pref_chain_both)
             if all(pref_chain_both(i,bin:bin+2)>0) && all(pref_chain_both(i,[bin-1,bin+3])==0)
                 para_pre_bin_both(end+1,:)=pref_chain_both(i,(bin+5):(bin+9));
@@ -282,28 +392,28 @@ if false
     end
     figure('Color','w','Position',[100,100,230,280])
     bar([mean(para_pre_bin_S1>0)',mean(para_ctrl_bin_S1>0)'])
-
+    
     figure()
     subplot(1,3,2)
     bar([mean(para_pre_bin_S2>0)',mean(para_ctrl_bin_S2>0)'])
-
+    
     subplot(1,3,3)
     bar([mean(para_pre_bin_both>0)',mean(para_ctrl_bin_both >0)'])
 end
 %%
- 
- 
- 
- 
- 
- 
- 
- 
+
+
+
+
+
+
+
+
 pre_post_bin=[];
 for i=1:length(pref_chain_S1)
-     pre=(pref_chain_S1(i,1:6)>0)*(1:6)';  %TODO should do both pref >0 and ==1 test
-     post=(pref_chain_S1(i,7:12)>0)*(1:6)';
-      pre_post_bin(end+1,:)=[pre,post];
+    pre=(pref_chain_S1(i,1:6)>0)*(1:6)';  %TODO should do both pref >0 and ==1 test
+    post=(pref_chain_S1(i,7:12)>0)*(1:6)';
+    pre_post_bin(end+1,:)=[pre,post];
 end
 % doesn't really work
 % scatter(pre_post_bin(:,1),pre_post_bin(:,2),20,'o','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.01);
@@ -316,11 +426,11 @@ histogram(dbin)
 
 pre_post_bin=[];
 for i=1:length(pref_chain_S2)
-%     pre=(pref_chain_S1(i,1:6)>0).*(1:6);  %TODO should do both pref >0 and ==1 test
-%     post=(pref_chain_S1(i,7:12)>0).*(1:6);
-      pre1st=find(pref_chain_S2(i,1:6)>0,1);
-      post1st=find(pref_chain_S2(i,7:12)>0,1);
-      pre_post_bin(end+1,:)=[pre1st,post1st];
+    %     pre=(pref_chain_S1(i,1:6)>0).*(1:6);  %TODO should do both pref >0 and ==1 test
+    %     post=(pref_chain_S1(i,7:12)>0).*(1:6);
+    pre1st=find(pref_chain_S2(i,1:6)>0,1);
+    post1st=find(pref_chain_S2(i,7:12)>0,1);
+    pre_post_bin(end+1,:)=[pre1st,post1st];
 end
 % doesn't really work
 % scatter(pre_post_bin(:,1),pre_post_bin(:,2),20,'o','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.01);
@@ -329,3 +439,24 @@ dbin=diff(pre_post_bin,1,2);
 histogram(dbin)
 
 end
+
+%% old bar graph
+
+% figure('Color','w','Position',[100,100,235,260])
+% hold on
+% bar(1,phat(1),0.8,'EdgeColor','k','FaceColor','k')
+% bar(4,phat(3),0.8,'EdgeColor','k','FaceColor','k')
+% bar(7,phat(5),0.8,'EdgeColor','k','FaceColor','k')
+%
+% bar(2,phat(2),0.8,'EdgeColor','k','FaceColor','w')
+% bar(5,phat(4),0.8,'EdgeColor','k','FaceColor','w')
+% bar(8,phat(6),0.8,'EdgeColor','k','FaceColor','w')
+%
+%
+%
+% errorbar([1 2 4 5 7 8],phat,pci(:,1)'-phat,pci(:,2)'-phat,'.','Color',[0.4,0.4,0.4],'LineWidth',1,'CapSize',10)
+% xlim([0.25,8.75])
+% set(gca,'YTick',0:0.2:0.4,'XTick',[1 2 4 5 7 8],'XTickLabel',{'t->t','t->t','t->t+1','t->t+1','t->t+2','t->t+2'},'XTickLabelRotation',90);
+% ylabel('post-synaptic coding fraction');
+
+%     exportgraphics(gcf,'bin_transfer_coding.pdf','ContentType','vector');
