@@ -1,17 +1,62 @@
-target='K:\code\showcase\0621_xcorr_showcase_24_218_219_b1.png';
-tok=regexp(target,'(?<=showcase_)(\d+)_(\d+)_(\d+)_b(\d+).png','tokens');
-bin=str2double(tok{1}{4});
-fid=str2double(tok{1}{1});
-uid1=str2double(tok{1}{2});
-uid2=str2double(tok{1}{3});
-close all
-fh=figure('Color','w','Position',[100,100,200,200]);
-plotOne(bin,fid,uid1,0)
-plotOne(bin,fid,uid2,1)
-% print(fh,replace(target,'.png','_psth.png'),'-r300','-dpng');
-exportgraphics(fh,replace(target,'.png','_psth.pdf'),'ContentType','vector')
+type='transient';
+if strcmp(type,'xcorr')
+    target='K:\code\showcase\0621_xcorr_showcase_24_218_219_b1.png';
+    tok=regexp(target,'(?<=showcase_)(\d+)_(\d+)_(\d+)_b(\d+).png','tokens');
+    bin=str2double(tok{1}{4});
+    fid=str2double(tok{1}{1});
+    uid1=str2double(tok{1}{2});
+    uid2=str2double(tok{1}{3});
+    close all
+    fh=figure('Color','w','Position',[100,100,200,200]);
+    keyboard
+    plotOne(bin,fid,uid1,0)
+    plotOne(bin,fid,uid1,1)
+    % print(fh,replace(target,'.png','_psth.png'),'-r300','-dpng');
+    exportgraphics(fh,replace(target,'.png','_psth.pdf'),'ContentType','vector')
+    
+elseif strcmp(type,'sustained')
+    sus_trans=h5read('../transient_6.hdf5','/sus_trans');%4+2+7
+    allpath=h5read('../transient_6.hdf5','/path');
+    allcid=h5read('../transient_6.hdf5','/cluster_id');
+    reg_all=h5read('../transient_6.hdf5','/reg');
+    sus_lst=find(sus_trans(:,1));
+    for suid=sus_lst'
+        if suid<=3493
+            continue
+        end
+        fpath=deblank(allpath{suid});
+        reg=deblank(reg_all{suid});
+        uid=allcid(suid);
+        close all
+        fh=figure('Color','w','Position',[100,100,400,400]);
+        plotOne(reg,fpath,uid,0,'sustained')
+        keyboard
+%         exportgraphics(fh,sprintf('sust_example_%s_U%d.pdf',reg,uid),'ContentType','vector')
+    end
+elseif strcmp(type,'transient')
+    sus_trans=h5read('../transient_6.hdf5','/sus_trans');%4+2+7
+    allpath=h5read('../transient_6.hdf5','/path');
+    allcid=h5read('../transient_6.hdf5','/cluster_id');
+    reg_all=h5read('../transient_6.hdf5','/reg');
+    trans_lst=find(sus_trans(:,2) & any(sus_trans(:,9:10)));
+    for suid=trans_lst'
+%         if suid<=3493
+%             continue
+%         end
+        fpath=deblank(allpath{suid});
+        reg=deblank(reg_all{suid});
+        uid=allcid(suid);
+        close all
+        fh=figure('Color','w','Position',[100,100,400,400]);
+        plotOne(reg,fpath,uid,0,'transient')
+        print(sprintf('transient_showcase_%d.png',suid),'-dpng','-r300')
+        keyboard
+%         exportgraphics(fh,sprintf('sust_example_%s_U%d.pdf',reg,uid),'ContentType','vector')
+    end
+end
 
-function plotOne(bin,fid,uid1,pos)
+
+function plotOne(bin,fid,uid1,pos,type)
 % cd('~/pixels/jpsth')
 if isunix
     homedir=fullfile('home','zx','neupix','wyt','Datasum');
@@ -23,11 +68,13 @@ end
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
-load('bin_file_list.mat');
 
-% udi2=10225;
-fpath=file_bins{bin}{fid};
-
+if strcmp(type,'sustained') || strcmp(type,'transient')
+    fpath=fid;
+else
+    load('bin_file_list.mat');
+    fpath=file_bins{bin}{fid};
+end
 if ~isfolder(fullfile(homedir,fpath))
     homedir=replace(homedir,'Datasum',['Datasum',filesep,'singleProbe']);
     spkFolder=fullfile(homedir,fpath);
@@ -102,11 +149,15 @@ plot(psth2.time,smooth(psth2.avg,5),'-r','LineWidth',1)
 
 arrayfun(@(x) xline(x,'--k'),[0,1]);
 set(gca,'XTick',[0,5])
-title(sprintf('F%d,B%d,U%d',fid,bin,uid1));
-
+if strcmp(type,'sustained')
+    title(sprintf('sustained, %s, %d',bin,uid1));
+elseif strcmp(type,'transient')
+    title(sprintf('transient, %s, %d',bin,uid1));
+else
+    title(sprintf('F%d,B%d,U%d',fid,bin,uid1));
 end
 
-
+end
 
 function [avail,out]=process(spkFolder,metaFolder,ids,folderType)
 sps=30000;
