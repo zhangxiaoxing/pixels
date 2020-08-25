@@ -1,6 +1,8 @@
 
 %% one side
 close all
+% corr_coactive_wing()
+% return
 all_reg=false;
 if all_reg
     [local_hat,local_ci]=coactive_all(true);
@@ -8,19 +10,75 @@ if all_reg
     plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci);
 end
 
+if true
+    per_regl=coactive_per_reg('local');
+    fhl=plot_coactive_per_reg(per_regl,'local');
+    
+    per_regi=coactive_per_reg('inter_input');
+    fhi=plot_coactive_per_reg(per_regi,'inter region input');
+    
+    per_rego=coactive_per_reg('inter_output');
+    fho=plot_coactive_per_reg(per_rego,'inter region output');
+    
+    keyboard
+    save('bin_trans_per_region.mat','per_regi','per_rego','per_regl')
+    
+    exportgraphics(fhl,'bin_trans_per_region_local.pdf')
+    exportgraphics(fhi,'bin_trans_per_region_input.pdf')
+    exportgraphics(fho,'bin_trans_per_region_output.pdf')
+end
 
 
-per_regl=coactive_per_reg('local');
-fhl=plot_coactive_per_reg(per_regl,'local');
 
-per_regi=coactive_per_reg('inter_input');
-fhi=plot_coactive_per_reg(per_regi,'inter region input');
+function corr_coactive_wing()
+load('io_sel.mat','ioselstats','io_entire_delay');
+load('bin_trans_per_region.mat','per_regi','per_rego','per_regl');
+load('reg_keep.mat');
+greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
 
-per_rego=coactive_per_reg('inter_output');
-fho=plot_coactive_per_reg(per_rego,'inter region output');
+%             in_out_sel(reg_idx,:)=[pair_count,in_conn_S1,in_conn_S1/pair_count, ...%1 2 3
+%                 in_sel_S1,in_sel_S1/pair_count,...% 4 5
+%                 out_conn_S1,out_conn_S1/pair_count,...% 6 7
+%                 out_sel_S1,out_sel_S1/pair_count,...% 8 9
+%                 auto_pair,auto_conn_S1,auto_conn_S1/auto_pair]; % 10 11 12
+
+
+%     per_reg(onereg,:)=[nnz(curr_code),numel(curr_code),... %1 2
+%         nnz(curr_none),numel(curr_none),...% 3 4
+%         nnz(prev_code),numel(prev_code),...% 5 6
+%         nnz(prev_none),numel(prev_none),...% 7 8
+%         nnz(prev2_code),numel(prev2_code),...% 9 10
+%         nnz(prev2_none),numel(prev2_none)];% 11 12
+per_reg_list={per_regl,per_regi,per_rego};
+titles={'local','input','output'};
+for type=1:3
+    fh=figure('Color','w','Position',[100,100,750,250]);
+    per_reg=per_reg_list{type};
+    for bin=1:3
+        corrpair=[];
+        for onereg=greymatter'
+            if io_entire_delay(onereg,1)>=100 && min(per_reg(onereg,[6 8]))>=100
+                corrpair(end+1,:)=[diff(io_entire_delay(onereg,[3 7]),1,2),...
+                  (per_reg(onereg,bin*4-3)/per_reg(onereg,bin*4-2))/(per_reg(onereg,bin*4-1)/per_reg(onereg,bin*4))];
+            end
+        end
+        
+        [r,p]=corr(corrpair(:,1),corrpair(:,2));
+        subplot(1,3,bin);
+        scatter(corrpair(:,1),corrpair(:,2),12,'Marker','o','MarkerFaceAlpha',0.5,'MarkerFaceColor','k','MarkerEdgeColor','none');
+        legend(sprintf('r=%.3f, p=%.3f',r,p));
+        xlabel('WING')
+        ylabel(sprintf('select. enhance t+%d',bin-1));
+    end
+    sgtitle(titles{type});
+    exportgraphics(fh,sprintf('WING_corr_%s_enhance.pdf',titles{type}))
+end
+end
+
+
 
 function plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci)
-figure('Color','w','Position',[100,100,400,300]);
+fh=figure('Color','w','Position',[100,100,400,300]);
 hold on
 hln=plot(local_hat([1 3 5]),'k-');
 hlc=plot(local_hat([2 4 6]),'r-');
@@ -38,7 +96,8 @@ set(gca,'XTick',1:3,'XTickLabel',{'t','t+1sec','t+2sec'},'YTick',0:0.2:0.4)
 legend([hln hlc hin hic],{'local nonselec. pre','local select. pre','inter-region nonselec. pre','inter-region select. pre'})
 disp('export pdf?')
 keyboard
-print('local_inter_coactivate_all.pdf','-dpdf')
+% print('local_inter_coactivate_all.pdf','-dpdf')
+exportgraphics(fh,'bin_trans_all_reg.pdf');
 end
 
 function [phat,pci]=coactive_all(local)
@@ -106,12 +165,15 @@ end %per bin end
 end
 
 function fh=plot_coactive_per_reg(per_reg,figTitle)
-fh=figure('Color','w','Position',[100,100,900,300]);
+load('reg_keep.mat');
+greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+
+fh=figure('Color','w','Position',[100,100,900,220]);
 
 subplot(1,3,1)
 hold on
 plot([0,1],[0,1],'r:')
-for i=1:size(per_reg,1)
+for i=greymatter'%size(per_reg,1) %
     if per_reg(i,12)>=50 && per_reg(i,10)>=50
         [~,~,p]=crosstab(1:per_reg(i,2)+per_reg(i,4)>per_reg(i,2),[1:per_reg(i,2)>per_reg(i,1),1:per_reg(i,4)>per_reg(i,3)]);
         if p<0.05
@@ -173,9 +235,9 @@ end
 
 function per_reg=coactive_per_reg(type)
 load('reg_keep.mat');
-greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+% greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
 per_reg=zeros(0,12);
-for onereg=greymatter'
+for onereg=1:length(reg_set)
     curr_code=[];
     curr_none=[];
     prev_code=[];
