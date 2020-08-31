@@ -1,4 +1,4 @@
-type='transient';
+% type='transient';
 if strcmp(type,'xcorr')
     target='K:\code\showcase\0621_xcorr_showcase_24_218_219_b1.png';
     tok=regexp(target,'(?<=showcase_)(\d+)_(\d+)_(\d+)_b(\d+).png','tokens');
@@ -10,7 +10,7 @@ if strcmp(type,'xcorr')
     fh=figure('Color','w','Position',[100,100,200,200]);
     keyboard
     plotOne(bin,fid,uid1,0)
-    plotOne(bin,fid,uid1,1)
+    plotOne(bin,fid,uid2,1)
     % print(fh,replace(target,'.png','_psth.png'),'-r300','-dpng');
     exportgraphics(fh,replace(target,'.png','_psth.pdf'),'ContentType','vector')
     
@@ -39,7 +39,7 @@ elseif strcmp(type,'transient')
     allcid=h5read('../transient_6.hdf5','/cluster_id');
     reg_all=h5read('../transient_6.hdf5','/reg');
     trans_lst=find(sus_trans(:,2) & any(sus_trans(:,9:10)));
-    for suid=trans_lst'
+    for suid=2182%trans_lst'
 %         if suid<=3493
 %             continue
 %         end
@@ -49,10 +49,17 @@ elseif strcmp(type,'transient')
         close all
         fh=figure('Color','w','Position',[100,100,400,400]);
         plotOne(reg,fpath,uid,0,'transient')
-        print(sprintf('transient_showcase_%d.png',suid),'-dpng','-r300')
-        keyboard
-%         exportgraphics(fh,sprintf('sust_example_%s_U%d.pdf',reg,uid),'ContentType','vector')
+%         print(sprintf('transient_showcase_%d.png',suid),'-dpng','-r300')
+%         keyboard
+        exportgraphics(fh,sprintf('transient_example_%s_U%d.pdf',reg,uid),'ContentType','vector')
     end
+    
+elseif strcmp(type,'individual')
+    fh=figure('Color','w','Position',[100,100,400,400]);
+%     keyboard
+    plotOne(bin,fid,uid1,0,type)
+    plotOne(bin,fid,uid2,1,type)
+    % print(fh,replace(target,'.png','_psth.png'),'-r300','-dpng');
 end
 
 

@@ -1,4 +1,8 @@
-type='correct_resample';
+[pWing,to_test]=baseline_delay_WING()
+return
+
+% type='correct_resample';
+type='baseline';
 close all
 load('reg_keep.mat');
 plot_per_bin=false;
@@ -11,13 +15,18 @@ if strcmp(type,'correct_resample')
 else
     rptN=1;
 end
-for rpt=61:rptN
+for rpt=1:rptN
     ioselstats=cell(1,6);
     for bin=1:6
         if strcmp(type,'error')
             load(sprintf('correct_error\\0820_error_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         elseif strcmp(type,'correct_resample') && exist('rpt','var')
             load(sprintf('correct_error\\0820_correct_resample_%03d__conn_chain_duo_6s_%d_%d.mat',rpt,bin,bin+1));
+        elseif strcmp(type,'baseline')
+            if bin>1
+                break;
+            end
+            load('0826_selec_conn_chain_duo_6s_-2_-1.mat');
         else
             load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         end
@@ -53,8 +62,17 @@ for rpt=61:rptN
     end
 end
 keyboard
-%% entire delay
+if strcmp(type,'baseline')
+    io_baseline=in_out_sel;
+    save('io_sel_baseline.mat','io_baseline');
+    return
+end
 
+
+
+
+
+%% entire delay
 io_entire_delay=ioselstats{1};
 for bin=2:6
     io_entire_delay=io_entire_delay+ioselstats{bin};
@@ -88,6 +106,82 @@ if plot_early_late
 end
 
 save('io_sel.mat','ioselstats','io_entire_delay','io_early_delay','io_late_delay','reg_set');
+
+
+%% per bin stability
+load io_sel_baseline.mat
+load io_sel.mat
+
+greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
+any(cell2mat(cellfun(@(x) x(:,1)<100,ioselstats,'UniformOutput',false)))
+nansel=any(cell2mat(cellfun(@(x) x(:,1)<100,ioselstats,'UniformOutput',false)),2) | io_baseline(:,1)<100;
+sel=~nansel & greymatter;
+to_test=find(sel)';
+
+
+base_WING=diff(io_baseline(sel,[3,7]),1,2);
+delay_WING=cell2mat(cellfun(@(x) diff(x(sel,[3,7]),1,2),ioselstats,'UniformOutput',false));
+
+corrmat=[base_WING,delay_WING];
+rmat=nan(6,6);
+for i=1:6
+    for j=i+1:7
+        [r,~]=corr(corrmat(:,i),corrmat(:,j));
+        rmat(i,j-1)=r;
+    end
+end
+figure('Color','w')
+imagesc(rmat,[-0.5,0.5])
+colormap('jet')
+xlabel('delay bin (sec)')
+set(gca,'YTickLabel',{'baseline','1 sec','2 sec','3 sec','4 sec','5 sec'})
+colorbar()
+
+base_WING(:,1)=diff(io_baseline(sel,[3,7]),1,2);
+early_WING(:,1)=diff(io_early_delay(sel,[3,7]),1,2);
+late_WING(:,1)=diff(io_late_delay(sel,[3,7]),1,2);
+
+base_WING(:,2)=io_baseline(sel,3);
+early_WING(:,2)=io_early_delay(sel,3);
+late_WING(:,2)=io_late_delay(sel,3);
+
+base_WING(:,3)=io_baseline(sel,7);
+early_WING(:,3)=io_early_delay(sel,7);
+late_WING(:,3)=io_late_delay(sel,7);
+figure('Color','w','Position',[100,100,750,250])
+for k=1:3
+    corrmat=[base_WING(:,k),early_WING(:,k),late_WING(:,k)];
+    rmat=nan(2,2);
+    pmat=nan(2,2);
+    for i=1:2
+        for j=i+1:3
+            [r,p]=corr(corrmat(:,i),corrmat(:,j));
+            rmat(i,j-1)=r;
+            pmat(i,j-1)=p;
+        end
+    end
+    subplot(1,3,1)
+    scatter(early_WING,late_WING,'MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none')
+    title('early vs late');
+    xlim([-0.075,0.075]);
+    ylim([-0.075,0.075]);
+    hold on
+    plot([-0.075,0.075],[-0.075,0.075],'r:')
+    subplot(1,3,2)
+    scatter(base_WING,early_WING,'MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none')
+    title('baseline vs early')
+    xlim([-0.075,0.075]);
+    ylim([-0.075,0.075]);
+    hold on
+    plot([-0.075,0.075],[-0.075,0.075],'r:')
+    subplot(1,3,3)
+    scatter(base_WING,late_WING,'MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none')
+    title('baseline vs late')
+    xlim([-0.075,0.075]);
+    ylim([-0.075,0.075]);
+    hold on
+    plot([-0.075,0.075],[-0.075,0.075],'r:')
+end
 
 
 %% correct error
@@ -140,6 +234,10 @@ if false
     
     incsel=(z_WING>1.96);
     decsel=(z_WING<-1.96);
+    
+    disp(reg_set(to_test(find(incsel))));
+    disp(reg_set(to_test(find(decsel))));
+    
     insig=~(incsel|decsel);
     
     close all
@@ -543,8 +641,97 @@ pause()
 close(fh)
 end
 
-function WING_permutation_test(corr_i_c,corr_i_p,corr_o_c,corr_o_p,err_i_c,err_i_p,err_o_c,err_o_p)
+function p=WING_permutation_test(statsA,statsB,rpt)
+     poolLen=statsA(1)+statsB(1);
+     inCount=statsA(2)+statsB(2);
+     outCount=statsA(6)+statsB(6);
+     permDiff=nan(rpt,1);
+     for i=1:rpt
+        fullPool=randperm(poolLen);
+        inA=nnz(fullPool(1:statsA(1))<=inCount);
+        inB=inCount-inA;
+        
+        outA=nnz(fullPool(1:statsA(1))>inCount & fullPool(1:statsA(1))<=inCount+outCount);
+        outB=outCount-outA;
+        
+        permWingA=(outA-inA)/statsA(1);
+        permWingB=(outB-inB)/statsB(1);
+        perfDiff(i)=permWingB-permWingA;
+     end
+     actualDiff=(statsB(6)-statsB(2))/statsB(1)-(statsA(6)-statsA(2))/statsA(1);
+     z=-abs(actualDiff-mean(perfDiff))/std(perfDiff);
+     p=2*normcdf(z);
+
+end
 
 
+%% baseline delay
+function [p_WING,to_test]=baseline_delay_WING()
+    load io_sel_baseline.mat
+    load io_sel.mat
+    
+    greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set);
+    nansel=io_entire_delay(:,1)<100 | io_baseline(:,1)<100;
+    sel=~nansel & greymatter;
+    to_test=find(sel)';
+    
+    
+    base_WING=diff(io_baseline(sel,[3,7]),1,2);
+    delay_WING=diff(io_entire_delay(sel,[3,7]),1,2);
+    p_WING=[];
 
+    for i=to_test
+%         catBase=zeros(1,io_baseline(i,1));
+%         catBase(1:io_baseline(i,2))=1;
+%         catBase(io_baseline(i,2)+1:sum(io_baseline(i,[2,6])))=2;
+%         
+%         catDelay=zeros(1,io_entire_delay(i,1));
+%         catDelay(1:io_entire_delay(i,2))=1;
+%         catDelay(io_entire_delay(i,2)+1:sum(io_entire_delay(i,[2,6])))=2;
+%         
+%         [~,~,p]=crosstab(1:io_baseline(i,1)+io_entire_delay(i,1)>io_baseline(i,1),...
+%             [catBase,catDelay]);
+        p_WING(end+1)=WING_permutation_test(io_baseline(i,:),io_entire_delay(i,:),1000);
+    end
+    
+    incsel=(p_WING'<0.05 & delay_WING>base_WING);
+    decsel=(p_WING'<0.05 & delay_WING<base_WING);
+    
+    disp(reg_set(to_test(find(incsel))));
+    disp(reg_set(to_test(find(decsel))));
+    
+    insig=~(incsel|decsel);
+    
+    
+    fh=figure('Color','w','Position',[100,100,130,240])
+    hold on
+    randx=rand(size(delay_WING))*0.1;
+    plot(1+randx,base_WING,'ko')
+    plot(2+randx,delay_WING,'ko','MarkerFaceColor','k')
+    plot(repmat([1;2],1,nnz(insig))+randx(insig)',[base_WING(insig)';delay_WING(insig)'],'k-');
+    hi=plot(repmat([1;2],1,nnz(incsel))+randx(incsel)',[base_WING(incsel)';delay_WING(incsel)'],'r-','LineWidth',2);
+    hd=plot(repmat([1;2],1,nnz(decsel))+randx(decsel)',[base_WING(decsel)';delay_WING(decsel)'],'b-','LineWidth',2);
+    xlim([0.5,2.5])
+    ylim([-0.08,0.08])
+    set(gca,'YTick',-0.05:0.05:0.05)
+    ylabel('WING')
+    legend([hi(1),hd(1)],{'increased','decreased'},'Location','northoutside');
+    set(gca,'XTick',1:2,'XTickLabel',{'baseline','delay'},'XTickLabelRotation',90)
+    exportgraphics(fh,'WING_base_delay.pdf')
+    
+    
+    
+    if false % scatter plot
+        [r,p]=corr(base_WING,delay_WING);
+        figure('Color','w')
+        hold on
+        sh=scatter(base_WING,delay_WING)
+        xlim([-0.08,0.08])
+        ylim([-0.08,0.08])
+        plot([-0.08,0.08],[-0.08,0.08],'k:')
+        xlabel('baseline WING')
+        ylabel('delay WING')
+        legend(sh,sprintf('r = %.3f, p = %.3f',r,p));
+    end
+   
 end
