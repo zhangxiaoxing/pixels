@@ -2,7 +2,7 @@
 % Appends per-neuron infomation in the sums file
 % input is list of files, output is cell of sums.
 
-bin_range=[2 3];
+bin_range=[5 6];
 rpt_workaround={'M23_20191109_g0';'191018-DPA-Learning5_28_g1';'191226_64_learning6_g0_imec1_cleaned'};
 
 sus_trans=h5read('../transient_6.hdf5','/sus_trans');

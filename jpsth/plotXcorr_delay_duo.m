@@ -2,19 +2,30 @@
 % XCORR_delay_bin.mat file first
 % A peak at a negative lag (i.e., AI>0,. i.e. L-R>0) for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 % chan2.
+
+%to plot show case change inline filename inside the prepare_stats_file part
+%rpt=1;
 currbin=1;
 close('all')
-prefix='0729_nonsel';
+%prefix=sprintf('0820_correct_resample_%03d_',rpt);
+prefix='0831_selec';
 to_plot=false;
 to_save=false;
-prepare_stats_file=false;
+to_process_reverb=true;
+prepare_stats_file=true;
+fpath=cell(1,6)
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=2:3 
-        %load(fullfile(fs(bin).folder,fs(bin).name));
-        load(sprintf('0729_nonsel_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',bin,bin+1))
-%        sums=sums_bins{bin}
+    for bin=1:6 
+%        cwd=pwd();
+%        cd(sprintf('/media/HDD0/zx/correct_error/correct/bin%d_%d/sums',bin,bin+1));
+%        load(sprintf('%d_correct_resampled_duo_XCORR_sums_delay_6_%d_%d_2msbin.mat',rpt,bin,bin+1))
+        sums=sums_bins{bin}
+        [~,fidx]=sort(sums(:,2));
+        sums=sums(fidx,:);
+        fpath{bin}=sums(:,2);
+%        cd(cwd);
         stats=cell(0);
         thresh=norminv(0.995); %0.05 bonferroni corrected
         bin_range=[bin,bin+1];
@@ -24,6 +35,9 @@ if prepare_stats_file
             xshuf_s1=sums{sidx,6};
             xc_s2=sums{sidx,7};
             xshuf_s2=sums{sidx,8};
+            if isempty(xc_s1) || isempty(xc_s2)
+                continue
+            end
 %             sustCount=numel(sums{sidx,3});useless?
             for si=1:(size(xc_s1.xcorr,1)-1)
                 su1id=str2double(xc_s1.label{si,1});
@@ -42,7 +56,11 @@ if prepare_stats_file
                         su2='transient';
                     else
                         su2='non_selective';
+
                     end
+                    peaks1=NaN;
+                    peaks2=NaN;
+
                     totalCount=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
                     if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || totalCount<250
                         onepair=struct();
@@ -78,6 +96,7 @@ if prepare_stats_file
                     scores1=diffs1(46:55)./stds1;
                     %any score > thresh
                     if any(scores1>thresh)
+                        peaks1=nanmax(scores1);
                         bincounts1=diffs1(46:55);
                         bincounts1(scores1<=thresh)=0;
                         % A peak at a negative lag (I.E. AI>0) for stat.xcorr(chan1,chan2,:) means that chan1 is leading
@@ -102,6 +121,7 @@ if prepare_stats_file
                     scores2=diffs2(46:55)./stds2;
                     %any score > thresh
                     if any(scores2>thresh)
+                        peaks2=nanmax(scores2);
                         bincounts2=diffs2(46:55);
                         bincounts2(scores2<=thresh)=0;
                         sumdiffs2=(sum(bincounts2(1:5))-sum(bincounts2(6:10)));
@@ -143,11 +163,13 @@ if prepare_stats_file
                     onepair.reg_su2=xc_s1.label{sj,5};
                     onepair.s1_trials=numel(xc_s1.cfg.trials);
                     onepair.s2_trials=numel(xc_s2.cfg.trials);
+                    onepair.peaks1=peaks1;
+                    onepair.peaks2=peaks2;
                     stats{end+1}=onepair;
                     
                     %TODO: plot
                     %if to_plot && abs(onepair.AIs1)>0.9 && onepair.totalcount>2000 && onepair.wf_stats_su2(4)>390 && onepair.wf_stats_su1(4)>390 && nnz(scores1>thresh)>2  && onepair.prefered_sample_su1(currbin+1)>0 && onepair.prefered_sample_su2(currbin+1)>0 && onepair.prefered_sample_su1(currbin+1)==onepair.prefered_sample_su2(currbin+1)
-                    if to_plot && onepair.su1_clusterid==10163 && onepair.su2_clusterid==10196
+                    if to_plot && onepair.su1_clusterid==218 && onepair.su2_clusterid==219
                         fh=figure('Color','w','Position',[100,100,600,800]);
                         subplot(3,2,1);
                         hold on
@@ -212,18 +234,25 @@ if prepare_stats_file
                         print(sprintf('xcorr_showcase_%d_%d_%d.pdf',sidx,onepair.su1_clusterid,onepair.su2_clusterid),'-dpdf','-painters');
                         print(sprintf('xcorr_showcase_%d_%d_%d.png',sidx,onepair.su1_clusterid,onepair.su2_clusterid),'-dpng','-painters');
                         close(fh)
-                    end 
+                        keyboard
+                    end
                     
                     clear onepair
 
                 end
             end
         end
-        stats_bins{bin}=stats;
+        if bin>=1
+            stats_bins{bin}=stats;
+        end
         if to_save
             disp(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)));
 %             keyboard
             save(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
+        end
+        if to_process_reverb
+            clear stats_bins
+            reverb
         end
     end
 %%%%%%%%%%%%%%%%%%%%%%%% will return for batch data generation

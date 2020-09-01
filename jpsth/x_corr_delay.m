@@ -3,10 +3,10 @@
 %  stat.xcorr before the channel in the third dimension of stat.stat.
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='nonsel';
-prefix='0729';
+currmodel='selec';
+prefix='0831';
 delay=6;
-bin_range=[3,4];
+bin_range=[4,5];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
@@ -23,7 +23,7 @@ elseif startsWith(currmodel,'nonsel')
     trans=[];
     nonsel_logic=~(sus_trans(:,1) | sus_trans(:,2) | sus_trans(:,3)|sus_trans(:,4));
     supool=find(nonsel_logic);
-    keyboard
+%    keyboard
 end
 counter=[];
 done=[];
@@ -33,6 +33,11 @@ error_list=cell(0);
 for i=1:length(supool)
     if ismember(supool(i),done)
         continue
+    end
+    if exist('xcorrpause','file')
+        disp('paused by file')
+        disp(i)
+        keyboard
     end
 
     folder=regexp(path_list{supool(i)},'(\w|\\|-)*','match','once');
@@ -112,6 +117,7 @@ for i=1:length(supool)
         continue
     end
     sums={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
+    return
     save(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'sums','-v7.3','sust','trans','supool','counter','done') %prefix
  	fprintf('%d of %d\n',i,length(supool))
 end

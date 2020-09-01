@@ -38,20 +38,21 @@ elseif strcmp(type,'transient')
     allpath=h5read('../transient_6.hdf5','/path');
     allcid=h5read('../transient_6.hdf5','/cluster_id');
     reg_all=h5read('../transient_6.hdf5','/reg');
-    trans_lst=find(sus_trans(:,2) & any(sus_trans(:,9:10)));
-    for suid=2182%trans_lst'
-%         if suid<=3493
-%             continue
-%         end
+    trans_lst=find(sus_trans(:,2) & any(sus_trans(:,9:10),2) & ~any(sus_trans(:,7:8),2));
+    keyboard
+    for suid=trans_lst'
+         if suid<=1486
+             continue
+         end
         fpath=deblank(allpath{suid});
         reg=deblank(reg_all{suid});
         uid=allcid(suid);
         close all
         fh=figure('Color','w','Position',[100,100,400,400]);
         plotOne(reg,fpath,uid,0,'transient')
-%         print(sprintf('transient_showcase_%d.png',suid),'-dpng','-r300')
-%         keyboard
-        exportgraphics(fh,sprintf('transient_example_%s_U%d.pdf',reg,uid),'ContentType','vector')
+        print(sprintf('transient_showcase_%d.png',suid),'-dpng','-r300')
+        %keyboard
+%         exportgraphics(fh,sprintf('sust_example_%s_U%d.pdf',reg,uid),'ContentType','vector')
     end
     
 elseif strcmp(type,'individual')
@@ -66,9 +67,9 @@ end
 function plotOne(bin,fid,uid1,pos,type)
 % cd('~/pixels/jpsth')
 if isunix
-    homedir=fullfile('home','zx','neupix','wyt','Datasum');
+    homedir=fullfile('/home','zx','neupix','wyt','DataSum');
 elseif ispc
-    homedir=fullfile('k:','neupix','wyt','Datasum');
+    homedir=fullfile('k:','neupix','wyt','DataSum');
 end
 
 
@@ -78,12 +79,16 @@ ft_defaults
 
 if strcmp(type,'sustained') || strcmp(type,'transient')
     fpath=fid;
+    fpath=replace(fpath,'\',filesep);
 else
     load('bin_file_list.mat');
     fpath=file_bins{bin}{fid};
+    fpath=replace(fpath,'\',filesep);
 end
+%keyboard
 if ~isfolder(fullfile(homedir,fpath))
-    homedir=replace(homedir,'Datasum',['Datasum',filesep,'singleProbe']);
+    %keyboard
+    homedir=replace(homedir,'DataSum',['DataSum',filesep,'singleProbe']);
     spkFolder=fullfile(homedir,fpath);
     metaFolder=fullfile(homedir,fpath);
     folderType=1;
@@ -96,6 +101,9 @@ else
     end
     folderType=2;
 end
+
+metaFolder=replace(metaFolder,'\',filesep);
+spkFolder=replace(spkFolder,'\',filesep);
 [avail,spkTrial]=process(spkFolder,metaFolder,uid1,folderType);
 
 s1trial=find(spkTrial.trialinfo(:,5)==4 & spkTrial.trialinfo(:,8)==6 & spkTrial.trialinfo(:,10));
@@ -168,6 +176,7 @@ end
 
 function [avail,out]=process(spkFolder,metaFolder,ids,folderType)
 sps=30000;
+%keyboard
 trials=clearBadPerf(h5read(fullfile(metaFolder,'events.hdf5'),'/trials')','corr');
 
 if isempty(trials)

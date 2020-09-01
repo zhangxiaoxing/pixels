@@ -11,8 +11,13 @@ for pref=1:2
         fid=fidAll(i);
         uid1=uid1All(i);
         uid2=uid2All(i);
-        plot_showcase_ft;
-        keyboard
+        close all;
+        try
+            plot_showcase_ft;
+            %keyboard
+            print('-dpng',sprintf('enhance_showcase_%d_%d_%d_%d.png',bin,fid,uid1,uid2),'-r300');
+        catch
+        end
     end
 
 end

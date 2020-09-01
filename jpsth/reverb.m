@@ -1,4 +1,4 @@
-prefix='0810_selec';
+%prefix='0820_error';
 gen_conn_chain=true;
 if gen_conn_chain
     load(fullfile('reg_keep.mat'));
@@ -6,10 +6,10 @@ if gen_conn_chain
     
     reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
     reg_set=reg_set(~strcmp(reg_set,'root'));
-    
-    for bin=1:6
+    %% for error trials
+    % for bin=1%:numel(stats_bins)
 %        load(sprintf('0626_selec_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-        stats=stats_bins{bin};
+        % stats=stats_bins{bin};
         for i=1:length(stats)
             s=stats{i};
             s.uid1=s.fileidx*100000+s.su1_clusterid;
@@ -19,18 +19,22 @@ if gen_conn_chain
 
         pair_chain=zeros(0,2);
         pair_reg=zeros(0,2);
+        pref_pair=zeros(0,12);
 
         conn_chain_S1=zeros(0,2);
         reg_chain_S1=zeros(0,2);
         pref_chain_S1=zeros(0,12);
+        peaks1=zeros(0,0);
+        ais1=zeros(0,0);
 
         conn_chain_S2=zeros(0,2);
         reg_chain_S2=zeros(0,2);
         pref_chain_S2=zeros(0,12);
-
-        conn_chain_both=zeros(0,2);
-        reg_chain_both=zeros(0,2);
-        pref_chain_both=zeros(0,12);
+        peaks2=zeros(0,0);
+        ais2=zeros(0,0);
+%        conn_chain_both=zeros(0,2);
+%        reg_chain_both=zeros(0,2);
+%        pref_chain_both=zeros(0,12);
         tbin=bin;
         for pidx=1:length(stats)
             s=stats{pidx};
@@ -48,6 +52,7 @@ if gen_conn_chain
 
             pair_chain(end+1,:)=[s.uid1,s.uid2];
             pair_reg(end+1,:)=[su1reg_idx,su2reg_idx];
+            pref_pair(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
 
 %            if isempty(su1reg_idx) || isempty(su2reg_idx)
 %                fprintf('%s, %s\n', s.reg_su1, s.reg_su2);
@@ -56,11 +61,6 @@ if gen_conn_chain
             if s.totalcount<250
                 continue
             end
-            if s.prefered_sample_su1(bin+1) && s.prefered_sample_su2(bin+1) && s.prefered_sample_su1(bin+1)==s.prefered_sample_su2(bin+1)  
-                sel_flag=true;
-            else
-                sel_flag=false;
-            end
 
             %%S1
             if s.s1_peak_significant
@@ -68,14 +68,14 @@ if gen_conn_chain
                     conn_chain_S1(end+1,:)=[s.uid1,s.uid2];
                     reg_chain_S1(end+1,:)=[su1reg_idx,su2reg_idx];
                     pref_chain_S1(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
-                    if sel_flag
-                    end
+                    peaks1(end+1)=s.peaks1;
+                    ais1(end+1)=s.AIs1;
                 elseif s.AIs1<-0.4
                     conn_chain_S1(end+1,:)=[s.uid2,s.uid1];
                     reg_chain_S1(end+1,:)=[su2reg_idx,su1reg_idx];
                     pref_chain_S1(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
-                    if sel_flag
-                    end
+                    peaks1(end+1)=s.peaks1;
+                    ais1(end+1)=-s.AIs1;
                 end
             end
             if s.s2_peak_significant
@@ -83,33 +83,34 @@ if gen_conn_chain
                     conn_chain_S2(end+1,:)=[s.uid1,s.uid2];
                     reg_chain_S2(end+1,:)=[su1reg_idx,su2reg_idx];
                     pref_chain_S2(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
-                    if sel_flag
-                    end
+                    peaks2(end+1)=s.peaks2;
+                    ais2(end+1)=s.AIs2;
                 elseif s.AIs2<-0.4
                     conn_chain_S2(end+1,:)=[s.uid2,s.uid1];
                     reg_chain_S2(end+1,:)=[su2reg_idx,su1reg_idx];
                     pref_chain_S2(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
-                    if sel_flag
-                    end
+                    peaks2(end+1)=s.peaks2;
+                    ais2(end+1)=-s.AIs2;
                 end
             end
-            if s.s1_peak_significant && s.s2_peak_significant 
-               if  s.AIs1>0.4 & s.AIs2>0.4
-                    conn_chain_both(end+1,:)=[s.uid1,s.uid2];
-                    reg_chain_both(end+1,:)=[su1reg_idx,su2reg_idx];
-                    pref_chain_both(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
-               end
-
-               if  s.AIs1<-0.4 & s.AIs2<-0.4
-                    conn_chain_both(end+1,:)=[s.uid2,s.uid1];
-                    reg_chain_both(end+1,:)=[su2reg_idx,su1reg_idx];
-                    pref_chain_both(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
-               end
-            end
+%            if s.s1_peak_significant && s.s2_peak_significant 
+%               if  s.AIs1>0.4 & s.AIs2>0.4
+%                    conn_chain_both(end+1,:)=[s.uid1,s.uid2];
+%                    reg_chain_both(end+1,:)=[su1reg_idx,su2reg_idx];
+%                    pref_chain_both(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
+%               end
+%
+%               if  s.AIs1<-0.4 & s.AIs2<-0.4
+%                    conn_chain_both(end+1,:)=[s.uid2,s.uid1];
+%                    reg_chain_both(end+1,:)=[su2reg_idx,su1reg_idx];
+%                    pref_chain_both(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
+%               end
+%            end
         end
         disp('check file name')
-        save(sprintf('%s_conn_chain_duo_6s_%d_%d.mat',prefix,bin,bin+1),'conn_chain_S1','reg_chain_S1','pref_chain_S1','conn_chain_S2','reg_chain_S2','pref_chain_S2','conn_chain_both','reg_chain_both','pref_chain_both','pair_chain','pair_reg')    
-    end
+        disp(bin);
+        save(sprintf('%s_conn_chain_duo_6s_%d_%d.mat',prefix,bin,bin+1),'conn_chain_S1','reg_chain_S1','pref_chain_S1','conn_chain_S2','reg_chain_S2','pref_chain_S2','pair_chain','pair_reg','pref_pair','ais1','ais2','peaks1','peaks2');    
+    %end
 return
 end
 
