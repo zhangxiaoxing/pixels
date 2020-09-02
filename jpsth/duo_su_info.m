@@ -2,7 +2,7 @@
 % Appends per-neuron infomation in the sums file
 % input is list of files, output is cell of sums.
 
-bin_range=[5 6];
+%bin_range=[5 6];
 rpt_workaround={'M23_20191109_g0';'191018-DPA-Learning5_28_g1';'191226_64_learning6_g0_imec1_cleaned'};
 
 sus_trans=h5read('../transient_6.hdf5','/sus_trans');
@@ -27,7 +27,7 @@ singleTracks=dir('/home/zx/neupix/wyt/DataSum/singleProbe');
 singleTrackList={singleTracks(3:end).name};
 % error_list=cell(0);
 sums=cell(0,8);
-fs=dir(sprintf('/home/zx/pixels/jpsth/0729_nonsel_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)));
+fs=dir(sprintf('/home/zx/pixels/jpsth/0831_selec_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',bin_range(1),bin_range(2)));
 disp(length(fs))
 keyboard
 % pause
@@ -49,13 +49,14 @@ for i=1:length(fs)
     end
     if any(startsWith(singleTrackList,dpath_stem))
         disp('Single track:');
+        dpath=['singleProbe/',dpath];
         disp(dpath);
         tracks=1;
     end
     if tracks==2
         dpath=replace(dpath,'imec1','imec0');
     end
-    wffile=fullfile(['/home/zx/neupix/DataSum/',dpath],'wf_stats.hdf5');% posix
+    wffile=fullfile(['/home/zx/neupix/wyt/DataSum/',dpath],'wf_stats.hdf5');% posix
     if isfile(wffile)
         wfstats=h5read(wffile,'/wf');
         wfstats1=[];
@@ -81,6 +82,7 @@ for i=1:length(fs)
                 if ~isempty(wfidx)
                     xc_s1.label{lblidx,2}=wfstats(wfidx,:);
                     raw_wf_file=fullfile(['/home/zx/neupix/WF/neuropixel/',dpath],'waveform.mat'); %posix
+                    raw_wf_file=replace(raw_wf_file,'/singleProbe','');
                     raw_fstr=load(raw_wf_file);
                     raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
                     xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
