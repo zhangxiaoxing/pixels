@@ -11,21 +11,25 @@ if genData
     for bin=1:6
         disp(bin);
     %     load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-        stats=stats_bins{bin};
-        for sidx=1:length(stats)
-            s=stats{sidx};
-            if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20 || abs(s.AIs1)<=0.4
-                continue
-            end
+%         stats=stats_bins{bin};
+%         for sidx=1:length(stats)
+%             s=stats{sidx};
+%             if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20 || abs(s.AIs1)<=0.4
+%                 continue
+%             end
     %         keyboard
-            if s.s1_peak_significant && any(s.prefered_sample_su1(2:end)) && any(s.prefered_sample_su2(2:end))
-                key=s.fileidx*100000*100000+s.su1_clusterid*100000+s.su2_clusterid;
+%             if s.s1_peak_significant && any(s.prefered_sample_su1(2:end)) && any(s.prefered_sample_su2(2:end))
+                load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+                %% TODO: brain region
+                for i=1:length(conn_chain_S1)
+                key=conn_chain_S1(i,1)*100000+rem(conn_chain_S1(i,2),100000);
+%                 key=s.fileidx*100000*100000+s.su1_clusterid*100000+s.su2_clusterid;
                 if ~isempty(su_var_t)
                     idx=find(su_var_t(:,1)==key);
                 else
                     idx=[];
                 end
-                if s.prefered_sample_su1(bin+1)>0 && s.prefered_sample_su2(bin+1)>0
+                if pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin+6)>0
                     selType=2;
                 else
                     selType=1;
@@ -38,10 +42,13 @@ if genData
                     su_var_t(idx,bin+1)=selType;
                 end
             end
-        end
+%         end
     end
 
 end
+
+save('su_var_t.mat','su_var_t');
+
 for bin=2:6
     d_conn_pair(bin)=nnz((su_var_t(:,bin)>0) ~= (su_var_t(:,bin+1)>0));
     d_conn_num(bin)=(nnz(su_var_t(:,bin+1)>0)-nnz(su_var_t(:,bin)>0));
@@ -51,7 +58,7 @@ for bin=2:6
 end
 
 
-to_plot=false;
+to_plot=true;
 if to_plot
 
     %assumes su_var_t etc in memory
@@ -81,16 +88,17 @@ if to_plot
     if true
         figure('Color','w','Position',[100,100,220,250])
     %     subplot(3,1,2);
-
-        magicN=208860*2; %qualified pairs number bin 1
+        bin=1;
+        load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        magicN=length(pair_chain);
         hold on
         yyaxis left
         [phat,pci]=binofit(sum(su_var_t(:,2:end)>0),magicN);
         fill([1:6,6:-1:1]',[pci(:,1);flip(pci(:,2))],'b','EdgeColor','none','FaceAlpha',0.2)
         ph1=plot(phat,'b-','LineWidth',1.5);
-        ylim([0,0.17])
+        ylim([0,0.20])
         ylabel('connective pair ratio');
-        set(gca(),'YTick',0:0.05:0.16)
+        set(gca(),'YTick',0:0.05:0.2)
         yyaxis right
         fill([1:6,6:-1:1]',[pci(:,1);flip(pci(:,2))],'r','EdgeColor','none','FaceAlpha',0.2)
         [phat,pci]=binofit(sum(su_var_t(:,2:end)>1),magicN);
@@ -98,8 +106,8 @@ if to_plot
         ylabel('selective ratio');
         ylim([0,max(ylim())])
         xlim([0.5,6.5])
-        ylim([0,0.03])
-        set(gca(),'YTick',0:0.01:0.031)
+        ylim([0,0.04])
+        set(gca(),'YTick',0:0.02:0.04)
         xlabel('delay time(1-sec bin)')
         ylabel('selective pair ratio')
         legend([ph1,ph2],{'connective','selective'});

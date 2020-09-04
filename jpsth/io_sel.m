@@ -1,8 +1,8 @@
-[pWing,to_test]=baseline_delay_WING()
-return
+% [pWing,to_test]=baseline_delay_WING()
+% return
 
 % type='correct_resample';
-type='baseline';
+type='selec';
 close all
 load('reg_keep.mat');
 plot_per_bin=false;
@@ -28,7 +28,7 @@ for rpt=1:rptN
             end
             load('0826_selec_conn_chain_duo_6s_-2_-1.mat');
         else
-            load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+            load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         end
         in_out_sel=nan(length(reg_set),12);
         for reg_idx=1:length(reg_set)
@@ -61,7 +61,7 @@ for rpt=1:rptN
         iorepeats{rpt}=ioselstats;
     end
 end
-keyboard
+% keyboard
 if strcmp(type,'baseline')
     io_baseline=in_out_sel;
     save('io_sel_baseline.mat','io_baseline');
@@ -107,8 +107,8 @@ end
 
 save('io_sel.mat','ioselstats','io_entire_delay','io_early_delay','io_late_delay','reg_set');
 
-
-%% per bin stability
+return
+%% per bin wing stability
 load io_sel_baseline.mat
 load io_sel.mat
 
@@ -117,7 +117,6 @@ any(cell2mat(cellfun(@(x) x(:,1)<100,ioselstats,'UniformOutput',false)))
 nansel=any(cell2mat(cellfun(@(x) x(:,1)<100,ioselstats,'UniformOutput',false)),2) | io_baseline(:,1)<100;
 sel=~nansel & greymatter;
 to_test=find(sel)';
-
 
 base_WING=diff(io_baseline(sel,[3,7]),1,2);
 delay_WING=cell2mat(cellfun(@(x) diff(x(sel,[3,7]),1,2),ioselstats,'UniformOutput',false));
@@ -137,6 +136,8 @@ xlabel('delay bin (sec)')
 set(gca,'YTickLabel',{'baseline','1 sec','2 sec','3 sec','4 sec','5 sec'})
 colorbar()
 
+%% per region wing per bin
+
 base_WING(:,1)=diff(io_baseline(sel,[3,7]),1,2);
 early_WING(:,1)=diff(io_early_delay(sel,[3,7]),1,2);
 late_WING(:,1)=diff(io_late_delay(sel,[3,7]),1,2);
@@ -148,6 +149,8 @@ late_WING(:,2)=io_late_delay(sel,3);
 base_WING(:,3)=io_baseline(sel,7);
 early_WING(:,3)=io_early_delay(sel,7);
 late_WING(:,3)=io_late_delay(sel,7);
+
+
 figure('Color','w','Position',[100,100,750,250])
 for k=1:3
     corrmat=[base_WING(:,k),early_WING(:,k),late_WING(:,k)];

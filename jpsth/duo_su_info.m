@@ -87,6 +87,8 @@ for i=1:length(fs)
                     raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
                     xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
                     %% prefered sample, reg,
+                    % TODO: suid should accompany sums file in the first
+                    % place
                     suid=find(startsWith(path_list,replace(dpath,'singleProbe/','')) & cid_list==str2double(xc_s1.label{lblidx,1}));
                     % sust, transient, switched, unclassified, early_in_6s,
                     % late_in_6s, 7X prefer_s

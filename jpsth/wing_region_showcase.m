@@ -1,3 +1,5 @@
+load('io_sel.mat')
+
 wing=diff(io_entire_delay(:,[3,7]),1,2);
 [~,idces]=sort(wing,'descend');
 wingmat=[idces,diff(io_entire_delay(idces,[3,7]),1,2),io_entire_delay(idces,1)];
@@ -17,16 +19,12 @@ pair_unit_all=[];
 in_map=[];
 out_map=[];
 for bin=1:6
-    load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     %input
     pre_unit_sel=reg_chain_S1(:,2)==rIdx & reg_chain_S1(:,1)~=rIdx & ismember(reg_chain_S1(:,1),sel);
     pre_unit=unique(conn_chain_S1(pre_unit_sel,1));
     new_pre_unit_sel=~ismember(pre_unit,conn_unit_all);
     conn_unit_all=[conn_unit_all;pre_unit(new_pre_unit_sel)];
-    
-    for uidx=1:numel(conn_unit_all)
-        in_map(uidx,bin)=nnz(conn_chain_S1(pre_unit_sel,1)==conn_unit_all(uidx));
-    end
     
     %output
     post_unit_sel=reg_chain_S1(:,1)==rIdx & reg_chain_S1(:,2)~=rIdx & ismember(reg_chain_S1(:,2),sel);
@@ -35,21 +33,25 @@ for bin=1:6
     conn_unit_all=[conn_unit_all;post_unit(new_post_unit_sel)];
     
     for uidx=1:numel(conn_unit_all)
+        in_map(uidx,bin)=nnz(conn_chain_S1(pre_unit_sel,1)==conn_unit_all(uidx));
+    end
+    
+    for uidx=1:numel(conn_unit_all)
         out_map(uidx,bin)=nnz(conn_chain_S1(post_unit_sel,2)==conn_unit_all(uidx));
     end
     
 end
 in_map=-abs(in_map);
 
-cmap=bluewhitered(65);
+
 connmap=[in_map,out_map];
 [~,enh_idx]=sort(sum(connmap,2),'descend');
 recip_sel=any(in_map(enh_idx,:),2) & any(out_map(enh_idx,:),2);
 recip_idx=[enh_idx(recip_sel);enh_idx(~recip_sel)];
 
 fh=figure('Color','w','Position',[100,100,235,235]);
-colormap(cmap);
 ih=imagesc(connmap(recip_idx,1:6),[-8,8]);
+colormap(bluewhitered(32));
 colorbar()
 set(gca,'XTick',[1 5])
 xlabel('time (s)');
@@ -57,8 +59,8 @@ ylabel('memory neuron #');
 exportgraphics(fh,'wing_input_showcase.pdf','ContentType','vector');
 
 fh=figure('Color','w','Position',[100,100,235,235]);
-colormap(cmap);
 ih=imagesc(connmap(recip_idx,7:12),[-8,8]);
+colormap(bluewhitered(32));
 colorbar()
 set(gca,'XTick',[1 5])
 xlabel('time (s)');

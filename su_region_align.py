@@ -162,7 +162,7 @@ def getTrackRegion(regionL, mice_id, date, imecNo, who_did):
 
 
 def combineSubRegion(r):
-    if re.match("CA[13]", r):
+    if re.match("CA[123]", r):
         return r
     if re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r):
         g = re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r)

@@ -43,8 +43,10 @@ top = [0.5 0 0];
 % Find middle
 lims = get(gca, 'CLim');
 
+% lims=0:1;
+
 % Find ratio of negative to positive
-if (lims(1) < 0) & (lims(2) > 0)
+if (lims(1) < 0) && (lims(2) > 0)
     % It has both negative and positive
     % Find ratio of negative to positive
     ratio = abs(lims(1)) / (abs(lims(1)) + lims(2));

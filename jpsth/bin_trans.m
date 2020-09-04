@@ -115,7 +115,7 @@ prev2_none=[];
 
 for bin=1:6
     %         disp(bin);
-    load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
     %         localselS2=(reg_chain_S2(:,1)==reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter);
     if local
@@ -247,7 +247,7 @@ for onereg=1:length(reg_set)
     prev2_none=[];
     
     for bin=1:6
-        load(sprintf('0814_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         if strcmp(type,'local')
             localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;
         elseif strcmp(type,'inter_input')
