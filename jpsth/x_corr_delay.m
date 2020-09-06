@@ -6,7 +6,7 @@ homedir='/home/zx/neupix/wyt';
 currmodel='selec';
 prefix='0831';
 delay=6;
-bin_range=[4,5];
+%bin_range=[4,5];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
 addpath('fieldtrip-20200320')
 ft_defaults
@@ -117,7 +117,6 @@ for i=1:length(supool)
         continue
     end
     sums={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
-    return
     save(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'sums','-v7.3','sust','trans','supool','counter','done') %prefix
  	fprintf('%d of %d\n',i,length(supool))
 end

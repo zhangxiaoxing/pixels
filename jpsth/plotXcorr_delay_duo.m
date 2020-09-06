@@ -5,10 +5,10 @@
 
 %to plot show case change inline filename inside the prepare_stats_file part
 %rpt=1;
-currbin=1;
+%currbin=1;
 close('all')
 %prefix=sprintf('0820_correct_resample_%03d_',rpt);
-prefix='0831_selec';
+prefix='0813_nonsel';
 to_plot=false;
 to_save=false;
 to_process_reverb=true;
@@ -17,11 +17,11 @@ fpath=cell(1,6)
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=1:6 
+    for bin=1:2
 %        cwd=pwd();
 %        cd(sprintf('/media/HDD0/zx/correct_error/correct/bin%d_%d/sums',bin,bin+1));
-%        load(sprintf('%d_correct_resampled_duo_XCORR_sums_delay_6_%d_%d_2msbin.mat',rpt,bin,bin+1))
-        sums=sums_bins{bin}
+       load(sprintf('0729_nonsel_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',bin,bin+1))
+%        sums=sums_bins{bin}
         [~,fidx]=sort(sums(:,2));
         sums=sums(fidx,:);
         fpath{bin}=sums(:,2);

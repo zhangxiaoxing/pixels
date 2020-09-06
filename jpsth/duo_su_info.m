@@ -27,9 +27,9 @@ singleTracks=dir('/home/zx/neupix/wyt/DataSum/singleProbe');
 singleTrackList={singleTracks(3:end).name};
 % error_list=cell(0);
 sums=cell(0,8);
-fs=dir(sprintf('/home/zx/pixels/jpsth/%s_%s_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)));
+fs=dir(sprintf('/media/SSD1/old_data/jpsth/%s_%s_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)));
 disp(length(fs))
-keyboard
+pause(10)
 % pause
 for i=1:length(fs)
     tracks=2;
@@ -87,8 +87,6 @@ for i=1:length(fs)
                     raw_idx=find([raw_fstr.waveform{:,2}]==wfstats(wfidx,1));
                     xc_s1.label{lblidx,3}=raw_fstr.waveform{wfidx,4};
                     %% prefered sample, reg,
-                    % TODO: suid should accompany sums file in the first
-                    % place
                     suid=find(startsWith(path_list,replace(dpath,'singleProbe/','')) & cid_list==str2double(xc_s1.label{lblidx,1}));
                     % sust, transient, switched, unclassified, early_in_6s,
                     % late_in_6s, 7X prefer_s
