@@ -1,19 +1,12 @@
-rpt=100;
+rpt=20;
 
 for bin=1:6
     fbin(bin)=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
-for bin=1:6
-    fstr=load(sprintf('0813_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-%    fstr.ais1=[];
-%    fstr.ais2=[];
-%    fstr.peaks1=[];
-%    fstr.peaks2=[];
-%    fstr.conn_chain_both=[];
-%    fstr.pref_chain_both=[];
-%    fstr.
-    fnbin(bin)=fstr;
-end
+%for bin=1:6
+%    fstr=load(sprintf('0813_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+%    fnbin(bin)=fstr;
+%end
 %    for bin=5
 %        if ~isequal(fbin(bin).pair_chain,fbin(bin+1).pair_chain)
 %            keyboard
@@ -36,21 +29,22 @@ input_to_count_shuf=nan(length(reg_set),6,rpt);
 output_from_count_shuf=nan(length(reg_set),6,rpt);
 recip_count_shuf=nan(length(reg_set),6,rpt);
 triplet_count_shuf=nan(6,rpt);
-%keyboard
-%    parfor i=1:rpt
-%        for bin=1:6
-%            [shuf,~]=shuffle_conn_chain(fbin(bin).conn_chain_S1,fbin(bin).pair_chain);
-%            triplet_count_shuf(bin,i)=count_triplet(shuf);
-%        end
-%    end
-%    %keyboard
-%    for bin=1:6
-%        triplet_count(bin)=count_triplet(fbin(bin).conn_chain_S1);
-%    end
-%    save('triplet_count.mat','triplet_count','triplet_count_shuf')
+parfor i=1:rpt
+    for bin=1:6
+        [shuf,shufreg]=shuffle_conn_chain(fbin(bin).conn_chain_S1,fbin(bin).pair_chain,fbin(bin).pair_reg);
+        triplet_count_shuf(bin,i)=count_triplet(shuf,shufreg);
+    end
+end
+for bin=1:6
+    tic
+    triplet_count(bin)=count_triplet(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1);
+    toc
+end
+keyboard
+save('triplet_count.mat','triplet_count','triplet_count_shuf')
 parfor bin=1:6
     disp(bin)
-    triplet_nonsel_count(bin)=count_triplet(fnbin(bin).conn_chain_S1);
+    triplet_nonsel_count(bin)=count_triplet(fnbin(bin).conn_chain_S1,fbin(bin).pair_reg);
 end
 save('triplet_count.mat','triplet_nonsel_count','-append')
 
@@ -115,14 +109,14 @@ if ~verLessThan('matlab','9.8')
     exportgraphics(fh,'su_region_recip_WING.pdf')
 end
 
-function out=count_triplet(in)
+function out=count_triplet(in,reg)
 out=0;
 pre_unit_set=unique(in(:,1));
 for i=reshape(pre_unit_set,1,[])
-    mono_post=in(in(:,1)==i,2);
+    mono_post=in(in(:,1)==i & reg(:,1)~=reg(:,2),2);
     for j=reshape(mono_post,1,[])
-        sec_post=in(in(:,1)==j,2);
-        out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i);
+        sec_post=in(in(:,1)==j & reg(:,1)~=reg(:,2),2);
+        out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i & reg(:,1)~=reg(:,2));
     end
 
 end
