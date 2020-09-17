@@ -26,6 +26,7 @@ from matplotlib.colors import Normalize
 import scipy.stats as stats
 import su_region_align as align
 from matplotlib import rcParams
+from sklearn.metrics import roc_auc_score
 import re
 
 
@@ -35,6 +36,9 @@ class per_sec_stats:
         self.per_sec_sel_raw = None  # 7 x SU , sample + 6s delay
         self.per_sec_prefS1 = None  # 7 x SU , sample + 6s delay
         self.per_sec_prefS2 = None  # 7 x SU , sample + 6s delay
+        self.per_sec_auc = None  # 7 x SU , sample + 6s delay
+        self.per_sec_fr = None
+        self.per_sec_wrs_p = None  # 7 x SU , sample + 6s delay
         self.non_sel_mod = None  # 7 x SU
         self.non_mod = None  # 7 x SU
         self.baseline_sel = None  # 1 x SU
@@ -54,10 +58,34 @@ class per_sec_stats:
                     B.flatten(),
                     alternative="two-sided",
                 )
-                return p < (0.05 / bonf)
-
             except ValueError:
-                return False
+                p = 1
+
+            try:
+                auc = roc_auc_score(
+                    np.concatenate((
+                        np.zeros(A.size),
+                        np.ones(B.size)
+                    )),
+                    np.concatenate((
+                        A.flatten(),
+                        B.flatten(),
+                    ))
+                )
+            except ValueError:
+                auc = 0.5
+
+            if np.sum(A)+np.sum(B)==0:
+                selectivity=0
+            else:
+                mma = np.mean(A)
+                mmb = np.mean(B)
+                selectivity=(mma-mmb)/(mma+mmb)
+
+            return (p < (0.05 / bonf), p, selectivity,auc)
+
+
+
 
     def exact_mc_perm_test(self, xs, ys, nmc):
         n, k = len(xs), 0
@@ -80,17 +108,18 @@ class per_sec_stats:
 
         trial_sel_left_6 = trial_perf_sel_6[:, 2] == 4
         trial_sel_left_3 = trial_perf_sel_3[:, 2] == 4
-        if delay == 6:
-            self.per_sec_sel = np.zeros((7, trial_FR.shape[2]))
-            self.per_sec_sel_raw = np.zeros((7, trial_FR.shape[2]))
-        else:
-            self.per_sec_sel = np.zeros((4, trial_FR.shape[2]))
-            self.per_sec_sel_raw = np.zeros((4, trial_FR.shape[2]))
+
+        self.per_sec_sel = np.zeros((delay+1, trial_FR.shape[2]))
+        self.per_sec_sel_raw = np.zeros((delay+1, trial_FR.shape[2]))
+        self.per_sec_auc = np.zeros((delay+1, trial_FR.shape[2]))
+        self.per_sec_fr = np.zeros((delay+1, trial_FR.shape[2]))
+        self.per_sec_wrs_p = np.zeros((delay + 1, trial_FR.shape[2]))
 
         self.per_sec_prefS1 = np.zeros_like(self.per_sec_sel)
         self.per_sec_prefS2 = np.zeros_like(self.per_sec_sel)
         self.non_sel_mod = np.zeros_like(self.per_sec_sel)
-        self.baseline_sel = np.zeros(trial_FR.shape[2])
+        self.baseline_sel = np.zeros((4, trial_FR.shape[2]))
+
         for su_idx in range(trial_FR.shape[2]):
             onesu_6 = np.squeeze(firing_rate_6[:, :, su_idx]).T
             onesu_3 = np.squeeze(firing_rate_3[:, :, su_idx]).T
@@ -106,19 +135,27 @@ class per_sec_stats:
                             axis=0)
             baseR = np.mean(trial_FR[:10, :, su_idx][:, (trials[:, 2] == 8) & welltrain_window & correct_resp],
                             axis=0)
-            self.baseline_sel[su_idx] = self.bool_stats_test(baseL, baseR)
+            self.baseline_sel[:,su_idx] = self.bool_stats_test(baseL, baseR)
 
             if delay == 6:
                 for bin_idx in range(0, 7):
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
-                    self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_6[:, bins],
-                                                                             right_trials_6[:, bins], 7)
-                    seldiff = (np.sum(left_trials_6[:, bins]) - np.sum(right_trials_6[:, bins]))
-                    if seldiff == 0:
+                    spksum = (np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
+
+                    if spksum == 0:
                         self.per_sec_sel_raw[bin_idx, su_idx] = 0
+                        self.per_sec_auc[bin_idx, su_idx] = 0.5
+                        self.per_sec_fr[bin_idx, su_idx] = 0
+                        self.per_sec_sel[bin_idx, su_idx] = False
+                        self.per_sec_wrs_p[bin_idx, su_idx] = 1
                     else:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff / (
-                                np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
+                        binstat=self.bool_stats_test(left_trials_6[:, bins],
+                                             right_trials_6[:, bins], 7)
+                        self.per_sec_sel_raw[bin_idx, su_idx] = binstat[2]
+                        self.per_sec_sel[bin_idx, su_idx] = binstat[0]
+                        self.per_sec_auc[bin_idx, su_idx] =binstat[3]
+                        self.per_sec_fr[bin_idx, su_idx] =np.mean(np.concatenate((left_trials_6[:,bins],right_trials_6[:,bins])))
+                        self.per_sec_wrs_p[bin_idx, su_idx] = binstat[1]
 
                     if self.per_sec_sel[bin_idx, su_idx]:
                         if np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]):
@@ -128,19 +165,20 @@ class per_sec_stats:
 
                     self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
                                                          self.bool_stats_test(onesu_6[:, bins],
-                                                                              onesu_6[:, 6:10], 7))
-            elif delay == 3:
+                                                                              onesu_6[:, 6:10], 7)[0])
+            elif delay == 3: # TODO update new stats
                 for bin_idx in range(0, 4):
                     bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
-                    self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
-                                                                             right_trials_3[:, bins], 4)
 
-                    seldiff = (np.sum(left_trials_6[:, bins]) - np.sum(right_trials_6[:, bins]))
-                    if seldiff == 0:
+                    spksum = (np.sum(left_trials_6[:, bins]) - np.sum(right_trials_6[:, bins]))
+                    if spksum == 0:
                         self.per_sec_sel_raw[bin_idx, su_idx] = 0
+                        self.per_sec_sel[bin_idx, su_idx] = False
                     else:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = seldiff / (
+                        self.per_sec_sel_raw[bin_idx, su_idx] = spksum / (
                                 np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
+                        self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
+                                                                                 right_trials_3[:, bins], 4)[0]
 
                     if self.per_sec_sel[bin_idx, su_idx]:
                         if np.mean(left_trials_3[:, bins]) > np.mean(right_trials_3[:, bins]):
@@ -150,13 +188,13 @@ class per_sec_stats:
 
                     self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
                                                          self.bool_stats_test(onesu_3[:, bins],
-                                                                              onesu_3[:, 6:10], 4))
+                                                                              onesu_3[:, 6:10], 4))[0]
                 # self.non_mod[bin_idx, su_idx] = not (
                 #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
 
     def getFeatures(self):
         return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2, self.baseline_sel,
-                self.per_sec_sel_raw)
+                self.per_sec_sel_raw,self.per_sec_auc,self.per_sec_wrs_p,self.per_sec_fr)
 
 
 ### all brain region entry point
@@ -169,6 +207,9 @@ def prepare_data(delay=6):
     perfS1_list = []
     perfS2_list = []
     raw_sel_list = []
+    auc_list = []
+    fr_list=[]
+    wrs_p_list=[]
     # non_mod_list = []
     folder_list = []
     cluster_id_list = []
@@ -209,7 +250,7 @@ def prepare_data(delay=6):
 
         curr_stats.process_select_stats(trial_FR, trials, welltrain_window, correct_resp, delay=delay)
 
-        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel, raw_sel) = curr_stats.getFeatures()
+        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel, raw_sel,auc,wrsp,fr) = curr_stats.getFeatures()
         per_sec_sel_list.append(per_sec_sel)
         non_sel_mod_list.append(non_sel_mod)
         bs_sel_list.append(bs_sel)
@@ -217,6 +258,9 @@ def prepare_data(delay=6):
         perfS1_list.append(perfS1)
         perfS2_list.append(perfS2)
         raw_sel_list.append(raw_sel)
+        auc_list.append(auc)
+        fr_list.append(fr)
+        wrs_p_list.append(wrsp)
         cluster_id_list.append(SU_ids)
         folder_list.append([re.search(r"(?<=DataSum\\)(.*)", path)[1]] * SU_ids.shape[1])
 
@@ -227,7 +271,7 @@ def prepare_data(delay=6):
         reg_list.append(suid_reg[1])
     return (
         per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list, raw_sel_list,
-        cluster_id_list, folder_list)
+        cluster_id_list, folder_list,auc_list,wrs_p_list,fr_list)
 
 
 def prepare_data_sync():
@@ -312,7 +356,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         delay_num = 6
     if denovo:
         (per_sec_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list, raw_sel_list, cluster_id,
-         path_list) = prepare_data(delay=delay)
+         path_list,auc_list,wrs_p,fr) = prepare_data(delay=delay)
         ### save raw data file
         per_sec_sel_arr = np.hstack(per_sec_list)
         non_sel_mod_arr = np.hstack(non_sel_mod_list)
@@ -320,6 +364,9 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         perfS2_arr = np.hstack(perfS2_list)
         bs_sel = np.hstack(bs_sel_list)
         raw_sel_arr = np.hstack(raw_sel_list)
+        auc_arr=np.hstack(auc_list)
+        fr_arr=np.hstack(fr)
+        wrs_p_arr = np.hstack(wrs_p)
         reg_arr = np.hstack(reg_list)
         clusterid_arr = np.hstack(cluster_id)
         path_arr = np.hstack(path_list)
@@ -333,7 +380,10 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
                             bs_sel=bs_sel,
                             raw_sel_arr=raw_sel_arr,
                             clusterid_arr=clusterid_arr,
-                            path_arr=path_arr)
+                            path_arr=path_arr,
+                            auc_arr=auc_arr,
+                            wrs_p_arr=wrs_p_arr,
+                            fr_arr=fr_arr)
     else:
         ### load back saved raw data
         if not os.path.isfile(f"per_sec_sel_{delay_num}.npz"):
@@ -351,10 +401,12 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         raw_sel_arr = fstr['raw_sel_arr']
         clusterid_arr = fstr['clusterid_arr']
         path_arr = fstr['path_arr']
+        auc_arr=fstr['auc_arr']
+        wrs_p_arr=fstr['wrs_p_arr']
+        fr_arr=fstr['fr_arr']
 
     # rpt_workaround = ('M23_20191109_g0', '191018-DPA-Learning5_28_g1', '191226_64_learning6_g0_imec1_cleaned')
     # rpt = np.zeros_like(path_arr)
-
 
     if delay == 6:
         delay_bins = np.arange(1, 7)
@@ -369,7 +421,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         early_bins = np.arange(4, 6)
         late_bins = np.arange(5, 7)
 
-    bs_count = np.count_nonzero(bs_sel)
+    bs_count = np.count_nonzero(bs_sel[0,:])
     non_bs = np.logical_not(bs_sel)
 
     any_sel = np.logical_and(non_bs, np.any(per_sec_sel_arr, axis=0))
@@ -453,7 +505,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
     np.savez_compressed(f'sus_trans_pie_{delay}.npz', sust=sust, transient=transient,
                         switched=switched, unclassified=unclassified, sample_only=sample_only,
                         non_sel_mod=non_sel_mod, non_mod=non_mod, bs_sel=bs_sel, reg_arr=reg_arr,
-                        raw_sel_arr=raw_sel_arr)
+                        raw_sel_arr=raw_sel_arr, auc_arr=auc_arr,fr_arr=fr_arr)
 
     if toExport:
         # np.savetxt(f'transient_{delay}.csv', export_arr, fmt='%d', delimiter=',',
@@ -465,6 +517,10 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
             fw.create_dataset('reg', data=reg_arr.astype('S10'))
             fw.create_dataset('path', data=path_arr.astype('S200'))
             fw.create_dataset('cluster_id', data=clusterid_arr.astype('uint16'))
+            fw.create_dataset('auc', data=auc_arr.astype('float64'))
+            fw.create_dataset('wrs_p',data=wrs_p_arr.astype('float64'))
+            fw.create_dataset('fr',data=fr_arr.astype('float64'))
+            
 
         # np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
 
@@ -709,8 +765,8 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=True, toExport=False, delay=6, counterclock=False)
-    process_all(denovo=False, toPlot=True, toExport=False, delay=3, counterclock=False)
+    process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
+    # process_all(denovo=False, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
 

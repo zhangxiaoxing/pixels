@@ -1,6 +1,6 @@
 function CQ_transient(nPool)
 
-onebatch(32383,32390)
+% onebatch(32383,32390)
 %keyboard
 
 addpath('CQDecoding')

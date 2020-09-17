@@ -190,6 +190,7 @@ end
 %% correct error
 if false
     load io_sel_correct_error.mat
+    load iotemp.mat
     error_entire=errorio{1};
     for bin=2:6
         error_entire=error_entire+errorio{bin};

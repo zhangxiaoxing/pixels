@@ -1,7 +1,4 @@
-fstr=cell(1,6);
-for bin=1:6
-    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-end
+
 [geplist1,reglist1]=sortdata(1,fstr);
 [geplist2,reglist2]=sortdata(2,fstr);
 
@@ -68,28 +65,7 @@ reglist=unique(reglist,'rows');
 end
 
 function unchained()
-% load('reg_keep.mat','reg_set')
-% 
-% inter_reg_count=zeros(114,1);
-% sess_reg=cell(114,1);
-% for i=1:114
-%     lbound=100000*i;
-%     ubound=100000*(i+1);
-%     sel=fstr{6}.conn_chain_S1(:,1)>lbound & fstr{6}.conn_chain_S1(:,1)<ubound;
-%     inter_reg_count(i)=nnz(diff(fstr{6}.reg_chain_S1(sel,:),1,2));
-%     sess_reg{i}=arrayfun(@(x) reg_set{x}, unique(fstr{6}.reg_chain_S1(sel,:)),'UniformOutput',false);
-% end
-% [C,I]=sort(inter_reg_count,'descend');
-% sess_reg=sess_reg(I);
-% 
-% prefsamp=1;
-% geplist=[];
-% reglist=[];
-% bin1sel=(fstr{1}.pref_chain_S1(:,1)==prefsamp & all(fstr{1}.pref_chain_S1(:,7:8)==prefsamp,2));
-% % bin1postu=unique(fstr{1}.conn_chain_S1(bin1sel,2));
-% geplist=[geplist;fstr{1}.conn_chain_S1(bin1sel,:),ones(nnz(bin1sel),1),fstr{1}.peaks1(bin1sel)'];
-% reglist=[reglist;reshape(fstr{1}.conn_chain_S1(bin1sel,:),[],1),reshape(fstr{1}.reg_chain_S1(bin1sel,:),[],1)];
-% 
+
 
 return
 end

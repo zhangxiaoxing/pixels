@@ -19,26 +19,26 @@ class ctd_stats:
         self.su_list = []
         self.use_ranksum = True
 
-    def bool_stats_test(self, A, B):
-        ### TODO alternative use of perm_test
-        if self.use_ranksum:
-            try:
-                (_stat, p) = stats.mannwhitneyu(A.flatten(), B.flatten(), alternative="two-sided")
-                return p < 0.001
-
-            except ValueError:
-                return False
-        else:
-            return self.exact_mc_perm_test(A, B, 1000)
-
-    def exact_mc_perm_test(self, xs, ys, nmc):
-        n, k = len(xs), 0
-        diff = np.abs(np.mean(xs) - np.mean(ys))
-        zs = np.concatenate([xs, ys])
-        for j in range(nmc):
-            np.random.shuffle(zs)
-            k += diff < np.abs(np.mean(zs[:n]) - np.mean(zs[n:]))
-        return k / nmc
+    # def bool_stats_test(self, A, B):
+    #     ### TODO alternative use of perm_test
+    #     if self.use_ranksum:
+    #         try:
+    #             (_stat, p) = stats.mannwhitneyu(A.flatten(), B.flatten(), alternative="two-sided")
+    #             return p < 0.001
+    #
+    #         except ValueError:
+    #             return False
+    #     else:
+    #         return self.exact_mc_perm_test(A, B, 1000)
+    #
+    # def exact_mc_perm_test(self, xs, ys, nmc):
+    #     n, k = len(xs), 0
+    #     diff = np.abs(np.mean(xs) - np.mean(ys))
+    #     zs = np.concatenate([xs, ys])
+    #     for j in range(nmc):
+    #         np.random.shuffle(zs)
+    #         k += diff < np.abs(np.mean(zs[:n]) - np.mean(zs[n:]))
+    #     return k / nmc
 
     ### unprocessed data entry point
 
@@ -155,7 +155,6 @@ def get_dataset(denovo=False, prevTrial=False,classify_test=False):
         dpath = align.get_root_path()
         for path in align.traverse(dpath):
             print(path)
-            trial_FR = None
             trials = None
             if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
                 continue
