@@ -17,7 +17,7 @@ fpath=cell(1,6)
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=1:2
+    for bin=3:4
 %        cwd=pwd();
 %        cd(sprintf('/media/HDD0/zx/correct_error/correct/bin%d_%d/sums',bin,bin+1));
        load(sprintf('0729_nonsel_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',bin,bin+1))

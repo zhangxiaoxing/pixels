@@ -1,8 +1,11 @@
-rpt=20;
+update_motif=false;
+rpt=1000;
 
 for bin=1:6
     fbin(bin)=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
+fbase=load('0906_conn_chain_duo_6s_-2_-1.mat');
+%% non-memory neurons temporarily skipped
 %for bin=1:6
 %    fstr=load(sprintf('0813_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 %    fnbin(bin)=fstr;
@@ -22,33 +25,135 @@ su_set=unique(fbin(1).conn_chain_S1(:,1));
 input_to_count=nan(length(reg_set),6);
 output_from_count=nan(length(reg_set),6);
 recip_count=nan(length(reg_set),6);
-triplet_count=nan(1,6);
-triplet_nonsel_count=nan(1,6);
+motif_count_actinact=nan(3,6);
+motif_count_incong=nan(3,6);
+motif_baseline_count=nan(3,1);
+motif_baseline_count_incong=nan(3,1);
+%triplet_nonsel_count=nan(1,6);
 
 input_to_count_shuf=nan(length(reg_set),6,rpt);
 output_from_count_shuf=nan(length(reg_set),6,rpt);
 recip_count_shuf=nan(length(reg_set),6,rpt);
-triplet_count_shuf=nan(6,rpt);
-parfor i=1:rpt
-    for bin=1:6
-        [shuf,shufreg]=shuffle_conn_chain(fbin(bin).conn_chain_S1,fbin(bin).pair_chain,fbin(bin).pair_reg);
-        triplet_count_shuf(bin,i)=count_triplet(shuf,shufreg);
+motif_count_shuf=nan(3,6,rpt);
+motif_count_shuf_incong=nan(3,6,rpt);
+motif_baseline_count_shuf_incong=nan(1,rpt);
+motif_baseline_count_shuf=nan(3,rpt);
+%% baseline
+if exist('baseline_stats','var') && baseline_stats
+    for midx=1:3
+        disp(midx)
+        msize=midx+2;
+        motif_baseline_count(midx)=count_motif_congru_actinact(fbase.conn_chain_S1,fbase.reg_chain_S1,fbase.pref_chain_S1,bin,msize);
+        %motif_baseline_count_incong=count_triplet_incong_actinact(fbase.conn_chain_S1,fbase.reg_chain_S1,fbase.pref_chain_S1,bin);
+        parfor i=1:rpt
+            [shuf,shufreg]=shuffle_conn_chain(fbase.conn_chain_S1,fbase.pair_chain,fbase.pair_reg);
+            motif_baseline_count_shuf(midx,i)=count_motif_congru_actinact(shuf,shufreg,fbase.pref_chain_S1,bin,msize);
+            %triplet_baseline_count_shuf_incong(i)=count_triplet_incong_actinact(shuf,shufreg,fbase.pref_chain_S1,bin);
+        end
     end
+    keyboard
+    
 end
-for bin=1:6
-    tic
-    triplet_count(bin)=count_triplet(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1);
-    toc
+%% candidate pairs
+if exist('candidate_stats','var') && candidate_stats
+    fut=parallel.FevalFuture.empty;
+    for caIdx=1:4096 %7bit session, 3bit bin, 2bit msize
+        if exist(sprintf('candidate_count_%d.mat',caIdx),'file')
+            continue
+        end
+        session=bitshift(bitand(caIdx,bin2dec('111111100000')),-5);
+        bin=bitshift(bitand(caIdx,bin2dec('000000011100')),-2);
+        msize=bitand(caIdx,bin2dec('000000000011'))+2;
+        if (~ismember(msize,3:5)) || (~ismember(bin,1:6))
+            continue
+        end
+        mirror_chain=@(x) [x;x(:,[2 1])];
+        cc=mirror_chain(fbin(bin).pair_chain);
+        sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
+        if nnz(sel)==0
+            continue
+        end
+        rr=mirror_chain(fbin(bin).pair_reg);
+        pp=[fbin(bin).pref_pair;fbin(bin).pref_pair(:,[7:12,1:6])];
+        fut(end+1)=parfeval(@count_motif_congru,2,cc(sel,:),rr(sel,:),pp(sel,:),bin,msize,caIdx);
+    end
+    for futIdx=1:numel(fut)
+        [cmpltIdx,motif_candidate_count,caIdx]=fetchNext(fut);
+        savefun(sprintf('candidate_count_%d.mat',caIdx),session,bin,msize,motif_candidate_count);
+        fprintf('%d, %d of %d\n',caIdx,futIdx,numel(fut));
+    end
+    keyboard
 end
-keyboard
-save('triplet_count.mat','triplet_count','triplet_count_shuf')
-parfor bin=1:6
-    disp(bin)
-    triplet_nonsel_count(bin)=count_triplet(fnbin(bin).conn_chain_S1,fbin(bin).pair_reg);
-end
-save('triplet_count.mat','triplet_nonsel_count','-append')
+%% candidate baseline pairs
+if exist('candidate_base_stats','var') && candidate_base_stats
+    fut=parallel.FevalFuture.empty;
+    bin=-2;
+    for caIdx=1:512 %7bit session, 3bit bin, 2bit msize
+        if exist(sprintf('candidate_base_count_%d.mat',caIdx),'file')
+            continue
+        end
+        session=bitshift(bitand(caIdx,bin2dec('111111100')),-2);
+        msize=bitand(caIdx,bin2dec('000000011'))+2;
+        if ~ismember(msize,3:5)
+            continue
+        end
+        mirror_chain=@(x) [x;x(:,[2 1])];
+        cc=mirror_chain(fbase.pair_chain);
+        sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
+        if nnz(sel)==0
+            continue
+        end
+        rr=mirror_chain(fbase.pair_reg);
+        pp=[fbase.pref_pair;fbase.pref_pair(:,[7:12,1:6])];
+        %% future
+        fut(end+1)=parfeval(@count_motif_congru_actinact,2,cc(sel,:),rr(sel,:),pp(sel,:),bin,msize,caIdx);
 
-keyboard
+    end
+    %% get result
+    for futIdx=1:numel(fut)
+        [cmpltIdx,motif_candidate_count,caIdx]=fetchNext(fut);
+        savefun(sprintf('candidate_base_count_%d.mat',caIdx),session,bin,msize,motif_candidate_count);
+        fprintf('%d, %d of %d\n',caIdx,futIdx,numel(fut));
+    end
+    keyboard
+end
+%% memory delay
+if true
+    disp('memory delay')
+    keyboard
+    motif_count=nan(3,6);
+    parfor bin=1:6
+        disp(bin);
+        for midx=1:3
+            msize=midx+2;
+            motif_count(midx,bin)=count_motif_congru(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1,fbin(bin).pref_chain_S1,bin,msize);
+            motif_count_incong(midx,bin)=count_motif_incong(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1,fbin(bin).pref_chain_S1,bin,msize);
+        end
+        %triplet_count_actinact(bin)=count_triplet_congru_actinact(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1,fbin(bin).pref_chain_S1,bin);
+        %triplet_count_incong(bin)=count_triplet_incong_actinact(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1,fbin(bin).pref_chain_S1,bin);
+        %quadruplet_count_incong(bin)=count_triplet_incong_actinact(fbin(bin).conn_chain_S1,fbin(bin).reg_chain_S1,fbin(bin).pref_chain_S1,bin);
+    end
+    parfor i=1:rpt
+        for midx=1:3
+            msize=midx+2
+            for bin=1:6
+                [shuf,shufreg]=shuffle_conn_chain(fbin(bin).conn_chain_S1,fbin(bin).pair_chain,fbin(bin).pair_reg);
+                motif_count_shuf(midx,bin,i)=count_motif_congru(shuf,shufreg,fbin(bin).pref_chain_S1,bin,msize);
+                motif_count_shuf_incong(midx,bin,i)=count_motif_incong(shuf,shufreg,fbin(bin).pref_chain_S1,bin,msize);
+                %motif_count_shuf(bin,i)=count_triplet_incong_actinact(shuf,shufreg,fbin(bin).pref_chain_S1,bin);
+            end
+        end
+    end
+
+    keyboard
+    save('motif_count.mat','motif_count','motif_count_shuf','motif_count_incong','motif_count_shuf_incong')
+end
+%    parfor bin=1:6
+%        disp(bin)
+%        triplet_nonsel_count(bin)=count_triplet_congru(fnbin(bin).conn_chain_S1,fbin(bin).pair_reg);
+%    end
+%    save('triplet_count.mat','triplet_nonsel_count','-append')
+
 parfor reg_target=1:length(reg_set)
     if ismember(reg_target,greymatter)
         disp(reg_target)
@@ -109,19 +214,113 @@ if ~verLessThan('matlab','9.8')
     exportgraphics(fh,'su_region_recip_WING.pdf')
 end
 
-function out=count_triplet(in,reg)
+function [out,caIdx]=count_motif_congru(in,reg,pref,bin,msize,caIdx)
 out=0;
 pre_unit_set=unique(in(:,1));
 for i=reshape(pre_unit_set,1,[])
-    mono_post=in(in(:,1)==i & reg(:,1)~=reg(:,2),2);
+    mono_post=in(in(:,1)==i & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0,2);
     for j=reshape(mono_post,1,[])
-        sec_post=in(in(:,1)==j & reg(:,1)~=reg(:,2),2);
-        out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i & reg(:,1)~=reg(:,2));
+        sec_post=in(in(:,1)==j & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0,2);
+        if msize==3
+            out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0);
+        elseif msize==4
+            for k=reshape(sec_post,1,[])
+                third_post=in(in(:,1)==k & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0,2);
+                out=out+nnz(ismember(in(:,1),third_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0);
+            end
+        elseif msize==5
+            for k=reshape(sec_post,1,[])
+                third_post=in(in(:,1)==k & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0,2);
+                for l=reshape(third_post,1,[])
+                    if l==i || l==j
+                        continue;
+                    end
+                    fourth_post=in(in(:,1)==l & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0,2);
+                    fourth_post(ismember(fourth_post,[i j k l]))=[];
+                    out=out+nnz(ismember(in(:,1),fourth_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & pref(:,bin)==pref(:,bin+6) & pref(:,bin)>0);
+                end
+            end
+        end
     end
-
 end
 end
 
+function out=count_motif_incong(in,reg,pref,bin,msize)
+out=0;
+pre_unit_set=unique(in(:,1));
+for i=reshape(pre_unit_set,1,[])
+    mono_post=in(in(:,1)==i & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3,2);
+    for j=reshape(mono_post,1,[])
+        sec_post=in(in(:,1)==j & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3,2);
+        if msize==3
+            out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3);
+        elseif msize==4
+            for k=reshape(sec_post,1,[])
+                third_post=in(in(:,1)==k & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3,2);
+                out=out+nnz(ismember(in(:,1),third_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3);
+            end
+        elseif msize==5
+            for k=reshape(sec_post,1,[])
+                third_post=in(in(:,1)==k & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3 ,2);
+                for l=reshape(third_post,1,[])
+                    if l==i || l==j
+                        continue;
+                    end
+                    fourth_post=in(in(:,1)==l & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3,2);
+                    fourth_post(ismember(fourth_post,[i j k l]))=[];
+                    out=out+nnz(ismember(in(:,1),fourth_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & sum(pref(:,[bin,bin+6]),2)==3);
+                end
+            end
+        end
+    end
+end
+end
+
+
+function [out,caIdx]=count_motif_congru_actinact(in,reg,pref,bin,msize,caIdx)
+out=0;
+pre_unit_set=unique(in(:,1));
+for i=reshape(pre_unit_set,1,[])
+    %keyboard
+    mono_post=in(in(:,1)==i & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0,2);
+    for j=reshape(mono_post,1,[])
+        sec_post=in(in(:,1)==j & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0,2);
+        if msize==3
+            out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0);
+        elseif msize==4
+            for k=reshape(sec_post,1,[])
+                third_post=in(in(:,1)==k & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0,2);
+                out=out+nnz(ismember(in(:,1),third_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0);
+            end
+        elseif msize==5
+            for k=reshape(sec_post,1,[])
+                third_post=in(in(:,1)==k & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0,2);
+                for l=reshape(third_post,1,[])
+                    if l==i || l==j
+                        continue;
+                    end
+                    fourth_post=in(in(:,1)==l & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0,2);
+                    fourth_post(ismember(fourth_post,[i j k l]))=[];
+                    out=out+nnz(ismember(in(:,1),fourth_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)==max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0);
+                end
+            end
+        end
+    end
+end
+end
+
+function out=count_triplet_incong_actinact(in,reg,pref,bin)
+out=0;
+pre_unit_set=unique(in(:,1));
+for i=reshape(pre_unit_set,1,[])
+    %keyboard
+    mono_post=in(in(:,1)==i & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)~=max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0 & max(pref(:,7:12),[],2)>0,2);
+    for j=reshape(mono_post,1,[])
+        sec_post=in(in(:,1)==j & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)~=max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0 & max(pref(:,7:12),[],2)>0,2);
+        out=out+nnz(ismember(in(:,1),sec_post) & in(:,2)==i & reg(:,1)~=reg(:,2) & max(pref(:,1:6),[],2)~=max(pref(:,7:12),[],2) & max(pref(:,1:6),[],2)>0 & max(pref(:,7:12),[],2)>0);
+    end
+end
+end
 
 function [outconn,outreg]=shuffle_conn_chain(in,inpair,inreg)
 outconn=nan(size(in));
@@ -160,4 +359,7 @@ end
 %            outreg(sel,2)=shufreg;
 %        end
 %    end
+end
+function savefun(fn,session,bin,msize,motif_candidate_count)
+    save(fn,'session','bin','msize','motif_candidate_count');
 end
