@@ -1,10 +1,14 @@
 %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 %  chan2. Thus, a negative lag represents a spike in the second dimension of
 %  stat.xcorr before the channel in the third dimension of stat.stat.
+if ~exist('bin_range','var')
+    disp('missing bin range');
+    return
+end
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='selec';
-prefix='0831';
+currmodel='nonsel';
+prefix='0906';
 delay=6;
 %bin_range=[4,5];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
@@ -31,6 +35,14 @@ done=[];
 error_list=cell(0);
 
 for i=1:length(supool)
+    
+    if exist(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'file')
+        disp('file exist');
+        fprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat\n',prefix,currmodel,i,delay,bin_range(1),bin_range(2));
+
+        continue
+    end
+
     if ismember(supool(i),done)
         continue
     end
@@ -117,6 +129,7 @@ for i=1:length(supool)
         continue
     end
     sums={i,folder,sustIds,transIds,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
+    %return
     save(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'sums','-v7.3','sust','trans','supool','counter','done') %prefix
  	fprintf('%d of %d\n',i,length(supool))
 end

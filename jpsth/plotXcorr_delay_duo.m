@@ -8,23 +8,23 @@
 %currbin=1;
 close('all')
 %prefix=sprintf('0820_correct_resample_%03d_',rpt);
-prefix='0813_nonsel';
+%prefix='0831_selec';
 to_plot=false;
 to_save=false;
 to_process_reverb=true;
 prepare_stats_file=true;
-fpath=cell(1,6)
+%fpath=cell(1,6)
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=3:4
+    for bin=currbin 
 %        cwd=pwd();
 %        cd(sprintf('/media/HDD0/zx/correct_error/correct/bin%d_%d/sums',bin,bin+1));
-       load(sprintf('0729_nonsel_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',bin,bin+1))
+%        load(sprintf('%d_correct_resampled_duo_XCORR_sums_delay_6_%d_%d_2msbin.mat',rpt,bin,bin+1))
 %        sums=sums_bins{bin}
         [~,fidx]=sort(sums(:,2));
         sums=sums(fidx,:);
-        fpath{bin}=sums(:,2);
+        %fpath{bin}=sums(:,2);
 %        cd(cwd);
         stats=cell(0);
         thresh=norminv(0.995); %0.05 bonferroni corrected
@@ -246,9 +246,9 @@ if prepare_stats_file
             stats_bins{bin}=stats;
         end
         if to_save
-            disp(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)));
+            disp(sprintf('%s_%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, currmodel,bin_range(1),bin_range(2)));
 %             keyboard
-            save(sprintf('%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
+            save(sprintf('%s_%s_XCORR_stats_delay_6_%d_%d_2msbin.mat',prefix, currmodel, bin_range(1),bin_range(2)),'stats','bin_range','-v7.3')
         end
         if to_process_reverb
             clear stats_bins
