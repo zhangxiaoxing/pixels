@@ -35,11 +35,12 @@ done=[];
 error_list=cell(0);
 
 for i=1:length(supool)
-    
+    skip=false;
+    avail=false;
     if exist(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'file')
         disp('file exist');
         fprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat\n',prefix,currmodel,i,delay,bin_range(1),bin_range(2));
-
+        skip=true;
         continue
     end
 
@@ -92,7 +93,9 @@ for i=1:length(supool)
                 continue
             end
             nonselIds=[];
-            [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+            if ~skip
+                [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+            end
         elseif startsWith(currmodel,'nonsel')
             if folderType==1
                 sameFolder=find(startsWith(path_list,folder) & nonsel_logic);
@@ -119,7 +122,9 @@ for i=1:length(supool)
             if numel(nonselIds)<1
                 continue
             end
-            [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+            if ~skip
+                [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+            end
         
         end
         if avail
