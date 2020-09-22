@@ -1,3 +1,5 @@
+%% deprecated as of jun 2020 in favor of the plotXcorr_delay_duo.m script
+
 %  A peak at a negative lag for stat.xcorr(chan1,chan2,:) means that chan1 is leading
 %  chan2. Thus, a negative lag represents a spike in the second dimension of
 %  stat.xcorr before the channel in the third dimension of stat.stat.

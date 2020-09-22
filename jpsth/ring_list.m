@@ -21,8 +21,8 @@ parfor I=1:114
         end
     end
 end
-keyboard
-save('rings.mat','rings4')
+
+
 rings=cell(114,6);
 parfor I=1:114
     %& diff(fstr{1}.reg_chain_S1,1,2)
@@ -35,7 +35,7 @@ parfor I=1:114
         end
     end
 end
-save('rings.mat','rings')
+save('rings.mat','rings','rings4')
 
 
 function out=count_triplet(in,reg,pref,bin)

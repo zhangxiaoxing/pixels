@@ -1,4 +1,4 @@
-load('rings.mat');
+load('rings.mat'); %from ring_list.m
 hebbPattern=cell(0,4);
 for bin=1:6
     fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
@@ -150,6 +150,8 @@ nodesCount=arrayfun(@(x) numel(unique(hebbnet(x,:))),1:length(hebbnet));
 [nc,ni]=sort(nodesCount);
 hebbnet=hebbnet(ni,:);
 save('hebbplot.mat','rings','hebbnet','nc')
+
+
 
 
 

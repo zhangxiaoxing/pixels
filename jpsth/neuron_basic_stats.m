@@ -1,10 +1,11 @@
-
 sus_trans=h5read('../transient_6.hdf5','/sus_trans');
 reg_list=h5read('../transient_6.hdf5','/reg');
 wrs_p_list=h5read('../transient_6.hdf5','/wrs_p');
 auc_list=h5read('../transient_6.hdf5','/auc');
 fr_list=h5read('../transient_6.hdf5','/fr');
 sel_list=h5read('../transient_6.hdf5','/raw_selectivity');
+path_list=h5read('../transient_6.hdf5','/path');
+
 
 
 fh=figure('Color','w');
