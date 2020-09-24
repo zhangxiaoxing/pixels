@@ -55,67 +55,99 @@ if exist('baseline_stats','var') && baseline_stats
     
 end
 %% candidate pairs
-if exist('candidate_stats','var') && candidate_stats
-    fut=parallel.FevalFuture.empty;
-    for caIdx=1:4096 %7bit session, 3bit bin, 2bit msize
-        if exist(sprintf('candidate_count_%d.mat',caIdx),'file')
-            continue
+if exist('candidate_stats_easy','var') && candidate_stats_easy
+%     candidate_delay=nan(2,6,3);
+    for midx=2:3
+        subtotal1=0;
+        subtotal2=0;
+        msize=midx+2;
+        for bin=1:6
+            for session=1:114 %7bit session, 3bit bin, 2bit msize
+                disp(session)
+                cc=fbin(bin).pair_chain;
+                sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
+                if nnz(sel)==0
+                    continue
+                end
+                connsel=cc(sel,:);
+                regset=unique(fbin(bin).pair_reg(sel,:));
+                reg_ring_set=nchoosek(regset,msize);
+                
+                for setIdx=1:size(reg_ring_set,1)
+                    currcount1=1;
+                    currcount2=1;
+                    for mcounter=1:msize
+                        if currcount1>0
+                            sel1=fbin(bin).pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
+                                [fbin(bin).pref_pair(sel,bin)==1, fbin(bin).pref_pair(sel,bin+6)==1];
+                            count1=numel(unique(connsel(sel1)));
+                            currcount1=currcount1*count1;
+                        end
+                        if currcount2>0
+                            sel2=fbin(bin).pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
+                                [fbin(bin).pref_pair(sel,bin)==2, fbin(bin).pref_pair(sel,bin+6)==2];
+                            count2=numel(unique(connsel(sel2)));
+                            currcount2=currcount2*count2;
+                        end
+                    end
+                    
+                    subtotal1=subtotal1+currcount1;
+                    subtotal2=subtotal2+currcount2;
+                end
+            end
+            candidate_delay(1,bin,midx)=subtotal1;
+            candidate_delay(2,bin,midx)=subtotal2;
+            save('candidate_count.mat','candidate_delay','-append')
         end
-        session=bitshift(bitand(caIdx,bin2dec('111111100000')),-5);
-        bin=bitshift(bitand(caIdx,bin2dec('000000011100')),-2);
-        msize=bitand(caIdx,bin2dec('000000000011'))+2;
-        if (~ismember(msize,3:5)) || (~ismember(bin,1:6))
-            continue
-        end
-        mirror_chain=@(x) [x;x(:,[2 1])];
-        cc=mirror_chain(fbin(bin).pair_chain);
-        sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
-        if nnz(sel)==0
-            continue
-        end
-        rr=mirror_chain(fbin(bin).pair_reg);
-        pp=[fbin(bin).pref_pair;fbin(bin).pref_pair(:,[7:12,1:6])];
-        fut(end+1)=parfeval(@count_motif_congru,2,cc(sel,:),rr(sel,:),pp(sel,:),bin,msize,caIdx);
     end
-    for futIdx=1:numel(fut)
-        [cmpltIdx,motif_candidate_count,caIdx]=fetchNext(fut);
-        savefun(sprintf('candidate_count_%d.mat',caIdx),session,bin,msize,motif_candidate_count);
-        fprintf('%d, %d of %d\n',caIdx,futIdx,numel(fut));
-    end
-    keyboard
+    return
 end
-%% candidate baseline pairs
-if exist('candidate_base_stats','var') && candidate_base_stats
-    fut=parallel.FevalFuture.empty;
-    bin=-2;
-    for caIdx=1:512 %7bit session, 3bit bin, 2bit msize
-        if exist(sprintf('candidate_base_count_%d.mat',caIdx),'file')
-            continue
-        end
-        session=bitshift(bitand(caIdx,bin2dec('111111100')),-2);
-        msize=bitand(caIdx,bin2dec('000000011'))+2;
-        if ~ismember(msize,3:5)
-            continue
-        end
-        mirror_chain=@(x) [x;x(:,[2 1])];
-        cc=mirror_chain(fbase.pair_chain);
-        sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
-        if nnz(sel)==0
-            continue
-        end
-        rr=mirror_chain(fbase.pair_reg);
-        pp=[fbase.pref_pair;fbase.pref_pair(:,[7:12,1:6])];
-        %% future
-        fut(end+1)=parfeval(@count_motif_congru_actinact,2,cc(sel,:),rr(sel,:),pp(sel,:),bin,msize,caIdx);
 
+
+
+
+
+%% candidate baseline pairs easy
+if exist('candidate_base_stats_easy','var') && candidate_base_stats_easy
+    count_all=nan(2,3);
+    for midx=1:3
+        subtotal1=0;
+        subtotal2=0;
+        msize=midx+2;
+        for session=1:114 %7bit session, 3bit bin, 2bit msize
+            disp(session)
+            cc=fbase.pair_chain;
+            sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
+            if nnz(sel)==0
+                continue
+            end
+            connsel=cc(sel,:);
+            regset=unique(fbase.pair_reg(sel,:));
+            reg_ring_set=nchoosek(regset,msize);
+            
+            for setIdx=1:size(reg_ring_set,1)
+                currcount1=1;
+                currcount2=1;
+                for mcounter=1:msize
+                    sel1=fbase.pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
+                        [max(fbase.pref_pair(sel,1:6),[],2)==1, max(fbase.pref_pair(sel,7:12),[],2)==1];
+                    count1=numel(unique(connsel(sel1)));
+                    currcount1=currcount1*count1;
+                    
+                    sel2=fbase.pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
+                        [max(fbase.pref_pair(sel,1:6),[],2)==2, max(fbase.pref_pair(sel,7:12),[],2)==2];
+                    count2=numel(unique(connsel(sel2)));
+                    currcount2=currcount2*count2;
+                end
+                
+                subtotal1=subtotal1+currcount1;
+                subtotal2=subtotal2+currcount2;
+            end
+        end
+        count_all(1,midx)=subtotal1;
+        count_all(2,midx)=subtotal2;
     end
-    %% get result
-    for futIdx=1:numel(fut)
-        [cmpltIdx,motif_candidate_count,caIdx]=fetchNext(fut);
-        savefun(sprintf('candidate_base_count_%d.mat',caIdx),session,bin,msize,motif_candidate_count);
-        fprintf('%d, %d of %d\n',caIdx,futIdx,numel(fut));
-    end
-    keyboard
+return
 end
 %% memory delay
 if true
