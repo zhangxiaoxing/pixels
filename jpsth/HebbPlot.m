@@ -1,12 +1,13 @@
-load('rings.mat'); %from ring_list.m
+sample=2;
+load('rings.mat','rings'); %from ring_list.m dimord=(msize, session, bin, sample)
 hebbPattern=cell(0,4);
 for bin=1:6
     fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 for b3=1:6
-    r3all=cell2mat(rings(:,b3));
+    r3all=cell2mat(rings(1,:,b3,sample)');
     for b4=b3:min(b3+1,6)
-        r4all=cell2mat(rings4(:,b4));
+        r4all=cell2mat(rings(2,:,b4,sample)');
         r4all=r4all(:,1:4);
         for r3idx=1:length(r3all)
             for r4idx=1:length(r4all)
@@ -25,7 +26,7 @@ for b3=1:6
                                 final_ring124=r3all(r3idx,[3 1 2]);
                         end
                         for b4p=b4:min(b4+1,6)
-                            r4pall=cell2mat(rings4(:,b4p));
+                            r4pall=cell2mat(rings(2,:,b4p,sample)');
                             r4pall=r4pall(:,1:4);
                             for b4pidx=1:length(r4pall)
                                 if nnz(ismember(r4pall(b4pidx,:),final_ring124))==3 ...
@@ -55,8 +56,13 @@ for b3=1:6
         end
     end
 end
-save('hebb_pattern.mat','hebbPattern');
-
+if sample==1
+    hebbPatternS1=hebbPattern;
+    save('hebb_pattern.mat','hebbPatternS1','-append');
+elseif sample==2
+    hebbPatternS2=hebbPattern;
+    save('hebb_pattern.mat','hebbPatternS2','-append');
+end
 
 return
 keyboard

@@ -422,7 +422,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         late_bins = np.arange(5, 7)
 
     bs_count = np.count_nonzero(bs_sel[0,:])
-    non_bs = np.logical_not(bs_sel)
+    non_bs = np.logical_not(bs_sel[0,:])
 
     any_sel = np.logical_and(non_bs, np.any(per_sec_sel_arr, axis=0))
     any_sel_count = np.count_nonzero(any_sel)
@@ -765,7 +765,7 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
+    process_all(denovo=False, toPlot=False, toExport=True, delay=6, counterclock=False)
     # process_all(denovo=False, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
