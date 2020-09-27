@@ -1,14 +1,15 @@
 load rings.mat
 load('candidate_count.mat')
+shufrpt=size(rings_shuf,1);
 for midx=1:3
     for bin=1:6
         motif_count(midx,bin)=size(cell2mat([(rings(midx,:,bin,1)),(rings(midx,:,bin,2))]'),1);
     end
 end
-motif_count_shuf=nan(3,6,1000);
+motif_count_shuf=nan(3,6,shufrpt);
 for midx=1:3
     for bin=1:6
-        for rpt=1:1000
+        for rpt=1:shufrpt
             motif_count_shuf(midx,bin,rpt)=size(cell2mat([squeeze(rings_shuf(rpt,midx,:,bin,1));squeeze(rings_shuf(rpt,midx,:,bin,2))]),1);
         end
     end
@@ -18,9 +19,9 @@ for midx=1:3
     base_motif_count(midx)=size(cell2mat([(base_rings(midx,:,1)),(base_rings(midx,:,2))]'),1);
 end
 
-base_motif_count_shuf=nan(3,1000);
+base_motif_count_shuf=nan(3,shufrpt);
 for midx=1:3
-    for rpt=1:1000
+    for rpt=1:shufrpt
         base_motif_count_shuf(midx,rpt)=size(cell2mat([squeeze(rings_shuf(rpt,midx,:,1));squeeze(rings_shuf(rpt,midx,:,2))]),1);
     end
 end
@@ -63,18 +64,5 @@ ylim([0.0000099,0.01]);
 ylabel('Normalized density')
 % legend([rh,sh],{'recorded','shuffled'});
 % keyboard
-exportgraphics(fh,sprintf('motif_of_%d.pdf',msize),'ContentType','vector');
-end
-
-
-
-
-function out=tripCount(su_set)
-out=0;
-for i=1:114
-    subsetCount=nnz(su_set>i*100000 & su_set<(i+1)*100000);
-    if subsetCount>=3
-        out=out+nchoosek(subsetCount,3);
-    end
-end
+% exportgraphics(fh,sprintf('motif_of_%d.pdf',msize),'ContentType','vector');
 end
