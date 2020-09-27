@@ -1,4 +1,4 @@
-sample=2;
+%sample=1;
 load('rings.mat','rings'); %from ring_list.m dimord=(msize, session, bin, sample)
 hebbPattern=cell(0,4);
 for bin=1:6
@@ -200,5 +200,4 @@ function out=flexsort(in)
         end
     end
 end
-
 

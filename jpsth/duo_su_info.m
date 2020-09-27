@@ -27,7 +27,7 @@ singleTracks=dir('/home/zx/neupix/wyt/DataSum/singleProbe');
 singleTrackList={singleTracks(3:end).name};
 % error_list=cell(0);
 sums=cell(0,8);
-fs=dir(sprintf('/media/SSD1/old_data/jpsth/%s_%s_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)));
+fs=dir(sprintf('%s_%s_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)));
 disp(length(fs))
 pause(10)
 % pause

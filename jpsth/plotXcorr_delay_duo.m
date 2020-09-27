@@ -5,7 +5,7 @@
 
 %to plot show case change inline filename inside the prepare_stats_file part
 %rpt=1;
-%currbin=1;
+%currbin=bin_range(1);
 close('all')
 %prefix=sprintf('0820_correct_resample_%03d_',rpt);
 %prefix='0831_selec';
@@ -17,10 +17,10 @@ prepare_stats_file=true;
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=currbin 
+    for bin=-2
 %        cwd=pwd();
 %        cd(sprintf('/media/HDD0/zx/correct_error/correct/bin%d_%d/sums',bin,bin+1));
-%        load(sprintf('%d_correct_resampled_duo_XCORR_sums_delay_6_%d_%d_2msbin.mat',rpt,bin,bin+1))
+        load(sprintf('%s_%s_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin,bin+1))
 %        sums=sums_bins{bin}
         [~,fidx]=sort(sums(:,2));
         sums=sums(fidx,:);
@@ -61,15 +61,17 @@ if prepare_stats_file
                     peaks1=NaN;
                     peaks2=NaN;
 
-                    totalCount=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
-                    if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || totalCount<250
+                    totalCount_S1=nansum(squeeze(xc_s1.xcorr(si,sj,:)));
+                    totalCount_S2=nansum(squeeze(xc_s2.xcorr(si,sj,:)));
+                    if numel(xc_s1.cfg.trials)<20 ||  numel(xc_s2.cfg.trials)<20 || (totalCount_S1<250 && totalCount_S2<250)
                         onepair=struct();
                         onepair.fileidx=sidx;
                         onepair.su1_label_idx=si;
                         onepair.su2_label_idx=sj;
                         onepair.su1_sel_type=su1;
                         onepair.su2_sel_type=su2;
-                        onepair.totalcount=totalCount;
+                        onepair.totalcount_S1=totalCount_S1;
+                        onepair.totalcount_S2=totalCount_S2;
                         onepair.su1_clusterid=su1id;
                         onepair.su2_clusterid=su2id;
                         onepair.wf_stats_su1=xc_s1.label{si,2}; %cluster_id, FR, err_type,vollay-peak, fwhm
@@ -140,7 +142,8 @@ if prepare_stats_file
                     onepair.su2_label_idx=sj;
                     onepair.su1_sel_type=su1;
                     onepair.su2_sel_type=su2;
-                    onepair.totalcount=totalCount;
+                    onepair.totalcount_S1=totalCount_S1;
+                    onepair.totalcount_S2=totalCount_S2;
                     onepair.su1_clusterid=su1id;
                     onepair.su2_clusterid=su2id;
                     onepair.hists1=hists1;
@@ -337,7 +340,7 @@ for bin=1:4
         conn_sel_mat_S2=zeros(length(reg_set),length(reg_set));
         for pidx=1:length(stats)
             s=stats{pidx};
-            if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20 
+            if (s.totalcount_S1<250 && s.totalcount_S2<250) || s.s1_trials<20 || s.s2_trials<20 
                 continue
             end
             

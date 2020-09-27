@@ -5,7 +5,7 @@ for bin=1:6
     fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 bin=-2;
-fbase=load(sprintf('0826_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+fbase=load(sprintf('0906_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 
 
 % load('reg_keep.mat','reg_set')
@@ -32,7 +32,6 @@ if exist('delay_data','var') && delay_data
         end
     end
     save('rings.mat','rings','-append');
-    return
 end
 if exist('delay_shuf','var') && delay_shuf
     shufrpt=1000;
@@ -85,7 +84,6 @@ if exist('base_data','var') && base_data
         end
     end
     save('rings.mat','base_rings','-append');
-    return
 end
 if exist('base_shuf','var') && base_shuf
     shufrpt=1000;
@@ -255,3 +253,4 @@ for i=1:114
 end
 % sum(combined)
 end
+>>>>>>> Stashed changes

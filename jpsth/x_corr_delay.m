@@ -35,13 +35,13 @@ done=[];
 error_list=cell(0);
 
 for i=1:length(supool)
+    disp(i)
     skip=false;
     avail=false;
     if exist(sprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'file')
         disp('file exist');
         fprintf('%s_%s_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat\n',prefix,currmodel,i,delay,bin_range(1),bin_range(2));
         skip=true;
-        continue
     end
 
     if ismember(supool(i),done)
@@ -128,8 +128,11 @@ for i=1:length(supool)
         
         end
         if avail
-            [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
+            [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range)
+        else
+            continue
         end
+
     else
         continue
     end
