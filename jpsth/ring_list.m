@@ -9,8 +9,9 @@ fbase=load(sprintf('0906_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 
 
 % load('reg_keep.mat','reg_set')
-if exist('delay_data','var') && delay_data
+if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var') && delay_inact_data)
     rings=cell(3,114,6,2);
+    rings_inact=cell(3,114,6,2);
     parfor I=1:114
         for midx=1:3
             msize=midx+2;
@@ -20,22 +21,40 @@ if exist('delay_data','var') && delay_data
             for bin=1:6
                 sel11=fstr{bin}.conn_chain_S1(:,1)>=lbound & fstr{bin}.conn_chain_S1(:,1)<ubound & diff(fstr{bin}.reg_chain_S1,1,2);
                 if nnz(sel11)>0
-                    onering1=count_motif_congru(fstr{bin}.conn_chain_S1(sel11,:),fstr{bin}.reg_chain_S1(sel11,:),fstr{bin}.pref_chain_S1(sel11,:),bin,msize,1);
-                    onering1=unique(flexsort(onering1),'rows');
-                    sel12=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound & diff(fstr{bin}.reg_chain_S2,1,2);
-                    onering2=count_motif_congru(fstr{bin}.conn_chain_S2(sel12,:),fstr{bin}.reg_chain_S2(sel12,:),fstr{bin}.pref_chain_S2(sel12,:),bin,msize,2);
-                    onering2=unique(flexsort(onering2),'rows');
-                    rings(midx,I,bin,:)={onering1,onering2};
+                    if exist('delay_data','var') && delay_data
+                        onering1=count_motif_congru(fstr{bin}.conn_chain_S1(sel11,:),fstr{bin}.reg_chain_S1(sel11,:),fstr{bin}.pref_chain_S1(sel11,:),bin,msize,1);
+                        onering1=unique(flexsort(onering1),'rows');
+                        sel12=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound & diff(fstr{bin}.reg_chain_S2,1,2);
+                        onering2=count_motif_congru(fstr{bin}.conn_chain_S2(sel12,:),fstr{bin}.reg_chain_S2(sel12,:),fstr{bin}.pref_chain_S2(sel12,:),bin,msize,2);
+                        onering2=unique(flexsort(onering2),'rows');
+                        rings(midx,I,bin,:)={onering1,onering2};
+                    end
+                    if exist('delay_inact_data','var') && delay_inact_data
+                        onering1=count_motif_congru_inact(fstr{bin}.conn_chain_S1(sel11,:),fstr{bin}.reg_chain_S1(sel11,:),fstr{bin}.pref_chain_S1(sel11,:),msize,1);
+                        onering1=unique(flexsort(onering1),'rows');
+                        sel12=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound & diff(fstr{bin}.reg_chain_S2,1,2);
+                        onering2=count_motif_congru_inact(fstr{bin}.conn_chain_S2(sel12,:),fstr{bin}.reg_chain_S2(sel12,:),fstr{bin}.pref_chain_S2(sel12,:),msize,2);
+                        onering2=unique(flexsort(onering2),'rows');
+                        rings_inact(midx,I,bin,:)={onering1,onering2};
+                    end
                 end
             end
             
         end
     end
-    save('rings.mat','rings','-append');
+    if exist('delay_data','var') && delay_data
+        save('rings.mat','rings','-append');
+    end
+    if exist('delay_inact_data','var') && delay_inact_data
+        save('rings.mat','rings_inact','-append');
+    end
 end
-if exist('delay_shuf','var') && delay_shuf
+
+
+if (exist('delay_shuf','var') && delay_shuf) || (exist('delay_shuf_inact','var') && delay_inact_shuf)
     shufrpt=1000;
     rings_shuf=cell(shufrpt,3,114,6,2);
+    rings_shuf_inact=cell(shufrpt,3,114,6,2);
     for rpt=1:shufrpt
         disp(rpt)
         for bin=1:6
@@ -48,19 +67,33 @@ if exist('delay_shuf','var') && delay_shuf
                     ubound=100000*(I+1);
                     sel21=shufchainS1(:,1)>=lbound & shufchainS1(:,1)<ubound & diff(shufregS1,1,2);
                     if nnz(sel21)>0
-                        onering1=count_motif_congru(shufchainS1(sel21,:),shufregS1(sel21,:),shufprefS1(sel21,:),bin,msize,1);
-                        onering1=unique(flexsort(onering1),'rows');
-                        sel22=shufchainS2(:,1)>=lbound & shufchainS2(:,1)<ubound & diff(shufregS2,1,2);
-                        onering2=count_motif_congru(shufchainS2(sel22,:),shufregS2(sel22,:),shufprefS2(sel22,:),bin,msize,2);
-                        onering2=unique(flexsort(onering1),'rows');
-                        rings_shuf(rpt,midx,I,bin,:)={onering1,onering2};
+                        if exist('delay_shuf','var') && delay_shuf
+                            onering1=count_motif_congru(shufchainS1(sel21,:),shufregS1(sel21,:),shufprefS1(sel21,:),bin,msize,1);
+                            onering1=unique(flexsort(onering1),'rows');
+                            sel22=shufchainS2(:,1)>=lbound & shufchainS2(:,1)<ubound & diff(shufregS2,1,2);
+                            onering2=count_motif_congru(shufchainS2(sel22,:),shufregS2(sel22,:),shufprefS2(sel22,:),bin,msize,2);
+                            onering2=unique(flexsort(onering1),'rows');
+                            rings_shuf(rpt,midx,I,bin,:)={onering1,onering2};
+                        end
+                        if exist('delay_shuf_inact','var') && delay_inact_shuf
+                            onering1=count_motif_congru_inact(shufchainS1(sel21,:),shufregS1(sel21,:),shufprefS1(sel21,:),msize,1);
+                            onering1=unique(flexsort(onering1),'rows');
+                            sel22=shufchainS2(:,1)>=lbound & shufchainS2(:,1)<ubound & diff(shufregS2,1,2);
+                            onering2=count_motif_congru_inact(shufchainS2(sel22,:),shufregS2(sel22,:),shufprefS2(sel22,:),msize,2);
+                            onering2=unique(flexsort(onering1),'rows');
+                            rings_shuf_inact(rpt,midx,I,bin,:)={onering1,onering2};
+                        end                        
                     end
                 end
-                
             end
         end
     end
-    save('rings.mat','rings_shuf','-append');
+    if exist('delay_shuf','var') && delay_shuf
+        save('rings.mat','rings_shuf','-append');
+    end
+    if exist('delay_shuf_inact','var') && delay_shuf_inact
+        save('rings.mat','rings_shuf_inact','-append');
+    end
 end
 
 %% baseline
@@ -253,4 +286,3 @@ for i=1:114
 end
 % sum(combined)
 end
->>>>>>> Stashed changes

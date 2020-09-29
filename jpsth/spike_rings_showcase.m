@@ -275,11 +275,10 @@ for bin=1:6
         j=i;
         selp=in(:,2)==i & in(:,3)==1 & in(:,1)>=bin & in(:,1)<bin+1;
         seln=in(:,2)==i & in(:,3)==0 & in(:,1)>=bin & in(:,1)<bin+1;
-        if any(selp)
-            tph=plot(repmat(in(selp,1)',2,1)-bin,(bin-1)*(msize+1)+repmat([j-0.6;j+0.6],1,nnz(selp)),'-','Color',color{i});
-            ph(i)=tph(1);
-            plot(repmat(in(seln,1)',2,1)-bin,(bin-1)*(msize+1)+repmat([j-0.6;j+0.6],1,nnz(seln)),'-','Color',[0.8,0.8,0.8]);
-        end
+        tph=plot(repmat(in(selp,1)',2,1)-bin,(bin-1)*(msize+1)+repmat([j-0.6;j+0.6],1,nnz(selp)),'-','Color',color{i});
+%         ph(i)=tph(1);
+        plot(repmat(in(seln,1)',2,1)-bin,(bin-1)*(msize+1)+repmat([j-0.6;j+0.6],1,nnz(seln)),'-','Color',[0.8,0.8,0.8]);
+
     end
 end
 xlabel('Time within time-bin(s)')
@@ -291,7 +290,8 @@ if msize==3
 elseif msize==4
     title(sprintf('Sess#%d, Trial#%d, SU%d, %d, %d, %d',sessIdx,tidx,ids(1),ids(2),ids(3),ids(4)));
     %     print(fh,sprintf('spike_seq_%d_%d_%d_%d.png',ids(1),ids(2),ids(3),ids(4)),'-dpng');
-    
+elseif msize==4
+    title(sprintf('Sess#%d, Trial#%d',sessIdx,tidx));    
 end
 print(fh,sprintf('r%d_spike_seq_%d_%d.png',msize,cocount,ssidx),'-dpng');
 if false

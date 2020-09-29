@@ -1,4 +1,4 @@
-load rings.mat
+load ringsX.mat
 load('candidate_count.mat')
 shufrpt=size(rings_shuf,1);
 for midx=1:3
