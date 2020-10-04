@@ -38,7 +38,7 @@ addpath(fullfile('npy-matlab-master','npy-matlab'))
 error_list=cell(0);
 
 
-for i=12:length(fsum.sums)
+for i=1:length(fsum.sums)
     if exist('xcorrpause','file')
         disp('paused by file')
         disp(i)
@@ -60,8 +60,8 @@ for i=12:length(fsum.sums)
     else
         skipflag=false;
         [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
-        [mono_rez_S1,mono_rez_S2]=sortSpikeIDz(spktrial,delay,bin_range);
-        sumsbz={i,folder,sustIds,transIds,mono_rez_S1,mono_rez_S2,nonselIds}; %per folder save
+        [mono_rez_S1,mono_rez_S2,lbl_count_S1,lbl_count_S2]=sortSpikeIDz(spktrial,delay,bin_range);
+        sumsbz={i,folder,sustIds,transIds,mono_rez_S1,lbl_count_S1,mono_rez_S2,lbl_count_S2,nonselIds}; %per folder save
     end
     [overlapS1,overlapS2]=overlap_calc(mono_rez_S1,mono_rez_S2,i,bin_range);
     save(sprintf('%s_%s_BZ_XCORR_duo_f%d_delay_%d_%d_%d_2msbin.mat',prefix,currmodel,i,delay,bin_range(1),bin_range(2)),'sumsbz','-v7.3','overlapS1','overlapS2','folder') %prefix
@@ -180,11 +180,13 @@ else
 end
 end
 
-function [mono_rez_S1,mono_rez_S2]=sortSpikeIDz(spktrial,delay,bin_range)
+function [mono_rez_S1,mono_rez_S2,lbl_count_S1,lbl_count_S2]=sortSpikeIDz(spktrial,delay,bin_range)
     %% s1
     spikeIDz_S1=[];
+    lbl_count_S1=[];
     TS_S1=[];
     spikeIDz_S2=[];
+    lbl_count_S2=[];
     TS_S2=[];
     s1trl = find(spktrial.trialinfo(:,5)==4 & spktrial.trialinfo(:,8)==delay);
     s2trl = find(spktrial.trialinfo(:,5)==8 & spktrial.trialinfo(:,8)==delay);
@@ -195,11 +197,13 @@ function [mono_rez_S1,mono_rez_S2]=sortSpikeIDz(spktrial,delay,bin_range)
         spkts=(double(spktrial.timestamp{i}(trialsel & binsel))./30000)';
         TS_S1=[TS_S1;spkts];
         spikeIDz_S1=[spikeIDz_S1;repmat([0,lbl,lbl],length(spkts),1)];
+        lbl_count_S1=[lbl_count_S1;lbl,length(spkts)];
         
         trialsel=ismember(spktrial.trial{i},s2trl);
         spkts=(double(spktrial.timestamp{i}(trialsel & binsel))./30000)';
         TS_S2=[TS_S2;spkts];
         spikeIDz_S2=[spikeIDz_S2;repmat([0,lbl,lbl],length(spkts),1)];
+        lbl_count_S2=[lbl_count_S2;lbl,length(spkts)];
     end
     [LUT,UB,UC]=unique(spikeIDz_S1(:,3));
     spikeIDz_S1(:,3)=UC;
@@ -215,14 +219,25 @@ function [mono_rez_S1,mono_rez_S2]=sortSpikeIDz(spktrial,delay,bin_range)
 end
 
 
+
 function [overlapS1,overlapS2]=overlap_calc(mono_rez_S1,mono_rez_S2,sess,bin_range)
+    if ~exist(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin_range(1),bin_range(2)),'file')
+        overlapS1=[];
+        overlapS2=[];
+        return
+    end
     fcon=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin_range(1),bin_range(2)));
     overlapS1=[0,0,size(mono_rez_S1.sig_con,1)];
     for i=1:size(mono_rez_S1.sig_con,1)
         t=mono_rez_S1.LUT(mono_rez_S1.sig_con(i,:))+sess*100000;
+%         if ~any((fcon.pair_chain(:,1)==t(1) & fcon.pair_chain(:,2)==t(2)) |...
+%             (fcon.pair_chain(:,1)==t(2) & fcon.pair_chain(:,2)==t(1)))
+%             keyboard
+%         end
 %         disp(t);
         overlapS1(1)=overlapS1(1)+any(fcon.conn_chain_S1(:,1)==t(1) & fcon.conn_chain_S1(:,2)==t(2));
-        overlapS1(2)=overlapS1(2)+any(fcon.pair_chain(:,1)==t(1) & fcon.pair_chain(:,2)==t(2));
+        overlapS1(2)=overlapS1(2)+any((fcon.pair_chain(:,1)==t(1) & fcon.pair_chain(:,2)==t(2))...
+            |(fcon.pair_chain(:,1)==t(2) & fcon.pair_chain(:,2)==t(1)));
     end
     
     overlapS2=[0,0,size(mono_rez_S2.sig_con,1)];
@@ -230,6 +245,7 @@ function [overlapS1,overlapS2]=overlap_calc(mono_rez_S1,mono_rez_S2,sess,bin_ran
         t=mono_rez_S2.LUT(mono_rez_S2.sig_con(i,:))+sess*100000;
 %         disp(t);
         overlapS2(1)=overlapS2(1)+any(fcon.conn_chain_S2(:,1)==t(1) & fcon.conn_chain_S2(:,2)==t(2));
-        overlapS2(2)=overlapS2(2)+any(fcon.pair_chain(:,1)==t(1) & fcon.pair_chain(:,2)==t(2));
+        overlapS2(2)=overlapS2(2)+any((fcon.pair_chain(:,1)==t(1) & fcon.pair_chain(:,2)==t(2))...
+        | (fcon.pair_chain(:,1)==t(2) & fcon.pair_chain(:,2)==t(1)));
     end
 end
