@@ -11,11 +11,14 @@ import scipy.io
 import os.path
 from scipy.special import comb
 import matplotlib.pyplot as plt
+import scikits.bootstrap as boot
+from mlxtend.evaluate import permutation_test
 # import neo
 
 class results:
     def __init__(self):
         self.mm=[]
+        self.mm_per_trial=[]
         self.perHz_mm=[]
         self.stdd=[]
         self.perHz_std=[]
@@ -121,6 +124,11 @@ for sess_id in range(114):
         wrs=stats.ranksums(hist[np.logical_and(s2sel,goodsel)],hist[np.logical_and(s2sel,errorsel)])
         pv[2]=wrs[1]
         currstat.motif_pvalues.append(pv)
+        if np.sum(np.logical_and(s1sel,goodsel))>9 and np.sum(np.logical_and(s2sel,goodsel))>9:
+            if prefered_samp==2:
+                currstat.mm_per_trial.append(np.hstack((hist[np.logical_and(s2sel,goodsel)][:10],hist[np.logical_and(s1sel,goodsel)][:10])))
+            else:
+                currstat.mm_per_trial.append(np.hstack((hist[np.logical_and(s1sel,goodsel)][:10],hist[np.logical_and(s2sel,goodsel)][:10])))
         
         
         
@@ -176,9 +184,6 @@ for idx,cs in enumerate(candidate_per_sess):
         congru_dens.append(np.sum(np.array(congru_stats.sess_ids)==cs[0])/cs[1])
     if cs[2]>1000:
         incongru_dens.append(np.sum(np.array(incongru_stats.sess_ids)==cs[0])/cs[2])
-
-import scikits.bootstrap as boot
-from mlxtend.evaluate import permutation_test
 
 congru_boot=boot.ci(congru_dens, np.mean,n_samples=1000)
 incongru_boot=boot.ci(incongru_dens, np.mean,n_samples=1000)
@@ -304,6 +309,30 @@ ax.set_xlim((0,0.26))
 ax.set_ylim((0,0.26))
 fh.savefig('spade_4su_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
 
+
+
+s1sel=np.array(congru_stats.prefered_samp)==1
+s2sel=np.array(congru_stats.prefered_samp)==2
+sigsel=np.array(congru_stats.perHz_pvalues)[:,0]<0.05
+
+prefered=np.hstack((np.array(congru_stats.mm)[s1sel,0],np.array(congru_stats.mm)[s2sel,2]))/6
+nonpref=np.hstack((np.array(congru_stats.mm)[s1sel,2],np.array(congru_stats.mm)[s2sel,0]))/6
+mm=(np.mean(nonpref),np.mean(prefered))
+pref_boot=boot.ci(prefered, np.mean,n_samples=1000)
+npref_boot=boot.ci(nonpref, np.mean,n_samples=1000)
+np.mean((prefered-nonpref)/(prefered+nonpref))
+
+(fh, ax) = plt.subplots(1, 1, figsize=(2 / 2.54, 4 / 2.54), dpi=300)
+ax.bar(1,mm[0],color='k',edgecolor='k')
+ax.bar(2,mm[1],color='w',edgecolor='k')
+ax.errorbar([1,2],mm,np.vstack((npref_boot,pref_boot)),color='none',ecolor='grey',capsize=3)
+ax.set_ylabel('Pattern density')
+ax.set_xticks([1,2])
+ax.set_xticklabels(['incongru.','congruent'],rotation=45,ha='right')
+
+
+
+fh.savefig('spade_4su_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
 
 
 #####################################
