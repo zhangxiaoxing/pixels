@@ -11,8 +11,12 @@ import scipy.io
 import os.path
 from scipy.special import comb
 import matplotlib.pyplot as plt
+import seaborn as sns
 import scikits.bootstrap as boot
 from mlxtend.evaluate import permutation_test
+from matplotlib import rcParams
+
+
 # import neo
 
 class results:
@@ -92,6 +96,7 @@ for sess_id in range(114):
     
     for idx, patt in enumerate(patterns):
         reg_grp=[regs[x] for x in patt['neurons']]
+        #select only inter-region connection
         if np.unique(reg_grp).shape[0]<2:
             # print('local')
             continue
@@ -176,6 +181,16 @@ for sess_id in range(114):
 sys.exit()
         
 ###################
+
+
+
+
+rcParams['pdf.fonttype'] = 42
+rcParams['ps.fonttype'] = 42
+rcParams['font.family'] = 'sans-serif'
+rcParams['font.sans-serif'] = ['Arial']
+
+######################
 
 congru_dens=[]
 incongru_dens=[]
@@ -310,29 +325,42 @@ ax.set_ylim((0,0.26))
 fh.savefig('spade_4su_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
 
 
-
+###########selectivity
 s1sel=np.array(congru_stats.prefered_samp)==1
 s2sel=np.array(congru_stats.prefered_samp)==2
 sigsel=np.array(congru_stats.perHz_pvalues)[:,0]<0.05
 
-prefered=np.hstack((np.array(congru_stats.mm)[s1sel,0],np.array(congru_stats.mm)[s2sel,2]))/6
-nonpref=np.hstack((np.array(congru_stats.mm)[s1sel,2],np.array(congru_stats.mm)[s2sel,0]))/6
-mm=(np.mean(nonpref),np.mean(prefered))
-pref_boot=boot.ci(prefered, np.mean,n_samples=1000)
-npref_boot=boot.ci(nonpref, np.mean,n_samples=1000)
-np.mean((prefered-nonpref)/(prefered+nonpref))
+prefered_raw=np.hstack((np.array(congru_stats.mm)[s1sel,0],np.array(congru_stats.mm)[s2sel,2]))/6
+nonpref_raw=np.hstack((np.array(congru_stats.mm)[s1sel,2],np.array(congru_stats.mm)[s2sel,0]))/6
+# mm=(np.mean(nonpref),np.mean(prefered))
+# pref_boot=boot.ci(prefered, np.mean,n_samples=1000)
+# npref_boot=boot.ci(nonpref, np.mean,n_samples=1000)
+selec_idx_raw=((prefered_raw-nonpref_raw)/(prefered_raw+nonpref_raw))
 
-(fh, ax) = plt.subplots(1, 1, figsize=(2 / 2.54, 4 / 2.54), dpi=300)
-ax.bar(1,mm[0],color='k',edgecolor='k')
-ax.bar(2,mm[1],color='w',edgecolor='k')
-ax.errorbar([1,2],mm,np.vstack((npref_boot,pref_boot)),color='none',ecolor='grey',capsize=3)
-ax.set_ylabel('Pattern density')
-ax.set_xticks([1,2])
-ax.set_xticklabels(['incongru.','congruent'],rotation=45,ha='right')
+prefered=np.hstack((np.array(congru_stats.perHz_mm)[s1sel,0],np.array(congru_stats.perHz_mm)[s2sel,2]))/6
+nonpref=np.hstack((np.array(congru_stats.perHz_mm)[s1sel,2],np.array(congru_stats.perHz_mm)[s2sel,0]))/6
+# perHz_mm=(np.mean(nonpref),np.mean(prefered))
+# pref_boot=boot.ci(prefered, np.mean,n_samples=1000)
+# npref_boot=boot.ci(nonpref, np.mean,n_samples=1000)
+selec_idx=((prefered-nonpref)/(prefered+nonpref))
+
+swmy=np.hstack((selec_idx_raw,selec_idx))
+swmx=np.hstack((np.ones_like(selec_idx_raw),np.ones_like(selec_idx)*2))
+
+(fh, ax) = plt.subplots(1, 1, figsize=(15 / 2.54, 15 / 2.54), dpi=300)
+# ax.scatter(np.ones_like(selec_idx),selec_idx)
+ax=sns.swarmplot(x=swmx,y=swmy,size=1,ax=ax,color='silver')
+ax = sns.boxplot(x=swmx,y=swmy,
+        showcaps=False,boxprops={'facecolor':'None'},
+        showfliers=False,whiskerprops={'linewidth':0},ax=ax)
+
+ax.set_ylabel('Selectivity index')
+ax.set_xticks([0,1])
+ax.set_xticklabels(['Patterns / s','Patterns / spike'],rotation=45,ha='right')
 
 
 
-fh.savefig('spade_4su_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
+fh.savefig('spade_4su_pattern_selectivity_index.pdf',bbox_inches='tight')
 
 
 #####################################
