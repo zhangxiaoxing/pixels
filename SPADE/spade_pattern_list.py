@@ -11,7 +11,6 @@ import scipy.io
 import os.path
 from scipy.special import comb
 import matplotlib.pyplot as plt
-import seaborn as sns
 import scikits.bootstrap as boot
 from mlxtend.evaluate import permutation_test
 from matplotlib import rcParams
@@ -25,15 +24,14 @@ candidate_per_sess=[]
 
 key_count_congru={}
 key_count_incong={}
-
+reg_count={}
+reg_pattern_count={}
+# reg_count_congru={}
+#
 for sess_id in range(114):
     if not os.path.isfile(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id)):
         continue
     
-    filt_fpath=r'K:\code\SPADE\results\{}\winlen4\filtered_patterns.npy'.format(sess_id)
-    if not os.path.isfile(filt_fpath):
-        continue
-
     mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id))
   
     ## count candidiates
@@ -41,10 +39,23 @@ for sess_id in range(114):
     pref=np.array(mat['prefs'])[:,0]
     rego=mat['regs']
     regs=[x[0][0] for x in rego]
-  
+    
     reg_set=np.unique(regs)
     reg_set=reg_set[reg_set!='Unlabeled']
+ 
+    for one_reg in reg_set:
+        if one_reg in reg_count:
+            reg_count[one_reg]+=regs.count(one_reg)
+        else:
+            reg_count[one_reg]=regs.count(one_reg)
+
     
+    filt_fpath=r'K:\code\SPADE\results\{}\winlen4\filtered_patterns.npy'.format(sess_id)
+    if not os.path.isfile(filt_fpath):
+        continue
+
+
+
     local_congru=0
     local_incongru=0
     
@@ -102,6 +113,12 @@ for sess_id in range(114):
                 key_count_congru[lagkey]+=1
             else:
                 key_count_congru[lagkey]=1
+                
+            for one_reg in reg_grp:
+                if one_reg in reg_pattern_count:
+                    reg_pattern_count[one_reg]+=1
+                else:
+                    reg_pattern_count[one_reg]=1     
             
         else:
             # prefered_samp=0
@@ -115,6 +132,8 @@ keys=[0,1,2,3,11,12,13,22,23,33,111,112,113,122,123,133,222,223,233,333]
 
 (cong_candi,incong_candi)=(*np.sum(np.array(candidate_per_sess),axis=0)[1:3],)
 
+
+sys.exit()
 
 rcParams['pdf.fonttype'] = 42
 rcParams['ps.fonttype'] = 42
@@ -138,16 +157,39 @@ fh.savefig('4su_temproal_dist.pdf',bbox_inches='tight')
 
 
 
+(fh, ax) = plt.subplots(1, 1, figsize=(22 / 2.54, 4 / 2.54), dpi=300)
+idx=0
+reglabel=[]
+keyset=list(reg_count.keys())
+keyset.sort()
+for key in keyset:
+    if reg_count[key]>=30:
+        if key not in reg_pattern_count:
+            reg_pattern_count[key]=0
+        reglabel.append(key)
+        ax.bar(idx,reg_pattern_count[key]/reg_count[key],width=0.7,color='w',edgecolor='k')
+        idx+=1
+
+# ax.errorbar([1,2],mm,np.vstack((incongru_boot,congru_boot)),color='none',ecolor='grey',capsize=3)
+ax.set_yscale('log')
+    # ax.set_ylim([1e-4,5e-2])
+    # ax.set_ylabel('Pattern density')
+ax.set_xlim([0,idx])    
+ax.set_xticks(np.arange(len(reglabel))+1)
+ax.set_xticklabels(reglabel,rotation=90,ha='center',va='top')
+ax.set_ylabel('Patterns / neuron')
+# plt.close('all')
+fh.savefig('4su_spatial_dist.pdf',bbox_inches='tight')
+
+
         
-sys.exit()
-        
-###################
+####################
 
 
 
 
 
-######################
+####################
 
 
 ####################
