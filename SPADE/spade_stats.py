@@ -18,29 +18,39 @@ from matplotlib import rcParams
 import pickle
 
 
-# import neo
-
-class results:
-    def __init__(self):
-        self.mm=[]
-        self.mm_per_trial=[]
-        self.perHz_mm=[]
-        self.stdd=[]
-        self.perHz_std=[]
-        self.motif_pvalues=[]
-        self.perHz_pvalues=[]
-        # self.spikecount=[]
-        self.sess_ids=[]
-        self.prefered_samp=[]
-        self.neu=[]
-        self.neu_regs=[]
-
-if __name__=='__main__':
+def gen_data_file():
     candidate_per_sess=[]
     
     
-    congru_stats=results();
-    incongru_stats=results();
+    congru_stats={
+        'mm':[],
+        'perHz_mm':[],
+        'stdd':[],
+        'perHz_std':[],
+        'motif_pvalues':[],
+        'perHz_pvalues':[],
+        # 'spikecount':[],
+        'sess_ids':[],
+        'prefered_samp':[],
+        'neu':[],
+        'neu_regs':[],
+        'accu_count_time':[]
+        }
+        
+    incongru_stats={
+        'mm':[],
+        'perHz_mm':[],
+        'stdd':[],
+        'perHz_std':[],
+        'motif_pvalues':[],
+        'perHz_pvalues':[],
+        # 'spikecount':[],
+        'sess_ids':[],
+        'prefered_samp':[],
+        'neu':[],
+        'neu_regs':[],
+        'accu_count_time':[]
+        }
     
     
     for sess_id in range(114):
@@ -69,20 +79,14 @@ if __name__=='__main__':
             local_congru+=(comb(local1,4)+comb(local2,4))
             local_incongru+=(comb(n_su,4)-comb(local1,4)-comb(local2,4))
             
-            
         
         candidate_per_sess.append([sess_id,
                                    total_congru1+total_congru2-local_congru,
                                    total_n-total_congru1-local_incongru])
         
         
-        
-        filt_fpath=r'K:\code\SPADE\results\{}\winlen4\filtered_patterns.npy'.format(sess_id)
-        if not os.path.isfile(filt_fpath):
-            continue
-    
         trialInfo=mat['trialInfo']
-        spktrials=mat['spiketrials']
+        # spktrials=mat['spiketrials']
         firingrate=mat['firingrate']
         
         s1sel=trialInfo[:,4]==4
@@ -91,9 +95,20 @@ if __name__=='__main__':
         goodsel=np.logical_and(trialInfo[:,8],trialInfo[:,9])
         errorsel=np.logical_not(trialInfo[:,9])
         
+        session_time=np.sum(goodsel)*6;
+        
+        filt_fpath=r'K:\code\SPADE\results\{}\winlen4\filtered_patterns.npy'.format(sess_id)
+        if not os.path.isfile(filt_fpath):
+            congru_stats['accu_count_time'].append([0,session_time])
+            incongru_stats['accu_count_time'].append([0,session_time])
+            
+            continue
+    
         
         r=np.load(filt_fpath,allow_pickle=True)
         patterns=r[0]
+        session_congru_count=0
+        session_incongru_count=0
         
         for idx, patt in enumerate(patterns):
             reg_grp=[regs[x] for x in patt['neurons']]
@@ -109,15 +124,18 @@ if __name__=='__main__':
             if np.unique(pref_grp).shape[0]<2:
                 currstat=congru_stats
                 prefered_samp=np.unique(pref_grp)[0]
+                session_congru_count+=patt['times'].shape[0]
+                
             else:
                 currstat=incongru_stats
                 prefered_samp=0
+                session_incongru_count+=patt['times'].shape[0]
                 
-            currstat.sess_ids.append(sess_id)
-            currstat.neu.append(patt['neurons'])
-            currstat.prefered_samp.append(prefered_samp)
+            currstat['sess_ids'].append(sess_id)
+            currstat['neu'].append(patt['neurons'])
+            currstat['prefered_samp'].append(prefered_samp)
                 
-            currstat.neu_regs.append(reg_grp)
+            currstat['neu_regs'].append(reg_grp)
             times=patt['times']
             hist,edge=np.histogram(times,np.arange(0,7000*(len(trialInfo)+1),7000))
             # mm(idx)=(np.mean(hist[0:60]),np.mean(hist[60:120]))
@@ -129,22 +147,15 @@ if __name__=='__main__':
             pv[1]=wrs[1]
             wrs=stats.ranksums(hist[np.logical_and(s2sel,goodsel)],hist[np.logical_and(s2sel,errorsel)])
             pv[2]=wrs[1]
-            currstat.motif_pvalues.append(pv)
-            if np.sum(np.logical_and(s1sel,goodsel))>9 and np.sum(np.logical_and(s2sel,goodsel))>9:
-                if prefered_samp==2:
-                    currstat.mm_per_trial.append(np.hstack((hist[np.logical_and(s2sel,goodsel)][:10],hist[np.logical_and(s1sel,goodsel)][:10])))
-                else:
-                    currstat.mm_per_trial.append(np.hstack((hist[np.logical_and(s1sel,goodsel)][:10],hist[np.logical_and(s2sel,goodsel)][:10])))
+            currstat['motif_pvalues'].append(pv)
             
-            
-            
-            currstat.mm.append([np.mean(hist[np.logical_and(s1sel,goodsel)]),
+            currstat['mm'].append([np.mean(hist[np.logical_and(s1sel,goodsel)]),
                        np.mean(hist[np.logical_and(s1sel,errorsel)]),
                        np.mean(hist[np.logical_and(s2sel,goodsel)]),
                        np.mean(hist[np.logical_and(s2sel,errorsel)])
                        ])
             
-            currstat.stdd.append([np.std(hist[np.logical_and(s1sel,goodsel)]),
+            currstat['stdd'].append([np.std(hist[np.logical_and(s1sel,goodsel)]),
                    np.std(hist[np.logical_and(s1sel,errorsel)]),
                    np.std(hist[np.logical_and(s2sel,goodsel)]),
                    np.std(hist[np.logical_and(s2sel,errorsel)])
@@ -158,13 +169,13 @@ if __name__=='__main__':
             s2g=np.divide(hist[np.logical_and(s2sel,goodsel)],[np.maximum(0.01,stats.gmean([firingrate[onesu][trl] for onesu in patt['neurons']])) for trl in np.nonzero(np.logical_and(s2sel,goodsel))[0]])
             s2e=np.divide(hist[np.logical_and(s2sel,errorsel)],[np.maximum(0.01,stats.gmean([firingrate[onesu][trl] for onesu in patt['neurons']])) for trl in np.nonzero(np.logical_and(s2sel,errorsel))[0]])
             
-            currstat.perHz_mm.append([np.mean(s1g),
+            currstat['perHz_mm'].append([np.mean(s1g),
                              np.mean(s1e),
                              np.mean(s2g),
                              np.mean(s2e)])
             
             
-            currstat.perHz_std.append([np.std(s1g),
+            currstat['perHz_std'].append([np.std(s1g),
                      np.std(s1e),
                      np.std(s2g),
                      np.std(s2e)])
@@ -177,9 +188,13 @@ if __name__=='__main__':
             pv[1]=wrs[1]
             wrs=stats.ranksums(s2g,s2e)
             pv[2]=wrs[1]
-            currstat.perHz_pvalues.append(pv)
+            currstat['perHz_pvalues'].append(pv)
             
-    pickle.dump({'congru_stats':congru_stats,'incongru_stats':incongru_stats}, open('spade_stats.p','wb'))
+        congru_stats['accu_count_time'].append([session_congru_count,session_time])
+        incongru_stats['accu_count_time'].append([session_incongru_count,session_time])
+        
+    pickle.dump({'congru_stats':congru_stats,'incongru_stats':incongru_stats,\
+                 'candidate_per_sess':candidate_per_sess}, open('spade_stats.p','wb'))
     sys.exit()
         
 def plot():
@@ -192,13 +207,18 @@ def plot():
     
     ######################
     
+    r=pickle.load(open('spade_stats.p','rb'))
+    congru_stats=r['congru_stats']
+    incongru_stats=r['incongru_stats']
+    candidate_per_sess=r['condidate_per_sess']
+    
     congru_dens=[]
     incongru_dens=[]
     for idx,cs in enumerate(candidate_per_sess):
         if cs[1]>1000:
-            congru_dens.append(np.sum(np.array(congru_stats.sess_ids)==cs[0])/cs[1])
+            congru_dens.append(np.sum(np.array(congru_stats['sess_ids'])==cs[0])/cs[1])
         if cs[2]>1000:
-            incongru_dens.append(np.sum(np.array(incongru_stats.sess_ids)==cs[0])/cs[2])
+            incongru_dens.append(np.sum(np.array(incongru_stats['sess_ids'])==cs[0])/cs[2])
     
     congru_boot=boot.ci(congru_dens, np.mean,n_samples=1000)
     incongru_boot=boot.ci(incongru_dens, np.mean,n_samples=1000)
@@ -222,24 +242,24 @@ def plot():
     
     ####################
     
-    s1sigsel=np.array(congru_stats.perHz_pvalues)[:,1]<0.05
-    s2sigsel=np.array(congru_stats.perHz_pvalues)[:,2]<0.05
+    s1sigsel=np.array(congru_stats['perHz_pvalues'])[:,1]<0.05
+    s2sigsel=np.array(congru_stats['perHz_pvalues'])[:,2]<0.05
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
     # error on yaxis
-    ax.scatter(np.array(congru_stats.perHz_mm)[np.logical_not(s1sigsel),1],
-               np.array(congru_stats.perHz_mm)[np.logical_not(s1sigsel),0],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[np.logical_not(s1sigsel),1],
+               np.array(congru_stats['perHz_mm'])[np.logical_not(s1sigsel),0],
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.perHz_mm)[np.logical_not(s2sigsel),3],
-               np.array(congru_stats.perHz_mm)[np.logical_not(s2sigsel),2],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[np.logical_not(s2sigsel),3],
+               np.array(congru_stats['perHz_mm'])[np.logical_not(s2sigsel),2],
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.perHz_mm)[s1sigsel,1],
-               np.array(congru_stats.perHz_mm)[s1sigsel,0],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[s1sigsel,1],
+               np.array(congru_stats['perHz_mm'])[s1sigsel,0],
                s=1,c='r',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.perHz_mm)[s2sigsel,3],
-               np.array(congru_stats.perHz_mm)[s2sigsel,2],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[s2sigsel,3],
+               np.array(congru_stats['perHz_mm'])[s2sigsel,2],
                s=1,c='r',marker='.',alpha=0.4)
     ax.plot([0,0.26],[0,0.26],'--k')
     
@@ -253,24 +273,24 @@ def plot():
     #############################
     
     
-    s1sigsel=np.array(congru_stats.motif_pvalues)[:,1]<0.05
-    s2sigsel=np.array(congru_stats.motif_pvalues)[:,2]<0.05
+    s1sigsel=np.array(congru_stats['motif_pvalues'])[:,1]<0.05
+    s2sigsel=np.array(congru_stats['motif_pvalues'])[:,2]<0.05
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
     # error on yaxis
-    ax.scatter(np.array(congru_stats.mm)[np.logical_not(s1sigsel),1]/6,
-               np.array(congru_stats.mm)[np.logical_not(s1sigsel),0]/6,
+    ax.scatter(np.array(congru_stats['mm'])[np.logical_not(s1sigsel),1]/6,
+               np.array(congru_stats['mm'])[np.logical_not(s1sigsel),0]/6,
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.mm)[np.logical_not(s2sigsel),3]/6,
-               np.array(congru_stats.mm)[np.logical_not(s2sigsel),2]/6,
+    ax.scatter(np.array(congru_stats['mm'])[np.logical_not(s2sigsel),3]/6,
+               np.array(congru_stats['mm'])[np.logical_not(s2sigsel),2]/6,
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.mm)[s1sigsel,1]/6,
-               np.array(congru_stats.mm)[s1sigsel,0]/6,
+    ax.scatter(np.array(congru_stats['mm'])[s1sigsel,1]/6,
+               np.array(congru_stats['mm'])[s1sigsel,0]/6,
                s=1,c='r',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.mm)[s2sigsel,3]/6,
-               np.array(congru_stats.mm)[s2sigsel,2]/6,
+    ax.scatter(np.array(congru_stats['mm'])[s2sigsel,3]/6,
+               np.array(congru_stats['mm'])[s2sigsel,2]/6,
                s=1,c='r',marker='.',alpha=0.4)
     ax.plot([0,3.6],[0,3.6],'--k')
     
@@ -294,25 +314,25 @@ def plot():
     
     
     #############################
-    s1sel=np.array(congru_stats.prefered_samp)==1
-    s2sel=np.array(congru_stats.prefered_samp)==2
-    sigsel=np.array(congru_stats.perHz_pvalues)[:,0]<0.05
+    s1sel=np.array(congru_stats['prefered_samp'])==1
+    s2sel=np.array(congru_stats['prefered_samp'])==2
+    sigsel=np.array(congru_stats['perHz_pvalues'])[:,0]<0.05
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
     #prefer 1, 1 on yaxis
-    ax.scatter(np.array(congru_stats.perHz_mm)[np.logical_and(s1sel, np.logical_not(sigsel)),2],
-               np.array(congru_stats.perHz_mm)[np.logical_and(s1sel, np.logical_not(sigsel)),0],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[np.logical_and(s1sel, np.logical_not(sigsel)),2],
+               np.array(congru_stats['perHz_mm'])[np.logical_and(s1sel, np.logical_not(sigsel)),0],
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.perHz_mm)[np.logical_and(s2sel, np.logical_not(sigsel)),0],
-               np.array(congru_stats.perHz_mm)[np.logical_and(s2sel, np.logical_not(sigsel)),2],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[np.logical_and(s2sel, np.logical_not(sigsel)),0],
+               np.array(congru_stats['perHz_mm'])[np.logical_and(s2sel, np.logical_not(sigsel)),2],
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.perHz_mm)[np.logical_and(s1sel, sigsel),2],
-               np.array(congru_stats.perHz_mm)[np.logical_and(s1sel, sigsel),0],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[np.logical_and(s1sel, sigsel),2],
+               np.array(congru_stats['perHz_mm'])[np.logical_and(s1sel, sigsel),0],
                s=1,c='r',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.perHz_mm)[np.logical_and(s2sel, sigsel),0],
-               np.array(congru_stats.perHz_mm)[np.logical_and(s2sel, sigsel),2],
+    ax.scatter(np.array(congru_stats['perHz_mm'])[np.logical_and(s2sel, sigsel),0],
+               np.array(congru_stats['perHz_mm'])[np.logical_and(s2sel, sigsel),2],
                s=1,c='r',marker='.',alpha=0.4)
     ax.plot([0,0.26],[0,0.26],'--k')
     
@@ -326,19 +346,19 @@ def plot():
     
     
     ###########selectivity
-    s1sel=np.array(congru_stats.prefered_samp)==1
-    s2sel=np.array(congru_stats.prefered_samp)==2
-    sigsel=np.array(congru_stats.perHz_pvalues)[:,0]<0.05
+    s1sel=np.array(congru_stats['prefered_samp'])==1
+    s2sel=np.array(congru_stats['prefered_samp'])==2
+    sigsel=np.array(congru_stats['perHz_pvalues'])[:,0]<0.05
     
-    prefered_raw=np.hstack((np.array(congru_stats.mm)[s1sel,0],np.array(congru_stats.mm)[s2sel,2]))/6
-    nonpref_raw=np.hstack((np.array(congru_stats.mm)[s1sel,2],np.array(congru_stats.mm)[s2sel,0]))/6
+    prefered_raw=np.hstack((np.array(congru_stats['mm'])[s1sel,0],np.array(congru_stats['mm'])[s2sel,2]))/6
+    nonpref_raw=np.hstack((np.array(congru_stats['mm'])[s1sel,2],np.array(congru_stats['mm'])[s2sel,0]))/6
     # mm=(np.mean(nonpref),np.mean(prefered))
     # pref_boot=boot.ci(prefered, np.mean,n_samples=1000)
     # npref_boot=boot.ci(nonpref, np.mean,n_samples=1000)
     selec_idx_raw=((prefered_raw-nonpref_raw)/(prefered_raw+nonpref_raw))
     
-    prefered=np.hstack((np.array(congru_stats.perHz_mm)[s1sel,0],np.array(congru_stats.perHz_mm)[s2sel,2]))/6
-    nonpref=np.hstack((np.array(congru_stats.perHz_mm)[s1sel,2],np.array(congru_stats.perHz_mm)[s2sel,0]))/6
+    prefered=np.hstack((np.array(congru_stats['perHz_mm'])[s1sel,0],np.array(congru_stats['perHz_mm'])[s2sel,2]))/6
+    nonpref=np.hstack((np.array(congru_stats['perHz_mm'])[s1sel,2],np.array(congru_stats['perHz_mm'])[s2sel,0]))/6
     # perHz_mm=(np.mean(nonpref),np.mean(prefered))
     # pref_boot=boot.ci(prefered, np.mean,n_samples=1000)
     # npref_boot=boot.ci(nonpref, np.mean,n_samples=1000)
@@ -365,25 +385,25 @@ def plot():
     
     #####################################
     
-    s1sel=np.array(congru_stats.prefered_samp)==1
-    s2sel=np.array(congru_stats.prefered_samp)==2
-    sigsel=np.array(congru_stats.motif_pvalues)[:,0]<0.05
+    s1sel=np.array(congru_stats['prefered_samp'])==1
+    s2sel=np.array(congru_stats['prefered_samp'])==2
+    sigsel=np.array(congru_stats['motif_pvalues'])[:,0]<0.05
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
     #prefer 1, 1 on yaxis
-    ax.scatter(np.array(congru_stats.mm)[np.logical_and(s1sel, np.logical_not(sigsel)),2]/6,
-               np.array(congru_stats.mm)[np.logical_and(s1sel, np.logical_not(sigsel)),0]/6,
+    ax.scatter(np.array(congru_stats['mm'])[np.logical_and(s1sel, np.logical_not(sigsel)),2]/6,
+               np.array(congru_stats['mm'])[np.logical_and(s1sel, np.logical_not(sigsel)),0]/6,
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.mm)[np.logical_and(s2sel, np.logical_not(sigsel)),0]/6,
-               np.array(congru_stats.mm)[np.logical_and(s2sel, np.logical_not(sigsel)),2]/6,
+    ax.scatter(np.array(congru_stats['mm'])[np.logical_and(s2sel, np.logical_not(sigsel)),0]/6,
+               np.array(congru_stats['mm'])[np.logical_and(s2sel, np.logical_not(sigsel)),2]/6,
                s=1,c='silver',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.mm)[np.logical_and(s1sel, sigsel),2]/6,
-               np.array(congru_stats.mm)[np.logical_and(s1sel, sigsel),0]/6,
+    ax.scatter(np.array(congru_stats['mm'])[np.logical_and(s1sel, sigsel),2]/6,
+               np.array(congru_stats['mm'])[np.logical_and(s1sel, sigsel),0]/6,
                s=1,c='r',marker='.',alpha=0.4)
     
-    ax.scatter(np.array(congru_stats.mm)[np.logical_and(s2sel, sigsel),0]/6,
-               np.array(congru_stats.mm)[np.logical_and(s2sel, sigsel),2]/6,
+    ax.scatter(np.array(congru_stats['mm'])[np.logical_and(s2sel, sigsel),0]/6,
+               np.array(congru_stats['mm'])[np.logical_and(s2sel, sigsel),2]/6,
                s=1,c='r',marker='.',alpha=0.4)
     ax.plot([0,3.6],[0,3.6],'--k')
     
@@ -396,3 +416,5 @@ def plot():
     fh.savefig('spade_4su_raw_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
     
     
+if __name__=='__main__':
+    gen_data_file()
