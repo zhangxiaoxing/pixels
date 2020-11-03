@@ -6,6 +6,7 @@ Created on Fri Oct 16 10:34:34 2020
 """
 import numpy as np
 import sys
+import copy
 import scipy.stats as stats
 import scipy.io
 import os.path
@@ -34,23 +35,12 @@ def gen_data_file():
         'prefered_samp':[],
         'neu':[],
         'neu_regs':[],
-        'accu_count_time':[]
+        'accu_count_time':[],
+        'lag':[],
+        'pertrial':[]
         }
         
-    incongru_stats={
-        'mm':[],
-        'perHz_mm':[],
-        'stdd':[],
-        'perHz_std':[],
-        'motif_pvalues':[],
-        'perHz_pvalues':[],
-        # 'spikecount':[],
-        'sess_ids':[],
-        'prefered_samp':[],
-        'neu':[],
-        'neu_regs':[],
-        'accu_count_time':[]
-        }
+    incongru_stats=copy.deepcopy(congru_stats)
     
     
     for sess_id in range(114):
@@ -132,6 +122,7 @@ def gen_data_file():
                 session_incongru_count+=patt['times'].shape[0]
                 
             currstat['sess_ids'].append(sess_id)
+            currstat['lag'].append(patt['lags'])
             currstat['neu'].append(patt['neurons'])
             currstat['prefered_samp'].append(prefered_samp)
                 
@@ -148,7 +139,7 @@ def gen_data_file():
             wrs=stats.ranksums(hist[np.logical_and(s2sel,goodsel)],hist[np.logical_and(s2sel,errorsel)])
             pv[2]=wrs[1]
             currstat['motif_pvalues'].append(pv)
-            
+            currstat['pertrial'].append([hist[np.logical_and(s1sel,goodsel)],hist[np.logical_and(s2sel,goodsel)]])
             currstat['mm'].append([np.mean(hist[np.logical_and(s1sel,goodsel)]),
                        np.mean(hist[np.logical_and(s1sel,errorsel)]),
                        np.mean(hist[np.logical_and(s2sel,goodsel)]),
@@ -210,36 +201,42 @@ def plot():
     r=pickle.load(open('spade_stats.p','rb'))
     congru_stats=r['congru_stats']
     incongru_stats=r['incongru_stats']
-    candidate_per_sess=r['condidate_per_sess']
+    candidate_per_sess=r['candidate_per_sess']
+    ######################
     
-    congru_dens=[]
-    incongru_dens=[]
-    for idx,cs in enumerate(candidate_per_sess):
-        if cs[1]>1000:
-            congru_dens.append(np.sum(np.array(congru_stats['sess_ids'])==cs[0])/cs[1])
-        if cs[2]>1000:
-            incongru_dens.append(np.sum(np.array(incongru_stats['sess_ids'])==cs[0])/cs[2])
+    # congru_dens=[]
+    # incongru_dens=[]
+    # for idx,cs in enumerate(candidate_per_sess):
+    #     if cs[1]>1000:
+    #         congru_dens.append(np.sum(np.array(congru_stats['sess_ids'])==cs[0])/cs[1])
+    #     if cs[2]>1000:
+    #         incongru_dens.append(np.sum(np.array(incongru_stats['sess_ids'])==cs[0])/cs[2])
     
-    congru_boot=boot.ci(congru_dens, np.mean,n_samples=1000)
-    incongru_boot=boot.ci(incongru_dens, np.mean,n_samples=1000)
+    # congru_boot=boot.ci(congru_dens, np.mean,n_samples=1000)
+    # incongru_boot=boot.ci(incongru_dens, np.mean,n_samples=1000)
     
-    p_value = permutation_test(congru_dens,incongru_dens,method='approximate',num_rounds=10000)
-    
-    
-    (fh, ax) = plt.subplots(1, 1, figsize=(2 / 2.54, 4 / 2.54), dpi=300)
-    mm=[np.mean(incongru_dens),np.mean(congru_dens)]
-    ax.bar(1,mm[0],color='k',edgecolor='k')
-    ax.bar(2,mm[1],color='w',edgecolor='k')
-    ax.errorbar([1,2],mm,np.vstack((incongru_boot,congru_boot)),color='none',ecolor='grey',capsize=3)
-    ax.set_yscale('log')
-    ax.set_ylim([1e-4,5e-2])
-    ax.set_ylabel('Pattern density')
-    ax.set_xticks([1,2])
-    ax.set_xticklabels(['incongru.','congruent'],rotation=45,ha='right')
-    # plt.close('all')
-    fh.savefig('spade_4su_pattern_density.pdf',bbox_inches='tight')
+    # p_value = permutation_test(congru_dens,incongru_dens,method='approximate',num_rounds=10000)
     
     
+    # (fh, ax) = plt.subplots(1, 1, figsize=(2 / 2.54, 4 / 2.54), dpi=300)
+    # mm=[np.mean(incongru_dens),np.mean(congru_dens)]
+    # ax.bar(1,mm[0],color='k',edgecolor='k')
+    # ax.bar(2,mm[1],color='w',edgecolor='k')
+    # ax.errorbar([1,2],mm,np.vstack((incongru_boot,congru_boot)),color='none',ecolor='grey',capsize=3)
+    # ax.set_yscale('log')
+    # ax.set_ylim([1e-4,5e-2])
+    # ax.set_ylabel('Pattern density')
+    # ax.set_xticks([1,2])
+    # ax.set_xticklabels(['incongru.','congruent'],rotation=45,ha='right')
+    # # plt.close('all')
+    # fh.savefig('spade_4su_pattern_density.pdf',bbox_inches='tight')
+    
+    # for patt in congru_stats['pertrial']:
+    #     [np.mean(x) for x in patt]
+    #     pass
+        
+    
+    # breakpoint()
     ####################
     
     s1sigsel=np.array(congru_stats['perHz_pvalues'])[:,1]<0.05
@@ -417,4 +414,7 @@ def plot():
     
     
 if __name__=='__main__':
-    gen_data_file()
+    if False:
+        gen_data_file()
+    if True:
+        plot()
