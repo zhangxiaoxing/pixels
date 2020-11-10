@@ -129,68 +129,52 @@ class per_sec_stats:
             left_trials_3 = onesu_3[trial_sel_left_3, :]
             right_trials_3 = onesu_3[~trial_sel_left_3, :]
 
-            # SP = np.arange(12, 16) ED = np.arange(18, 28) LD = np.arange(28, 38)
-
             baseL = np.mean(trial_FR[:10, :, su_idx][:, (trials[:, 2] == 4) & welltrain_window & correct_resp],
                             axis=0)
             baseR = np.mean(trial_FR[:10, :, su_idx][:, (trials[:, 2] == 8) & welltrain_window & correct_resp],
                             axis=0)
             self.baseline_sel[:,su_idx] = self.bool_stats_test(baseL, baseR)
 
-            if delay == 6:
-                for bin_idx in range(0, 7):
-                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
+            
+            for bin_idx in range(0, delay+1):
+                bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
+                if delay == 6:
                     spksum = (np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
-
-                    if spksum == 0:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = 0
-                        self.per_sec_auc[bin_idx, su_idx] = 0.5
-                        self.per_sec_fr[bin_idx, su_idx] = 0
-                        self.per_sec_sel[bin_idx, su_idx] = False
-                        self.per_sec_wrs_p[bin_idx, su_idx] = 1
-                    else:
-                        binstat=self.bool_stats_test(left_trials_6[:, bins],
-                                             right_trials_6[:, bins], 7)
-                        self.per_sec_sel_raw[bin_idx, su_idx] = binstat[2]
-                        self.per_sec_sel[bin_idx, su_idx] = binstat[0]
-                        self.per_sec_auc[bin_idx, su_idx] =binstat[3]
+                    bsstat=self.bool_stats_test(onesu_6[:, bins], onesu_6[:, 6:10], delay+1)[0]
+                else:
+                    spksum = (np.sum(left_trials_3[:, bins]) + np.sum(right_trials_3[:, bins]))
+                    bsstat=self.bool_stats_test(onesu_3[:, bins], onesu_3[:, 6:10], delay+1)[0]
+                
+                if spksum == 0:
+                    self.per_sec_sel_raw[bin_idx, su_idx] = 0
+                    self.per_sec_auc[bin_idx, su_idx] = 0.5
+                    self.per_sec_fr[bin_idx, su_idx] = 0
+                    self.per_sec_sel[bin_idx, su_idx] = False
+                    self.per_sec_wrs_p[bin_idx, su_idx] = 1
+                else:
+                    if delay == 6:
+                        binstat=self.bool_stats_test(left_trials_6[:, bins],right_trials_6[:, bins], delay+1)
                         self.per_sec_fr[bin_idx, su_idx] =np.mean(np.concatenate((left_trials_6[:,bins],right_trials_6[:,bins])))
-                        self.per_sec_wrs_p[bin_idx, su_idx] = binstat[1]
-
-                    if self.per_sec_sel[bin_idx, su_idx]:
-                        if np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]):
-                            self.per_sec_prefS1[bin_idx, su_idx] = 1
-                        else:
-                            self.per_sec_prefS2[bin_idx, su_idx] = 1
-
-                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
-                                                         self.bool_stats_test(onesu_6[:, bins],
-                                                                              onesu_6[:, 6:10], 7)[0])
-            elif delay == 3: # TODO update new stats
-                for bin_idx in range(0, 4):
-                    bins = np.arange(bin_idx * 4 + 12, bin_idx * 4 + 16)
-
-                    spksum = (np.sum(left_trials_6[:, bins]) - np.sum(right_trials_6[:, bins]))
-                    if spksum == 0:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = 0
-                        self.per_sec_sel[bin_idx, su_idx] = False
                     else:
-                        self.per_sec_sel_raw[bin_idx, su_idx] = spksum / (
-                                np.sum(left_trials_6[:, bins]) + np.sum(right_trials_6[:, bins]))
-                        self.per_sec_sel[bin_idx, su_idx] = self.bool_stats_test(left_trials_3[:, bins],
-                                                                                 right_trials_3[:, bins], 4)[0]
+                        binstat=self.bool_stats_test(left_trials_3[:, bins],right_trials_3[:, bins], delay+1)
+                        self.per_sec_fr[bin_idx, su_idx] =np.mean(np.concatenate((left_trials_3[:,bins],right_trials_3[:,bins])))
+                        
+                    self.per_sec_sel_raw[bin_idx, su_idx] = binstat[2]
+                    self.per_sec_sel[bin_idx, su_idx] = binstat[0]
+                    self.per_sec_auc[bin_idx, su_idx] =binstat[3]
+                    self.per_sec_wrs_p[bin_idx, su_idx] = binstat[1]
 
-                    if self.per_sec_sel[bin_idx, su_idx]:
-                        if np.mean(left_trials_3[:, bins]) > np.mean(right_trials_3[:, bins]):
+                if self.per_sec_sel[bin_idx, su_idx]:
+                    if (delay == 6 and np.mean(left_trials_6[:, bins]) > np.mean(right_trials_6[:, bins]))\
+                        or (delay == 3 and np.mean(left_trials_3[:, bins]) > np.mean(right_trials_3[:, bins])):
+
                             self.per_sec_prefS1[bin_idx, su_idx] = 1
-                        else:
-                            self.per_sec_prefS2[bin_idx, su_idx] = 1
+                    else:
+                        self.per_sec_prefS2[bin_idx, su_idx] = 1
 
-                    self.non_sel_mod[bin_idx, su_idx] = ((not self.per_sec_sel[bin_idx, su_idx]) and
-                                                         self.bool_stats_test(onesu_3[:, bins],
-                                                                              onesu_3[:, 6:10], 4))[0]
-                # self.non_mod[bin_idx, su_idx] = not (
-                #         self.per_sec_sel[bin_idx, su_idx] or self.non_sel_mod[bin_idx, su_idx])
+                
+
+                self.non_sel_mod[bin_idx, su_idx] = bsstat and not self.per_sec_sel[bin_idx, su_idx]
 
     def getFeatures(self):
         return (self.per_sec_sel, self.non_sel_mod, self.per_sec_prefS1, self.per_sec_prefS2, self.baseline_sel,
@@ -479,20 +463,23 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
         rcParams['font.family'] = 'sans-serif'
         rcParams['font.sans-serif'] = ['Arial']
 
-        frac = [switched_count + unclassified_count + bs_count + sample_only_count, sust_count, transient_count,
-                non_sel_mod_count + non_mod_count, ]
+        # frac = [switched_count + unclassified_count + bs_count + sample_only_count, sust_count, transient_count,
+        #         non_sel_mod_count + non_mod_count, ]
+        frac = [sust_count, transient_count, unclassified_count,
+                non_sel_mod_count + non_mod_count + switched_count + bs_count + sample_only_count,]
         print(np.sum(frac))
-        explode = (0, 0.1, 0.1, 0)
-        labels = ('unclassified', 'sustained', 'transient',
-                  'non-selective')
+        explode = (0.1, 0.1, 0.1, 0)
+        labels = ('sustained', 'strict','transient', 'non-selective')
 
         (fh, ax) = plt.subplots(1, 1, figsize=(12 / 2.54, 4 / 2.54), dpi=300)
         if counterclock:
             startangle = -60
         else:
-            startangle = 240
-        ax.pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', shadow=False, startangle=startangle,
-               counterclock=counterclock, colors=('grey', 'blue', 'red', 'black'))
+            startangle = 180
+        ax.pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', 
+               shadow=False, startangle=startangle,counterclock=counterclock, 
+               colors=('blue', 'red', 'red', 'w'),
+               wedgeprops={'ls':'-','lw':0.5,'ec':'k'})
         # ax.axis('equal')
         ax.set_xlim((-0.7, 0.7))
         fh.suptitle(f'{delay}s delay')
@@ -765,7 +752,8 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=False, toExport=True, delay=6, counterclock=False)
+    process_all(denovo=False, toPlot=True, toExport=False, delay=3, counterclock=False)
+    process_all(denovo=False, toPlot=True, toExport=False, delay=6, counterclock=False)
     # process_all(denovo=False, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')
