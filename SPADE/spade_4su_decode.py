@@ -14,7 +14,7 @@ from matplotlib import rcParams
 import pickle
 import scikits.bootstrap as boot
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler,StandardScaler,RobustScaler
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
@@ -140,23 +140,24 @@ def decode(dec_data):
     shuf_dec=[]
     err_dec=[]
     shuf_err_dec=[]
-    for t in [5]:#range(6):
-        X1=np.array([n['s1corr'] for n in dec_data])[:,:,t].transpose()
-        X2=np.array([n['s2corr'] for n in dec_data])[:,:,t].transpose()
-        X1err=np.array([n['s1err'] for n in dec_data])[:,:,t].transpose()
-        X2err=np.array([n['s2err'] for n in dec_data])[:,:,t].transpose()
+    for t in [3]:#range(6):
+        X1=np.sum(np.array([n['s1corr'] for n in dec_data])[:,:,t:t+3],axis=2).transpose()
+        X2=np.sum(np.array([n['s2corr'] for n in dec_data])[:,:,t:t+3],axis=2).transpose()
+        X1err=np.sum(np.array([n['s1err'] for n in dec_data])[:,:,t:t+3],axis=2).transpose()
+        X2err=np.sum(np.array([n['s2err'] for n in dec_data])[:,:,t:t+3],axis=2).transpose()
         Y1=np.ones(X1.shape[0])
         Y2=np.zeros_like(Y1)
         Y = np.hstack((Y1, Y2))
         Y_shuf = Y.copy()
         rng.shuffle(Y_shuf)
 
-        scaler = MinMaxScaler()
+        scaler = RobustScaler()
         scaler = scaler.fit(np.vstack((X1, X2, X1err , X2err)))
-        clf = SVC(kernel='linear')
+        clf = SVC(C=1,kernel='linear')
 
         X = scaler.transform(np.vstack((X1, X2)))
         dec.append(cross_val_score(clf, X, Y, cv=StratifiedKFold(n_splits=5,shuffle=True), n_jobs=-1) * 100)
+        print(dec)
         shuf_dec.append(cross_val_score(clf, X, Y_shuf, cv=5, n_jobs=-1) * 100)
         
         XERR=scaler.transform(np.vstack(
@@ -234,14 +235,14 @@ def gen_dec_arr(STP_n=100,rpt=100):
         congru_err.append(err_dec)
         congru_shuf_err.append(shuf_err_dec)
         
-        incongru_data=gen_mat(data['incongru_stp'],STP_n=STP_n)
-        (inc_dec,inc_shuf_dec,inc_err_dec,inc_shuf_err_dec)=decode(incongru_data)
-        incongru_dec.append(inc_dec)
-        incongru_shuf.append(inc_shuf_dec)
-        incongru_err.append(inc_err_dec)
-        incongru_shuf_err.append(inc_shuf_err_dec)
+        # incongru_data=gen_mat(data['incongru_stp'],STP_n=STP_n)
+        # (inc_dec,inc_shuf_dec,inc_err_dec,inc_shuf_err_dec)=decode(incongru_data)
+        # incongru_dec.append(inc_dec)
+        # incongru_shuf.append(inc_shuf_dec)
+        # incongru_err.append(inc_err_dec)
+        # incongru_shuf_err.append(inc_shuf_err_dec)
     
-    
+    sys.exit()
     cong_arr=np.hstack(tuple(congru_dec))
     cong_shuf_arr=np.hstack(tuple(congru_shuf))
     cong_err_arr=np.hstack(tuple(congru_err))
@@ -273,6 +274,7 @@ if __name__ == "__main__":
     STP_n=0
     
     gen_dec_arr(STP_n,rpt=rpt)
+    sys.exit()
     data=pickle.load(open('spt_decoding_{}spt_{}rpt'.format(STP_n,rpt),'rb'))
-    plot(data['congrur'],data['congru_shuf'],data['congru_err'],file_desc='congru_{}'.format(STP_n))
+    plot(data['congru'],data['congru_shuf'],data['congru_err'],file_desc='congru_{}'.format(STP_n))
     plot(data['incongru'],data['incongru_shuf'],data['incongru_err'],file_desc='incongru_{}'.format(STP_n))
