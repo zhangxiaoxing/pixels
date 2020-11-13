@@ -149,23 +149,9 @@ def decode(dec_data,corr_err=False):
             X1err=np.sum(np.array([n['s1err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
             X2err=np.sum(np.array([n['s2err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
             scaler = scaler.fit(np.vstack((X1, X2, X1err , X2err)))
-        else:
-            scaler = scaler.fit(np.vstack((X1, X2)))
-        
-        X = scaler.transform(np.vstack((X1, X2)))
-        Y1=np.ones(X1.shape[0])
-        Y2=np.zeros_like(Y1)
-        Y = np.hstack((Y1, Y2))
-        Y_shuf = Y.copy()
-        rng.shuffle(Y_shuf)
-
-        clf = SVC(C=0.001,kernel='linear')
-        dec.append(cross_val_score(clf, X, Y, cv=StratifiedKFold(n_splits=50,shuffle=False), n_jobs=-1) * 100)
-        shuf_dec.append(cross_val_score(clf, X, Y_shuf, cv=StratifiedKFold(n_splits=50,shuffle=False), n_jobs=-1) * 100)
-        if corr_err:        
             XERR=scaler.transform(np.vstack(
-                (X1[:X1err.shape[0],:],X2[:X2err.shape[0],:], X1err,X2err)))
-            Y1ERR=np.zeros(X1err.shape[0]+X2err.shape[0])
+                (X1,X2, X1err,X2err)))
+            Y1ERR=np.zeros(XERR.shape[0]//2)
             Y2ERR=np.ones_like(Y1ERR)
             YERR=np.hstack((Y1ERR,Y2ERR))
             # XERR=scaler.transform(np.vstack((X1,X2,X1err,X2err)))
@@ -174,19 +160,40 @@ def decode(dec_data,corr_err=False):
             YERR_shuf=YERR.copy()
             rng.shuffle(YERR_shuf)
             
-            # clf = SVC(kernel='linear')
-            err_dec.append(cross_val_score(clf, XERR, YERR, cv=5, n_jobs=-1) * 100)
-            shuf_err_dec.append(cross_val_score(clf, XERR, YERR_shuf, cv=5, n_jobs=-1) * 100)
+            clf = SVC(C=0.001,kernel='linear')
+            err_dec.append(cross_val_score\
+                           (clf, XERR, YERR, cv=StratifiedKFold\
+                            (n_splits=15,shuffle=False), n_jobs=-1) * 100)
+            shuf_err_dec.append(cross_val_score\
+                                (clf, XERR, YERR_shuf, cv=StratifiedKFold\
+                                 (n_splits=15,shuffle=False), n_jobs=-1) * 100)
             # Y1err=np.zeros(X1err.shape[0])
             # Y2err=np.ones_like(Y1err)
             # Yerr = np.hstack((Y1err, Y2err))
             # Xerr=scaler.transform(np.vstack((X1err, X2err)))
             # clf.fit(X, Y)
             # err_dec.append(clf.score(Xerr, Yerr)*100)
+
+            
+            
+            
+            
         else:
-            err_dec=None
-            shuf_err_dec=None
-        
+            scaler = scaler.fit(np.vstack((X1, X2)))
+            X = scaler.transform(np.vstack((X1, X2)))
+            Y1=np.ones(X1.shape[0])
+            Y2=np.zeros_like(Y1)
+            Y = np.hstack((Y1, Y2))
+            Y_shuf = Y.copy()
+            rng.shuffle(Y_shuf)
+    
+            clf = SVC(C=0.001,kernel='linear')
+            dec.append(cross_val_score(clf, X, Y, cv=StratifiedKFold(n_splits=50,shuffle=False), n_jobs=-1) * 100)
+            shuf_dec.append(cross_val_score(clf, X, Y_shuf, cv=StratifiedKFold(n_splits=50,shuffle=False), n_jobs=-1) * 100)
+
+            # err_dec=None
+            # shuf_err_dec=None
+            
     return (dec,shuf_dec,err_dec,shuf_err_dec)
         
 def plot(data_arr,data_shuf_arr,data_err_arr,file_desc='sample'):
@@ -220,22 +227,22 @@ def plot(data_arr,data_shuf_arr,data_err_arr,file_desc='sample'):
     ax.set_ylabel('Classification accuracy')
     fh.savefig('4su_stp_decoding_{}.pdf'.format(file_desc),bbox_inches='tight')
 
-def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0):
+def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0,corr_err=False):
     data=load_data(trial_thres,error_thres)
     congru_dec=[]
     congru_shuf=[]
     congru_err=[]
     congru_shuf_err=[]
     
-    incongru_dec=[]
-    incongru_shuf=[]
-    incongru_err=[]
-    incongru_shuf_err=[]
+    # incongru_dec=[]
+    # incongru_shuf=[]
+    # incongru_err=[]
+    # incongru_shuf_err=[]
     
     for i in range(rpt):
         print(f'repeat {i}')
         congru_data=gen_mat(data['congru_stp'],STP_n=STP_n,corr_trial=trial_thres,err_trial=error_thres)
-        (dec,shuf_dec,err_dec,shuf_err_dec)=decode(congru_data)
+        (dec,shuf_dec,err_dec,shuf_err_dec)=decode(congru_data,corr_err)
         congru_dec.append(dec)
         congru_shuf.append(shuf_dec)
         congru_err.append(err_dec)
@@ -276,22 +283,34 @@ def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0):
 
 ### ########
 if __name__ == "__main__":
-    trial_thres=50
-    error_thres=0
-    rpt=20
-    STP_n=0
-    
-
-    denovo=False
-    if denovo:
+    if False: # Sample decoding
+        trial_thres=50
+        error_thres=0
+        rpt=20
+        STP_n=0
+        
         gen_data(trial_thres=trial_thres,error_thres=error_thres)
-        sys.exit()
-    
-    if True:    
+        
         gen_dec_arr(STP_n,rpt=rpt,trial_thres=trial_thres,error_thres=error_thres)
+        
+        data=pickle.load(open('spt_decoding_{}spt_{}rpt_{}_{}.p'
+                              .format(STP_n,rpt,trial_thres,error_thres),'rb'))
+        plot(data['congru'],data['congru_shuf'],None,file_desc='congru_sample_{}'.format(STP_n))
     
-    data=pickle.load(open('spt_decoding_{}spt_{}rpt_{}_{}.p'
-                          .format(STP_n,rpt,trial_thres,error_thres),'rb'))
-    plot(data['congru'],data['congru_shuf'],None,file_desc='congru_sample_{}'.format(STP_n))
-    # plot(data['incongru'],data['incongru_shuf'],data['incongru_err'],file_desc='incongru_{}'.format(STP_n))
-    
+    if True: #correct/error decoding
+        trial_thres=10
+        error_thres=10
+        rpt=2
+        STP_n=0
+        if False:
+            gen_data(trial_thres=trial_thres,error_thres=error_thres)
+            sys.exit()
+        gen_dec_arr(STP_n,
+                    rpt=rpt,
+                    trial_thres=trial_thres,
+                    error_thres=error_thres,
+                    corr_err=True)
+        
+        data=pickle.load(open('spt_decoding_{}spt_{}rpt_{}_{}.p'
+                              .format(STP_n,rpt,trial_thres,error_thres),'rb'))
+        plot(data['congru'],data['congru_shuf'],None,file_desc='congru_sample_{}'.format(STP_n))
