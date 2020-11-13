@@ -1,4 +1,5 @@
-for sessIdx=1:114
+total_n=0;
+for sessIdx=1:113
 per_samp_trial=1;
 
 % keyboard
@@ -30,29 +31,29 @@ p2sel=contains(path_list,'imec1');
 memorysel=any(sus_trans(:,1:2)>0,2);
 p1id=cid_list(sesssel & p1sel & memorysel);
 reg1=reg_list(sesssel & p1sel & memorysel);
+pref1=max(sus_trans(sesssel & p1sel & memorysel,8:13),[],2);
 p2id=cid_list(sesssel & p2sel & memorysel)+10000;
 reg2=reg_list(sesssel & p2sel & memorysel);
+pref2=max(sus_trans(sesssel & p2sel & memorysel,8:13),[],2);
+
 [folderType,file,spkFolder,metaFolder,~]=jointFolder(folder,cell(0),homedir);
 currmodel='selec';
 sustIds=[];nonselIds=[];
 transIds=int32([p1id;p2id]);
 regs=[reg1;reg2];
-
-greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), regs));
-
+prefs=[pref1;pref2];
+%% improved pipeline
+% greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), regs);
+% labeled=~strcmp(deblank(regs),'Unlabeled');
+% transIds=transIds(greymatter & labeled);
+% regs=regs(greymatter & labeled);
+%% compatible pipeline
+greymatter=cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), regs);
 transIds=transIds(greymatter);
 regs=regs(greymatter);
+prefs=prefs(greymatter);
 
-%% %%%%%% localize %%%%%%%%%%%%%
-% freg=load('0831_selec_conn_chain_duo_6s_1_2.mat','pair_reg','pair_chain');
-% load reg_keep.mat
-% suid=ringsm(ssidx,:);
-% reg=[];
-% for i1=suid(:)'
-%     reg=[reg;{i1,reg_set{freg.pair_reg(find(freg.pair_chain==i1,1))}}];
-% end
-%% end of localize
-
+total_n=total_n+nnz(~strcmp(regs,'Unlabeled'));
 % msize=numel(transIds);
 [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
 delay=6;
@@ -71,6 +72,7 @@ NN=size(spktrial.label,1);
 bin=[1,7];
 spiketrains=cell(1,NN);
 spiketrials=cell(1,NN);
+su_pref=nan(1,NN);
 firingrate=nan(NN,length(TT));
 for i=1:NN
     sptr=struct();
@@ -98,10 +100,15 @@ seg.spiketrains=spiketrains;
 block=struct();
 block.name=num2str(sessIdx);
 block.segments={seg};
-save(sprintf('spktO17_%d.mat',sessIdx),...
+save(sprintf('spktN13_%d.mat',sessIdx),...
     'block','transIds','sessIdx','regs',...
-    'spiketrials','trialInfo','firingrate','-v7');
+    'spiketrials','trialInfo','firingrate',...
+    'prefs','-v7');
+
+
 end
+
+
 return
 
 
