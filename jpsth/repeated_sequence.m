@@ -69,7 +69,7 @@ trialInfo=spktrial.trialinfo(TT,:);
 %%
 % TT=32
 NN=size(spktrial.label,1);
-bin=[1,7];
+bin=[-2,7];
 spiketrains=cell(1,NN);
 spiketrials=cell(1,NN);
 su_pref=nan(1,NN);
@@ -82,7 +82,7 @@ for i=1:NN
         ttimes=spktrial.time{i}...
             (spktrial.trial{i}==TT(t) ...
             & spktrial.time{i}<bin(2) ...
-            & spktrial.time{i}>=bin(1)).*1000+(t-1)*7000;
+            & spktrial.time{i}>=bin(1)).*1000+2000+(t-1)*(diff(bin)+1)*1000;
         ttrials=ones(size(ttimes))*TT(t);
         sptr.times=[sptr.times,ttimes];
         trials=[trials,ttrials];
@@ -91,7 +91,7 @@ for i=1:NN
     sptr.times_units='ms';
     sptr.t_start=1000;
     sptr.t_start_units='ms';
-    sptr.t_stop=7*length(TT)*1000;
+    sptr.t_stop=(diff(bin)+1)*length(TT)*1000;
     sptr.t_stop_units='ms';
     spiketrains{i}=sptr;
     spiketrials{i}=trials;

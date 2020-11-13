@@ -67,11 +67,20 @@ if __name__=='__main__':
         for row in csv_reader:
             key=tuple(sorted(row[:2]))
             conn_map_fc[key]=1
+            
+    reg_coord={}
+    with open(r'K:\code\SPADE\reg_coord.csv') as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader:
+            key=row[0]
+            reg_coord[key]=[float(row[1]),float(row[2])]
     
+    all_reg=[]
     with open('STP4_conn.csv','w') as f:
         write=csv.writer(f)
         write.writerow(['Source','Target','Weight','Partition'])
         for key in key_all:
+            all_reg.extend(key)
             if key in conn_map.keys():
                 # breakpoint()
                 row=[]
@@ -84,7 +93,20 @@ if __name__=='__main__':
                 row.extend(list(key))
                 row.append(1)
                 row.append(0)
-                write.writerow(row)                
+                write.writerow(row)    
+                
+    with open('STP4_node_coord.csv','w') as f:            
+        write=csv.writer(f)
+        write.writerow(['Id','Label','AP','DV'])
+        for reg in set(all_reg):
+            if reg.startswith('DG-'):
+                row=[reg,reg,reg_coord['DG'][0],1000-reg_coord['DG'][1]]
+            else:
+                row=[reg,reg,reg_coord[reg][0],1000-reg_coord[reg][1]]
+            write.writerow(row)
+            
+        
+    breakpoint()
     
     
     
