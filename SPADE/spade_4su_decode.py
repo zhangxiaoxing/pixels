@@ -225,7 +225,7 @@ def plot(data_arr,data_shuf_arr,data_err_arr,file_desc='sample'):
     ax.set_xticks((0,5))
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Classification accuracy')
-    fh.savefig('4su_stp_decoding_{}.pdf'.format(file_desc),bbox_inches='tight')
+    # fh.savefig('4su_stp_decoding_{}.pdf'.format(file_desc),bbox_inches='tight')
 
 def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0,corr_err=False):
     data=load_data(trial_thres,error_thres)
@@ -283,10 +283,10 @@ def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0,corr_err=False):
 
 ### ########
 if __name__ == "__main__":
-    if False: # Sample decoding
+    if True: # Sample decoding
         trial_thres=50
         error_thres=0
-        rpt=20
+        rpt=2
         STP_n=0
         
         gen_data(trial_thres=trial_thres,error_thres=error_thres)
@@ -297,7 +297,7 @@ if __name__ == "__main__":
                               .format(STP_n,rpt,trial_thres,error_thres),'rb'))
         plot(data['congru'],data['congru_shuf'],None,file_desc='congru_sample_{}'.format(STP_n))
     
-    if True: #correct/error decoding
+    if False: #correct/error decoding
         trial_thres=10
         error_thres=10
         rpt=2
