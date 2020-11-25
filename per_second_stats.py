@@ -465,11 +465,11 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
 
         # frac = [switched_count + unclassified_count + bs_count + sample_only_count, sust_count, transient_count,
         #         non_sel_mod_count + non_mod_count, ]
-        frac = [sust_count, transient_count, unclassified_count,
+        frac = [sust_count, transient_count+unclassified_count,
                 non_sel_mod_count + non_mod_count + switched_count + bs_count + sample_only_count,]
         print(np.sum(frac))
-        explode = (0.1, 0.1, 0.1, 0)
-        labels = ('sustained', 'strict','transient', 'non-selective')
+        explode = (0.1, 0.1, 0)
+        labels = ('sustained', 'transient', 'non-selective')
 
         (fh, ax) = plt.subplots(1, 1, figsize=(12 / 2.54, 4 / 2.54), dpi=300)
         if counterclock:
@@ -478,11 +478,11 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
             startangle = 180
         ax.pie(frac, explode=explode, labels=labels, autopct='%1.1f%%', 
                shadow=False, startangle=startangle,counterclock=counterclock, 
-               colors=('blue', 'red', 'red', 'w'),
+               colors=('blue', 'red', 'w'),
                wedgeprops={'ls':'-','lw':0.5,'ec':'k'})
         # ax.axis('equal')
         ax.set_xlim((-0.7, 0.7))
-        fh.suptitle(f'{delay}s delay')
+        # fh.suptitle(f'{delay}s delay')
         plt.show()
         fh.savefig(f'sus_trans_pie_{delay}.pdf')
 
@@ -752,8 +752,8 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=False, toPlot=True, toExport=False, delay=3, counterclock=False)
-    process_all(denovo=False, toPlot=True, toExport=False, delay=6, counterclock=False)
+    process_all(denovo=True, toPlot=False, toExport=True, delay=3, counterclock=False)
+    process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
     # process_all(denovo=False, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')

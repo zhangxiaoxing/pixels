@@ -18,6 +18,7 @@ from sklearn.preprocessing import MinMaxScaler,StandardScaler,RobustScaler
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import KFold
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 def gen_data(trial_thres=50, error_thres=0):
     congru_stp=[]
@@ -142,57 +143,42 @@ def decode(dec_data,corr_err=False):
     err_dec=[]
     shuf_err_dec=[]
     scaler = MinMaxScaler()
+    trials=len(dec_data[0]['s1corr'])
+    kf=KFold(n_splits=trials)
+    # clf = SVC(C=0.001,kernel='linear')
+    clf=LinearDiscriminantAnalysis()
     for t in [0,2,4]:#range(6):
         X1=np.sum(np.array([n['s1corr'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
         X2=np.sum(np.array([n['s2corr'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
-        if corr_err:
-            X1err=np.sum(np.array([n['s1err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
-            X2err=np.sum(np.array([n['s2err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
-            scaler = scaler.fit(np.vstack((X1, X2, X1err , X2err)))
-            XERR=scaler.transform(np.vstack(
-                (X1,X2, X1err,X2err)))
-            Y1ERR=np.zeros(XERR.shape[0]//2)
-            Y2ERR=np.ones_like(Y1ERR)
-            YERR=np.hstack((Y1ERR,Y2ERR))
-            # XERR=scaler.transform(np.vstack((X1,X2,X1err,X2err)))
-            # YERR=np.hstack((np.zeros(X1.shape[0]+X2.shape[0]),
-            #                 np.ones(X1err.shape[0]+X2err.shape[0])))
-            YERR_shuf=YERR.copy()
-            rng.shuffle(YERR_shuf)
-            
-            clf = SVC(C=0.001,kernel='linear')
-            err_dec.append(cross_val_score\
-                           (clf, XERR, YERR, cv=StratifiedKFold\
-                            (n_splits=15,shuffle=False), n_jobs=-1) * 100)
-            shuf_err_dec.append(cross_val_score\
-                                (clf, XERR, YERR_shuf, cv=StratifiedKFold\
-                                 (n_splits=15,shuffle=False), n_jobs=-1) * 100)
-            # Y1err=np.zeros(X1err.shape[0])
-            # Y2err=np.ones_like(Y1err)
-            # Yerr = np.hstack((Y1err, Y2err))
-            # Xerr=scaler.transform(np.vstack((X1err, X2err)))
-            # clf.fit(X, Y)
-            # err_dec.append(clf.score(Xerr, Yerr)*100)
+        X1err=np.sum(np.array([n['s1err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
+        X2err=np.sum(np.array([n['s2err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
+        
+        scaler = scaler.fit(np.vstack((X1, X2, X1err, X2err)))
 
-            
-            
-            
-            
-        else:
-            scaler = scaler.fit(np.vstack((X1, X2)))
-            X = scaler.transform(np.vstack((X1, X2)))
-            Y1=np.ones(X1.shape[0])
-            Y2=np.zeros_like(Y1)
-            Y = np.hstack((Y1, Y2))
-            Y_shuf = Y.copy()
-            rng.shuffle(Y_shuf)
-    
-            clf = SVC(C=0.001,kernel='linear')
-            dec.append(cross_val_score(clf, X, Y, cv=StratifiedKFold(n_splits=50,shuffle=False), n_jobs=-1) * 100)
-            shuf_dec.append(cross_val_score(clf, X, Y_shuf, cv=StratifiedKFold(n_splits=50,shuffle=False), n_jobs=-1) * 100)
 
-            # err_dec=None
-            # shuf_err_dec=None
+        XE=scaler.transform(np.vstack((X1err, X2err)))
+        yE=np.hstack((np.zeros(X1err.shape[0]),np.ones(X2err.shape[0])))
+        deckf=[]
+        errkf=[]
+        shufkf=[]
+        for train_idx, test_idx in  kf.split(X1):
+            X=scaler.transform(np.vstack((X1[train_idx], X2[train_idx])))
+            y=np.hstack((np.zeros(X1.shape[0])[train_idx],np.ones(X2.shape[0])[train_idx]))
+            clf.fit(X,y)            
+            XT=scaler.transform(np.vstack((X1[test_idx], X2[test_idx])))
+            yT=np.hstack((np.zeros(X1.shape[0])[test_idx],np.ones(X2.shape[0])[test_idx]))
+            deckf.extend(clf.predict(XT)==yT)
+            
+            errkf.extend(clf.predict(XE)==yE)
+            yS=y.copy()
+            rng.shuffle(yS)
+            clf.fit(X,yS)
+            shufkf.extend(clf.predict(XT)==yT)
+        
+        dec.append(deckf)
+        err_dec.append(errkf)
+        shuf_dec.append(shufkf)
+
             
     return (dec,shuf_dec,err_dec,shuf_err_dec)
         
@@ -205,27 +191,27 @@ def plot(data_arr,data_shuf_arr,data_err_arr,file_desc='sample'):
     
     cmm=np.mean(data_arr,axis=1)
     cshufmm=np.mean(data_shuf_arr,axis=1)
-    
-    # cerrmm=np.mean(data_err_arr,axis=1)
+    cerrmm=np.mean(data_err_arr,axis=1)
     
     data_boot=[boot.ci(data_arr[b,:], np.mean,n_samples=1000) for b in range(3)]
     data_shuf_boot=[boot.ci(data_shuf_arr[b,:], np.mean,n_samples=1000) for b in range(3)]
-    # data_err_boot=[boot.ci(data_err_arr[b,:], np.mean,n_samples=1000) for b in range(6)]
+    data_err_boot=[boot.ci(data_err_arr[b,:], np.mean,n_samples=1000) for b in range(3)]
     
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
     ax.fill_between(np.arange(1,7,2),[x[0] for x in data_boot],[x[1] for x in data_boot],color='r',alpha=0.2)
     ax.fill_between(np.arange(1,7,2),[x[0] for x in data_shuf_boot],[x[1] for x in data_shuf_boot],color='k',alpha=0.2)
-    # ax.fill_between(np.arange(1,7),[x[0] for x in data_err_boot],[x[1] for x in data_err_boot],color='b',alpha=0.2)
+    ax.fill_between(np.arange(1,7,2),[x[0] for x in data_err_boot],[x[1] for x in data_err_boot],color='b',alpha=0.2)
     
     ax.plot(np.arange(1,7,2),np.mean(data_arr,axis=1),'-r')
     ax.plot(np.arange(1,7,2),np.mean(data_shuf_arr,axis=1),'-k')
-    # ax.plot(np.arange(1,7),np.mean(data_err_arr,axis=1),'-b')
+    ax.plot(np.arange(1,7,2),np.mean(data_err_arr,axis=1),'-b')
     ax.set_xlim((0,6.5))
-    ax.set_ylim((40,105))
+    ax.set_ylim((0.2,0.8))
     ax.set_xticks((0,5))
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Classification accuracy')
-    # fh.savefig('4su_stp_decoding_{}.pdf'.format(file_desc),bbox_inches='tight')
+    fh.savefig('4su_stp_decoding_{}.pdf'.format(file_desc),bbox_inches='tight')
+    return fh
 
 def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0,corr_err=False):
     data=load_data(trial_thres,error_thres)
@@ -277,40 +263,39 @@ def gen_dec_arr(STP_n=100,rpt=100,trial_thres=50, error_thres=0,corr_err=False):
                  'incongru_shuf':incong_shuf_arr,
                  'incongru_err':incong_err_arr,
                  'incongru_shuf_err':incong_shuf_err_arr,},
-                open('spt_decoding_{}spt_{}rpt_{}_{}.p'
+                open('stp_decoding_{}spt_{}rpt_{}_{}.p'
                      .format(STP_n,rpt,trial_thres,error_thres),'wb'))
 
 
 ### ########
 if __name__ == "__main__":
     if True: # Sample decoding
-        trial_thres=50
-        error_thres=0
-        rpt=2
-        STP_n=0
-        
-        gen_data(trial_thres=trial_thres,error_thres=error_thres)
-        
-        gen_dec_arr(STP_n,rpt=rpt,trial_thres=trial_thres,error_thres=error_thres)
-        
-        data=pickle.load(open('spt_decoding_{}spt_{}rpt_{}_{}.p'
-                              .format(STP_n,rpt,trial_thres,error_thres),'rb'))
-        plot(data['congru'],data['congru_shuf'],None,file_desc='congru_sample_{}'.format(STP_n))
-    
-    if False: #correct/error decoding
-        trial_thres=10
-        error_thres=10
-        rpt=2
+        trial_thres=45
+        error_thres=5
+        rpt=25
         STP_n=0
         if False:
             gen_data(trial_thres=trial_thres,error_thres=error_thres)
-            sys.exit()
-        gen_dec_arr(STP_n,
-                    rpt=rpt,
-                    trial_thres=trial_thres,
-                    error_thres=error_thres,
-                    corr_err=True)
         
-        data=pickle.load(open('spt_decoding_{}spt_{}rpt_{}_{}.p'
+        gen_dec_arr(STP_n,rpt=rpt,trial_thres=trial_thres,error_thres=error_thres)
+        
+        data=pickle.load(open('stp_decoding_{}spt_{}rpt_{}_{}.p'
                               .format(STP_n,rpt,trial_thres,error_thres),'rb'))
-        plot(data['congru'],data['congru_shuf'],None,file_desc='congru_sample_{}'.format(STP_n))
+        fh=plot(data['congru'],data['congru_shuf'],data['congru_err'],file_desc='congru_sample'.format(STP_n))    
+    # if False: #correct/error decoding
+    #     trial_thres=12
+    #     error_thres=12
+    #     rpt=2
+    #     STP_n=0
+    #     if True:
+    #         gen_data(trial_thres=trial_thres,error_thres=error_thres)
+    #         # sys.exit()
+    #     gen_dec_arr(STP_n,
+    #                 rpt=rpt,
+    #                 trial_thres=trial_thres,
+    #                 error_thres=error_thres,
+    #                 corr_err=True)
+        
+    #     data=pickle.load(open('stp_decoding_{}spt_{}rpt_{}_{}.p'
+    #                           .format(STP_n,rpt,trial_thres,error_thres),'rb'))
+    #     fh=plot(data['congru_err'],data['congru_shuf_err'],None,file_desc='congru_err_{}'.format(STP_n))

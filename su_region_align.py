@@ -12,6 +12,7 @@ first column is cluster id, second is current alignment, third is old alignment
 
 import os
 import h5py
+import sys
 import re
 import csv
 import numpy as np
@@ -164,17 +165,23 @@ def getTrackRegion(regionL, mice_id, date, imecNo, who_did):
 def combineSubRegion(r):
     if re.match("CA[123]", r):
         return r
+    if r.startswith("COAp"):
+        return "COAp"
+    if r.startswith("DG-"):
+        return "DG"
+    if r.startswith("LGd-"):
+        return "LGd"
+    if r.startswith("SSp-"):
+        return "SSp"
     if re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r):
         g = re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r)
         return g.group(1)
-    if r.startswith("COAp"):
-        return "COAp"
     else:
         return r
 
 
 def getRegionList(cmp=False):
-    site_file = r"D:\neupix\meta\NP tracks revised 0319.csv"
+    site_file = r"K:\neupix\meta\NP tracks revised 0319.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mouse_id": "str", "implanting_date": "str"}
     )[
@@ -192,7 +199,7 @@ def getRegionList(cmp=False):
     if not cmp:
         return (regionL,None)
     else:
-        cmp_file = r"D:\neupix\meta\NP tracks validated3.3.csv"
+        cmp_file = r"K:\neupix\meta\NP tracks validated3.3.csv"
         cmpL = pd.read_csv(cmp_file).astype(
             {"mouse_id": "str", "implanting_date": "str"}
         )[
@@ -212,11 +219,12 @@ def getRegionList(cmp=False):
 
 ### Walk through
 if __name__ == "__main__":
+    cmp=False
     identical_counter = []
-    (regionL, cmpL) = getRegionList(cmp=True)
+    (regionL, cmpL) = getRegionList(cmp=cmp)
     unlabeledRecord = []
 
-    for path in traverse(r"D:\neupix\DataSum"):
+    for path in traverse(r"K:\neupix\DataSum"):
 
         # if os.path.isfile(os.path.join(path, 'su_id2reg.csv')):
         #     continue
@@ -228,7 +236,8 @@ if __name__ == "__main__":
         (bs_id, time_s, who) = get_bsid_duration_who(path)
         (mice_id, date, imec_no) = zpy.get_miceid_date_imecno(path)
         depthL = getTrackRegion(regionL, mice_id, date, imec_no, who)
-        depth_cmp = getTrackRegion(cmpL, mice_id, date, imec_no, who)
+        if cmp:
+            depth_cmp = getTrackRegion(cmpL, mice_id, date, imec_no, who)
         su_ids = None
         su_region_corr = []
         with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
@@ -244,20 +253,25 @@ if __name__ == "__main__":
         for one_su in su_ids:
             depth = unitInfo.loc[unitInfo['id'] == one_su, ['depth']].iat[0, 0]
             reg = matchDepth(depth, depthL, date, mice_id, imec_no, unlabeledRecord)
-            reg_cmp = matchDepth(depth, depth_cmp, date, mice_id, imec_no, unlabeledRecord)
-            su_region_corr.append([one_su, reg, reg_cmp])
-            if reg == reg_cmp:
-                identical_counter.append([1, reg, reg_cmp])
+            if cmp:
+                reg_cmp = matchDepth(depth, depth_cmp, date, mice_id, imec_no, unlabeledRecord)
+                su_region_corr.append([one_su, reg, reg_cmp])
+                if reg == reg_cmp:
+                    identical_counter.append([1, reg, reg_cmp])
+                else:
+                    identical_counter.append([0, reg, reg_cmp])
             else:
-                identical_counter.append([0, reg, reg_cmp])
-
-        tbl = pd.DataFrame(su_region_corr, columns=['index', 'region', 'old']).set_index('index')[:]
+                su_region_corr.append([one_su, reg])
+        if cmp:
+            tbl = pd.DataFrame(su_region_corr, columns=['index', 'region', 'old']).set_index('index')[:]
+        else:
+            tbl = pd.DataFrame(su_region_corr, columns=['index', 'region']).set_index('index')[:]
         tbl.to_csv(os.path.join(path, 'su_id2reg.csv'), header=True)
 
-        with open("unlabeled.csv", "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerows(unlabeledRecord)
+    with open("unlabeled.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(unlabeledRecord)
 
-        np.sum(list(zip(*identical_counter))[0])
-
-    print(np.sum(list(zip(*identical_counter))[0]) / len(identical_counter))
+        # np.sum(list(zip(*identical_counter))[0])
+    if cmp:
+        print(np.sum(list(zip(*identical_counter))[0]) / len(identical_counter))
