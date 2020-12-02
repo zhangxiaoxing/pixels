@@ -3,11 +3,12 @@
 close all
 % corr_coactive_wing()
 % return
-all_reg=false;
+all_reg=true;
 if all_reg
     [local_hat,local_ci]=coactive_all(true);
     [inter_hat,inter_ci]=coactive_all(false);
     plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci);
+    return
 end
 
 if true
@@ -115,7 +116,7 @@ prev2_none=[];
 
 for bin=1:6
     %         disp(bin);
-    load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
     %         localselS2=(reg_chain_S2(:,1)==reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter);
     if local
@@ -247,7 +248,7 @@ for onereg=1:length(reg_set)
     prev2_none=[];
     
     for bin=1:6
-        load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         if strcmp(type,'local')
             localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;
         elseif strcmp(type,'inter_input')
@@ -308,7 +309,7 @@ if false
     para_ctrl_bin_both=[];
     for bin=2:5
         disp(bin);
-        load(sprintf('0629_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         for i=1:length(pref_chain_S1)
             if pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin-1)==0 && pref_chain_S1(i,bin+1)==0
                 para_pre_bin_S1(end+1,:)=pref_chain_S1(i,(bin+5):(bin+7));
@@ -355,7 +356,7 @@ para_pre_bin_both=[];
 para_ctrl_bin_both=[];
 for bin=2:4
     disp(bin);
-    load(sprintf('0629_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     for i=1:length(pref_chain_S1)
         if all(pref_chain_S1(i,bin:bin+1)>0) && all(pref_chain_S1(i,[bin-1,bin+2])==0)
             para_pre_bin_S1(end+1,:)=pref_chain_S1(i,(bin+5):(bin+8));

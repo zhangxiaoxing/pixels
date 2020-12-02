@@ -198,16 +198,17 @@ def plot(data_arr,data_shuf_arr,data_err_arr,file_desc='sample'):
     data_err_boot=[boot.ci(data_err_arr[b,:], np.mean,n_samples=1000) for b in range(5)]
     
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
-    ax.fill_between(np.arange(1,6),[x[0] for x in data_boot],[x[1] for x in data_boot],color='r',alpha=0.2)
-    ax.fill_between(np.arange(1,6),[x[0] for x in data_shuf_boot],[x[1] for x in data_shuf_boot],color='k',alpha=0.2)
-    ax.fill_between(np.arange(1,6),[x[0] for x in data_err_boot],[x[1] for x in data_err_boot],color='b',alpha=0.2)
+    ax.fill_between(np.arange(1,6)+0.5,[x[0] for x in data_boot],[x[1] for x in data_boot],color='r',alpha=0.2)
+    ax.fill_between(np.arange(1,6)+0.5,[x[0] for x in data_shuf_boot],[x[1] for x in data_shuf_boot],color='k',alpha=0.2)
+    ax.fill_between(np.arange(1,6)+0.5,[x[0] for x in data_err_boot],[x[1] for x in data_err_boot],color='b',alpha=0.2)
     
-    ax.plot(np.arange(1,6),np.mean(data_arr,axis=1),'-r')
-    ax.plot(np.arange(1,6),np.mean(data_shuf_arr,axis=1),'-k')
-    ax.plot(np.arange(1,6),np.mean(data_err_arr,axis=1),'-b')
-    ax.set_xlim((0,6.5))
-    ax.set_ylim((0.2,0.8))
-    ax.set_xticks((0,5))
+    ax.plot(np.arange(1,6)+0.5,np.mean(data_arr,axis=1),'-r')
+    ax.plot(np.arange(1,6)+0.5,np.mean(data_shuf_arr,axis=1),'-k')
+    ax.plot(np.arange(1,6)+0.5,np.mean(data_err_arr,axis=1),'-b')
+    ax.set_xlim((1,6))
+    ax.set_ylim((0.3,0.8))
+    ax.set_yticks((0.4,0.6,0.8))
+    ax.set_xticks((1,6))
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Classification accuracy')
     fh.savefig('4su_stp_decoding_{}.pdf'.format(file_desc),bbox_inches='tight')
@@ -276,12 +277,22 @@ if __name__ == "__main__":
         STP_n=0
         if False:
             gen_data(trial_thres=trial_thres,error_thres=error_thres)
-        
-        gen_dec_arr(STP_n,rpt=rpt,trial_thres=trial_thres,error_thres=error_thres)
+            gen_dec_arr(STP_n,rpt=rpt,trial_thres=trial_thres,error_thres=error_thres)
         
         data=pickle.load(open('stp_decoding_{}spt_{}rpt_{}_{}.p'
                               .format(STP_n,rpt,trial_thres,error_thres),'rb'))
-        fh=plot(data['congru'],data['congru_shuf'],data['congru_err'],file_desc='congru_sample'.format(STP_n))    
+        fh=plot(data['congru'],data['congru_shuf'],data['congru_err'],file_desc='congru_sample'.format(STP_n))   
+        
+        
+        for i in range(5):
+            print(stats.ranksums(data['congru'][i,:],data['congru_shuf'][i,:]))
+        
+        for i in range(5):
+            print(stats.ranksums(data['congru'][i,:],data['congru_err'][i,:]))
+        
+        for i in range(5):
+            print(stats.ranksums(data['congru_shuf'][i,:],data['congru_err'][i,:]))
+        
     # if False: #correct/error decoding
     #     trial_thres=12
     #     error_thres=12

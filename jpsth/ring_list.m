@@ -1,3 +1,5 @@
+%Caution: will not check for existance due to parfor limitation
+
 %TODO check WM region before finalize
 
 fstr=cell(1,6);
@@ -287,3 +289,38 @@ for i=1:114
 end
 % sum(combined)
 end
+
+
+
+
+
+function sesscnt=countConnedSession()
+fstr=cell(1,6);
+for bin=1:6
+    fstr{bin}=load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+end
+sesscnt=zeros(114,1);
+
+if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var') && delay_inact_data)
+    for I=1:114
+        for midx=1:3
+            msize=midx+2;
+            disp(I)
+            lbound=100000*I;
+            ubound=100000*(I+1);
+            for bin=1:6
+                sel11=fstr{bin}.conn_chain_S1(:,1)>=lbound & fstr{bin}.conn_chain_S1(:,1)<ubound & diff(fstr{bin}.reg_chain_S1,1,2);
+%                 keyboard()
+                if nnz(sel11)>0
+                    sesscnt(I)=1;
+                end
+            end
+            
+        end
+    end
+end
+<<<<<<< Updated upstream
+end
+=======
+end
+>>>>>>> Stashed changes

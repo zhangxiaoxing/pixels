@@ -85,6 +85,7 @@ for i=1:length(supool)
     end
     
     [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+    continue
     
     if avail
         [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=plotxcorr(spktrial,delay,bin_range);
@@ -211,7 +212,6 @@ else
     end
 end
 end
-
 
 function [Xc_S1,Xshuff_S1,Xc_S2,Xshuff_S2]=plotxcorr(spikeTrials,delay,bin_range)
 % https://www.nature.com/articles/nn799

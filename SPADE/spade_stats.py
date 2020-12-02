@@ -94,6 +94,7 @@ def gen_data_file():
             
             continue
     
+        print(sess_id)
         
         r=np.load(filt_fpath,allow_pickle=True)
         patterns=r[0]
@@ -204,32 +205,36 @@ def plot():
     candidate_per_sess=r['candidate_per_sess']
     ######################
     
-    # congru_dens=[]
-    # incongru_dens=[]
-    # for idx,cs in enumerate(candidate_per_sess):
-    #     if cs[1]>1000:
-    #         congru_dens.append(np.sum(np.array(congru_stats['sess_ids'])==cs[0])/cs[1])
-    #     if cs[2]>1000:
-    #         incongru_dens.append(np.sum(np.array(incongru_stats['sess_ids'])==cs[0])/cs[2])
+    congru_dens=[]
+    incongru_dens=[]
+    for idx,cs in enumerate(candidate_per_sess):
+        if cs[1]>1000:
+            congru_dens.append(np.sum(np.array(congru_stats['sess_ids'])==cs[0])/cs[1])
+        if cs[2]>1000:
+            incongru_dens.append(np.sum(np.array(incongru_stats['sess_ids'])==cs[0])/cs[2])
     
-    # congru_boot=boot.ci(congru_dens, np.mean,n_samples=1000)
-    # incongru_boot=boot.ci(incongru_dens, np.mean,n_samples=1000)
+    congru_boot=boot.ci(congru_dens, np.mean,n_samples=1000)
+    incongru_boot=boot.ci(incongru_dens, np.mean,n_samples=1000)
     
-    # p_value = permutation_test(congru_dens,incongru_dens,method='approximate',num_rounds=10000)
+    congru_sem=np.std(congru_dens)/np.sqrt(len(congru_dens))
+    incongru_sem=np.std(incongru_dens)/np.sqrt(len(incongru_dens))
     
     
-    # (fh, ax) = plt.subplots(1, 1, figsize=(2 / 2.54, 4 / 2.54), dpi=300)
-    # mm=[np.mean(incongru_dens),np.mean(congru_dens)]
-    # ax.bar(1,mm[0],color='k',edgecolor='k')
-    # ax.bar(2,mm[1],color='w',edgecolor='k')
-    # ax.errorbar([1,2],mm,np.vstack((incongru_boot,congru_boot)),color='none',ecolor='grey',capsize=3)
-    # ax.set_yscale('log')
-    # ax.set_ylim([1e-4,5e-2])
-    # ax.set_ylabel('Pattern density')
-    # ax.set_xticks([1,2])
-    # ax.set_xticklabels(['incongru.','congruent'],rotation=45,ha='right')
-    # # plt.close('all')
-    # fh.savefig('spade_4su_pattern_density.pdf',bbox_inches='tight')
+    p_value = permutation_test(congru_dens,incongru_dens,method='approximate',num_rounds=10000)
+    
+    
+    (fh, ax) = plt.subplots(1, 1, figsize=(1.5 / 2.54, 4 / 2.54), dpi=300)
+    mm=[np.mean(incongru_dens),np.mean(congru_dens)]/np.mean(incongru_dens)
+    ax.bar(1,mm[0],color='k',edgecolor='k')
+    ax.bar(2,mm[1],color='w',edgecolor='k')
+    ax.errorbar([1,2],mm,np.hstack((incongru_sem,congru_sem))/np.mean(incongru_dens),color='none',ecolor='grey',capsize=3)
+    ax.set_yscale('log')
+    ax.set_ylim([1e-1*2,1e2])
+    ax.set_ylabel('Norm. motif density')
+    ax.set_xticks([1,2])
+    ax.set_xticklabels(['Incongru.','Congruent'],rotation=45,ha='right')
+    # plt.close('all')
+    fh.savefig('spade_4su_pattern_density.pdf',bbox_inches='tight')
     
     # for patt in congru_stats['pertrial']:
     #     [np.mean(x) for x in patt]
@@ -414,7 +419,7 @@ def plot():
     
     
 if __name__=='__main__':
-    if False:
-        gen_data_file()
     if True:
+        gen_data_file()
+    if False:
         plot()

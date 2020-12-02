@@ -29,7 +29,7 @@ fbase=load(sprintf('0906_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var') && delay_inact_data)
     rings=cell(3,114,6,2);
     rings_inact=cell(3,114,6,2);
-    for I=1:114
+    parfor I=1:114
         for midx=1:3
             msize=midx+2;
             disp(I)

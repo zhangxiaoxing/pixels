@@ -1,5 +1,5 @@
 % bin_trial_count=quickStats(ring_list);
-midx=2;
+midx=1;
 rpts=2
 if true
 inact=false;
@@ -21,31 +21,18 @@ for bin=1:6
             varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
             Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
             ykf=y([training(cv,kf);training(cv,kf)]);
+            yshufkf=yshuf([training(cv,kf);training(cv,kf)]);
             CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
             s1Tkf=s1(test(cv,kf),:);
             s2Tkf=s2(test(cv,kf),:);
             XTkf=[s1Tkf(:,varsel);s2Tkf(:,varsel)];
             yTkf=y([test(cv,kf);test(cv,kf)]);
+            yshufTkf=yTkf(randperm(numel(yTkf)));
             cvresult=CVLDAModel.predict(XTkf)==yTkf;
+            cvshufresult=CVLDAModel.predict(XTkf)==yshufTkf;
             cvcorr{bin+3}=[cvcorr{bin+3};cvresult];
+            shufcorr{bin+3}=[shufcorr{bin+3};cvshufresult];
         end
-        
-        yshuf=y(randperm(numel(y)));
-        for kf=1:cv.NumTestSets
-            s1kf=s1(training(cv,kf),:);
-            s2kf=s2(training(cv,kf),:);
-            varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
-            Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
-            ykf=yshuf([training(cv,kf);training(cv,kf)]);
-            CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
-            s1Tkf=s1(test(cv,kf),:);
-            s2Tkf=s2(test(cv,kf),:);
-            XTkf=[s1Tkf(:,varsel);s2Tkf(:,varsel)];
-            yTkf=yshuf([test(cv,kf);test(cv,kf)]);
-            cvresult=CVLDAModel.predict(XTkf)==yTkf;
-            shufcorr{bin+3}=[shufcorr{bin+3};cvresult];
-        end
-
     end
 end
 fh=figure('Color','w','Position',[100,100,195,160]);
@@ -66,20 +53,20 @@ set(gca,'XTick',-1:2:5,'XTickLabel',{'ITI','1','3','5'})
 savefig(fh,sprintf('congru_%dring_decode.fig',midx+2),'compact');
 print(fh,sprintf('congru_%dring_decode.png',midx+2),'-dpng','-r300');
 
-
 end
-
+act_cvcorr=cvcorr;
+act_cvshuf=shufcorr;
 
 if true
 inact=true;
-inact_corr=cell(1,9);
-inact_shuf=cell(1,9);
+cvcorr=cell(1,9);
+shufcorr=cell(1,9);
 for bin=[-2,1:6]
-    inact_corr{bin+3}=[];
-    inact_shuf{bin+3}=[];
+    cvcorr{bin+3}=[];
+    shufcorr{bin+3}=[];
     for rpt=1:rpts
         disp([bin, rpt]);
-        [s1,s2]=collect_data(1,inact,bin,trial_thres);
+        [s1,s2]=collect_data(2,inact,bin,trial_thres);
         y=[zeros(trial_thres,1);ones(trial_thres,1)];
         cv=cvpartition(trial_thres,'KFold',10);
         for kf=1:cv.NumTestSets
@@ -88,47 +75,36 @@ for bin=[-2,1:6]
             varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
             Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
             ykf=y([training(cv,kf);training(cv,kf)]);
+            yshufkf=yshuf([training(cv,kf);training(cv,kf)]);
             CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
             s1Tkf=s1(test(cv,kf),:);
             s2Tkf=s2(test(cv,kf),:);
             XTkf=[s1Tkf(:,varsel);s2Tkf(:,varsel)];
             yTkf=y([test(cv,kf);test(cv,kf)]);
+            yshufTkf=yTkf(randperm(numel(yTkf)));
             cvresult=CVLDAModel.predict(XTkf)==yTkf;
-            inact_corr{bin+3}=[inact_corr{bin+3};cvresult];
+            cvshufresult=CVLDAModel.predict(XTkf)==yshufTkf;
+            cvcorr{bin+3}=[cvcorr{bin+3};cvresult];
+            shufcorr{bin+3}=[shufcorr{bin+3};cvshufresult];
         end
-        
-        
-        yshuf=y(randperm(numel(y)));
-        for kf=1:cv.NumTestSets
-            s1kf=s1(training(cv,kf),:);
-            s2kf=s2(training(cv,kf),:);
-            varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
-            Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
-            ykf=yshuf([training(cv,kf);training(cv,kf)]);
-            CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
-            s1Tkf=s1(test(cv,kf),:);
-            s2Tkf=s2(test(cv,kf),:);
-            XTkf=[s1Tkf(:,varsel);s2Tkf(:,varsel)];
-            yTkf=yshuf([test(cv,kf);test(cv,kf)]);
-            cvresult=CVLDAModel.predict(XTkf)==yTkf;
-            inact_shuf{bin+3}=[inact_shuf{bin+3};cvresult];
-        end
-        
     end
 end
+inact_cvcorr=cvcorr;
+inact_cvshuf=shufcorr;
 
-save('rings_decode.mat','cvcorr','shufcorr','inact_corr','inact_shuf')
+
+save('rings_decode.mat','act_cvcorr','act_cvshuf','inact_cvcorr','inact_cvshuf')
 
 fh=figure('Color','w','Position',[100,100,195,160]);
 hold on
-lossci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),inact_corr([1,4:9]),'UniformOutput',false)))*100;
-shufci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),inact_shuf([1,4:9]),'UniformOutput',false)))*100;
+lossci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),inact_cvcorr([1,4:9]),'UniformOutput',false)))*100;
+shufci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),inact_cvshuf([1,4:9]),'UniformOutput',false)))*100;
 
 fill([-1,1:6,fliplr(1:6),-1],[lossci(1,:),fliplr(lossci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2)
 fill([-1,1:6,fliplr(1:6),-1],[shufci(1,:),fliplr(shufci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2)
 
-plot([-1,1:6],(cellfun(@(x) mean(x),inact_corr([1,4:9])))*100,'-r');
-plot([-1,1:6],(cellfun(@(x) mean(x),inact_shuf([1,4:9])))*100,'-k');
+plot([-1,1:6],(cellfun(@(x) mean(x),inact_cvcorr([1,4:9])))*100,'-r');
+plot([-1,1:6],(cellfun(@(x) mean(x),inact_cvshuf([1,4:9])))*100,'-k');
 xlabel('Time (s)')
 ylabel('Sample classification accuracy (%)')
 xlim([-2,6])
@@ -139,6 +115,7 @@ savefig(fh,sprintf('congru_%dring_inact_decode.fig',midx+2),'compact');
 print(fh,sprintf('congru_%dring_inact_decode.png',midx+2),'-dpng','-r300');
 end
 
+quit(0)
 % keyboard()
 % 
 

@@ -1,53 +1,37 @@
-findIdx=false;
-if findIdx
-    subtotal=sum(cat(3,conn_mat_all{:}),3);
-    [~,idx]=max(subtotal(:));
-    [row,col]=ind2sub(size(subtotal),idx);
-end
 % assumes all stats file in memory for data generation
-genData=true;
-if genData
+
+if ~exist('su_var_t.mat','file')
     su_var_t=[];
     for bin=1:6
         disp(bin);
-    %     load(sprintf('XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
-%         stats=stats_bins{bin};
-%         for sidx=1:length(stats)
-%             s=stats{sidx};
-%             if s.totalcount<250 || s.s1_trials<20 || s.s2_trials<20 || abs(s.AIs1)<=0.4
-%                 continue
-%             end
-    %         keyboard
-%             if s.s1_peak_significant && any(s.prefered_sample_su1(2:end)) && any(s.prefered_sample_su2(2:end))
-                load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-                %% TODO: brain region
-                for i=1:length(conn_chain_S1)
-                key=conn_chain_S1(i,1)*100000+rem(conn_chain_S1(i,2),100000);
-%                 key=s.fileidx*100000*100000+s.su1_clusterid*100000+s.su2_clusterid;
-                if ~isempty(su_var_t)
-                    idx=find(su_var_t(:,1)==key);
-                else
-                    idx=[];
-                end
-                if pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin+6)>0
-                    selType=2;
-                else
-                    selType=1;
-                end
-                if isempty(idx)
-                    su_var_t(end+1,:)=zeros(1,7);
-                    su_var_t(end,1)=key;
-                    su_var_t(end,bin+1)=selType;
-                else
-                    su_var_t(idx,bin+1)=selType;
-                end
+        load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        %% TODO: brain region
+        for i=1:length(conn_chain_S1)
+            key=conn_chain_S1(i,1)*100000+rem(conn_chain_S1(i,2),100000);
+            if ~isempty(su_var_t)
+                idx=find(su_var_t(:,1)==key);
+            else
+                idx=[];
             end
-%         end
+            if pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin+6)>0
+                selType=2;
+            else
+                selType=1;
+            end
+            if isempty(idx)
+                su_var_t(end+1,:)=zeros(1,7);
+                su_var_t(end,1)=key;
+                su_var_t(end,bin+1)=selType;
+            else
+                su_var_t(idx,bin+1)=selType;
+            end
+        end
     end
-
+    save('su_var_t.mat','su_var_t');
+else
+    load('su_var_t.mat','su_var_t');
 end
 
-save('su_var_t.mat','su_var_t');
 
 for bin=2:6
     d_conn_pair(bin)=nnz((su_var_t(:,bin)>0) ~= (su_var_t(:,bin+1)>0));
@@ -80,7 +64,9 @@ if to_plot
         set(gca(),'YTick',[0,100000,200000],'YTickLabel',0:100000:200000);
         ylim([-0.5,max(ylim())]);
         % title('DP -> TTd')
-
+        
+        selbins=sum(su_var_t>0,2);
+        
         keyboard
         exportgraphics(gcf(),'conn_per_bin_change.pdf','Resolution',300)
     end
@@ -89,7 +75,7 @@ if to_plot
         figure('Color','w','Position',[100,100,220,250])
     %     subplot(3,1,2);
         bin=1;
-        load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         magicN=length(pair_chain);
         hold on
         yyaxis left
@@ -100,8 +86,8 @@ if to_plot
         ylabel('connective pair ratio');
         set(gca(),'YTick',0:0.05:0.2)
         yyaxis right
-        fill([1:6,6:-1:1]',[pci(:,1);flip(pci(:,2))],'r','EdgeColor','none','FaceAlpha',0.2)
         [phat,pci]=binofit(sum(su_var_t(:,2:end)>1),magicN);
+        fill([1:6,6:-1:1]',[pci(:,1);flip(pci(:,2))],'r','EdgeColor','none','FaceAlpha',0.2)
         ph2=plot(phat,'r-','LineWidth',1.5);
         ylabel('selective ratio');
         ylim([0,max(ylim())])
@@ -184,10 +170,10 @@ if to_plot
     print('Neuron-neuron-hist.png','-dpng')
 
 
-    figure()
-    histogram(stable_count(:,2),1:2:80)
-    figure()
-    histogram(transient_count(:,2),1:2:80)
+%     figure()
+%     histogram(stable_count(:,2),1:2:80)
+%     figure()
+%     histogram(transient_count(:,2),1:2:80)
 end
 
 

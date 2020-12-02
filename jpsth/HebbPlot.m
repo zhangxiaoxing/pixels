@@ -2,7 +2,7 @@
 load('rings.mat','rings'); %from ring_list.m dimord=(msize, session, bin, sample)
 hebbPattern=cell(0,4);
 for bin=1:6
-    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fstr{bin}=load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 for b3=1:6
     r3all=cell2mat(rings(1,:,b3,sample)');
@@ -82,7 +82,7 @@ for i=1:114
     sess_reg{i}=arrayfun(@(x) reg_set{x}, unique(fstr{6}.reg_chain_S1(sel,:)),'UniformOutput',false);
 end
 [C,I]=sort(inter_reg_cong_count,'descend');
-sess_reg=sess_reg(I);
+sess_reg=[C,sess_reg(I)];
 
 
 

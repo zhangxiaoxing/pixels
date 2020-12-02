@@ -14,7 +14,7 @@
 % mmm/paircount;
 
 %%overall density nonsel
-thres=20;
+thres=100;
 if true
     
     conncount=nan(114,6,2);
@@ -61,7 +61,7 @@ end
 %% congruent pairs
 if true
 for bin=1:6
-    load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     pair_regs{bin}=pair_reg;
     reg_chains_S1{bin}=reg_chain_S1;
     reg_chains_S2{bin}=reg_chain_S2;
@@ -182,7 +182,7 @@ sum(pairscount(pairscount>thres))
 % stds=std(silentcount);
 
 
-close all
+% close all
 fh=figure('Color','w','Position',[100,100,235,270]);
 hold on
 bar([mmn,mmis,mmia,mmcs,mmca],'FaceColor','w')
@@ -192,4 +192,4 @@ ylim([0,0.25]);
 set(gca,'XTick',1:5,'XTickLabel',{'Non-memory','Incongruent inactive','Incongruent active','Congruent inactive','Congruent active'},'XTickLabelRotation',30)
 ylabel('Connection density')
 exportgraphics(gcf,'pairwise-conn-dens.pdf','ContentType','vector');
-% exportgraphics(fh,'pairwise-conn-dens.png');
+exportgraphics(fh,'pairwise-conn-dens.png');

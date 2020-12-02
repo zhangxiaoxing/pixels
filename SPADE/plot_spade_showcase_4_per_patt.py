@@ -53,6 +53,10 @@ if __name__=='__main__':
         # for idx,sneu in enumerate(all_sneu):
         #     if not np.array_equal(sneu[0][1],sneu[1][1]):
         #         print([idx,sneu[0][1],sneu[1][1]])
+    if False:
+        reg_of_4=np.nonzero([np.unique(x).shape[0]==4 for x in congru_stats['neu_regs']])[0]
+        for i in reg_of_4:
+            print(congru_stats['neu_regs'][i]) #3447
 
     if False:
         patt_match=[np.array_equal(x,[4,8,12]) for x in congru_stats['lag']]
@@ -65,13 +69,16 @@ if __name__=='__main__':
                    np.max(congru_stats['pertrial'][idx][1]),
                    np.min(congru_stats['pertrial'][idx][1]),])
     
-    # for sneu_idx in [33,47,77,78,84]:
-    for sneu_idx in [33,47,77,78,84]:        
-        patt_idx_all=[all_sneu[sneu_idx][0][1],all_sneu[sneu_idx][1][1]]
+    # for sneu_idx in [33,47,77,78,84]:        
+    #     patt_idx_all=[all_sneu[sneu_idx][0][1],all_sneu[sneu_idx][1][1]]
         
-        sess_id=congru_stats['sess_ids'][patt_idx_all[0]]
-        l_idx=all_sneu[sneu_idx][0][3]
-        r_idx=all_sneu[sneu_idx][1][3]
+    #     sess_id=congru_stats['sess_ids'][patt_idx_all[0]]
+    #     l_idx=all_sneu[sneu_idx][0][3]
+    #     r_idx=all_sneu[sneu_idx][1][3]
+    
+    for pidx in [3447]:
+        sess_id=congru_stats['sess_ids'][pidx]
+
         
         mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id))
         trialInfo=mat['trialInfo']
