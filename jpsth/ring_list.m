@@ -21,7 +21,7 @@ if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var')
             for bin=1:6
                 sel11=fstr{bin}.conn_chain_S1(:,1)>=lbound & fstr{bin}.conn_chain_S1(:,1)<ubound & diff(fstr{bin}.reg_chain_S1,1,2);
                 if nnz(sel11)>0
-                    if exist('delay_data','var') && delay_data
+                    if  delay_data
                         onering1=count_motif_congru(fstr{bin}.conn_chain_S1(sel11,:),fstr{bin}.reg_chain_S1(sel11,:),fstr{bin}.pref_chain_S1(sel11,:),bin,msize,1);
                         onering1=unique(flexsort(onering1),'rows');
                         sel12=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound & diff(fstr{bin}.reg_chain_S2,1,2);
@@ -29,7 +29,7 @@ if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var')
                         onering2=unique(flexsort(onering2),'rows');
                         rings(midx,I,bin,:)={onering1,onering2};
                     end
-                    if exist('delay_inact_data','var') && delay_inact_data
+                    if  delay_inact_data
                         onering1=count_motif_congru_inact(fstr{bin}.conn_chain_S1(sel11,:),fstr{bin}.reg_chain_S1(sel11,:),fstr{bin}.pref_chain_S1(sel11,:),msize,1);
                         onering1=unique(flexsort(onering1),'rows');
                         sel12=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound & diff(fstr{bin}.reg_chain_S2,1,2);
@@ -51,7 +51,7 @@ if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var')
 end
 
 
-if (exist('delay_shuf','var') && delay_shuf) || (exist('delay_shuf_inact','var') && delay_inact_shuf)
+if (exist('delay_shuf','var') && delay_shuf) || (exist('delay_shuf_inact','var') && delay_shuf_inact)
     shufrpt=1000;
     rings_shuf=cell(shufrpt,3,114,6,2);
     rings_shuf_inact=cell(shufrpt,3,114,6,2);
@@ -67,7 +67,7 @@ if (exist('delay_shuf','var') && delay_shuf) || (exist('delay_shuf_inact','var')
                     ubound=100000*(I+1);
                     sel21=shufchainS1(:,1)>=lbound & shufchainS1(:,1)<ubound & diff(shufregS1,1,2);
                     if nnz(sel21)>0
-                        if exist('delay_shuf','var') && delay_shuf
+                        if delay_shuf
                             onering1=count_motif_congru(shufchainS1(sel21,:),shufregS1(sel21,:),shufprefS1(sel21,:),bin,msize,1);
                             onering1=unique(flexsort(onering1),'rows');
                             sel22=shufchainS2(:,1)>=lbound & shufchainS2(:,1)<ubound & diff(shufregS2,1,2);
@@ -75,7 +75,8 @@ if (exist('delay_shuf','var') && delay_shuf) || (exist('delay_shuf_inact','var')
                             onering2=unique(flexsort(onering1),'rows');
                             rings_shuf(rpt,midx,I,bin,:)={onering1,onering2};
                         end
-                        if exist('delay_shuf_inact','var') && delay_inact_shuf
+                        if  delay_shuf_inact
+                            disp('Go')
                             onering1=count_motif_congru_inact(shufchainS1(sel21,:),shufregS1(sel21,:),shufprefS1(sel21,:),msize,1);
                             onering1=unique(flexsort(onering1),'rows');
                             sel22=shufchainS2(:,1)>=lbound & shufchainS2(:,1)<ubound & diff(shufregS2,1,2);

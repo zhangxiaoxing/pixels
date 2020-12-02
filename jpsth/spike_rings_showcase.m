@@ -25,8 +25,7 @@ for bb=1:6
     r2=[r2;cell2mat(rings(midx,:,bb,2)')];
 end
 r1(:,midx+3)=1;r2(:,midx+3)=2;ringsm=[r1(:,1:(midx+2));r2(:,1:(midx+2))];samps=[r1(:,midx+3);r2(:,midx+3)];
-
-
+keyboard
 
 for ssidx=srange
     if ssidx>length(ringsm)
@@ -75,7 +74,7 @@ for ssidx=srange
         ts_id=ts_id(s,:);
         ts_id_tagged=relax_tag(ts_id,msize);
         coact_count=sum(ts_id_tagged(:,3));
-        if coact_count>17
+        if coact_count>100
             examples{end+1}=ts_id_tagged;
             cocount(end+1,:)=[coact_count,tidx];
         end
@@ -293,7 +292,7 @@ elseif msize==4
 elseif msize==4
     title(sprintf('Sess#%d, Trial#%d',sessIdx,tidx));    
 end
-print(fh,sprintf('r%d_spike_seq_%d_%d.png',msize,cocount,ssidx),'-dpng');
+print(fh,sprintf('r%d_spike_seq_%03d_%d.png',msize,cocount,ssidx),'-dpng');
 if false
 %     legend(ph,arrayfun(@(x) ['cell ',num2str(x)],1:5,'UniformOutput',false),'NumColumns',3,'Location','northoutside')
     ylim([0,6*(msize+1)]);

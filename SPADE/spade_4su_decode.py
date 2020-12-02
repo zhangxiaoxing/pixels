@@ -147,7 +147,7 @@ def decode(dec_data,corr_err=False):
     kf=KFold(n_splits=trials)
     # clf = SVC(C=0.001,kernel='linear')
     clf=LinearDiscriminantAnalysis()
-    for t in [0,2,4]:#range(6):
+    for t in range(5):
         X1=np.sum(np.array([n['s1corr'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
         X2=np.sum(np.array([n['s2corr'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
         X1err=np.sum(np.array([n['s1err'] for n in dec_data])[:,:,t:t+2],axis=2).transpose()
@@ -193,18 +193,18 @@ def plot(data_arr,data_shuf_arr,data_err_arr,file_desc='sample'):
     cshufmm=np.mean(data_shuf_arr,axis=1)
     cerrmm=np.mean(data_err_arr,axis=1)
     
-    data_boot=[boot.ci(data_arr[b,:], np.mean,n_samples=1000) for b in range(3)]
-    data_shuf_boot=[boot.ci(data_shuf_arr[b,:], np.mean,n_samples=1000) for b in range(3)]
-    data_err_boot=[boot.ci(data_err_arr[b,:], np.mean,n_samples=1000) for b in range(3)]
+    data_boot=[boot.ci(data_arr[b,:], np.mean,n_samples=1000) for b in range(5)]
+    data_shuf_boot=[boot.ci(data_shuf_arr[b,:], np.mean,n_samples=1000) for b in range(5)]
+    data_err_boot=[boot.ci(data_err_arr[b,:], np.mean,n_samples=1000) for b in range(5)]
     
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
-    ax.fill_between(np.arange(1,7,2),[x[0] for x in data_boot],[x[1] for x in data_boot],color='r',alpha=0.2)
-    ax.fill_between(np.arange(1,7,2),[x[0] for x in data_shuf_boot],[x[1] for x in data_shuf_boot],color='k',alpha=0.2)
-    ax.fill_between(np.arange(1,7,2),[x[0] for x in data_err_boot],[x[1] for x in data_err_boot],color='b',alpha=0.2)
+    ax.fill_between(np.arange(1,6),[x[0] for x in data_boot],[x[1] for x in data_boot],color='r',alpha=0.2)
+    ax.fill_between(np.arange(1,6),[x[0] for x in data_shuf_boot],[x[1] for x in data_shuf_boot],color='k',alpha=0.2)
+    ax.fill_between(np.arange(1,6),[x[0] for x in data_err_boot],[x[1] for x in data_err_boot],color='b',alpha=0.2)
     
-    ax.plot(np.arange(1,7,2),np.mean(data_arr,axis=1),'-r')
-    ax.plot(np.arange(1,7,2),np.mean(data_shuf_arr,axis=1),'-k')
-    ax.plot(np.arange(1,7,2),np.mean(data_err_arr,axis=1),'-b')
+    ax.plot(np.arange(1,6),np.mean(data_arr,axis=1),'-r')
+    ax.plot(np.arange(1,6),np.mean(data_shuf_arr,axis=1),'-k')
+    ax.plot(np.arange(1,6),np.mean(data_err_arr,axis=1),'-b')
     ax.set_xlim((0,6.5))
     ax.set_ylim((0.2,0.8))
     ax.set_xticks((0,5))
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     if True: # Sample decoding
         trial_thres=45
         error_thres=5
-        rpt=25
+        rpt=100
         STP_n=0
         if False:
             gen_data(trial_thres=trial_thres,error_thres=error_thres)

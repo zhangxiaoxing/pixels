@@ -17,7 +17,7 @@ prepare_stats_file=true;
 if prepare_stats_file
     %debugging
     %fs=dir('0604_nonsel_XCORR_duo_*delay_6_1_*.mat');
-    for bin=-2
+    for bin=bin_range(1)
 %        cwd=pwd();
 %        cd(sprintf('/media/HDD0/zx/correct_error/correct/bin%d_%d/sums',bin,bin+1));
         load(sprintf('%s_%s_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin,bin+1))

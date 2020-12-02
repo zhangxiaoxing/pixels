@@ -43,7 +43,7 @@ if gen_conn_chain
 
             su1reg_idx=find(strcmp(s.reg_su1,reg_set));
             su2reg_idx=find(strcmp(s.reg_su2,reg_set));
-
+            %TODO: this could be improved to include all brain regions
             if isempty(su1reg_idx) || isempty(su2reg_idx)
                 continue;
             end
