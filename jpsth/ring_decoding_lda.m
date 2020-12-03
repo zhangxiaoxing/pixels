@@ -1,5 +1,5 @@
 % bin_trial_count=quickStats(ring_list);
-midx=1;
+midx=2;
 rpts=2
 if true
 inact=false;
@@ -7,7 +7,7 @@ cvcorr=cell(1,9);
 shufcorr=cell(1,9);
 errcorr=cell(1,9);
 trial_thres=45;
-err_thres=5;
+err_thres=4;
 for bin=1:6
     cvcorr{bin+3}=[];
     shufcorr{bin+3}=[];
@@ -44,12 +44,15 @@ fh=figure('Color','w','Position',[100,100,195,160]);
 hold on
 lossci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),cvcorr([4:9]),'UniformOutput',false)))*100;
 shufci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),shufcorr([4:9]),'UniformOutput',false)))*100;
+errci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),errcorr([4:9]),'UniformOutput',false)))*100;
 
 fill([1:6,fliplr(1:6)],[lossci(1,:),fliplr(lossci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2)
 fill([1:6,fliplr(1:6)],[shufci(1,:),fliplr(shufci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2)
+fill([1:6,fliplr(1:6)],[errci(1,:),fliplr(errci(2,:))],'b','EdgeColor','none','FaceAlpha',0.2)
 
 plot([1:6],(cellfun(@(x) mean(x),cvcorr([4:9])))*100,'-r');
 plot([1:6],(cellfun(@(x) mean(x),shufcorr([4:9])))*100,'-k');
+plot([1:6],(cellfun(@(x) mean(x),errcorr([4:9])))*100,'-k');
 xlabel('Time (s)')
 ylabel('Sample classification accuracy (%)')
 xlim([-2,6])
