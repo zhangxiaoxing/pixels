@@ -8,3 +8,9 @@ transient/
 *.pdf
 *.eps
 *.swp
+*.zip
+*.rar
+*.hdf5
+*.ai
+*.txt
+*.p
