@@ -1,7 +1,12 @@
 %idces from hebb_pattern_showcase.m
 if ~exist('rings','var')
-    addpath(fullfile('K:','Lib','npy-matlab-master','npy-matlab'))
-    addpath('K:\Lib\fieldtrip-20200320')
+    if isunix
+        addpath(fullfile('npy-matlab-master','npy-matlab'))
+        addpath('fieldtrip-20200320')
+    else
+        addpath(fullfile('K:','Lib','npy-matlab-master','npy-matlab'))
+        addpath('K:\Lib\fieldtrip-20200320')
+    end
     ft_defaults
     load rings.mat
     rings_act=rings;

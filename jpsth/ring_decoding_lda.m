@@ -1,6 +1,6 @@
 % bin_trial_count=quickStats(ring_list);
 midx=1;
-rpts=2
+rpts=25
 if true
 inact=false;
 cvcorr=cell(1,9);
@@ -21,7 +21,6 @@ for bin=1:6
             varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
             Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
             ykf=y([training(cv,kf);training(cv,kf)]);
-            yshufkf=yshuf([training(cv,kf);training(cv,kf)]);
             CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
             s1Tkf=s1(test(cv,kf),:);
             s2Tkf=s2(test(cv,kf),:);
@@ -75,7 +74,6 @@ for bin=[-2,1:6]
             varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
             Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
             ykf=y([training(cv,kf);training(cv,kf)]);
-            yshufkf=yshuf([training(cv,kf);training(cv,kf)]);
             CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
             s1Tkf=s1(test(cv,kf),:);
             s2Tkf=s2(test(cv,kf),:);
@@ -114,6 +112,7 @@ set(gca,'XTick',-1:2:5,'XTickLabel',{'ITI','1','3','5'})
 savefig(fh,sprintf('congru_%dring_inact_decode.fig',midx+2),'compact');
 print(fh,sprintf('congru_%dring_inact_decode.png',midx+2),'-dpng','-r300');
 end
+quit(0)
 
 quit(0)
 % keyboard()
