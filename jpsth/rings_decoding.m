@@ -1,7 +1,7 @@
 %idces from hebb_pattern_showcase.m
 if ~exist('rings','var')
-    addpath(fullfile('npy-matlab-master','npy-matlab'))
-    addpath('fieldtrip-20200320')
+    addpath(fullfile('K:','Lib','npy-matlab-master','npy-matlab'))
+    addpath('K:\Lib\fieldtrip-20200320')
     ft_defaults
     load rings.mat
     rings_act=rings;
@@ -53,7 +53,8 @@ if ~active
 end
 ringsm=r(:,1:midx+2);
 samps=r(:,midx+3);
-allrings=cell(0,8);
+all_rings=cell(0,8);
+err_rings=cell(0,8);
 
 for ssidx=srange
     if ssidx>size(ringsm,1)
@@ -81,7 +82,7 @@ for ssidx=srange
     end
     
     msize=numel(transIds);
-    [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+    [avail,spktrial,spktrial_err]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
     if ~avail
         continue
     end
@@ -89,11 +90,21 @@ for ssidx=srange
     S2Trials = find(spktrial.trialinfo(:,5)==8 & spktrial.trialinfo(:,8)==delay);
     [S1FreqMat,S1RingSpkCnt]=genFreqMat(S1Trials,msize,spktrial,active,bins(ssidx));
     [S2FreqMat,S2RingSpkCnt]=genFreqMat(S2Trials,msize,spktrial,active,bins(ssidx));
-    allrings(end+1,:)={ssidx,sessIdx,transIds,preferedSample,S1RingSpkCnt,S2RingSpkCnt,S1FreqMat,S2FreqMat};
+    all_rings(end+1,:)={ssidx,sessIdx,transIds,preferedSample,S1RingSpkCnt,S2RingSpkCnt,S1FreqMat,S2FreqMat};
+    
+    
+    S1Trials = find(spktrial_err.trialinfo(:,5)==4 & spktrial_err.trialinfo(:,8)==delay);
+    S2Trials = find(spktrial_err.trialinfo(:,5)==8 & spktrial_err.trialinfo(:,8)==delay);
+    [S1FreqMat,S1RingSpkCnt]=genFreqMat(S1Trials,msize,spktrial_err,active,bins(ssidx));
+    [S2FreqMat,S2RingSpkCnt]=genFreqMat(S2Trials,msize,spktrial_err,active,bins(ssidx));
+    err_rings(end+1,:)={ssidx,sessIdx,transIds,preferedSample,S1RingSpkCnt,S2RingSpkCnt,S1FreqMat,S2FreqMat};
+    
 end
 blame=datetime();
-save(sprintf('%s_%d_%d_%d.mat',prefix,midx+2,min(srange),max(srange)),'allrings','blame')
-quit(0);
+save(sprintf('%s_%d_%d_%d.mat',prefix,midx+2,min(srange),max(srange)),'all_rings','err_rings','blame')
+if isunix
+    quit(0);
+end
 
 function [freqMat,ringSpkCount]=genFreqMat(trials,msize,spktrial,active,bin)
     ringSpkCount=0;
@@ -171,10 +182,11 @@ end
 end
 
 
-function [avail,out]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,model)
+function [avail,FT_SPIKE,FT_SPIKE_err]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,model)
 sps=30000;
 trials=clearBadPerf(h5read(fullfile(metaFolder,'events.hdf5'),'/trials')',model);
-if isempty(trials)
+trials_err=clearBadPerf(h5read(fullfile(metaFolder,'events.hdf5'),'/trials')','error');
+if isempty(trials) || isempty(trials_err)
     avail=false;
     out=[];
     return
@@ -217,7 +229,9 @@ cfg.timestampspersecond=sps;
 
 FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
 
-out=FT_SPIKE;
+cfg.trl=[trials_err(:,1)-3*sps,trials_err(:,1)+11*sps,zeros(size(trials_err,1),1)-3*sps,trials_err];
+FT_SPIKE_err=ft_spike_maketrials(cfg,FT_SPIKE);
+
 avail=true;
 end
 
