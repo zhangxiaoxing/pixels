@@ -1,13 +1,13 @@
 % bin_trial_count=quickStats(ring_list);
-midx=2;
-rpts=2
+midx=1;
+rpts=25
 if true
 inact=false;
 cvcorr=cell(1,9);
 shufcorr=cell(1,9);
 errcorr=cell(1,9);
 trial_thres=45;
-err_thres=4;
+err_thres=4; %TODO: fix the open-close boundry inconsistency
 for bin=1:6
     cvcorr{bin+3}=[];
     shufcorr{bin+3}=[];
@@ -52,7 +52,7 @@ fill([1:6,fliplr(1:6)],[errci(1,:),fliplr(errci(2,:))],'b','EdgeColor','none','F
 
 plot([1:6],(cellfun(@(x) mean(x),cvcorr([4:9])))*100,'-r');
 plot([1:6],(cellfun(@(x) mean(x),shufcorr([4:9])))*100,'-k');
-plot([1:6],(cellfun(@(x) mean(x),errcorr([4:9])))*100,'-k');
+plot([1:6],(cellfun(@(x) mean(x),errcorr([4:9])))*100,'-b');
 xlabel('Time (s)')
 ylabel('Sample classification accuracy (%)')
 xlim([-2,6])
@@ -61,20 +61,21 @@ set(gca,'XTick',-1:2:5,'XTickLabel',{'ITI','1','3','5'})
 savefig(fh,sprintf('congru_%dring_decode.fig',midx+2),'compact');
 print(fh,sprintf('congru_%dring_decode.png',midx+2),'-dpng','-r300');
 
-end
 act_cvcorr=cvcorr;
 act_cvshuf=shufcorr;
+end
 
-if false
+if true
 inact=true;
 cvcorr=cell(1,9);
 shufcorr=cell(1,9);
+errcorr=cell(1,9);
 for bin=[-2,1:6]
     cvcorr{bin+3}=[];
     shufcorr{bin+3}=[];
     for rpt=1:rpts
         disp([bin, rpt]);
-        [s1,s2]=collect_data(midx,inact,bin,trial_thres,err_thres);
+        [s1,s2,s1err,s2err]=collect_data(midx,inact,bin,trial_thres,err_thres);
         y=[zeros(trial_thres,1);ones(trial_thres,1)];
         cv=cvpartition(trial_thres,'KFold',10);
         for kf=1:cv.NumTestSets
@@ -82,6 +83,8 @@ for bin=[-2,1:6]
             s2kf=s2(training(cv,kf),:);
             varsel=var(s1kf,0,1)>0 & var(s2kf,0,1)>0;
             Xkf=[s1kf(:,varsel);s2kf(:,varsel)];
+            Xerr=[s1err(:,varsel);s2err(:,varsel)];
+            yerr=[zeros(size(s1err,1),1);ones(size(s2err,1),1)];
             ykf=y([training(cv,kf);training(cv,kf)]);
             CVLDAModel=fitcdiscr(Xkf,ykf,'DiscrimType','linear');
             s1Tkf=s1(test(cv,kf),:);
@@ -91,8 +94,10 @@ for bin=[-2,1:6]
             yshufTkf=yTkf(randperm(numel(yTkf)));
             cvresult=CVLDAModel.predict(XTkf)==yTkf;
             cvshufresult=CVLDAModel.predict(XTkf)==yshufTkf;
+            cv_err_result=CVLDAModel.predict(Xerr)==yerr;
             cvcorr{bin+3}=[cvcorr{bin+3};cvresult];
             shufcorr{bin+3}=[shufcorr{bin+3};cvshufresult];
+            errcorr{bin+3}=[errcorr{bin+3};cv_err_result];
         end
     end
 end
@@ -104,14 +109,18 @@ save('rings_decode.mat','act_cvcorr','act_cvshuf','inact_cvcorr','inact_cvshuf')
 
 fh=figure('Color','w','Position',[100,100,195,160]);
 hold on
-lossci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),inact_cvcorr([1,4:9]),'UniformOutput',false)))*100;
-shufci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),inact_cvshuf([1,4:9]),'UniformOutput',false)))*100;
+lossci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),cvcorr([1,4:9]),'UniformOutput',false)))*100;
+shufci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),shufcorr([1,4:9]),'UniformOutput',false)))*100;
+errci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),errcorr([1,4:9]),'UniformOutput',false)))*100;
+
 
 fill([-1,1:6,fliplr(1:6),-1],[lossci(1,:),fliplr(lossci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2)
 fill([-1,1:6,fliplr(1:6),-1],[shufci(1,:),fliplr(shufci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2)
+fill([-1,1:6,fliplr(1:6),-1],[errci(1,:),fliplr(errci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2)
 
-plot([-1,1:6],(cellfun(@(x) mean(x),inact_cvcorr([1,4:9])))*100,'-r');
-plot([-1,1:6],(cellfun(@(x) mean(x),inact_cvshuf([1,4:9])))*100,'-k');
+plot([-1,1:6],(cellfun(@(x) mean(x),cvcorr([1,4:9])))*100,'-r');
+plot([-1,1:6],(cellfun(@(x) mean(x),shufcorr([1,4:9])))*100,'-k');
+plot([-1,1:6],(cellfun(@(x) mean(x),errcorr([1,4:9])))*100,'-b');
 xlabel('Time (s)')
 ylabel('Sample classification accuracy (%)')
 xlim([-2,6])
