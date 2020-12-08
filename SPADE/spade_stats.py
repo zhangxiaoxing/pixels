@@ -419,7 +419,7 @@ def plot():
     
     
 if __name__=='__main__':
-    if True:
-        gen_data_file()
     if False:
+        gen_data_file()
+    if True:
         plot()

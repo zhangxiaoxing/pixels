@@ -103,14 +103,91 @@ def perPattRatio():
 
     fh.savefig('4su_occurance_dist.pdf',bbox_inches='tight')
     
-    
-    
-    
-    sys.exit()
-
-
-            
+          
     ####################
+    
+
+def perSessSuPatt():
+    
+    key_count_congru=[]
+    key_count_incong=[]
+    
+  
+    
+    for sess_id in range(1,114):
+        
+        sess_congru=0
+        sess_incong=0
+        if not os.path.isfile(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id)):
+            print(f'missing sessid {sess_id}')
+            continue
+    
+        filt_fpath=r'K:\code\SPADE\results\{}\winlen4\filtered_patterns.npy'.format(sess_id)
+        if not os.path.isfile(filt_fpath):
+            continue
+    
+        mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id))
+    
+        ## count candidiates
+    
+        pref=np.array(mat['prefs'])[:,0]
+        rego=mat['regs']
+        regs=[x[0][0] for x in rego]
+    
+        reg_set=np.unique(regs)
+        reg_set=reg_set[reg_set!='Unlabeled']
+    
+    
+        r=np.load(filt_fpath,allow_pickle=True)
+        patterns=r[0]
+    
+        for idx, patt in enumerate(patterns):
+            reg_grp=[regs[x] for x in patt['neurons']]
+            #select only inter-region connection
+            if np.unique(reg_grp).shape[0]<2:
+                # print('local')
+                continue
+            if np.isin('Unlabeled',reg_grp):
+                # print('Unlabeled')
+                continue
+    
+   
+            pref_grp=[pref[x] for x in patt['neurons']]
+            if np.unique(pref_grp).shape[0]<2:
+                sess_congru+=1
+    
+            else:
+                sess_incong+=1
+        
+
+        key_count_congru.append(sess_congru)
+        key_count_incong.append(sess_incong)
+    
+    # exported from matlab
+    
+    
+    rcParams['pdf.fonttype'] = 42
+    rcParams['ps.fonttype'] = 42
+    rcParams['font.family'] = 'sans-serif'
+    rcParams['font.sans-serif'] = ['Arial']
+    
+    
+    (fh, ax) = plt.subplots(1, 1, figsize=(1 / 2.54, 4 / 2.54), dpi=300)
+
+    
+    ax.scatter(np.random.random(len(key_count_congru))*0.5+0.75,
+               key_count_congru,s=9,c='k',alpha=0.5,edgecolors='none')
+    ax.errorbar(1,np.mean(key_count_congru),\
+                    np.std(key_count_congru)/np.sqrt(len(key_count_congru)),
+                    fmt='ro',ecolor='r',elinewidth=1,capsize=2,ms=4,mfc='none') 
+    ax.set_xticks([])
+    ax.set_xlim([0,2])
+    # ax.set_ylim([0,500])
+    ax.set_yscale('log')
+    plt.show()
+    breakpoint()
+    fh.savefig('4su_occurance_count.pdf',bbox_inches='tight')    
+    
     
 def tempo_hz(congru_stats,incong_stats):
     congru_per_key={}
@@ -215,6 +292,6 @@ if __name__=='__main__':
     if False:
         tempo_hz(congru_stats,incong_stats)
     if True:
-        perPattRatio()
+        perSessSuPatt()
         
     

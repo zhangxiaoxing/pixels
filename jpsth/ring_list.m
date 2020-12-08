@@ -319,8 +319,4 @@ if (exist('delay_data','var') && delay_data) || (exist('delay_inact_data','var')
         end
     end
 end
-<<<<<<< Updated upstream
 end
-=======
-end
->>>>>>> Stashed changes
