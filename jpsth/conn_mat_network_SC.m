@@ -1,42 +1,19 @@
-keyboard();
+% keyboard();
 if false
     congru=readmatrix('congru_conn_inter_sums.csv','Whitespace',' []');
     incongru=readmatrix('incongru_conn_inter_sums.csv','Whitespace',' []');
-    comb=readmatrix('comb_conn_inter_sums.csv','Whitespace',' []');
     node_sel=congru(:,1)>20 & incongru(:,1)>20;
     one_comp=node_sel & congru(:,3)==1 & incongru(:,3)==1;
-    
-% rtn[0] = graph.getNodeCount();
-% rtn[1] = graph.getEdgeCount();
-% rtn[2] = cmpo.getConnectedComponentsCount();
-% rtn[3] = cc.getAverageClusteringCoefficient();
-% rtn[4] = gdens.calculateDensity(graph, true);
-% rtn[5] = dg.getAverageDegree();
-% rtn[6] = gdist.getPathLength();
-
-
     plotOne(congru(node_sel,1),incongru(node_sel,1),'Node');
     plotOne(congru(node_sel,6),incongru(node_sel,6),'Avg. degree');
     plotOne(congru(node_sel,4),incongru(node_sel,4),'Avg. cluster coef.');
-    
-    plotOne(congru(node_sel,4),comb(node_sel,4),'Avg. cc. COMB');
-    
     plotOne(congru(node_sel,5),incongru(node_sel,5),'Density');
     
     plotOne(congru(node_sel,7),incongru(node_sel,7),'Avg. path length');
     plotOne(congru(node_sel,3),incongru(node_sel,3),'Connected comp.');
     plotOne(congru(one_comp,7),incongru(one_comp,7),'1Comp path length');
-    
-    
 end
 
-
-
-% if false
-%     javaaddpath('I:\java\gephiTK\build\classes\');
-%     javaaddpath('K:\code\gephi\openide');
-%     gtk=gephitk.GephiTK;
-% end
 %% common dataset
 
 fstr=cell(1,6);
@@ -47,7 +24,7 @@ load('reg_keep.mat','reg_set')
 
 load reg_coord.mat
 %% session loop
-for sess=1:114
+for sess=99
     lbound=sess*100000;
     ubound=lbound+100000;
     
@@ -81,12 +58,17 @@ for sess=1:114
     [suids,sidx,~]=unique(suid_all);
     reg=reg_all(sidx);
     [reg,I]=sort(reg);
+    
     suids=suids(I);
-    [GC,GR]=groupcounts(reg);
+%     [GC,GR]=groupcounts(reg);
     grpsel=reg<116;% & ismember(reg,GR(GC>=15));
     % [{reg_set{GR(GC>=15)}}',num2cell(GC(GC>=15))]
     suids=suids(grpsel);
     reg=reg(grpsel);
+    
+    for id=suids'
+        
+    end
     
     congru_conn_mat_S1=zeros(length(suids),length(suids));
     congru_conn_mat_S2=zeros(length(suids),length(suids));
@@ -115,44 +97,40 @@ for sess=1:114
     end
     
     
-    %%
-%     cmap=ones(15,3);
-%     cmap([1,4,5],:)=repmat([0.5],3,3);
-%     cmap(2,:)=[0.8,0,0];
-%     cmap(8,:)=[0,0,0.8];
-%     cmap(10,:)=[1,0,1];
-%     cmap=[1,1,1;cmap];
     congru_mat=congru_conn_mat_S1+congru_conn_mat_S2;
-%     fh=figure('Color','w','Position',[100,100,215,215]);
-%     hold on
-%     imagesc(congru_mat,[0,15]);
-%     colormap(cmap);
-%     xlim([0,length(congru_conn_mat_S1)])
-%     ylim([0,length(congru_conn_mat_S1)])
+    
+    sc_suid=[];
+    ureg=unique(reg)';
+    congru_reg=[];
+    for r=ureg
+        if nnz(suids(reg==r))>=5 && r~=99
+            congru_reg=[congru_reg,r];
+            idx=find(reg==r);
+            [~,I]=max(arrayfun(@(x) sum(congru_mat(x,:)>=4)+sum(congru_mat(:,x)>=4),idx));
+            sc_suid=[sc_suid,idx(I)];
+        end
+    end
+    
     csvcell={'Source','Target','Pref'};
-    for i=1:length(congru_mat)
-        for j=1:length(congru_mat)
+    for i=sc_suid
+        for j=sc_suid
             if i==j || congru_mat(i,j)==0
                 continue
             end
-            if congru_mat(i,j)<4
-%                 csvcell(end+1,:)={i,j,1};
-            else
+            if congru_mat(i,j)>=4
                 csvcell(end+1,:)={i,j,congru_mat(i,j)};
             end
         end
     end
-    writecell(csvcell,sprintf('congru_conn_sc_inter_%03d.csv',sess))
+    writecell(csvcell,'congru_conn_sc_inter_SC.csv')
     
     csvcell={'Id','Label','Reg','AP','DV'};
-    for i=1:length(congru_mat)
-        regidx=cellfun(@(x) strcmp(x,reg_set{reg(i)}),regcoord(:,1));
-        csvcell(end+1,:)={i,reg_set{reg(i)},reg_set{reg(i)},regcoord{regidx,2}/15+rand(1)*2-1,1000/15-regcoord{regidx,3}/15+rand(1)*2-1};
+    cnt=0;
+    for i=sc_suid
+        cnt=cnt+1;
+        csvcell(end+1,:)={i,reg_set{reg(i)},reg_set{reg(i)},2*sin(cnt/length(sc_suid)*2*pi),2*cos(cnt/length(sc_suid)*2*pi)};
     end
-    writecell(csvcell,sprintf('congru_conn_sc_node_coord_%03d.csv',sess))
-    
-%     max(cell2mat(csvcell(2:end,4)))-min(cell2mat(csvcell(2:end,4)))
-%     max(cell2mat(csvcell(2:end,5)))-min(cell2mat(csvcell(2:end,5)))
+    writecell(csvcell,'congru_conn_sc_node_coord_SC.csv')
     
     %% incongruent
     suid_all=[];
@@ -187,7 +165,6 @@ for sess=1:114
     suids=suids(I);
     [GC,GR]=groupcounts(reg);
     grpsel=reg<116;% & ismember(reg,GR(GC>=15));
-    % [{reg_set{GR(GC>=15)}}',num2cell(GC(GC>=15))]
     suids=suids(grpsel);
     reg=reg(grpsel);
     
@@ -219,40 +196,69 @@ for sess=1:114
     
     
     %%
-%     cmap=ones(15,3);
-%     cmap([1,4,5],:)=repmat([0.5],3,3);
-%     cmap(2,:)=[0.8,0,0];
-%     cmap(8,:)=[0,0,0.8];
-%     cmap(10,:)=[1,0,1];
-%     cmap=[1,1,1;cmap];
     congru_mat=congru_conn_mat_S1+congru_conn_mat_S2;
-%     fh=figure('Color','w','Position',[100,100,215,215]);
-%     hold on
-%     imagesc(congru_mat,[0,15]);
-%     colormap(cmap);
-%     xlim([0,length(congru_conn_mat_S1)])
-%     ylim([0,length(congru_conn_mat_S1)])
+    
+    
+    sc_suid=[];
+    for r=congru_reg
+        idx=find(reg==r);
+        [~,I]=max(arrayfun(@(x) sum(congru_mat(x,:)>=4)+sum(congru_mat(:,x)>=4),idx));
+        sc_suid=[sc_suid,idx(I)];
+    end
     csvcell={'Source','Target','Pref'};
-    for i=1:length(congru_mat)
-        for j=1:length(congru_mat)
+    
+    %deliberatly separate a PL-MOs component
+    
+    PL_reg=find(strcmp(reg_set,'ILA'));
+    MOs_reg=find(strcmp(reg_set,'MOs'));
+    
+    comp1=sc_suid(congru_reg~=PL_reg & congru_reg~=MOs_reg);
+    
+    PL_su=find(reg==PL_reg)';
+    MOs_su=find(reg==MOs_reg)';
+    flag=false;
+    for i=PL_su
+        for j=MOs_su
+            if ~(congru_mat(i,j)>=4 || congru_mat(j,i)>=4)
+                continue
+            end
+            if any(congru_mat(comp1,i)) || any(congru_mat(i,comp1))
+                continue
+            end
+            if any(congru_mat(comp1,j)) || any(congru_mat(j,comp1))
+                continue
+            end
+            disp(i)
+            disp(j)
+            flag=true;
+            break;
+        end
+        if flag
+            break
+        end
+    end
+    sc_suid(congru_reg==PL_reg)=i;
+    sc_suid(congru_reg==MOs_reg)=j;
+    
+    for i=sc_suid
+        for j=sc_suid
             if i==j || congru_mat(i,j)==0
                 continue
             end
-            if congru_mat(i,j)<4
-%                 csvcell(end+1,:)={i,j,1};
-            else
+            if congru_mat(i,j)>=4
                 csvcell(end+1,:)={i,j,12};
             end
         end
     end
-    writecell(csvcell,sprintf('incongru_conn_sc_inter_%03d.csv',sess))
+    writecell(csvcell,'incongru_conn_sc_inter_SC.csv')
     
     csvcell={'Id','Label','Reg','AP','DV'};
-    for i=1:length(congru_mat)
-        regidx=cellfun(@(x) strcmp(x,reg_set{reg(i)}),regcoord(:,1));
-        csvcell(end+1,:)={i,reg_set{reg(i)},reg_set{reg(i)},regcoord{regidx,2}/15+rand(1)*2-1,1000/15-regcoord{regidx,3}/15+rand(1)*2-1};
+    cnt=0;
+    for i=sc_suid
+        cnt=cnt+1;
+        csvcell(end+1,:)={i,reg_set{reg(i)},reg_set{reg(i)},2*sin(cnt/length(sc_suid)*2*pi),2*cos(cnt/length(sc_suid)*2*pi)};
     end
-    writecell(csvcell,sprintf('incongru_conn_sc_node_coord_%03d.csv',sess))
+    writecell(csvcell,'incongru_conn_sc_node_coord_SC.csv')
     
 end
 return
@@ -327,8 +333,8 @@ fh=figure('Color','w','Position',[100,100,125,200]);
 hold on;
 ydata=[incongru,congru];
 xdata=ones(size(ydata));
-xdata(:,1)=xdata(:,1)+rand(size(ydata,1),1)*0.3;
-xdata(:,2)=xdata(:,2)+1-rand(size(ydata,1),1)*0.3;
+xdata(:,1)=xdata(:,1)+rand(size(ydata,1),1)*0.1;
+xdata(:,2)=xdata(:,2)+1-rand(size(ydata,1),1)*0.1;
 plot(xdata',ydata','-k')
 plot(xdata(:,1),ydata(:,1),'o','MarkerSize',4,'MarkerFaceColor','k','MarkerEdgeColor','none')
 plot(xdata(:,2),ydata(:,2),'ko','MarkerSize',4,'MarkerFaceColor','none','MarkerEdgeColor','k')
@@ -338,13 +344,5 @@ ylim([0,max(ylim())])
 ylabel(lbl)
 xlabel(sprintf('%0.4f',signrank(congru,incongru)));
 set(gca,'XTick',[])
-if false
-    set(gca,'YScale','log')
-    ylim([0.9,11])
-    ax=gca;
-    ax.YAxis.MinorTickValues=1:9
-    ax.YAxis.MinorTick='on'
-end
-
 exportgraphics(fh,sprintf('func_conn_stats_%s.pdf',lbl),'ContentType','vector');
 end

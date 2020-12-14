@@ -1,11 +1,11 @@
 total_n=0;
-for sessIdx=1:113
+for sessIdx=4%1:113
 per_samp_trial=1;
 
 % keyboard
 if (~exist('path_list','var')) || (exist('to_load','var') && to_load)
-    addpath(fullfile('k:','code','jpsth','npy-matlab-master','npy-matlab'))
-    addpath('k:\code\jpsth\fieldtrip-20200320')
+    addpath(fullfile('k:','Lib','npy-matlab-master','npy-matlab'))
+    addpath('k:\Lib\fieldtrip-20200320')
     ft_defaults
     
     load k:\code\jpsth\114_sorted_file_path.mat
@@ -229,4 +229,5 @@ else
     end
 end
 end
+
 

@@ -20,6 +20,7 @@ from itertools import combinations
 
 
 t_start=1000*pq.ms  #correction for missing t_start parameter during calling spade.concept_output
+window_width=7
 bin_size=4
 sess_id=4
 
@@ -66,8 +67,9 @@ def patt_merge4(patt,trialInfo,sess_id,denovo=False):
         per_trial={'S1':{},'S2':{}}
         for t in range(trialInfo.shape[0]):
             print(f'merge {t}')
-            win_onset=t*7000
-            win_offset=t*7000+6000
+            #DBG
+            win_onset=t*window_width*1000
+            win_offset=win_onset+6000
             tkey='S1' if trialInfo[t,4]==4 else 'S2'
             merged={}
             for i,p in enumerate(patt):
@@ -104,6 +106,7 @@ def patt_merge4(patt,trialInfo,sess_id,denovo=False):
     s2max_freq=np.max(s2t[s2t[:,1]==s2maxsu,2])
     t2=s2t[np.logical_and(s2t[:,1]==s2maxsu,s2t[:,2]==s2max_freq),0][0]
     
+    #for sess4 pertrial is 59 + 61, matches repeated_sequence.m
     s1sel={'t1':t1,'patt_idx':[x['patt_idx'] for x in per_trial['S1'][t1].values()]}
     s2sel={'t2':t2,'patt_idx':[x['patt_idx'] for x in per_trial['S2'][t2].values()]}
     # [x['patt_idx'] for x in per_trial['S1'][t1].values()]
@@ -156,9 +159,16 @@ if __name__=='__main__':
     patterns_raw=r[0]
     params=r[3]
     
-    mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id))
+    mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktN13_{}.mat'.format(sess_id))
     trialInfo=mat['trialInfo']
     regs=mat['regs']
+    cids=mat['transIds']
+    
+    fcmat=scipy.io.loadmat(r'K:\code\jpsth\func_conn_showcase_tagged_spikes_sess4_trial_22_122.mat')
+    fc_tag=fcmat['tag_ts']
+
+    
+    
     patterns_lbl=[]
     for patt in patterns_raw:
         reg_grp=[regs[x] for x in patt['neurons']]
@@ -171,13 +181,14 @@ if __name__=='__main__':
     patt_id_all=np.unique(np.hstack((s1sel['patt_idx'],s2sel['patt_idx'])))
     patt_others=np.nonzero([x not in patt_id_all for x in range(len(patterns_raw))])[0]
        
+    #DBG
     r=neo.io.NeoMatlabIO(filename='K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id))
     bl=r.read_block()
     spkt=bl.segments[0].spiketrains
     
-    
-    l_trial=s1sel['t1']*7000
-    r_trial=s2sel['t2']*7000
+    #DBG
+    l_trial=s1sel['t1']*window_width*1000
+    r_trial=s2sel['t2']*window_width*1000
 
     window_start=np.array([l_trial,r_trial])+1000
 
@@ -193,6 +204,7 @@ if __name__=='__main__':
             tag.append(1 if s1cnt>s2cnt else 2)
                 
     colors=['grey','r','b']
+    fc_colors=['m','c']
     (fh, ax) = plt.subplots(2, 1, figsize=(20 / 2.54, 10 / 2.54), dpi=300)
     (fh2,ax2)= plt.subplots(patt_id_all.shape[0], 2, figsize=(20 / 2.54, 29 / 2.54), dpi=300)
     
@@ -204,16 +216,19 @@ if __name__=='__main__':
     regidx=np.argsort(regax)
     regax=[regax[x] for x in regidx]
     su_ids=su_ids[regidx]
-    
+    cids=cids[su_ids]
     
     stp_pct=[]
     for nidx,one_id in enumerate(su_ids):
         one_spkt=spkt[one_id]
         one_stp_pct=[]
         for subidx, win_start in enumerate(window_start):
+            fc_ts=np.sort(fc_tag[np.logical_and(fc_tag[:,0]==cids[nidx],fc_tag[:,1]==subidx+1),2]*1000+win_start-1000)
+            
             curr_window=[win_start,win_start+6000]
             spkts=one_spkt.times.magnitude
             spk_win=spkts[np.logical_and(spkts>=curr_window[0],spkts<curr_window[1])]
+            spk_fc_sel=np.isin(spk_win,fc_ts)
             spk_stp_sel=np.zeros_like(spk_win)
             for pidx,patt in enumerate(patterns_raw):
                 if one_id not in patt['neurons']:
@@ -232,10 +247,20 @@ if __name__=='__main__':
                     np.vstack((spk_win[patt_ts],spk_win[patt_ts])),\
                     [[nidx-0.4]*np.sum(patt_ts),[nidx+0.4]*np.sum(patt_ts)],\
                     '-',color=colors[tag[pidx]],lw=0.5,alpha=1)
+                    
 
-            ax[subidx].plot(np.vstack((spk_win[spk_stp_sel==0],spk_win[spk_stp_sel==0])),
-                   [[nidx-0.4]*np.sum(spk_stp_sel==0),[nidx+0.4]*np.sum(spk_stp_sel==0)],
+            ax[subidx].plot(np.vstack((spk_win[np.logical_and(spk_stp_sel==0,spk_fc_sel)],
+                                       spk_win[np.logical_and(spk_stp_sel==0,spk_fc_sel)])),
+                   [[nidx-0.4]*np.sum(np.logical_and(spk_stp_sel==0,spk_fc_sel)),
+                    [nidx+0.4]*np.sum(np.logical_and(spk_stp_sel==0,spk_fc_sel))],
+                       '-',color=fc_colors[subidx],lw=0.5,alpha=1)
+
+            ax[subidx].plot(np.vstack((spk_win[np.logical_and(spk_stp_sel==0,np.logical_not(spk_fc_sel))],
+                                       spk_win[np.logical_and(spk_stp_sel==0,np.logical_not(spk_fc_sel))])),
+                   [[nidx-0.4]*np.sum(np.logical_and(spk_stp_sel==0,np.logical_not(spk_fc_sel))),
+                    [nidx+0.4]*np.sum(np.logical_and(spk_stp_sel==0,np.logical_not(spk_fc_sel)))],
                        '-',color='silver',lw=0.5,alpha=1)
+            
             one_stp_pct.append([np.sum(spk_stp_sel==0),np.sum(spk_stp_sel==1),np.sum(spk_stp_sel==2)])
                 ##########################
         stp_pct.append({'yidx':nidx,'neu_id':one_id,'total_unlabeld':one_stp_pct})
