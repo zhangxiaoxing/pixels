@@ -1,142 +1,88 @@
-% keyboard();
-if false
-    congru=readmatrix('congru_conn_inter_sums.csv','Whitespace',' []');
-    incongru=readmatrix('incongru_conn_inter_sums.csv','Whitespace',' []');
-    node_sel=congru(:,1)>20 & incongru(:,1)>20;
-    one_comp=node_sel & congru(:,3)==1 & incongru(:,3)==1;
-    plotOne(congru(node_sel,1),incongru(node_sel,1),'Node');
-    plotOne(congru(node_sel,6),incongru(node_sel,6),'Avg. degree');
-    plotOne(congru(node_sel,4),incongru(node_sel,4),'Avg. cluster coef.');
-    plotOne(congru(node_sel,5),incongru(node_sel,5),'Density');
-    
-    plotOne(congru(node_sel,7),incongru(node_sel,7),'Avg. path length');
-    plotOne(congru(node_sel,3),incongru(node_sel,3),'Connected comp.');
-    plotOne(congru(one_comp,7),incongru(one_comp,7),'1Comp path length');
-end
-
 %% common dataset
 
 fstr=cell(1,6);
 for bin=1:6
-    fstr{bin}=load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 load('reg_keep.mat','reg_set')
 
 load reg_coord.mat
 %% session loop
-for sess=99
+sess=99
     lbound=sess*100000;
     ubound=lbound+100000;
     
-    %% congruent
-    suid_all=[];
-    reg_all=[];
+    %% congruent S1
+    suid_all_S1=[];
+    reg_all_S1=[];
     conn_all_S1=[];
+    for bin=1:6
+        sess_sel_S1=fstr{bin}.conn_chain_S1(:,1)>=lbound & fstr{bin}.conn_chain_S1(:,1)<ubound;
+        congru_sel_S1=fstr{bin}.pref_chain_S1(:,bin)==1 & fstr{bin}.pref_chain_S1(:,bin+6)==1;
+        sessconn=fstr{bin}.conn_chain_S1(sess_sel_S1 & congru_sel_S1,:);
+        suids=sessconn(:);
+        treg=fstr{bin}.reg_chain_S1(sess_sel_S1 & congru_sel_S1,:);
+        reg=treg(:);
+        suid_all_S1=[suid_all_S1;suids];
+        reg_all_S1=[reg_all_S1;reg];
+        conn_all_S1=[conn_all_S1;sessconn];
+    end
+    
+    [suids_S1,sidx_S1,~]=unique(suid_all_S1);
+    reg_S1=reg_all_S1(sidx_S1);
+    [reg_S1,I]=sort(reg_S1);
+    suids_S1=suids_S1(I);
+    grpsel_S1=reg_S1<116;% & ismember(reg,GR(GC>=15));
+
+    suids_S1=suids_S1(grpsel_S1);
+    reg_S1=reg_S1(grpsel_S1);
+    
+    %% congruent S2
+    suid_all_S2=[];
+    reg_all_S2=[];
     conn_all_S2=[];
     for bin=1:6
-        sess_sel_s1=fstr{bin}.conn_chain_S1(:,1)>=lbound & fstr{bin}.conn_chain_S1(:,1)<ubound;
-        incongru_sel_s1=fstr{bin}.pref_chain_S1(:,bin)==1 & fstr{bin}.pref_chain_S1(:,bin+6)==1;
-        sessconn=fstr{bin}.conn_chain_S1(sess_sel_s1 & incongru_sel_s1,:);
-        suids=sessconn(:);
-        treg=fstr{bin}.reg_chain_S1(sess_sel_s1 & incongru_sel_s1,:);
-        reg=treg(:);
-        suid_all=[suid_all;suids];
-        reg_all=[reg_all;reg];
-        conn_all_S1=[conn_all_S1;sessconn];
-        
         sess_sel_S2=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound;
-        incongru_sel_S2=fstr{bin}.pref_chain_S2(:,bin)==1 & fstr{bin}.pref_chain_S2(:,bin+6)==1;
-        sessconn=fstr{bin}.conn_chain_S2(sess_sel_S2 & incongru_sel_S2,:);
+        congru_sel_S2=fstr{bin}.pref_chain_S2(:,bin)==2 & fstr{bin}.pref_chain_S2(:,bin+6)==2;
+        sessconn=fstr{bin}.conn_chain_S2(sess_sel_S2 & congru_sel_S2,:);
         suids=sessconn(:);
-        treg=fstr{bin}.reg_chain_S2(sess_sel_S2 & incongru_sel_S2,:);
+        treg=fstr{bin}.reg_chain_S2(sess_sel_S2 & congru_sel_S2,:);
         reg=treg(:);
-        suid_all=[suid_all;suids];
-        reg_all=[reg_all;reg];
+        suid_all_S2=[suid_all_S2;suids];
+        reg_all_S2=[reg_all_S2;reg];
         conn_all_S2=[conn_all_S2;sessconn];
-        
-    end
-    [suids,sidx,~]=unique(suid_all);
-    reg=reg_all(sidx);
-    [reg,I]=sort(reg);
-    
-    suids=suids(I);
-%     [GC,GR]=groupcounts(reg);
-    grpsel=reg<116;% & ismember(reg,GR(GC>=15));
-    % [{reg_set{GR(GC>=15)}}',num2cell(GC(GC>=15))]
-    suids=suids(grpsel);
-    reg=reg(grpsel);
-    
-    for id=suids'
-        
     end
     
-    congru_conn_mat_S1=zeros(length(suids),length(suids));
-    congru_conn_mat_S2=zeros(length(suids),length(suids));
-    for i=1:length(suids)
-        for j=1:length(suids)
-            if i==j
-                continue
-            end
-            if any(conn_all_S1(:,1)==suids(i) & conn_all_S1(:,2)==suids(j))
-                if reg(i)==reg(j)
-                    congru_conn_mat_S1(i,j)=1;
-                else
-                    congru_conn_mat_S1(i,j)=4;
-                end
-            end
-            
-            if any(conn_all_S2(:,1)==suids(i) & conn_all_S2(:,2)==suids(j))
-                if reg(i)==reg(j)
-                    congru_conn_mat_S2(i,j)=2;
-                else
-                    congru_conn_mat_S2(i,j)=8;
-                end
-            end
-            
-        end
-    end
-    
-    
-    congru_mat=congru_conn_mat_S1+congru_conn_mat_S2;
-    
-    sc_suid=[];
-    ureg=unique(reg)';
-    congru_reg=[];
-    for r=ureg
-        if nnz(suids(reg==r))>=5 && r~=99
-            congru_reg=[congru_reg,r];
-            idx=find(reg==r);
-            [~,I]=max(arrayfun(@(x) sum(congru_mat(x,:)>=4)+sum(congru_mat(:,x)>=4),idx));
-            sc_suid=[sc_suid,idx(I)];
-        end
-    end
-    
-    csvcell={'Source','Target','Pref'};
-    for i=sc_suid
-        for j=sc_suid
-            if i==j || congru_mat(i,j)==0
-                continue
-            end
-            if congru_mat(i,j)>=4
-                csvcell(end+1,:)={i,j,congru_mat(i,j)};
-            end
-        end
-    end
-    writecell(csvcell,'congru_conn_sc_inter_SC.csv')
-    
-    csvcell={'Id','Label','Reg','AP','DV'};
-    cnt=0;
-    for i=sc_suid
-        cnt=cnt+1;
-        csvcell(end+1,:)={i,reg_set{reg(i)},reg_set{reg(i)},2*sin(cnt/length(sc_suid)*2*pi),2*cos(cnt/length(sc_suid)*2*pi)};
-    end
-    writecell(csvcell,'congru_conn_sc_node_coord_SC.csv')
+    [suids_S2,sidx_S2,~]=unique(suid_all_S2);
+    reg_S2=reg_all_S2(sidx_S2);
+    [reg_S2,I]=sort(reg_S2);
+    suids_S2=suids_S2(I);
+    grpsel_S2=reg_S2<116;% & ismember(reg,GR(GC>=15));
+
+    suids_S2=suids_S2(grpsel_S2);
+    reg_S2=reg_S2(grpsel_S2);
+%     congru_conn_mat_S2=zeros(length(suids_S2),length(suids_S2));
+% 
+%     for i=1:length(suids_S2)
+%         for j=1:length(suids_S2)
+%             if i==j
+%                 continue
+%             end
+%             if any(conn_all_S2(:,1)==suids_S2(i) & conn_all_S2(:,2)==suids_S2(j))
+%                 if reg_S2(i)~=reg_S2(j)
+%                     congru_conn_mat_S2(i,j)=4;
+%                 end
+%             end
+%         end
+%     end
+%     
+
     
     %% incongruent
     suid_all=[];
     reg_all=[];
-    conn_all_S1=[];
-    conn_all_S2=[];
+    conn_all_incong=[];
+
     for bin=1:6
         sess_sel_s1=fstr{bin}.conn_chain_S1(:,1)>=lbound & fstr{bin}.conn_chain_S1(:,1)<ubound;
         incongru_sel_s1=diff(fstr{bin}.pref_chain_S1(:,[bin,bin+6]),1,2)~=0 & min(fstr{bin}.pref_chain_S1(:,[bin,bin+6]),[],2)>0;
@@ -146,7 +92,7 @@ for sess=99
         reg=treg(:);
         suid_all=[suid_all;suids];
         reg_all=[reg_all;reg];
-        conn_all_S1=[conn_all_S1;sessconn];
+        conn_all_incong=[conn_all_incong;sessconn];
         
         sess_sel_S2=fstr{bin}.conn_chain_S2(:,1)>=lbound & fstr{bin}.conn_chain_S2(:,1)<ubound;
         incongru_sel_S2=diff(fstr{bin}.pref_chain_S2(:,[bin,bin+6]),1,2)~=0 & min(fstr{bin}.pref_chain_S2(:,[bin,bin+6]),[],2)>0;
@@ -156,7 +102,7 @@ for sess=99
         reg=treg(:);
         suid_all=[suid_all;suids];
         reg_all=[reg_all;reg];
-        conn_all_S2=[conn_all_S2;sessconn];
+        conn_all_incong=[conn_all_incong;sessconn];
         
     end
     [suids,sidx,~]=unique(suid_all);
@@ -165,184 +111,72 @@ for sess=99
     suids=suids(I);
     [GC,GR]=groupcounts(reg);
     grpsel=reg<116;% & ismember(reg,GR(GC>=15));
+    % [{reg_set{GR(GC>=15)}}',num2cell(GC(GC>=15))]
     suids=suids(grpsel);
     reg=reg(grpsel);
     
-    congru_conn_mat_S1=zeros(length(suids),length(suids));
-    congru_conn_mat_S2=zeros(length(suids),length(suids));
-    for i=1:length(suids)
-        for j=1:length(suids)
-            if i==j
+    suids_all=[suids_S1;suids_S2];
+    sels_all=[zeros(size(suids_S1));ones(size(suids_S2))];
+    reg_all=[reg_S1;reg_S2];
+    [GC,GR]=groupcounts(reg_all);
+    
+    grp_sel=ismember(reg_all,GR(GC>15));
+    
+    reg_all=reg_all(grp_sel);
+    sels_all=sels_all(grp_sel);
+    suids_all=suids_all(grp_sel);
+    
+    [~,sidx]=sort(reg_all*1000+sels_all);
+    suids_all=suids_all(sidx);
+    reg_all=reg_all(sidx);
+    
+    conn_mat=zeros(length(suids_all),length(suids_all));
+    
+    for i=1:length(suids_all)
+        for j=1:length(suids_all)
+            if reg_all(i)==reg_all(j)
                 continue
             end
-            if any(conn_all_S1(:,1)==suids(i) & conn_all_S1(:,2)==suids(j))
-                if reg(i)==reg(j)
-                    congru_conn_mat_S1(i,j)=1;
-                else
-                    congru_conn_mat_S1(i,j)=4;
-                end
+
+            if any(conn_all_S1(:,1)==suids_all(i) & conn_all_S1(:,2)==suids_all(j))
+                conn_mat(i,j)=1;
+            end
+            if any(conn_all_S2(:,1)==suids_all(i) & conn_all_S2(:,2)==suids_all(j))
+                conn_mat(i,j)=2;
             end
             
-            if any(conn_all_S2(:,1)==suids(i) & conn_all_S2(:,2)==suids(j))
-                if reg(i)==reg(j)
-                    congru_conn_mat_S2(i,j)=2;
-                else
-                    congru_conn_mat_S2(i,j)=8;
-                end
+            if any(conn_all_incong(:,1)==suids_all(i) & conn_all_incong(:,2)==suids_all(j))
+                conn_mat(i,j)=3;
             end
             
         end
     end
     
+
+
+    cmap=ones(4,3);
+    cmap(2,:)=[1,0,0];
+    cmap(3,:)=[1,0.5,0];
+    cmap(4,:)=[0,0,1];
+
     
-    %%
-    congru_mat=congru_conn_mat_S1+congru_conn_mat_S2;
-    
-    
-    sc_suid=[];
-    for r=congru_reg
-        idx=find(reg==r);
-        [~,I]=max(arrayfun(@(x) sum(congru_mat(x,:)>=4)+sum(congru_mat(:,x)>=4),idx));
-        sc_suid=[sc_suid,idx(I)];
-    end
-    csvcell={'Source','Target','Pref'};
-    
-    %deliberatly separate a PL-MOs component
-    
-    PL_reg=find(strcmp(reg_set,'ILA'));
-    MOs_reg=find(strcmp(reg_set,'MOs'));
-    
-    comp1=sc_suid(congru_reg~=PL_reg & congru_reg~=MOs_reg);
-    
-    PL_su=find(reg==PL_reg)';
-    MOs_su=find(reg==MOs_reg)';
-    flag=false;
-    for i=PL_su
-        for j=MOs_su
-            if ~(congru_mat(i,j)>=4 || congru_mat(j,i)>=4)
-                continue
-            end
-            if any(congru_mat(comp1,i)) || any(congru_mat(i,comp1))
-                continue
-            end
-            if any(congru_mat(comp1,j)) || any(congru_mat(j,comp1))
-                continue
-            end
-            disp(i)
-            disp(j)
-            flag=true;
-            break;
-        end
-        if flag
-            break
-        end
-    end
-    sc_suid(congru_reg==PL_reg)=i;
-    sc_suid(congru_reg==MOs_reg)=j;
-    
-    for i=sc_suid
-        for j=sc_suid
-            if i==j || congru_mat(i,j)==0
-                continue
-            end
-            if congru_mat(i,j)>=4
-                csvcell(end+1,:)={i,j,12};
-            end
-        end
-    end
-    writecell(csvcell,'incongru_conn_sc_inter_SC.csv')
-    
-    csvcell={'Id','Label','Reg','AP','DV'};
-    cnt=0;
-    for i=sc_suid
-        cnt=cnt+1;
-        csvcell(end+1,:)={i,reg_set{reg(i)},reg_set{reg(i)},2*sin(cnt/length(sc_suid)*2*pi),2*cos(cnt/length(sc_suid)*2*pi)};
-    end
-    writecell(csvcell,'incongru_conn_sc_node_coord_SC.csv')
-    
-end
-return
+
+    fh=figure('Color','w','Position',[100,100,215,215]);
+    hold on
+    imagesc(conn_mat,[0,3]);
+    colormap(cmap);
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-arrayfun(@(x) xline(x,':k'),[16,38,59,85,102,139]+0.5);
-arrayfun(@(x) yline(x,':k'),[16,38,59,85,102,139]+0.5);
+arrayfun(@(x) xline(x,':k'),[16,38,60,85,103]+0.5);
+arrayfun(@(x) yline(x,':k'),[16,38,60,85,103]+0.5);
 set(gca(),'XTick',[8.5,27,48,72.5,94,121],'XTickLabel',{'CA1','DP','ILA','MOs','PL','TTd'},...
     'YTick',[8.5,27,48,72.5,94,121],'YTickLabel',{'CA1','DP','ILA','MOs','PL','TTd'})
 fh.Position(3:4)=[215,215];
-xlim([0,139.5])
-ylim([0,139.5])
+xlim([0,143.5])
+ylim([0,143.5])
 exportgraphics(fh,'conn_mat_showcase_sess_99.pdf');
 
-pair_sess_sel=fstr.pair_chain(:,1)>=lbound & fstr.pair_chain(:,1)<ubound;
-sess_pair_reg=fstr.pair_reg(pair_sess_sel,:);
-
-tsu=fstr.pair_chain(pair_sess_sel,:);
-reglist=unique(reg);
-% member_pair_reg=sess_pair_reg(all(ismember(sess_pair_reg,reglist),2),:);
-% numel(unique(tsu(ismember(sess_pair_reg,reglist))));
-for i=1:numel(reglist)
-    for j=1:numel(reglist)
-        if i==j
-            continue
-        else
-            conn_count=nnz(treg(:,1)==reglist(i) & treg(:,2)==reglist(j));
-            pair_count=nnz((sess_pair_reg(:,1)==reglist(i) & sess_pair_reg(:,2)==reglist(j)) ...
-                | (sess_pair_reg(:,1)==reglist(j) & sess_pair_reg(:,2)==reglist(i)));
-            
-            disp({reg_set{reglist(i)},reg_set{reglist(j)},conn_count,pair_count})
-        end
-    end
-end
-
-
-
-return
-
-
-inter_reg_cong_count=zeros(114,1);
-sess_reg=cell(114,1);
-for i=1:114
-    lbound=100000*i;
-    ubound=100000*(i+1);
-    sel=fstr{6}.conn_chain_S1(:,1)>lbound & fstr{6}.conn_chain_S1(:,1)<ubound;
-    inter_reg_cong_count(i)=nnz(diff(fstr{6}.reg_chain_S1(sel,:),1,2) & fstr{6}.pref_chain_S1(sel,6)==fstr{6}.pref_chain_S1(sel,12));
-    sess_reg{i}=arrayfun(@(x) reg_set{x}, unique(fstr{6}.reg_chain_S1(sel,:)),'UniformOutput',false);
-end
-[C,I]=sort(inter_reg_cong_count,'descend');
-sess_reg=[C,sess_reg(I)];
-
-
-function plotOne(congru,incongru,lbl)
-fh=figure('Color','w','Position',[100,100,125,200]);
-hold on;
-ydata=[incongru,congru];
-xdata=ones(size(ydata));
-xdata(:,1)=xdata(:,1)+rand(size(ydata,1),1)*0.1;
-xdata(:,2)=xdata(:,2)+1-rand(size(ydata,1),1)*0.1;
-plot(xdata',ydata','-k')
-plot(xdata(:,1),ydata(:,1),'o','MarkerSize',4,'MarkerFaceColor','k','MarkerEdgeColor','none')
-plot(xdata(:,2),ydata(:,2),'ko','MarkerSize',4,'MarkerFaceColor','none','MarkerEdgeColor','k')
-errorbar([0.75,2.25],mean(ydata),std(ydata)/sqrt(size(ydata,1)),'ko','MarkerSize',6);
-xlim([0.5,2.5])
-ylim([0,max(ylim())])
-ylabel(lbl)
-xlabel(sprintf('%0.4f',signrank(congru,incongru)));
-set(gca,'XTick',[])
-exportgraphics(fh,sprintf('func_conn_stats_%s.pdf',lbl),'ContentType','vector');
-end

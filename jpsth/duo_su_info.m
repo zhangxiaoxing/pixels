@@ -9,6 +9,7 @@ sus_trans=h5read('../transient_6.hdf5','/sus_trans');
 reg_list=h5read('../transient_6.hdf5','/reg');
 cid_list=h5read('../transient_6.hdf5','/cluster_id');
 path_list=h5read('../transient_6.hdf5','/path');
+% wrs_p=h5read('../transient_6.hdf5','/wrs_p');
 if isunix
     path_list=replace(path_list,'\','/');
 end

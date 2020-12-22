@@ -44,9 +44,9 @@ def gen_data_file():
     
     
     for sess_id in range(114):
-        if not os.path.isfile(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id)):
+        if not os.path.isfile(r'K:\code\SPADE\spkt\spktN13_{}.mat'.format(sess_id)):
             continue
-        mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id))
+        mat=scipy.io.loadmat(r'K:\code\SPADE\spkt\spktN13_{}.mat'.format(sess_id))
         pref=np.array(mat['prefs'])[:,0]
         rego=mat['regs']
         regs=[x[0][0] for x in rego]
