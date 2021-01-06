@@ -12,11 +12,14 @@ if isunix
 elseif ispc
     homedir='k:\neupix\wyt';
 end
-
+fstr=cell(1,6);
+for bin=1:6
+    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+end
 
 all_tagged=[];
 % patt_suids=[57,82,85,10070,10097,10099,10101,913,339,414,445,451,452,475,485];
-fc_list=get_func_conn(sessIdx,patt_suids);
+fc_list=get_func_conn(sessIdx,patt_suids,fstr);
 % sessIdx=4;
 
 % trials=[88916040,89126095,2963,2970,4,8,1,6,1,1;163631315,163841370,5454,5461,8,8,-1,6,0,1];
@@ -109,14 +112,9 @@ tag_ts=unique(tag_ts,'rows');
 end
 
 
-function out=get_func_conn(sessId,suids)
+function out=get_func_conn(sessId,suids,fstr)
 patt_su=suids+double(sessId)*100000;
-
 out=[];
-fstr=cell(1,6);
-for bin=1:6
-    fstr{bin}=load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-end
 I=sessId;
 lbound=100000*I;
 ubound=100000*(I+1);

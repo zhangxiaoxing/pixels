@@ -5,15 +5,15 @@ if ~exist('bin_range','var')
     disp('missing bin range');
     return
 end
-cd('~/pixels/jpsth')
+% cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='nonsel';
-prefix='0906';
+currmodel='selec';
+prefix='0831';
 delay=6;
 %bin_range=[4,5];
-addpath(fullfile('npy-matlab-master','npy-matlab'))
-addpath('fieldtrip-20200320')
-ft_defaults
+% addpath(fullfile('npy-matlab-master','npy-matlab'))
+% addpath('fieldtrip-20200320')
+% ft_defaults
 sus_trans=h5read('../transient_6.hdf5','/sus_trans'); %export_arr = np.vstack((sust, transient, switched, unclassified, early_in_6s, late_in_6s, prefer_s))
 reg_list=h5read('../transient_6.hdf5','/reg');
 cid_list=h5read('../transient_6.hdf5','/cluster_id');

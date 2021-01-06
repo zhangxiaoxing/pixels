@@ -38,25 +38,40 @@ if __name__ == '__main__':
     for one_comb in comb_all:
         key_all.append(tuple(sorted(one_comb)))
 
-    conn_map = {}
 
-    for regs in congru_stats['neu_regs']:
+    motif_candi = {}
+    with open(r'K:\code\jpsth\motif_candi.csv') as csv_file: #from conn_heatmap.m
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader: #row: source, target, count, S1/S2 Key,ratio
+            key = tuple(sorted(row[:2]))
+            if int(row[2])>0:
+                motif_candi[key] = int(row[2])
+
+    conn_map = {}
+    for idx,regs in enumerate(congru_stats['neu_regs']):
         ureg = set(regs)
+        # if 'ORBm' in ureg and 'DG' in ureg:
+        #     breakpoint()
         if len(ureg) > 1:
             comb = combinations(ureg, 2)
             for c in list(comb):
                 key = tuple(sorted(c))
+                if key not in motif_candi.keys():
+                    print(congru_stats['sess_ids'][idx])
+                    continue
                 if key in conn_map:
                     conn_map[key] += 1
                 else:
                     conn_map[key] = 1
 
     conn_map_fc = {}
-    with open(r'K:\code\jpsth\selec_sum_ratio.csv') as csv_file:
+    with open(r'K:\code\jpsth\selec_sum_ratio.csv') as csv_file: #from conn_heatmap.m
         csv_reader = csv.reader(csv_file, delimiter=',')
-        for row in csv_reader:
+        for row in csv_reader: #row: source, target, count, S1/S2 Key,ratio
             key = tuple(sorted(row[:2]))
-            conn_map_fc[key] = 1
+            if int(row[2])>0:
+                conn_map_fc[key] = float(row[4])
+
 
     reg_coord = {}
     with open(r'K:\code\SPADE\reg_coord.csv') as csv_file:
@@ -66,23 +81,26 @@ if __name__ == '__main__':
             reg_coord[key] = [float(row[1]), float(row[2])]
 
     all_reg = []
-    with open('STP4_conn.csv', 'w') as f:
+    with open('STP4_FC_conn.csv', 'w') as f:
         write = csv.writer(f)
         write.writerow(['Source', 'Target', 'Weight', 'Partition'])
         for key in key_all:
-            all_reg.extend(key)
             if key in conn_map.keys():
-                # breakpoint()
+                if key not in motif_candi.keys():
+                    # breakpoint()
+                    continue
+                all_reg.extend(key)
                 row = []
                 row.extend(list(key))
-                row.append(conn_map[key])
-                row.append(1)
-                write.writerow(row)
-            elif key in conn_map_fc.keys():
-                row = []
-                row.extend(list(key))
-                row.append(1)
+                row.append(conn_map[key]/motif_candi[key])
                 row.append(0)
+                write.writerow(row)
+
+            if key in conn_map_fc.keys():
+                row = []
+                row.extend(list(key))
+                row.append(conn_map_fc[key])
+                row.append(1)
                 write.writerow(row)
 
     with open('STP4_node_coord.csv', 'w') as f:
@@ -91,10 +109,8 @@ if __name__ == '__main__':
         for reg in set(all_reg):
             row = [reg, reg, reg_coord[reg][0]/15, 1000/15-reg_coord[reg][1]/15]
             write.writerow(row)
-            
         
-    breakpoint()
-    
+    # breakpoint()
     
     
 def reg_degree():    

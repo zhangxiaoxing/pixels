@@ -95,10 +95,14 @@ def perPattRatio():
     for idx,key in enumerate(keys):
         mm=[np.mean(key_count_incong[key]),np.mean(key_count_congru[key])]
         
-        ax.bar(idx+1,mm[1],width=0.7,color='w',edgecolor='k')
-        ax.errorbar(idx+1,mm[1],\
+        ax.bar(idx-0.2+1,mm[0],width=0.35,color='k',edgecolor='k',lw=0.5)
+        ax.bar(idx+0.2+1,mm[1],width=0.35,color='w',edgecolor='k',lw=0.5)
+        ax.errorbar(idx-0.2+1,mm[0],\
+                    np.std(key_count_incong[key])/np.sqrt(len(key_count_incong[key])),
+                    color='none',ecolor='grey',elinewidth=0.5,capsize=1,lw=0.5)
+        ax.errorbar(idx+0.2+1,mm[1],\
                     np.std(key_count_congru[key])/np.sqrt(len(key_count_congru[key])),
-                    color='none',ecolor='grey',capsize=1)        
+                    color='none',ecolor='grey',elinewidth=0.5,capsize=1,lw=0.5)        
     ax.set_xticks((5,10,15,20))
 
     fh.savefig('4su_occurance_dist.pdf',bbox_inches='tight')
@@ -164,8 +168,8 @@ def perSessSuPatt():
         key_count_incong.append(sess_incong)
     
     # exported from matlab
-    
-    
+    print(stats.ranksums(key_count_congru,key_count_incong))
+    breakpoint()
     rcParams['pdf.fonttype'] = 42
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
@@ -175,15 +179,25 @@ def perSessSuPatt():
     (fh, ax) = plt.subplots(1, 1, figsize=(1 / 2.54, 4 / 2.54), dpi=300)
 
     
-    ax.scatter(np.random.random(len(key_count_congru))*0.5+0.75,
-               key_count_congru,s=9,c='k',alpha=0.5,edgecolors='none')
-    ax.errorbar(1,np.mean(key_count_congru),\
+    ax.scatter(np.random.random(len(key_count_incong))*0.2+0.9,
+                key_count_incong,s=4,c='k',alpha=0.5,edgecolors='none')
+    
+    ax.scatter(np.random.random(len(key_count_congru))*0.2+2.9,
+               key_count_congru,s=4,c='k',alpha=0.5,edgecolors='none')
+    ax.errorbar(4,np.mean(key_count_congru),\
                     np.std(key_count_congru)/np.sqrt(len(key_count_congru)),
-                    fmt='ro',ecolor='r',elinewidth=1,capsize=2,ms=4,mfc='none') 
+                    fmt='ko',ecolor='k',elinewidth=0.5,capsize=2,ms=4,mfc='none') 
+        
+    ax.errorbar(0,np.mean(key_count_incong),\
+                    np.std(key_count_incong)/np.sqrt(len(key_count_incong)),
+                    fmt='ko',ecolor='k',elinewidth=0.5,capsize=2,ms=4,mfc='none')         
+        
+    
     ax.set_xticks([])
-    ax.set_xlim([0,2])
-    # ax.set_ylim([0,500])
+    ax.set_xlim([-1,5])
+    ax.set_ylim([50,5000])
     ax.set_yscale('log')
+    ax.set_yticks([100,1000])
     plt.show()
     breakpoint()
     fh.savefig('4su_occurance_count.pdf',bbox_inches='tight')    
@@ -289,6 +303,10 @@ if __name__=='__main__':
         r=pickle.load(open('spade_stats.p','rb'))
         congru_stats=r['congru_stats']
         incong_stats=r['incongru_stats']
+        
+    # perPattRatio()
+    perSessSuPatt()
+    sys.exit()
     if False:
         tempo_hz(congru_stats,incong_stats)
     if True:

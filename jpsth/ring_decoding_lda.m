@@ -1,3 +1,4 @@
+keyboard()
 % bin_trial_count=quickStats(ring_list);
 midx=1;
 rpts=25
@@ -155,6 +156,12 @@ for i=1:size(flist,1)
     err_ring_list=[err_ring_list;err_rings];
 end
 
+% load significant3_ringlist.mat
+% r=sort(reshape(cell2mat(ring_list(:,3)),3,[])'+cell2mat(ring_list(:,2))*100000,2);
+% shuf_sel=ismember(r,significant3_ringlist,'rows');
+% ring_list=ring_list(shuf_sel,:);
+% err_ring_list=err_ring_list(shuf_sel,:);
+
 ringOccur=sum(cell2mat(ring_list(:,5:6)),2);
 totalTrial=sum(cellfun(@(x) size(x,1), ring_list(:,7:8)),2);
 
@@ -210,4 +217,52 @@ for bin=1:6
     disp(nnz(out(:,1)==bin & out(:,3)>30 & out(:,4)>30))
 end
 
+end
+
+
+
+
+function stats_test()
+load rings_decode.mat
+act=[];
+for i=4:9
+    [~,~,pcs]=crosstab([zeros(size(act_cvshuf{i}));ones(size(act_cvcorr{i}))],[act_cvshuf{i};act_cvcorr{i}]);
+    [~,~,pes]=crosstab([zeros(size(act_cvshuf{i}));ones(size(act_errcorr{i}))],[act_cvshuf{i};act_errcorr{i}]);
+    [~,~,pce]=crosstab([zeros(size(act_cvcorr{i}));ones(size(act_errcorr{i}))],[act_cvcorr{i};act_errcorr{i}]);
+    act=[act;pcs,pes,pce];
+end
+
+inact=[];
+for i=[1,4:9]
+    [~,~,pcs]=crosstab([zeros(size(inact_cvshuf{i}));ones(size(inact_cvcorr{i}))],[inact_cvshuf{i};inact_cvcorr{i}]);
+    [~,~,pes]=crosstab([zeros(size(inact_cvshuf{i}));ones(size(inact_errcorr{i}))],[inact_cvshuf{i};inact_errcorr{i}]);
+    [~,~,pce]=crosstab([zeros(size(inact_cvcorr{i}));ones(size(inact_errcorr{i}))],[inact_cvcorr{i};inact_errcorr{i}]);
+    inact=[inact;pcs,pes,pce];
+end
+
+end
+
+function plotAct()
+load('rings_decode.mat','act_cvcorr','act_cvshuf','act_errcorr')
+
+fh=figure('Color','w','Position',[100,100,185,150]);
+hold on
+lossci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),act_cvcorr([4:9]),'UniformOutput',false)))*100;
+shufci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),act_cvshuf([4:9]),'UniformOutput',false)))*100;
+errci=(cell2mat(cellfun(@(x) bootci(1000,@(y) mean(y), x),act_errcorr([4:9]),'UniformOutput',false)))*100;
+
+
+fill([1:6,fliplr(1:6)],[lossci(1,:),fliplr(lossci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2)
+fill([1:6,fliplr(1:6)],[shufci(1,:),fliplr(shufci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2)
+fill([1:6,fliplr(1:6)],[errci(1,:),fliplr(errci(2,:))],'b','EdgeColor','none','FaceAlpha',0.2)
+
+plot([1:6],(cellfun(@(x) mean(x),act_cvcorr([4:9])))*100,'-r');
+plot([1:6],(cellfun(@(x) mean(x),act_cvshuf([4:9])))*100,'-k');
+plot([1:6],(cellfun(@(x) mean(x),act_errcorr([4:9])))*100,'-b');
+xlabel('Time (s)')
+ylabel('Sample classification accuracy (%)')
+xlim([0,6.5])
+ylim([40,100])
+set(gca,'XTick',0:5,'XTickLabel',0:5,'YTick',[50,75,100])
+exportgraphics(fh,'congru_3ring_act_decode.pdf','ContentType','vector')
 end

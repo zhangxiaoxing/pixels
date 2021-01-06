@@ -17,6 +17,7 @@ import scikits.bootstrap as boot
 from mlxtend.evaluate import permutation_test
 from matplotlib import rcParams
 import pickle
+import numpy.polynomial.polynomial as poly
 
 
 def gen_data_file():
@@ -69,10 +70,10 @@ def gen_data_file():
             local_congru+=(comb(local1,4)+comb(local2,4))
             local_incongru+=(comb(n_su,4)-comb(local1,4)-comb(local2,4))
             
-        
+        total_congru=total_congru1+total_congru2-local_congru
         candidate_per_sess.append([sess_id,
-                                   total_congru1+total_congru2-local_congru,
-                                   total_n-total_congru1-local_incongru])
+                                   total_congru,
+                                   total_n-total_congru-local_incongru])
         
         
         trialInfo=mat['trialInfo']
@@ -220,7 +221,7 @@ def plot():
     incongru_sem=np.std(incongru_dens)/np.sqrt(len(incongru_dens))
     
     
-    p_value = permutation_test(congru_dens,incongru_dens,method='approximate',num_rounds=10000)
+    # p_value = permutation_test(congru_dens,incongru_dens,method='approximate',num_rounds=10000)
     
     
     (fh, ax) = plt.subplots(1, 1, figsize=(1.5 / 2.54, 4 / 2.54), dpi=300)
@@ -417,6 +418,39 @@ def plot():
     ax.set_ylim((0,3.6))
     fh.savefig('spade_4su_raw_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
     
+    
+    
+    ### for comparison of r rather than fr
+    
+    s1sel=np.array(congru_stats['prefered_samp'])==1
+    s2sel=np.array(congru_stats['prefered_samp'])==2
+    sigsel=np.array(congru_stats['motif_pvalues'])[:,0]<0.05
+    (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
+    #prefer 1, 1 on yaxis
+    ax.scatter(np.array(congru_stats['mm'])[s1sel,2]/6,
+               np.array(congru_stats['mm'])[s1sel,0]/6,
+               s=1,c='k',marker='.',alpha=1)
+    
+    ax.scatter(np.array(congru_stats['mm'])[s2sel,0]/6,
+               np.array(congru_stats['mm'])[s2sel,2]/6,
+               s=1,c='k',marker='.',alpha=1)
+    
+    ax.plot([0,3.6],[0,3.6],'--',color='silver')
+    
+    xx=np.hstack([np.array(congru_stats['mm'])[s1sel,2],np.array(congru_stats['mm'])[s2sel,0]])
+    yy=np.hstack([np.array(congru_stats['mm'])[s1sel,0],np.array(congru_stats['mm'])[s2sel,2]])
+    print(signedstat=stats.wilcoxon(xx,yy))
+    
+    # (slope, intercept,rvalue,pvalue,stderr)=stats.linregress(xx,yy)
+    # ax.plot([0,3.6],[intercept/6,slope*3.6+intercept/6],'--r')
+    
+    ax.set_yticks(np.arange(0,4))
+    ax.set_xticks(np.arange(0,4))
+    ax.set_xlabel('patterns / s, non-prefered')
+    ax.set_ylabel('patterns / s, prefered')
+    ax.set_xlim((0,3.6))
+    ax.set_ylim((0,3.6))
+    fh.savefig('spade_4su_raw_pattern_prefered_nonprefered.pdf',bbox_inches='tight')
     
 if __name__=='__main__':
     if False:

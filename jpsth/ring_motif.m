@@ -1,3 +1,4 @@
+keyboard()
 bz=false;
 if false
     load('rings.mat')
@@ -46,8 +47,8 @@ if false
     end
 end
     close all
-for msize=4
-    plotOne(msize,motif_inact_count,motif_count_shuf,base_motif_count,base_motif_count_shuf,true);
+for msize=5
+%     plotOne(msize,motif_inact_count,motif_count_shuf,base_motif_count,base_motif_count_shuf,true);
     plotOne(msize,motif_count,motif_count_shuf,base_motif_count,base_motif_count_shuf,false);
 end
 
@@ -73,7 +74,7 @@ else
 end
 xlim([-1.75,6.75])
 yline(1,'--','Color',[0.5,0.5,0.5])
-set(gca,'XTick',[-1,1 5],'XTickLabel',{'ITI','1','5'},'YScale','log','YColor','k','FontSize',10,'Ytick',[1,100]);
+set(gca,'XTick',[-1,0 5],'XTickLabel',{'ITI','0','5'},'YScale','log','YColor','k','FontSize',10,'Ytick',[1,100]);
 xlabel('Time (sec)')
 ylabel('Observed / expected')
 keyboard()
@@ -83,11 +84,12 @@ else
     exportgraphics(fh,sprintf('motif_of_%d.pdf',msize),'ContentType','vector');
 end
 
-fh=figure('Color','w','Position',[100,100,95,150]);
+fh=figure('Color','w','Position',[100,100,185,150]);
 hold on;
 if ~evalin('base','bz')
     hold on
     if inact
+        return
         [pref_rings,nonp_rings]=collect_data(midx,true);
         fp=errorbar([-1,1:6],mean(pref_rings(:,[1,4:9])./msize),std(pref_rings(:,[1,4:9])./msize)./sqrt(size(pref_rings,1)),'-ro','MarkerSize',3)
         fn=errorbar([-1,1:6],mean(nonp_rings(:,[1,4:9])./msize),std(nonp_rings(:,[1,4:9])./msize)./sqrt(size(nonp_rings,1)),'-bo','MarkerSize',3)
@@ -110,9 +112,9 @@ if ~evalin('base','bz')
     ylabel('Ring cycle frequency')
 %     legend([fp,fn],{'Prefered','Non-pref.'})
     text(0,0.5,sprintf('n=%d',size(pref_rings,1)),'Color','r');
-    set(gca,'XTick',[-1,1 5],'XTickLabel',{'ITI','1','5'},'YScale','linear','YColor','k','FontSize',10,'Ytick',[0,2]);
+    set(gca,'XTick',[0,5],'XTickLabel',[0,5],'YScale','linear','YColor','k','FontSize',10,'Ytick',0:0.5:max(ylim()));
 %     ylim([0,0.5])
-    xlim([-1.75,6.75])
+    xlim([0,6.5])
     xlabel('Time (sec)')
 end
 % legend([rh,sh],{'recorded','shuffled'});
@@ -128,7 +130,7 @@ end
 function sesscnt=countConnedSession()
 fstr=cell(1,6);
 for bin=1:6
-    fstr{bin}=load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 sesscnt=false(114,1);
 for I=1:114
@@ -146,7 +148,7 @@ end
 end
 
 
-function [pref_rings,nonp_rings]=collect_data(midx,inact)
+function [pref_rings,nonp_rings,neu_count]=collect_data(midx,inact)
 datapath='ring_freq';
 if exist('inact','var') && inact
     flist=ls(fullfile(datapath,sprintf('*freq_inact_%d_*.mat',midx+2)));
@@ -161,15 +163,20 @@ for i=1:size(flist,1)
     if ~isfile(fn)
         continue
     end
-    load(fn,'allrings');
-    ring_list=[ring_list;allrings];
+    load(fn,'all_rings');
+    ring_list=[ring_list;all_rings];
 end
+
+% load significant3_ringlist.mat
+% r=sort(reshape(cell2mat(ring_list(:,3)),3,[])'+cell2mat(ring_list(:,2))*100000,2);
+% shuf_sel=ismember(r,significant3_ringlist,'rows');
+% ring_list=ring_list(shuf_sel,:);
 
 ringOccur=sum(cell2mat(ring_list(:,5:6)),2);
 totalTrial=sum(cellfun(@(x) size(x,1), ring_list(:,7:8)),2);
 
 ring_list=ring_list(ringOccur>=totalTrial,:);
-
+neu_count=numel(unique(reshape(cell2mat(ring_list(:,3)),numel(ring_list{1,3}),[])'+cell2mat(ring_list(:,2))*100000));
 pref_rings=[];
 nonp_rings=[];
 for i=1:size(ring_list,1)
@@ -185,3 +192,6 @@ for i=1:size(ring_list,1)
 end
 
 end
+
+
+

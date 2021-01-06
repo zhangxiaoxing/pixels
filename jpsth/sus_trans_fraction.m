@@ -38,12 +38,12 @@ set(gca,'XTick',1:2,'XTickLabel',{'Sust.','Trans.'},'XTickLabelRotation',45);
 xlim([0.5,2.5])
 ylabel('Fraction out of 24444 neurons')
 exportgraphics(fh,'sust_trans_ratio.pdf')
-
-
-    sesssel=startsWith(path_list,'M48_20191205_g0');
-    sus=nnz(sus_trans(:,1) & sesssel & reg_sel);
-    trans=nnz((sus_trans(:,2) | sus_trans(:,4))& sesssel & reg_sel);
-    cnt=nnz(sesssel & reg_sel);
-    sums=[sums;cnt,sus,trans];
-
-    [GC,GR]=groupcounts(reg_list(sesssel & reg_sel))
+% 
+% 
+%     sesssel=startsWith(path_list,'M48_20191205_g0');
+%     sus=nnz(sus_trans(:,1) & sesssel & reg_sel);
+%     trans=nnz((sus_trans(:,2) | sus_trans(:,4))& sesssel & reg_sel);
+%     cnt=nnz(sesssel & reg_sel);
+%     sums=[sums;cnt,sus,trans];
+% 
+%     [GC,GR]=groupcounts(reg_list(sesssel & reg_sel))

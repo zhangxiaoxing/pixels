@@ -352,16 +352,19 @@ if __name__ == '__main__':
     ax[1].set_yticklabels(regax, fontdict={'fontsize': 5})
     ax[1].set_ylim(-0.6, len(su_ids)-0.4)
     fh.savefig(f'multiple_stp_{sess_id}.pdf', bbox_inches='tight')
+    
+    breakpoint()
 
-    if False:
+    if True:
         (fh2, ax2) = plt.subplots(
             patt_id_all.shape[0], 2, figsize=(20 / 2.54, 29 / 2.54), dpi=300)
         for iidx, pidx in enumerate(patt_id_all):
             patt = patterns_lbl[pidx]
-            print(iidx)
+            reg_grp = [regs[x][0][0] for x in patt['neurons']]
+            print(reg_grp)
             neu = patt['neurons']
             times = patt['times']
-            ax2[iidx][0].set_ylabel(f'#{pidx}', fontdict={'fontsize': 5})
+            ax2[iidx][0].set_ylabel(f'#{iidx+1}', fontdict={'fontsize': 5})
 
             for idx, one_neu in enumerate(neu):
                 for subidx, win_start in enumerate(window_start):
@@ -391,47 +394,55 @@ if __name__ == '__main__':
                                                 [idx+0.4]*np.sum(in_stp_sel)],
                                                '-', color=stp_colors[tag[pidx]], lw=0.25, alpha=1)
 
-        for twoax in ax2:
+        for twoax in ax2[:-1]:
             for idx, oneax in enumerate(twoax):
                 oneax.set_xticks([])
                 oneax.set_yticks([])
                 oneax.set_xlim((window_start[idx], window_start[idx]+6000))
+            
+        for idx, lax in enumerate(ax2[-1]):
+            lax.set_yticks([])
+            lax.set_xticks(np.arange(0,6001,1000)+window_start[idx])
+            lax.set_xticklabels(np.arange(0,7));
+            lax.set_xlim(window_start[idx], window_start[idx]+6000)
         fh2.savefig(f'expanded_stp_{sess_id}.pdf', bbox_inches='tight')
-
-    (fh3, ax3) = plt.subplots(2, 1, figsize=(5 / 2.54, 10 / 2.54), dpi=300)
-    for subidx, subax in enumerate(ax3):
-        for neu in stp_pct:
-            totalspk = np.sum(neu['total_unlabeld'][subidx])
-            ratio1 = neu['total_unlabeld'][subidx][1]/totalspk
-            ratio2 = neu['total_unlabeld'][subidx][2]/totalspk
-            subax.barh(neu['yidx'], ratio1*100, color='r', edgecolor='none')
-            subax.barh(neu['yidx'], ratio2*100, color='b',
-                       edgecolor='none', left=ratio1*100)
-
-        subax.set_xlim(0, 100)
-        subax.set_yticks(range(len(su_ids)))
-        subax.set_yticklabels(regax, fontdict={'fontsize': 5})
-        subax.set_ylim(-0.6, len(su_ids)-0.4)
-    subax.set_xlabel('Spikes associated with STPs (%)')
-    fh3.savefig(f'spike_ratio_{sess_id}.pdf', bbox_inches='tight')
-    for subidx, subax in enumerate(ax3):
-        for neu in stp_pct:
-            totalspk = np.sum(neu['total_unlabeld'][subidx])
-            ratio_fc = neu['total_unlabeld'][subidx][1]/totalspk
-            ratio1 = neu['total_unlabeld'][subidx][2]/totalspk
-            ratio2 = neu['total_unlabeld'][subidx][3]/totalspk
-
-            subax.barh(neu['yidx'], ratio1*100, color='r', edgecolor='none')
-            subax.barh(neu['yidx'], ratio2*100, color='b',
-                       edgecolor='none', left=ratio1*100)
-            subax.barh(neu['yidx'], ratio_fc*100, color=('m' if subidx ==
-                                                         0 else 'c'), edgecolor='none', left=(ratio1+ratio2)*100)
-
-        subax.set_xlim(0, 100)
-        subax.set_yticks(range(len(su_ids)))
-        subax.set_yticklabels(regax, fontdict={'fontsize': 5})
-        subax.set_ylim(-0.6, len(su_ids)-0.4)
-    subax.set_xlabel('Spikes associated with STPs (%)')
-    fh3.savefig(f'spike_ratio_{sess_id}.pdf', bbox_inches='tight')
+        
+    if False:
+        (fh3, ax3) = plt.subplots(2, 1, figsize=(5 / 2.54, 10 / 2.54), dpi=300)
+        # for subidx, subax in enumerate(ax3):
+        #     for neu in stp_pct:
+        #         totalspk = np.sum(neu['total_unlabeld'][subidx])
+        #         ratio1 = neu['total_unlabeld'][subidx][1]/totalspk
+        #         ratio2 = neu['total_unlabeld'][subidx][2]/totalspk
+        #         subax.barh(neu['yidx'], ratio1*100, color='r', edgecolor='none')
+        #         subax.barh(neu['yidx'], ratio2*100, color='b',
+        #                    edgecolor='none', left=ratio1*100)
+    
+        #     subax.set_xlim(0, 100)
+        #     subax.set_yticks(range(len(su_ids)))
+        #     subax.set_yticklabels(regax, fontdict={'fontsize': 5})
+        #     subax.set_ylim(-0.6, len(su_ids)-0.4)
+        # subax.set_xlabel('Spikes associated with STPs (%)')
+        # fh3.savefig(f'spike_ratio_{sess_id}.pdf', bbox_inches='tight')
+        ratio_list=[]
+        for subidx, subax in enumerate(ax3):
+            for neu in stp_pct:
+                totalspk = np.sum(neu['total_unlabeld'][subidx])
+                ratio_fc = neu['total_unlabeld'][subidx][1]/totalspk
+                ratio1 = neu['total_unlabeld'][subidx][2]/totalspk
+                ratio2 = neu['total_unlabeld'][subidx][3]/totalspk
+                ratio_list.append(ratio1+ratio2)
+                subax.barh(neu['yidx'], ratio1*100, color='r', edgecolor='none')
+                subax.barh(neu['yidx'], ratio2*100, color='b',
+                           edgecolor='none', left=ratio1*100)
+                subax.barh(neu['yidx'], ratio_fc*100, color=('m' if subidx ==
+                                                             0 else 'c'), edgecolor='none', left=(ratio1+ratio2)*100)
+    
+            subax.set_xlim(0, 100)
+            subax.set_yticks(range(len(su_ids)))
+            subax.set_yticklabels(regax, fontdict={'fontsize': 5})
+            subax.set_ylim(-0.6, len(su_ids)-0.4)
+        subax.set_xlabel('Spikes associated with STPs (%)')
+        fh3.savefig(f'spike_ratio_{sess_id}.pdf', bbox_inches='tight')
     
     meng.quit()

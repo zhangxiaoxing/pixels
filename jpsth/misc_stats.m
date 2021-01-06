@@ -7,6 +7,13 @@ fr=h5read('../transient_6.hdf5','/fr');
 sel=h5read('../transient_6.hdf5','/raw_selectivity');
 wrsp=h5read('../transient_6.hdf5','/wrs_p');
 
+sus_trans=h5read('../transient_6.hdf5','/sus_trans');
+reg_list=h5read('../transient_6.hdf5','/reg');
+load reg_keep.mat
+reg_sel=ismember(deblank(reg_list),reg_set(1:115));
+nnz((sus_trans(:,3)) & reg_sel)
+
+
 upath=unique(allpath)
 length(upath)
 spath=cell(0)
