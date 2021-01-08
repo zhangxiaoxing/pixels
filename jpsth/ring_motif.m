@@ -47,7 +47,7 @@ if false
     end
 end
     close all
-for msize=5
+for msize=3:5
 %     plotOne(msize,motif_inact_count,motif_count_shuf,base_motif_count,base_motif_count_shuf,true);
     plotOne(msize,motif_count,motif_count_shuf,base_motif_count,base_motif_count_shuf,false);
 end
@@ -72,6 +72,9 @@ else
     rh=bar((1:6),motif_delay(midx,:)./mmshufC,0.6,'FaceColor','w','FaceAlpha',0.2);
     ylim([0.5,500])
 end
+motif_ratio=(motif_delay(midx,:)./mmshufC);
+disp([mean(motif_ratio),std(motif_ratio)/sqrt(numel(motif_ratio))])
+
 xlim([-1.75,6.75])
 yline(1,'--','Color',[0.5,0.5,0.5])
 set(gca,'XTick',[-1,0 5],'XTickLabel',{'ITI','0','5'},'YScale','log','YColor','k','FontSize',10,'Ytick',[1,100]);
