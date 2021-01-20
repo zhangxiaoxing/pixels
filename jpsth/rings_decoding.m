@@ -74,7 +74,7 @@ for ssidx=srange
     transIds=int32(rem(ringsm(ssidx,:),100000))';
     
     %% %%%%%% localize %%%%%%%%%%%%%
-    freg=load('0831_conn_chain_duo_6s_1_2.mat','pair_reg','pair_chain');
+    freg=load('0114_selec_conn_chain_duo_6s_1_2.mat','pair_reg','pair_chain');
     load reg_keep.mat
     suid=ringsm(ssidx,:);
     reg=[];

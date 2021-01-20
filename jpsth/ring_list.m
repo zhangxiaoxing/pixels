@@ -4,10 +4,10 @@
 
 fstr=cell(1,6);
 for bin=1:6
-    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fstr{bin}=load(sprintf('0114_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 bin=-2;
-fbase=load(sprintf('0906_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+fbase=load(sprintf('0114_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 
 
 % load('reg_keep.mat','reg_set')

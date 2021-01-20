@@ -63,6 +63,7 @@ print(fh,sprintf('congru_%dring_decode.png',midx+2),'-dpng','-r300');
 
 act_cvcorr=cvcorr;
 act_cvshuf=shufcorr;
+act_errcorr=errcorr;
 end
 
 if true
@@ -103,9 +104,10 @@ for bin=[-2,1:6]
 end
 inact_cvcorr=cvcorr;
 inact_cvshuf=shufcorr;
+inact_errcorr=errcorr;
 
 
-save('rings_decode.mat','act_cvcorr','act_cvshuf','inact_cvcorr','inact_cvshuf')
+save('rings_decode.mat','act_cvcorr','act_cvshuf','inact_cvcorr','inact_cvshuf','act_errcorr','inact_errcorr')
 
 fh=figure('Color','w','Position',[100,100,195,160]);
 hold on

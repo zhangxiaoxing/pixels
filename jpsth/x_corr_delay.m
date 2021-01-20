@@ -7,8 +7,8 @@ if ~exist('bin_range','var')
 end
 cd('~/pixels/jpsth')
 homedir='/home/zx/neupix/wyt';
-currmodel='nonsel';
-prefix='0906';
+%currmodel='selec';
+%prefix='0831';
 delay=6;
 %bin_range=[4,5];
 addpath(fullfile('npy-matlab-master','npy-matlab'))
@@ -18,17 +18,27 @@ sus_trans=h5read('../transient_6.hdf5','/sus_trans'); %export_arr = np.vstack((s
 reg_list=h5read('../transient_6.hdf5','/reg');
 cid_list=h5read('../transient_6.hdf5','/cluster_id');
 path_list=h5read('../transient_6.hdf5','/path');
-if startsWith(currmodel,'selec')
-    sust=find(sus_trans(:,1));
-    trans=find(sus_trans(:,2));
+
+load('reg_keep.mat','reg_set');
+reg_keep=reg_set([1:112,114,115]);
+reg_sel=ismember(deblank(reg_list),reg_keep);
+if startsWith(currmodel,'memory')
+    sust=find(sus_trans(:,1) & reg_sel);
+    trans=find(any(sus_trans(:,[2,4]),2) & reg_sel);
+    supool=[sust;trans]';
+elseif startsWith(currmodel,'selec')
+    sust=find(sus_trans(:,1) & reg_sel);
+    trans=find(sus_trans(:,2) & reg_sel);
     supool=[sust;trans]';
 elseif startsWith(currmodel,'nonsel')
     sust=[];
     trans=[];
-    nonsel_logic=~(sus_trans(:,1) | sus_trans(:,2) | sus_trans(:,3)|sus_trans(:,4));
-    supool=find(nonsel_logic);
-%    keyboard
+    nonsel_logic=~any(sus_trans(:,1:4),2);
+    supool=find(nonsel_logic & reg_sel);
+    supool=supool';
 end
+
+
 counter=[];
 done=[];
 
@@ -62,9 +72,9 @@ for i=1:length(supool)
     if isfile(wffile)
         if startsWith(currmodel,'selec')
             if folderType==1
-                sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1));
-                transIds=cid_list(startsWith(path_list,folder) & sus_trans(:,2));
-                sameFolder=find(startsWith(path_list,folder) & (sus_trans(:,1)| sus_trans(:,2)));
+                sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1) & reg_sel);
+                transIds=cid_list(startsWith(path_list,folder) & sus_trans(:,2) & reg_sel);
+                sameFolder=find(startsWith(path_list,folder) & any(sus_trans(:,[1,2]),2) & reg_sel);
                 done=[done;sameFolder];
                 sustCount=numel(sustIds);
                 transCount=numel(transIds);
@@ -72,13 +82,13 @@ for i=1:length(supool)
                 fimec0=replace(folder,'imec1','imec0');
                 fimec1=replace(folder,'imec0','imec1');
 
-                sustIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,1));
-                transIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,2));
+                sustIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,1) & reg_sel);
+                transIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,2) & reg_sel);
 
-                sustIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,1))+10000;
-                transIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,2))+10000;
+                sustIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,1) & reg_sel)+10000;
+                transIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,2) & reg_sel)+10000;
 
-                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & (sus_trans(:,1)| sus_trans(:,2)));
+                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & any(sus_trans(:,[1,2]),2) & reg_sel);
                 done=[done;sameFolder];
 
                 sustIds=[sustIds0(:);sustIds1(:)];
@@ -96,21 +106,57 @@ for i=1:length(supool)
             if ~skip
                 [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
             end
+        elseif startsWith(currmodel,'memory')
+            if folderType==1
+                sustIds=cid_list(startsWith(path_list,folder) & sus_trans(:,1) & reg_sel);
+                transIds=cid_list(startsWith(path_list,folder) & any(sus_trans(:,[2,4]),2) & reg_sel);
+                sameFolder=find(startsWith(path_list,folder) & any(sus_trans(:,[1,2,4]),2) & reg_sel);
+                done=[done;sameFolder];
+                sustCount=numel(sustIds);
+                transCount=numel(transIds);
+            elseif folderType==2
+                fimec0=replace(folder,'imec1','imec0');
+                fimec1=replace(folder,'imec0','imec1');
+
+                sustIds0=cid_list(startsWith(path_list,fimec0) & sus_trans(:,1) & reg_sel);
+                transIds0=cid_list(startsWith(path_list,fimec0) & any(sus_trans(:,[2,4]),2) & reg_sel);
+
+                sustIds1=cid_list(startsWith(path_list,fimec1) & sus_trans(:,1) & reg_sel)+10000;
+                transIds1=cid_list(startsWith(path_list,fimec1) & any(sus_trans(:,[2,4]),2) & reg_sel)+10000;
+
+                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & any(sus_trans(:,[1,2,4]),2) & reg_sel);
+                done=[done;sameFolder];
+
+                sustIds=[sustIds0(:);sustIds1(:)];
+                transIds=[transIds0(:);transIds1(:)];
+
+                sustCount=numel(sustIds);
+                transCount=numel(transIds);            
+
+            end
+
+            if sustCount+transCount<2
+                continue
+            end
+            nonselIds=[];
+            if ~skip
+                [avail,spktrial]=pre_process(folderType,spkFolder,metaFolder,sustIds,transIds,nonselIds,currmodel); % posix
+            end
         elseif startsWith(currmodel,'nonsel')
             if folderType==1
-                sameFolder=find(startsWith(path_list,folder) & nonsel_logic);
-                nonselIds=cid_list(startsWith(path_list,folder) & nonsel_logic);
+                sameFolder=find(startsWith(path_list,folder) & nonsel_logic & reg_sel);
+                nonselIds=cid_list(startsWith(path_list,folder) & nonsel_logic & reg_sel);
                 done=[done;sameFolder];
             elseif folderType==2
                 fimec0=replace(folder,'imec1','imec0');
                 fimec1=replace(folder,'imec0','imec1');
 
-                nonselIds0=cid_list(startsWith(path_list,fimec0) & nonsel_logic);
+                nonselIds0=cid_list(startsWith(path_list,fimec0) & nonsel_logic & reg_sel);
 
-                nonselIds1=cid_list(startsWith(path_list,fimec1) & nonsel_logic)+10000;
+                nonselIds1=cid_list(startsWith(path_list,fimec1) & nonsel_logic & reg_sel)+10000;
 
 
-                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & nonsel_logic);
+                sameFolder=find((startsWith(path_list,fimec0)|startsWith(path_list,fimec1)) & nonsel_logic & reg_sel);
                 done=[done;sameFolder];
 
                 nonselIds=[nonselIds0(:);nonselIds1(:)];
@@ -142,7 +188,8 @@ for i=1:length(supool)
  	fprintf('%d of %d\n',i,length(supool))
 end
 
-return 
+quit(0)
+
 function [folderType,file,spkFolder,metaFolder,error_list]=jointFolder(folder,error_list)
     metaFolder=replace(folder,'\','/');
     metaFolder=fullfile('/home/zx/neupix/wyt/DataSum',metaFolder);
@@ -202,7 +249,7 @@ if strcmp(model, 'full')
     waveformGood=strcmp(clusterInfo{:,4},'good');
     freqGood=clusterInfo{:,10}>spkNThresh;
     cluster_ids = table2array(clusterInfo(waveformGood & freqGood,1));
-elseif startsWith(model,'selec')
+elseif startsWith(model,'selec') || startsWith(model,'memory')
     cluster_ids=[sustIds;transIds];
 elseif startsWith(model,'nonsel')
     cluster_ids=nonselIds;

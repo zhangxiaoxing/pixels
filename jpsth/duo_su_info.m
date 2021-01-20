@@ -27,6 +27,7 @@ singleTracks=dir('/home/zx/neupix/wyt/DataSum/singleProbe');
 singleTrackList={singleTracks(3:end).name};
 % error_list=cell(0);
 sums=cell(0,8);
+%fs=dir(sprintf('/media/SSD1/neupix/duo_xcorr_perfile/%s_%s_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)));
 fs=dir(sprintf('%s_%s_XCORR_duo_f*_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)));
 disp(length(fs))
 pause(10)
@@ -92,6 +93,9 @@ for i=1:length(fs)
                     % late_in_6s, 7X prefer_s
                     prefered_sample=sus_trans(suid,7:end);
                     reg=regexp(reg_list{suid},'(\w|\d)+','match','once');
+                    if ~isstrprop(reg(1),'upper') 
+                        keyboard
+                    end
                     xc_s1.label{lblidx,4}=prefered_sample;
                     xc_s1.label{lblidx,5}=reg;
                     xc_s1.label{lblidx,6}=0;
@@ -140,4 +144,6 @@ end
 disp('check the file name is correct!')
 % keyboard
 save(sprintf('%s_%s_XCORR_duo_sums_delay_6_%d_%d_2msbin.mat',prefix,currmodel,bin_range(1),bin_range(2)),'sums','-v7.3')
-
+if isunix
+    quit(0)
+end

@@ -2,10 +2,7 @@
 gen_conn_chain=true;
 if gen_conn_chain
     load(fullfile('reg_keep.mat'));
-%    reg_set=join_reg;
     
-    reg_set=reg_set(~strcmp(reg_set,'Unlabeled'));
-    reg_set=reg_set(~strcmp(reg_set,'root'));
     %% for error trials
     % for bin=1%:numel(stats_bins)
 %        load(sprintf('0626_selec_XCORR_stats_delay_6_%d_%d_2msbin.mat',bin,bin+1));
@@ -25,15 +22,11 @@ if gen_conn_chain
         reg_chain_S1=zeros(0,2);
         pref_chain_S1=zeros(0,12);
         totalcount_S1=[];
-        peaks1=zeros(0,0);
-        ais1=zeros(0,0);
 
         conn_chain_S2=zeros(0,2);
         reg_chain_S2=zeros(0,2);
         pref_chain_S2=zeros(0,12);
         totalcount_S2=[];
-        peaks2=zeros(0,0);
-        ais2=zeros(0,0);
 %        conn_chain_both=zeros(0,2);
 %        reg_chain_both=zeros(0,2);
 %        pref_chain_both=zeros(0,12);
@@ -70,15 +63,11 @@ if gen_conn_chain
                     conn_chain_S1(end+1,:)=[s.uid1,s.uid2];
                     reg_chain_S1(end+1,:)=[su1reg_idx,su2reg_idx];
                     pref_chain_S1(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
-                    peaks1(end+1)=s.peaks1;
-                    ais1(end+1)=s.AIs1;
                     totalcount_S1(end+1)=s.totalcount_S1;
                 elseif s.AIs1<-0.4
                     conn_chain_S1(end+1,:)=[s.uid2,s.uid1];
                     reg_chain_S1(end+1,:)=[su2reg_idx,su1reg_idx];
                     pref_chain_S1(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
-                    peaks1(end+1)=s.peaks1;
-                    ais1(end+1)=-s.AIs1;
                     totalcount_S1(end+1)=s.totalcount_S1;
                 end
             end
@@ -87,15 +76,11 @@ if gen_conn_chain
                     conn_chain_S2(end+1,:)=[s.uid1,s.uid2];
                     reg_chain_S2(end+1,:)=[su1reg_idx,su2reg_idx];
                     pref_chain_S2(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
-                    peaks2(end+1)=s.peaks2;
-                    ais2(end+1)=s.AIs2;
                     totalcount_S2(end+1)=s.totalcount_S2;
                 elseif s.AIs2<-0.4
                     conn_chain_S2(end+1,:)=[s.uid2,s.uid1];
                     reg_chain_S2(end+1,:)=[su2reg_idx,su1reg_idx];
                     pref_chain_S2(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
-                    peaks2(end+1)=s.peaks2;
-                    ais2(end+1)=-s.AIs2;
                     totalcount_S2(end+1)=s.totalcount_S2;
                 end
             end
@@ -115,7 +100,7 @@ if gen_conn_chain
         end
         disp('check file name')
         disp(bin);
-        save(sprintf('%s_%s_conn_chain_duo_6s_%d_%d.mat',prefix,currmodel,bin,bin+1),'conn_chain_S1','reg_chain_S1','pref_chain_S1','conn_chain_S2','reg_chain_S2','pref_chain_S2','pair_chain','pair_reg','pref_pair','ais1','ais2','peaks1','peaks2','totalcount_S1','totalcount_S2');    
+        save(sprintf('%s_%s_conn_chain_duo_6s_%d_%d.mat',prefix,currmodel,bin,bin+1),'conn_chain_S1','reg_chain_S1','pref_chain_S1','conn_chain_S2','reg_chain_S2','pref_chain_S2','pair_chain','pair_reg','pref_pair','totalcount_S1','totalcount_S2');    
     %end
 return
 end
