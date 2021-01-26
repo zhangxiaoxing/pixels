@@ -4,10 +4,10 @@
 
 fstr=cell(1,6);
 for bin=1:6
-    fstr{bin}=load(sprintf('0114_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fstr{bin}=load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 bin=-2;
-fbase=load(sprintf('0114_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+fbase=load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 
 
 % load('reg_keep.mat','reg_set')
@@ -54,7 +54,7 @@ end
 
 
 if (exist('delay_shuf','var') && delay_shuf) || (exist('delay_shuf_inact','var') && delay_shuf_inact)
-    shufrpt=1000;
+    shufrpt=100;
     rings_shuf=cell(shufrpt,3,114,6,2);
     rings_shuf_inact=cell(shufrpt,3,114,6,2);
     for rpt=1:shufrpt
@@ -122,7 +122,7 @@ if exist('base_data','var') && base_data
     save('rings.mat','base_rings','-append');
 end
 if exist('base_shuf','var') && base_shuf
-    shufrpt=1000;
+    shufrpt=100;
     base_rings_shuf=cell(shufrpt,3,114,2);
     for rpt=1:shufrpt
         disp(rpt)
