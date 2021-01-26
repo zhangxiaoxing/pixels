@@ -281,7 +281,8 @@ if __name__ == "__main__":
         
         data=pickle.load(open('stp_decoding_{}spt_{}rpt_{}_{}.p'
                               .format(STP_n,rpt,trial_thres,error_thres),'rb'))
-        fh=plot(data['congru'],data['congru_shuf'],data['congru_err'],file_desc='congru_sample'.format(STP_n))   
+        if False:
+            fh=plot(data['congru'],data['congru_shuf'],data['congru_err'],file_desc='congru_sample'.format(STP_n))   
         
         
         for i in range(5):

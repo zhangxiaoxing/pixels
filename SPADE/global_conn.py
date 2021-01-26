@@ -7,107 +7,110 @@ Created on Fri Nov  6 16:01:16 2020
 
 
 import numpy as np
-import sys
-import os
 import matplotlib.pyplot as plt
-import matplotlib.colors as colors
-import matplotlib.cm as cmx
 from matplotlib import rcParams
-import neo
-import quantities as pq
 import pickle
-import scipy.io
 import csv
 from itertools import combinations
 
 
-if __name__=='__main__':
-    
+if __name__ == '__main__':
+
     rcParams['pdf.fonttype'] = 42
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     rcParams['axes.linewidth'] = 0.5
-    
-    
-    if 'congru_stats' not in dir():
-        #from spade_stats.py
-        fstr=pickle.load(open('spade_stats.p','rb'))
-        congru_stats=fstr['congru_stats']
-        incong_stats=fstr['incongru_stats']
 
-    all_reg=[]
+    if 'congru_stats' not in dir():
+        # from spade_stats.py
+        fstr = pickle.load(open('spade_stats.p', 'rb'))
+        congru_stats = fstr['congru_stats']
+        incong_stats = fstr['incongru_stats']
+
+    all_reg = []
     for regs in congru_stats['neu_regs']:
         all_reg.extend(set(regs))
-    all_reg=set(all_reg)
-    
-    comb_all=combinations(all_reg,2)
-    key_all=[]
+    all_reg = set(all_reg)
+
+    comb_all = combinations(all_reg, 2)
+    key_all = []
     for one_comb in comb_all:
         key_all.append(tuple(sorted(one_comb)))
-    
-    
 
-    conn_map={}
 
-    for regs in congru_stats['neu_regs']:
-        ureg=set(regs)
-        if len(ureg)>1:
-            comb=combinations(ureg,2)
-            for c in list(comb): 
-                key=tuple(sorted(c))
-                if key in conn_map:
-                    conn_map[key]+=1
-                else:
-                    conn_map[key]=1
-                    
-    conn_map_fc={}                
-    with open(r'K:\code\jpsth\selec_sum_ratio.csv') as csv_file:
+    motif_candi = {}
+    with open(r'K:\code\jpsth\motif_candi.csv') as csv_file: #from conn_heatmap.m
         csv_reader = csv.reader(csv_file, delimiter=',')
-        for row in csv_reader:
-            key=tuple(sorted(row[:2]))
-            conn_map_fc[key]=1
-            
-    reg_coord={}
+        for row in csv_reader: #row: source, target, count, S1/S2 Key,ratio
+            key = tuple(sorted(row[:2]))
+            if int(row[2])>0:
+                motif_candi[key] = int(row[2])
+
+    conn_map = {}
+    for idx,regs in enumerate(congru_stats['neu_regs']):
+        ureg = set(regs)
+        # if 'ORBm' in ureg and 'DG' in ureg:
+        #     breakpoint()
+        if len(ureg) > 1:
+            comb = combinations(ureg, 2)
+            for c in list(comb):
+                key = tuple(sorted(c))
+                if key not in motif_candi.keys():
+                    print(congru_stats['sess_ids'][idx])
+                    continue
+                if key in conn_map:
+                    conn_map[key] += 1
+                else:
+                    conn_map[key] = 1
+
+    conn_map_fc = {}
+    with open(r'K:\code\jpsth\selec_sum_ratio.csv') as csv_file: #from conn_heatmap.m
+        csv_reader = csv.reader(csv_file, delimiter=',')
+        for row in csv_reader: #row: source, target, count, S1/S2 Key,ratio
+            key = tuple(sorted(row[:2]))
+            if int(row[2])>0:
+                conn_map_fc[key] = float(row[4])
+
+
+    reg_coord = {}
     with open(r'K:\code\SPADE\reg_coord.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         for row in csv_reader:
-            key=row[0]
-            reg_coord[key]=[float(row[1]),float(row[2])]
-    
-    all_reg=[]
-    with open('STP4_conn.csv','w') as f:
-        write=csv.writer(f)
-        write.writerow(['Source','Target','Weight','Partition'])
+            key = row[0]
+            reg_coord[key] = [float(row[1]), float(row[2])]
+
+    all_reg = []
+    with open('STP4_FC_conn.csv', 'w') as f:
+        write = csv.writer(f)
+        write.writerow(['Source', 'Target', 'Weight', 'Partition'])
         for key in key_all:
-            all_reg.extend(key)
             if key in conn_map.keys():
-                # breakpoint()
-                row=[]
+                if key not in motif_candi.keys():
+                    # breakpoint()
+                    continue
+                all_reg.extend(key)
+                row = []
                 row.extend(list(key))
-                row.append(conn_map[key])
+                row.append(conn_map[key]/motif_candi[key])
+                row.append(0)
+                write.writerow(row)
+
+            if key in conn_map_fc.keys():
+                row = []
+                row.extend(list(key))
+                row.append(conn_map_fc[key])
                 row.append(1)
                 write.writerow(row)
-            elif key in conn_map_fc.keys():
-                row=[]
-                row.extend(list(key))
-                row.append(1)
-                row.append(0)
-                write.writerow(row)    
-                
-    with open('STP4_node_coord.csv','w') as f:            
-        write=csv.writer(f)
-        write.writerow(['Id','Label','AP','DV'])
+
+    with open('STP4_node_coord.csv', 'w') as f:
+        write = csv.writer(f)
+        write.writerow(['Id', 'Label', 'AP', 'DV'])
         for reg in set(all_reg):
-            if reg.startswith('DG-'):
-                row=[reg,reg,reg_coord['DG'][0],1000-reg_coord['DG'][1]]
-            else:
-                row=[reg,reg,reg_coord[reg][0],1000-reg_coord[reg][1]]
+            row = [reg, reg, reg_coord[reg][0]/15, 1000/15-reg_coord[reg][1]/15]
             write.writerow(row)
-            
         
-    breakpoint()
-    
+    # breakpoint()
     
     
 def reg_degree():    

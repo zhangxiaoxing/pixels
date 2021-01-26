@@ -9,7 +9,7 @@ if ~exist('rings','var')
     end
     ft_defaults
     load rings.mat
-    rings_act=rings;
+    
     load 114_sorted_file_path.mat
     delay=6;
     if isunix
@@ -25,7 +25,7 @@ end
 % active=true;
 %%%%%%%%%%%%%%%%%%%%
 if active
-    rings=rings_act;
+    rings=rings;
     prefix='ring_freq';
 else
     rings=rings_inact;

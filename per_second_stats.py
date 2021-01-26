@@ -752,7 +752,7 @@ def quickStats(delay=6):
 if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
-    process_all(denovo=True, toPlot=False, toExport=True, delay=3, counterclock=False)
+    # process_all(denovo=True, toPlot=False, toExport=True, delay=3, counterclock=False)
     process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
     # process_all(denovo=False, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')

@@ -2,9 +2,9 @@ update_motif=false;
 rpt=1000;
 
 for bin=1:6
-    fbin(bin)=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fbin(bin)=load(sprintf('0114_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
-fbase=load('0906_conn_chain_duo_6s_-2_-1.mat');
+fbase=load('0115_nonsel_conn_chain_duo_6s_-2_-1.mat');
 %% non-memory neurons temporarily skipped
 %for bin=1:6
 %    fstr=load(sprintf('0813_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
@@ -17,8 +17,8 @@ fbase=load('0906_conn_chain_duo_6s_-2_-1.mat');
 %    end
 load('reg_keep.mat');
 
-greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
-
+% greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+greymatter=[1:112,114,115];
 su_set=unique(fbin(1).conn_chain_S1(:,1));
 input_to_count=nan(length(reg_set),6);
 output_from_count=nan(length(reg_set),6);
@@ -40,28 +40,30 @@ if exist('candidate_stats_easy','var') && candidate_stats_easy
         for bin=1:6
             for session=1:114 %7bit session, 3bit bin, 2bit msize
                 disp(session)
-                cc=fbin(bin).pair_chain;
-                sel=cc(:,1)>=session*100000 & cc(:,1)<(session+1)*100000;
-                if nnz(sel)==0
+                pairs=fbin(bin).pair_chain;
+                sesssel=pairs(:,1)>=session*100000 & pairs(:,1)<(session+1)*100000; % session select
+                if nnz(sesssel)==0
                     continue
                 end
-                connsel=cc(sel,:);
-                regset=unique(fbin(bin).pair_reg(sel,:));
-                reg_ring_set=nchoosek(regset,msize);
+                connsel=pairs(sesssel,:);% session pair
+                [GC,GR]=groupcounts(fbin(bin).pair_reg(sesssel,:))
+                
+                regset=unique();% session reg set
+                reg_ring_set=nchoosek(regset,msize); % m- region combination
                 
                 for setIdx=1:size(reg_ring_set,1)
                     currcount1=1;
                     currcount2=1;
                     for mcounter=1:msize
                         if currcount1>0
-                            sel1=fbin(bin).pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
-                                [fbin(bin).pref_pair(sel,bin)==1, fbin(bin).pref_pair(sel,bin+6)==1];
-                            count1=numel(unique(connsel(sel1)));
+                            sel1=fbin(bin).pair_reg(sesssel,:)==reg_ring_set(setIdx,mcounter) &...
+                                [fbin(bin).pref_pair(sesssel,bin)==1, fbin(bin).pref_pair(sesssel,bin+6)==1];%active s1 in reg
+                            count1=numel(unique(connsel(sel1)));% num of neuron
                             currcount1=currcount1*count1;
                         end
                         if currcount2>0
-                            sel2=fbin(bin).pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
-                                [fbin(bin).pref_pair(sel,bin)==2, fbin(bin).pref_pair(sel,bin+6)==2];
+                            sel2=fbin(bin).pair_reg(sesssel,:)==reg_ring_set(setIdx,mcounter) &...
+                                [fbin(bin).pref_pair(sesssel,bin)==2, fbin(bin).pref_pair(sesssel,bin+6)==2];
                             count2=numel(unique(connsel(sel2)));
                             currcount2=currcount2*count2;
                         end
@@ -78,36 +80,6 @@ if exist('candidate_stats_easy','var') && candidate_stats_easy
     end
     return
 end
-%% candidate baseline pairs
-if exist('candidate_base_stats','var') && candidate_base_stats
-    fut=parallel.FevalFuture.empty;
-    bin=-2;
-    for caIdx=1:512 %7bit session, 3bit bin, 2bit msize
-        if exist(sprintf('candidate_base_count_%d.mat',caIdx),'file')
-            fprintf('candidate_base_count_%d.mat\n',caIdx);
-            continue
-        end
-        session=bitshift(bitand(caIdx,bin2dec('111111100')),-2);
-        msize=bitand(caIdx,bin2dec('000000011'))+2;
-        if ~ismember(msize,3:5)
-            continue
-        end
-        mirror_chain=@(x) [x;x(:,[2 1])];
-        cc=mirror_chain(fbase.pair_chain);
-        sel=cc(:,1)>session*100000 & cc(:,1)<(session+1)*100000;
-        if nnz(sel)==0
-            continue
-        end
-        rr=mirror_chain(fbase.pair_reg);
-        pp=[fbase.pref_pair;fbase.pref_pair(:,[7:12,1:6])];
-        %% no future
-        [count,caIdx]=count_motif_congru_actinact(cc(sel,:),rr(sel,:),pp(sel,:),bin,msize,caIdx);
-
-        %% future
-        fut(end+1)=parfeval(@count_motif_congru_actinact,2,cc(sel,:),rr(sel,:),pp(sel,:),bin,msize,caIdx);
-    end
-end
-
 
 
 
@@ -120,26 +92,26 @@ if exist('candidate_base_stats_easy','var') && candidate_base_stats_easy
         msize=midx+2;
         for session=1:114 %7bit session, 3bit bin, 2bit msize
             disp(session)
-            cc=fbase.pair_chain;
-            sel=cc(:,1)>=session*100000 & cc(:,1)<(session+1)*100000;
-            if nnz(sel)==0
+            pairs=fbase.pair_chain;
+            sesssel=pairs(:,1)>=session*100000 & pairs(:,1)<(session+1)*100000;
+            if nnz(sesssel)==0
                 continue
             end
-            connsel=cc(sel,:);
-            regset=unique(fbase.pair_reg(sel,:));
+            connsel=pairs(sesssel,:);
+            regset=unique(fbase.pair_reg(sesssel,:));
             reg_ring_set=nchoosek(regset,msize);
             
             for setIdx=1:size(reg_ring_set,1)
                 currcount1=1;
                 currcount2=1;
                 for mcounter=1:msize
-                    sel1=fbase.pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
-                        [max(fbase.pref_pair(sel,1:6),[],2)==1, max(fbase.pref_pair(sel,7:12),[],2)==1];
+                    sel1=fbase.pair_reg(sesssel,:)==reg_ring_set(setIdx,mcounter) &...
+                        [max(fbase.pref_pair(sesssel,1:6),[],2)==1, max(fbase.pref_pair(sesssel,7:12),[],2)==1];
                     count1=numel(unique(connsel(sel1)));
                     currcount1=currcount1*count1;
                     
-                    sel2=fbase.pair_reg(sel,:)==reg_ring_set(setIdx,mcounter) &...
-                        [max(fbase.pref_pair(sel,1:6),[],2)==2, max(fbase.pref_pair(sel,7:12),[],2)==2];
+                    sel2=fbase.pair_reg(sesssel,:)==reg_ring_set(setIdx,mcounter) &...
+                        [max(fbase.pref_pair(sesssel,1:6),[],2)==2, max(fbase.pref_pair(sesssel,7:12),[],2)==2];
                     count2=numel(unique(connsel(sel2)));
                     currcount2=currcount2*count2;
                 end

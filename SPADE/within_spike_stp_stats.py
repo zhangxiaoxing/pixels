@@ -17,31 +17,37 @@ import quantities as pq
 import pickle
 import scipy.io
 from itertools import combinations
+# import matlab.engine
+import csv
+import h5py
 
-denovo=False
+denovo=True
 t_start=1000*pq.ms  #correction for missing t_start parameter during calling spade.concept_output
 bin_size=4
 
 stp_pct=[]
 if __name__=='__main__':
-    
+    # meng=matlab.engine.start_matlab('-nodesktop -sd "K:\code\jpsth"')
     rcParams['pdf.fonttype'] = 42
     rcParams['ps.fonttype'] = 42
     rcParams['font.family'] = 'sans-serif'
     rcParams['font.sans-serif'] = ['Arial']
     rcParams['axes.linewidth'] = 0.5
     
-    
+        
     if denovo:
+        spk_ts_export=[]
+        spk_count=[]
         for sess_id in range(114):
             print(f'sess {sess_id}')
-            spkf=r'K:\code\SPADE\spkt\spktO17_{}.mat'.format(sess_id)
+            spkf=r'K:\code\SPADE\spkt\spktN13_{}.mat'.format(sess_id)
             if not os.path.isfile(spkf):
                 continue
             mat=scipy.io.loadmat(spkf)
             regs=mat['regs']
+            samp=mat['trialInfo'][:,4]
             
-            r=neo.io.NeoMatlabIO(filename=spkf)
+            r=neo.io.NeoMatlabIO(filename=spkf.replace('N13', 'O17'))
             bl=r.read_block()
             spkt=bl.segments[0].spiketrains
     
@@ -86,18 +92,30 @@ if __name__=='__main__':
                 for win in list(set(neu_win)):
                     pattsel=np.logical_and(spkts>=win,spkts<win+bin_size)
                     spk_stp_sel[pattsel]=1
+### Export for FC tag
+                if np.sum(spk_stp_sel>0)>0:
+                    spt_ts=spkts[spk_stp_sel>0]
+                    for ts in spt_ts:
+                        row = [sess_id,mat['transIds'][nidx][0],samp[int(ts//7000)],ts]
+                        spk_ts_export.append(row)
     
                 stp_pct.append(np.sum(spk_stp_sel)/spk_stp_sel.shape[0])
-                
-            
-        pickle.dump(stp_pct,open('stp_pct.p','wb'))
+                spk_count.append([sess_id,mat['transIds'][nidx][0],np.sum(spk_stp_sel),spk_stp_sel.shape[0]])
+        
+        with h5py.File('stp_ts_export.hdf5','w') as fw:
+            fw.create_dataset('spk_ts',data=np.array(spk_ts_export))
+            fw.create_dataset('spk_cnt',data=np.array(spk_count))
+        pickle.dump(stp_pct,open('stp_pct_all.p','wb'))
     else:
-        stp_pct=pickle.load(open('stp_pct.p','rb'))
-    
+        stp_pct=pickle.load(open('stp_pct_all.p','rb'))
+        
+    breakpoint()
+        
     count=[]
     for e in np.arange(-0.1,1,0.1):
         count.append(np.sum([x>e and x<=e+0.1 for x in stp_pct]))
     
+    # meng.quit()
     (fh, ax) = plt.subplots(1, 1, figsize=(5 / 2.54, 5 / 2.54), dpi=300)
     ax.bar(np.arange(0.05,1,0.1)*100,count[1:]/np.sum(count[1:]),width=8,color='w',edgecolor='k')
     ax.set_ylabel('Number of neurons')
