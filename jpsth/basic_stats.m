@@ -4,7 +4,7 @@ if true
     conncount=nan(114,6,2);
     pairscount=nan(114,6);
     for bin=1:6
-        load(sprintf('0906_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0115_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         pair_regs{bin}=pair_reg;
         reg_chains_S1{bin}=reg_chain_S1;
         reg_chains_S2{bin}=reg_chain_S2;
@@ -45,7 +45,7 @@ end
 %% congruent pairs
 if true
 for bin=1:6
-    load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     pair_regs{bin}=pair_reg;
     reg_chains_S1{bin}=reg_chain_S1;
     reg_chains_S2{bin}=reg_chain_S2;

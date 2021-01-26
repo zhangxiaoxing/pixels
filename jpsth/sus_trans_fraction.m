@@ -13,7 +13,7 @@ spath=unique(spath);
 
 load reg_keep.mat
 
-reg_sel=ismember(deblank(reg_list),reg_set(1:115));
+reg_sel=ismember(deblank(reg_list),reg_set([1:112,114,115]));
 sums=[];
 for i=1:length(spath)
     sesssel=startsWith(path_list,spath{i});

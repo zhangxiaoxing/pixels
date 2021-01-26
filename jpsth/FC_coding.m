@@ -1,66 +1,128 @@
 % assumes all stats file in memory for data generation
-
-if false%~exist('su_var_t.mat','file')
-    su_var_t_S1=[];
-    su_var_t_S2=[];
+denovo=true;
+memory=false;
+keyboard();
+%% Memory
+if exist('denovo','var') && denovo
+    su_var_t=[];
+    keymap=containers.Map('KeyType','uint64','ValueType','uint64');
     for bin=1:6
         disp(bin);
-        load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        if memory
+            load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        else
+            load(sprintf('0115_nonsel_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        end
         %% TODO: brain region
         for i=1:length(conn_chain_S1)
-            key=conn_chain_S1(i,1)*100000+rem(conn_chain_S1(i,2),100000);
-            if ~isempty(su_var_t_S1)
-                idx=find(su_var_t_S1(:,1)==key);
-            else
-                idx=[];
+            if reg_chain_S1(i,1)==reg_chain_S1(i,2)
+                continue
             end
-            if pref_chain_S1(i,bin) == pref_chain_S1(i,bin+6) && pref_chain_S1(i,bin)>0
-                selType=3;
-            elseif max(pref_chain_S1(i,1:6)) == max(pref_chain_S1(i,7:12)) && max(pref_chain_S1(i,1:6))>0
-                selType=2;
+            if rem(size(su_var_t,1),10000)==0
+                disp(size(su_var_t,1))
+            end
+            key=conn_chain_S1(i,1)*100000+rem(conn_chain_S1(i,2),100000);
+            if keymap.isKey(key)
+                idx=keymap(key);
+            else
+                su_var_t(end+1,:)=zeros(1,13);
+                su_var_t(end,1)=key;
+                idx=size(su_var_t,1);
+                keymap(key)=idx;
+            end
+            if memory
+                if pref_chain_S1(i,bin) == pref_chain_S1(i,bin+6) && pref_chain_S1(i,bin)>0
+                    selType=3;
+                elseif max(pref_chain_S1(i,1:6)) == max(pref_chain_S1(i,7:12)) && max(pref_chain_S1(i,1:6))>0
+                    selType=2;
+                else
+                    selType=1;
+                end
             else
                 selType=1;
             end
-            if isempty(idx)
-                su_var_t_S1(end+1,:)=zeros(1,7);
-                su_var_t_S1(end,1)=key;
-                su_var_t_S1(end,bin+1)=selType;
-            else
-                su_var_t_S1(idx,bin+1)=selType;
-            end
+            su_var_t(idx,bin+1)=selType;
         end
         
         for i=1:length(conn_chain_S2)
-            key=conn_chain_S2(i,1)*100000+rem(conn_chain_S2(i,2),100000);
-            if ~isempty(su_var_t_S2)
-                idx=find(su_var_t_S2(:,1)==key);
-            else
-                idx=[];
+            if reg_chain_S1(i,1)==reg_chain_S1(i,2)
+                continue
             end
-            if pref_chain_S2(i,bin) == pref_chain_S2(i,bin+6) && pref_chain_S2(i,bin)>0
-                selType=3;
-            elseif max(pref_chain_S2(i,1:6)) == max(pref_chain_S2(i,7:12)) && max(pref_chain_S2(i,1:6))>0
-                selType=2;
+            if rem(size(su_var_t,1),10000)==0
+                disp(size(su_var_t,1))
+            end
+            key=conn_chain_S2(i,1)*100000+rem(conn_chain_S2(i,2),100000);
+            if keymap.isKey(key)
+                idx=keymap(key);
+            else
+                su_var_t(end+1,:)=zeros(1,13);
+                su_var_t(end,1)=key;
+                idx=size(su_var_t,1);
+                keymap(key)=idx;
+            end
+            if memory
+                if pref_chain_S2(i,bin) == pref_chain_S2(i,bin+6) && pref_chain_S2(i,bin)>0
+                    selType=3;
+                elseif max(pref_chain_S2(i,1:6)) == max(pref_chain_S2(i,7:12)) && max(pref_chain_S2(i,1:6))>0
+                    selType=2;
+                else
+                    selType=1;
+                end
             else
                 selType=1;
             end
-            if isempty(idx)
-                su_var_t_S2(end+1,:)=zeros(1,7);
-                su_var_t_S2(end,1)=key;
-                su_var_t_S2(end,bin+1)=selType;
-            else
-                su_var_t_S2(idx,bin+1)=selType;
-            end
+            su_var_t(idx,bin+7)=selType;
         end
-        
-        
     end
-    save('su_var_t_0116.mat','su_var_t_S1','su_var_t_S2');
+    if memory
+        save('su_var_t_S1_S2.mat','su_var_t');
+    else
+        save('su_var_t_S1_S2_nonsel.mat','su_var_t');
+    end
 else
-    load('su_var_t.mat','su_var_t_S1','su_var_t_S2');
+    load('su_var_t_S1_S2.mat','su_var_t');
 end
 
-su_var_t_all=[su_var_t_S1;su_var_t_S2];
+
+%% TODO: sort 
+sort_mat=su_var_t(:,2:end)>0;
+sel_mat=su_var_t(:,2:end)>1;
+% sortsum=sort_mat*(2.^(11:-1:6)')+sel_mat*(2.^(5:-1:0)');
+sortsum=sort_mat(:,1:6)*(2.^(0:5)')-sort_mat(:,7:12)*(2.^(0:5)');
+
+[~,sumI]=sort(sortsum,'descend');
+fh=figure('Color','w','Position',[32,32,500,1000]);
+for subidx=1:2
+subplot(1,2,subidx)
+imagesc(su_var_t(sumI,(1:6)+1+(subidx-1)*6));
+% cmap=[1 1 1;0 0 1;0 1 1;1 0 0];
+cmap=[1 1 1;1 0 0;1 0 0;1 0 0];
+colormap(cmap)
+xlabel('Time (1-sec bin)')
+ylabel('Coupled memory neuron pair #')
+if memory
+    set(gca(),'YTick',0:100000:300000,'YTickLabel',{'0','100K','200K','300K'},'XTick',1:6);
+else
+    set(gca(),'YTick',0:2e5:12e5,'YTickLabel',{'0','200K','400K','600K','800K','1M','1.2M'},'XTick',1:6);
+end
+ylim([-0.5,max(ylim())]);
+end
+if memory
+    exportgraphics(fh,'FC_selective_S1_S2.pdf','ContentType','vector')
+else
+    exportgraphics(fh,'FC_selective_S1_S2_nonsel.pdf','ContentType','vector')
+end
+
+
+
+
+
+
+
+
+
+
+
 
 for bin=2:6
     d_conn_pair(bin)=nnz((su_var_t_all(:,bin)>0) ~= (su_var_t_all(:,bin+1)>0));
@@ -103,36 +165,6 @@ exportgraphics(fh,'Func.coup.gain.loss.pdf')
 
 to_plot=true;
 if to_plot
-
-    %assumes su_var_t etc in memory
-    close all
-    if true
-        for s=1:2
-            if s==1
-                su_var_t=su_var_t_S1;
-            else
-                su_var_t=su_var_t_S2;
-            end
-            fh=figure('Color','w','Position',[20,20,215,1000]);
-            %% TODO: sort 
-            sort_mat=su_var_t(:,2:end)>0;
-            sel_mat=su_var_t(:,2:end)>1;
-
-            sortsum=sort_mat*(2.^(11:-1:6)')+sel_mat*(2.^(5:-1:0)');
-            [~,sumI]=sort(sortsum,'descend');
-
-            imagesc(su_var_t(sumI,2:end));
-            cmap=[1 1 1;0 0 1;0 1 1;1 0 0];
-            colormap(cmap)
-            xlabel('Time (1-sec bin)')
-            ylabel('Coupled memory Neuron #')
-            set(gca(),'YTick',0:25000:75000,'YTickLabel',{'0','25K','50K','75K'},'XTick',1:6);
-            ylim([-0.5,max(ylim())]);
-            % title('DP -> TTd')
-            exportgraphics(fh,sprintf('conn_per_bin_change_%d.pdf',s),'ContentType','vector')
-            clear su_var_t
-        end
-    end
     %% Histogram
     hc=histcounts(sum(su_var_t_all(:,2:end)>0,2),1:7)./length(su_var_t_all)*100;
     fh=figure('Color','w','Position',[100,100,215,150]);

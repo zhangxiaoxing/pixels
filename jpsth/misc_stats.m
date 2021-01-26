@@ -2,6 +2,11 @@ sus_trans=h5read('../transient_6.hdf5','/sus_trans');%4+2+7
 allpath=h5read('../transient_6.hdf5','/path');
 allcid=h5read('../transient_6.hdf5','/cluster_id');
 reg_all=h5read('../transient_6.hdf5','/reg');
+
+load reg_keep.mat
+reg_sel=ismember(deblank(reg_all),reg_set([1:112,114,115]));
+nnz(startsWith(allpath,'M48_20191205_g0') & any(sus_trans(:,[1 2 4]),2) & reg_sel)
+
 auc=h5read('../transient_6.hdf5','/auc');
 fr=h5read('../transient_6.hdf5','/fr');
 sel=h5read('../transient_6.hdf5','/raw_selectivity');
@@ -9,22 +14,21 @@ wrsp=h5read('../transient_6.hdf5','/wrs_p');
 
 sus_trans=h5read('../transient_6.hdf5','/sus_trans');
 reg_list=h5read('../transient_6.hdf5','/reg');
-load reg_keep.mat
-reg_sel=ismember(deblank(reg_list),reg_set(1:115));
+
 nnz((sus_trans(:,3)) & reg_sel)
 
 
-upath=unique(allpath)
-length(upath)
-spath=cell(0)
+upath=unique(allpath);
+length(upath);
+spath=cell(0);
 for i=1:length(upath)
     pathstub=regexp(upath{i},'^.*?(?=\\)','match','once');
-    spath{end+1}=pathstub 
+    spath{end+1}=pathstub;
 end
-spath=unique(spath)
+spath=sort(unique(spath))';
 p=[]
-for i=1:length(upath)
-    p(end+1)=nnz(contains(allpath,spath{i}))
+for i=1:length(spath)
+    p(end+1)=nnz(startsWith(allpath,spath{i}))
 end
 
 mean(p)

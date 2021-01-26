@@ -24,6 +24,7 @@ for onefile=fl'
         end
         wfpath=replace(rootpath,disk,'K:\neupix\WF\neuropixel');
         if isfile(fullfile(wfpath,'waveform.mat'))
+            continue
             wf_fstr=load(fullfile(wfpath,'waveform.mat'));
             wf_all=wf_fstr.waveform;
             if numel(wf_all)<4

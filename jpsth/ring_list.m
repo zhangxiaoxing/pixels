@@ -1,4 +1,4 @@
-gi%Caution: will not check for existance due to parfor limitation
+%Caution: will not check for existance due to parfor limitation
 
 %TODO check WM region before finalize
 

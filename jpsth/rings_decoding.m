@@ -9,7 +9,7 @@ if ~exist('rings','var')
     end
     ft_defaults
     load rings.mat
-    rings_act=rings;
+    
     load 114_sorted_file_path.mat
     delay=6;
     if isunix
@@ -25,7 +25,7 @@ end
 % active=true;
 %%%%%%%%%%%%%%%%%%%%
 if active
-    rings=rings_act;
+    rings=rings;
     prefix='ring_freq';
 else
     rings=rings_inact;
@@ -74,7 +74,7 @@ for ssidx=srange
     transIds=int32(rem(ringsm(ssidx,:),100000))';
     
     %% %%%%%% localize %%%%%%%%%%%%%
-    freg=load('0831_conn_chain_duo_6s_1_2.mat','pair_reg','pair_chain');
+    freg=load('0116_conn_chain_duo_6s_1_2.mat','pair_reg','pair_chain');
     load reg_keep.mat
     suid=ringsm(ssidx,:);
     reg=[];

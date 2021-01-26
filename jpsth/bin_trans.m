@@ -1,13 +1,13 @@
-
+% keyboard()
 %% one side
 close all
 % corr_coactive_wing()
 % return
 all_reg=true;
 if all_reg
-    [local_hat,local_ci]=coactive_all(true);
-    [inter_hat,inter_ci]=coactive_all(false);
-    plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci);
+%     [local_hat,local_ci]=coactive_all(true);
+    [inter_hat,inter_ci,p]=coactive_all(false);
+    plot_coactivate_all(inter_hat,inter_ci);
     return
 end
 
@@ -78,91 +78,148 @@ end
 
 
 
-function plot_coactivate_all(local_hat,local_ci,inter_hat,inter_ci)
-fh=figure('Color','w','Position',[100,100,400,300]);
+function plot_coactivate_all(inter_hat,inter_ci)
+fh=figure('Color','w','Position',[100,100,215,200]);
 hold on
-hln=plot(local_hat([1 3 5]),'k-');
-hlc=plot(local_hat([2 4 6]),'r-');
-hin=plot(inter_hat([1 3 5]),'b-');
-hic=plot(inter_hat([2 4 6]),'m-');
+hin=plot(inter_hat([1 4 7]),'k-');
+hic=plot(inter_hat([2 5 8]),'r-');
+hii=plot(inter_hat([3 6 9]),'b-');
 
-errorbar(1:3,local_hat([1 3 5]),local_ci([1 3 5],1)'-local_hat([1 3 5]),local_ci([1 3 5],2)'-local_hat([1 3 5]),'k-')
-errorbar(1:3,local_hat([2 4 6]),local_ci([2 4 6],1)'-local_hat([2 4 6]),local_ci([2 4 6],2)'-local_hat([2 4 6]),'r-')
-errorbar(1:3,inter_hat([1 3 5]),inter_ci([1 3 5],1)'-inter_hat([1 3 5]),inter_ci([1 3 5],2)'-inter_hat([1 3 5]),'b-')
-errorbar(1:3,inter_hat([2 4 6]),inter_ci([2 4 6],1)'-inter_hat([2 4 6]),inter_ci([2 4 6],2)'-inter_hat([2 4 6]),'m-')
+errorbar(1:3,inter_hat([1 4 7]),inter_ci([1 4 7],1)'-inter_hat([1 4 7]),inter_ci([1 4 7],2)'-inter_hat([1 4 7]),'k-','LineWidth',1)
+errorbar(1:3,inter_hat([2 5 8]),inter_ci([2 5 8],1)'-inter_hat([2 5 8]),inter_ci([2 5 8],2)'-inter_hat([2 5 8]),'r-','LineWidth',1)
+errorbar(1:3,inter_hat([3 6 9]),inter_ci([3 6 9],1)'-inter_hat([3 6 9]),inter_ci([3 6 9],2)'-inter_hat([3 6 9]),'b-','LineWidth',1)
+
 xlim([0.5,3.5])
-ylim([0,0.4])
-ylabel('fraction of selective post-unit')
-set(gca,'XTick',1:3,'XTickLabel',{'t','t+1sec','t+2sec'},'YTick',0:0.2:0.4)
-legend([hln hlc hin hic],{'local nonselec. pre','local select. pre','inter-region nonselec. pre','inter-region select. pre'})
+ylim([0,0.5])
+ylabel('Selective post-neuron (%)')
+set(gca,'XTick',1:3,'XTickLabel',{'t','t+1sec','t+2sec'},'YTick',0:0.25:0.5,'YTickLabel',0:25:50);
+legend([hin,hic,hii],{'Silent pre-neuron','Congruent active pre-neuron','Incongruent active pre-neuron'})
 disp('export pdf?')
 keyboard
 % print('local_inter_coactivate_all.pdf','-dpdf')
-exportgraphics(fh,'bin_trans_all_reg.pdf');
+exportgraphics(fh,'bin_trans.pdf');
 end
 
-function [phat,pci]=coactive_all(local)
-load('reg_keep.mat');
-greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+function [phat,pci,p]=coactive_all(local)
+% load('reg_keep.mat');
+% greymatter=find(cellfun(@(x) ~isempty(regexp(x,'[A-Z]','match','once')), reg_set));
+greymatter=[1:112,114,115];
 per_reg=zeros(0,12);
 
-curr_code=[];
+curr_congru=[];
+curr_incong=[];
 curr_none=[];
-prev_code=[];
+
+prev_congru=[];
+prev_incong=[];
 prev_none=[];
 
-prev2_code=[];
+prev2_congru=[];
+prev2_incong=[];
 prev2_none=[];
 
 for bin=1:6
-    %         disp(bin);
-    load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
-    localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter);
-    %         localselS2=(reg_chain_S2(:,1)==reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter);
-    if local
-        pref_chain_S1=pref_chain_S1(localselS1,:);
-        %             pref_chain_S2=pref_chain_S2(localselS2,:);
-        
-    else
-        pref_chain_S1=pref_chain_S1(~localselS1,:);
-        %             pref_chain_S2=pref_chain_S2(~localselS2,:);
-    end
-    %             pref_chain_S1=[pref_chain_S1;pref_chain_S2];
+    load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    cross_sel_S1=(reg_chain_S1(:,1)~=reg_chain_S1(:,2)) & ismember(reg_chain_S1(:,1),greymatter) & ismember(reg_chain_S1(:,2),greymatter);
+    pref_chain_S1=pref_chain_S1(cross_sel_S1,:);
+
+    cross_sel_S2=(reg_chain_S2(:,1)~=reg_chain_S2(:,2)) & ismember(reg_chain_S2(:,1),greymatter) & ismember(reg_chain_S2(:,2),greymatter);
+    pref_chain_S2=pref_chain_S2(cross_sel_S2,:);    
+    
     
     for i=1:size(pref_chain_S1,1)
         %T+0
-        if pref_chain_S1(i,bin)>0
-            curr_code(end+1)=pref_chain_S1(i,bin+6);
+        if pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin)==max(pref_chain_S1(i,7:12))
+            curr_congru(end+1)=pref_chain_S1(i,bin+6);
+        elseif pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin)~=max(pref_chain_S1(i,7:12))
+            curr_incong(end+1)=pref_chain_S1(i,bin+6);
         else
             curr_none(end+1)=pref_chain_S1(i,bin+6);
         end
         %T+1
-        if bin<6 && pref_chain_S1(i,bin)>0
-            prev_code(end+1)=pref_chain_S1(i,bin+7);
+        if bin<6 && pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin)==max(pref_chain_S1(i,7:12))
+            prev_congru(end+1)=pref_chain_S1(i,bin+7);
+        elseif bin<6 && pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin)~=max(pref_chain_S1(i,7:12))
+            prev_incong(end+1)=pref_chain_S1(i,bin+7);
         elseif bin<6 && pref_chain_S1(i,bin)==0
             prev_none(end+1)=pref_chain_S1(i,bin+7);
         end
         
         %T+2
-        if bin<5 && pref_chain_S1(i,bin)>0
-            prev2_code(end+1)=pref_chain_S1(i,bin+8);
+        if bin<5 && pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin)==max(pref_chain_S1(i,7:12))
+            prev2_congru(end+1)=pref_chain_S1(i,bin+8);
+        elseif bin<5 && pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin)~=max(pref_chain_S1(i,7:12))
+            prev2_incong(end+1)=pref_chain_S1(i,bin+8);
         elseif bin<5 && pref_chain_S1(i,bin)==0
             prev2_none(end+1)=pref_chain_S1(i,bin+8);
         end
     end
     
+    for i=1:size(pref_chain_S2,1)
+        
+        %T+0
+        if pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin)==max(pref_chain_S2(i,7:12))
+            curr_congru(end+1)=pref_chain_S2(i,bin+6);
+        elseif pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin)~=max(pref_chain_S2(i,7:12))
+            curr_incong(end+1)=pref_chain_S2(i,bin+6);
+        else
+            curr_none(end+1)=pref_chain_S2(i,bin+6);
+        end
+        %T+1
+        if bin<6 && pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin)==max(pref_chain_S2(i,7:12))
+            prev_congru(end+1)=pref_chain_S2(i,bin+7);
+        elseif bin<6 && pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin)~=max(pref_chain_S2(i,7:12))
+            prev_incong(end+1)=pref_chain_S2(i,bin+7);
+        elseif bin<6 && pref_chain_S2(i,bin)==0
+            prev_none(end+1)=pref_chain_S2(i,bin+7);
+        end
+        
+        %T+2
+        if bin<5 && pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin)==max(pref_chain_S2(i,7:12))
+            prev2_congru(end+1)=pref_chain_S2(i,bin+8);
+        elseif bin<5 && pref_chain_S2(i,bin)>0 && pref_chain_S2(i,bin)~=max(pref_chain_S2(i,7:12))
+            prev2_incong(end+1)=pref_chain_S2(i,bin+8);
+        elseif bin<5 && pref_chain_S2(i,bin)==0
+            prev2_none(end+1)=pref_chain_S2(i,bin+8);
+        end
+        
+    end
+    
 end %per bin end
 
 [phat(1),pci(1,:)]=binofit(nnz(curr_none>0),numel(curr_none));
-[phat(2),pci(2,:)]=binofit(nnz(curr_code>0),numel(curr_code));
-[phat(3),pci(3,:)]=binofit(nnz(prev_none>0),numel(prev_none));
-[phat(4),pci(4,:)]=binofit(nnz(prev_code>0),numel(prev_code));
-[phat(5),pci(5,:)]=binofit(nnz(prev2_none>0),numel(prev2_none));
-[phat(6),pci(6,:)]=binofit(nnz(prev2_code>0),numel(prev2_code));
+[phat(2),pci(2,:)]=binofit(nnz(curr_congru>0),numel(curr_congru));
+[phat(3),pci(3,:)]=binofit(nnz(curr_incong>0),numel(curr_incong));
 
-[tbl,chi,p]=crosstab((1:numel(curr_code)+numel(curr_none))>numel(curr_code),[curr_code>0,curr_none>0])
-[tbl,chi,p]=crosstab((1:numel(prev_code)+numel(prev_none))>numel(prev_code),[prev_code>0,prev_none>0])
-[tbl,chi,p]=crosstab((1:numel(prev2_code)+numel(prev2_none))>numel(prev2_code),[prev2_code>0,prev2_none>0])
+[phat(4),pci(4,:)]=binofit(nnz(prev_none>0),numel(prev_none));
+[phat(5),pci(5,:)]=binofit(nnz(prev_congru>0),numel(prev_congru));
+[phat(6),pci(6,:)]=binofit(nnz(prev_incong>0),numel(prev_incong));
+
+[phat(7),pci(7,:)]=binofit(nnz(prev2_none>0),numel(prev2_none));
+[phat(8),pci(8,:)]=binofit(nnz(prev2_congru>0),numel(prev2_congru));
+[phat(9),pci(9,:)]=binofit(nnz(prev2_incong>0),numel(prev2_incong));
+
+y=[curr_congru,curr_incong,curr_none,prev_congru,prev_incong,prev_none,prev2_congru,prev2_incong,prev2_none];
+g1=[ones(size(curr_congru)),ones(size(curr_incong)),ones(size(curr_none)),...
+    ones(size(prev_congru))*2,ones(size(prev_incong))*2,ones(size(prev_none))*2,...
+    ones(size(prev2_congru))*3,ones(size(prev2_incong))*3,ones(size(prev2_none))*3];
+g2=[ones(size(curr_congru)),ones(size(curr_incong))*2,ones(size(curr_none))*3,...
+    ones(size(prev_congru)),ones(size(prev_incong))*2,ones(size(prev_none))*3,...
+    ones(size(prev2_congru)),ones(size(prev2_incong))*2,ones(size(prev2_none))*3];
+[p,tbl]=anovan(y,{g1,g2},'varnames',{'Lag time','Pre-neuron'});
+% p=nan(1,9);
+% 
+% [~,~,p(1)]=crosstab((1:numel(curr_congru)+numel(curr_none))>numel(curr_congru),[curr_congru>0,curr_none>0]);
+% [~,~,p(2)]=crosstab((1:numel(prev_congru)+numel(prev_none))>numel(prev_congru),[prev_congru>0,prev_none>0]);
+% [~,~,p(3)]=crosstab((1:numel(prev2_congru)+numel(prev2_none))>numel(prev2_congru),[prev2_congru>0,prev2_none>0]);
+% 
+% [~,~,p(4)]=crosstab((1:numel(curr_incong)+numel(curr_none))>numel(curr_incong),[curr_incong>0,curr_none>0]);
+% [~,~,p(5)]=crosstab((1:numel(prev_incong)+numel(prev_none))>numel(prev_incong),[prev_incong>0,prev_none>0]);
+% [~,~,p(6)]=crosstab((1:numel(prev2_incong)+numel(prev2_none))>numel(prev2_incong),[prev2_incong>0,prev2_none>0]);
+% 
+% [~,~,p(7)]=crosstab((1:numel(curr_congru)+numel(curr_incong))>numel(curr_congru),[curr_congru>0,curr_incong>0]);
+% [~,~,p(8)]=crosstab((1:numel(prev_congru)+numel(prev_incong))>numel(prev_congru),[prev_congru>0,prev_incong>0]);
+% [~,~,p(9)]=crosstab((1:numel(prev2_congru)+numel(prev2_incong))>numel(prev2_congru),[prev2_congru>0,prev2_incong>0]);
 end
 
 function fh=plot_coactive_per_reg(per_reg,figTitle)
@@ -248,7 +305,7 @@ for onereg=1:length(reg_set)
     prev2_none=[];
     
     for bin=1:6
-        load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         if strcmp(type,'local')
             localselS1=(reg_chain_S1(:,1)==reg_chain_S1(:,2)) & reg_chain_S1(:,1)==onereg;
         elseif strcmp(type,'inter_input')
@@ -309,7 +366,7 @@ if false
     para_ctrl_bin_both=[];
     for bin=2:5
         disp(bin);
-        load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+        load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
         for i=1:length(pref_chain_S1)
             if pref_chain_S1(i,bin)>0 && pref_chain_S1(i,bin-1)==0 && pref_chain_S1(i,bin+1)==0
                 para_pre_bin_S1(end+1,:)=pref_chain_S1(i,(bin+5):(bin+7));
@@ -356,7 +413,7 @@ para_pre_bin_both=[];
 para_ctrl_bin_both=[];
 for bin=2:4
     disp(bin);
-    load(sprintf('0831_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
     for i=1:length(pref_chain_S1)
         if all(pref_chain_S1(i,bin:bin+1)>0) && all(pref_chain_S1(i,[bin-1,bin+2])==0)
             para_pre_bin_S1(end+1,:)=pref_chain_S1(i,(bin+5):(bin+8));

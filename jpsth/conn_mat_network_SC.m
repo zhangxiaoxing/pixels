@@ -2,13 +2,13 @@
 
 fstr=cell(1,6);
 for bin=1:6
-    fstr{bin}=load(sprintf('0831_selec_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+    fstr{bin}=load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
 end
 load('reg_keep.mat','reg_set')
 
 load reg_coord.mat
 %% session loop
-sess=99
+sess=83
     lbound=sess*100000;
     ubound=lbound+100000;
     
@@ -167,10 +167,6 @@ sess=99
     colormap(cmap);
 
 
-
-
-
-
 arrayfun(@(x) xline(x,':k'),[16,38,60,85,103]+0.5);
 arrayfun(@(x) yline(x,':k'),[16,38,60,85,103]+0.5);
 set(gca(),'XTick',[8.5,27,48,72.5,94,121],'XTickLabel',{'CA1','DP','ILA','MOs','PL','TTd'},...
@@ -178,5 +174,5 @@ set(gca(),'XTick',[8.5,27,48,72.5,94,121],'XTickLabel',{'CA1','DP','ILA','MOs','
 fh.Position(3:4)=[215,215];
 xlim([0,143.5])
 ylim([0,143.5])
-exportgraphics(fh,'conn_mat_showcase_sess_99.pdf');
+exportgraphics(fh,'conn_mat_showcase_sess_82.pdf');
 

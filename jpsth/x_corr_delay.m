@@ -18,16 +18,18 @@ sus_trans=h5read('../transient_6.hdf5','/sus_trans'); %export_arr = np.vstack((s
 reg_list=h5read('../transient_6.hdf5','/reg');
 cid_list=h5read('../transient_6.hdf5','/cluster_id');
 path_list=h5read('../transient_6.hdf5','/path');
+
+load('reg_keep.mat','reg_set');
+reg_keep=reg_set([1:112,114,115]);
 if startsWith(currmodel,'selec')
-    sust=find(sus_trans(:,1));
-    trans=find(sus_trans(:,2));
+    sust=find(sus_trans(:,1) & ismember(deblank(reg_list),reg_keep));
+    trans=find(sus_trans(:,2) & ismember(deblank(reg_list),reg_keep));
     supool=[sust;trans]';
 elseif startsWith(currmodel,'nonsel')
     sust=[];
     trans=[];
-    nonsel_logic=~(sus_trans(:,1) | sus_trans(:,2) | sus_trans(:,3)|sus_trans(:,4));
-    supool=find(nonsel_logic);
-%    keyboard
+    nonsel_logic=~any(sus_trans(:,1:4),2);
+    supool=find(nonsel_logic & ismember(deblank(reg_list),reg_keep));
 end
 counter=[];
 done=[];
@@ -142,7 +144,7 @@ for i=1:length(supool)
  	fprintf('%d of %d\n',i,length(supool))
 end
 
-return 
+quit(0) 
 function [folderType,file,spkFolder,metaFolder,error_list]=jointFolder(folder,error_list)
     metaFolder=replace(folder,'\','/');
     metaFolder=fullfile('/home/zx/neupix/wyt/DataSum',metaFolder);
