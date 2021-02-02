@@ -3,11 +3,11 @@ function errors=extract_waveform(disk)
 s1s=30000;
 FR_Th=1.0;
 disk='k';
-addpath('D:\code\neuropixel-utils')
-addpath(genpath('D:\code\Kilosort2'))
-channelMapFile='D:\code\neuropixel-utils\map_files\neuropixPhase3B2_kilosortChanMap.mat';
+addpath('K:\code\neuropixel-utils')
+% addpath(genpath('D:\code\Kilosort2'))
+channelMapFile='K:\code\neuropixel-utils\map_files\neuropixPhase3B2_kilosortChanMap.mat';
 
-fl=dir([disk,':\neupix\DataSum\**\cluster_info.tsv']);
+fl=dir([disk,':\neuropixel\**\cluster_info.tsv']);
 errors=cell(0);
 for onefile=fl'
     rootpath=onefile.folder;
@@ -26,7 +26,8 @@ for onefile=fl'
         if isfolder(replace(rootpath,[disk,':'],'\neupix\WF\'))
             disp('Folder exists, please double check! Press Ctrl-C to break')
         else
-            mkdir(replace(rootpath,[disk,':'],'\neupix\WF\'));
+%             mkdir(replace(rootpath,[disk,':'],'\neupix\WF\'));
+              mkdir(replace(rootpath,[disk,':'],'K:\neupix\WF\'));
         end
 
         metaf=ls(fullfile(rootpath,'*.ap.meta'));
@@ -67,7 +68,7 @@ for onefile=fl'
 %                 end
             end
         end
-        save(fullfile(replace(rootpath,[disk,':'],'\neupix\WF\'),'waveform.mat'),'waveform');
+        save(fullfile(replace(rootpath,[disk,':'],'K:\neupix\WF\'),'waveform.mat'),'waveform');
         toc
     catch ME
         errors{end+1}=onefile.folder;

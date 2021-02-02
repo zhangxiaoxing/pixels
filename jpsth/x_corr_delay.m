@@ -769,3 +769,15 @@ set(gca(),'XTick',[])
 
 
 end
+
+load 0116_memory_conn_chain_duo_6s_6_7.mat
+scoresel=max(scores_S1(:,[1:4,7:10]),[],2)>6;
+countsel=totalcount_S1'>=6000;
+prefsel=pref_chain_S1(:,6)==0 & pref_chain_S1(:,12)==0;
+
+sel_chain=conn_chain_S1(scoresel & countsel & prefsel,:)
+
+
+
+
+

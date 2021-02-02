@@ -408,7 +408,8 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
     bs_count = np.count_nonzero(bs_sel[0,:])
     non_bs = np.logical_not(bs_sel[0,:])
 
-    any_sel = np.logical_and(non_bs, np.any(per_sec_sel_arr, axis=0))
+    # any_sel = np.logical_and(non_bs, np.any(per_sec_sel_arr, axis=0))
+    any_sel = np.any(per_sec_sel_arr, axis=0)
     any_sel_count = np.count_nonzero(any_sel)
 
     sample_only = np.logical_and(any_sel, np.logical_not(np.any(per_sec_sel_arr[delay_bins, :], axis=0)))
@@ -419,7 +420,8 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
 
     delay_sel_count = np.count_nonzero(delay_sel)
 
-    non_sel = np.logical_and(non_bs, np.logical_not(any_sel))
+    # non_sel = np.logical_and(non_bs, np.logical_not(any_sel))
+    non_sel = np.logical_not(any_sel)
     non_sel_count = np.count_nonzero(non_sel)
 
     non_sel_mod = np.logical_and(non_sel, np.any(non_sel_mod_arr[delay_bins, :], axis=0))
@@ -507,6 +509,7 @@ def process_all(denovo=False, toPlot=False, toExport=False, delay=6, countercloc
             fw.create_dataset('auc', data=auc_arr.astype('float64'))
             fw.create_dataset('wrs_p',data=wrs_p_arr.astype('float64'))
             fw.create_dataset('fr',data=fr_arr.astype('float64'))
+            fw.create_dataset('bs_sel',data=bs_sel.astype('float64'))
             
 
         # np.savetxt(f'transient_{delay}_reg.csv', reg_arr, fmt='%s', delimiter=',')
@@ -753,7 +756,7 @@ if __name__ == "__main__":
     # prepare_data_sync()
     # delay can be 'early3in6','late3in6','3','6'
     # process_all(denovo=True, toPlot=False, toExport=True, delay=3, counterclock=False)
-    process_all(denovo=True, toPlot=False, toExport=True, delay=6, counterclock=False)
+    process_all(denovo=False, toPlot=False, toExport=True, delay=6, counterclock=False)
     # process_all(denovo=False, toPlot=False, toExport=True, delay=3, counterclock=False)
     # process_all(denovo=False, toPlot=True, toExport=False, delay='early3in6')
     # process_all(denovo=False, toPlot=True, toExport=False, delay='late3in6')

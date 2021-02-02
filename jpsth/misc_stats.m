@@ -77,3 +77,18 @@ sus/subtotal
 
 
 
+csvcell=cell(0,5);
+for i=1:(length(pair_mat)-1)
+    for j=(i+1):length(pair_mat)
+        if sum(pair_mat(i,j,:))<50 %equivalent of 100 in two directions
+%             csvcell(end+1,:)={reg_set{i},reg_set{j},1,1,0};
+            continue
+        else
+            s1c=sum(conn_mat_S1(i,j,:))+sum(conn_mat_S1(j,i,:));
+            s2c=sum(conn_mat_S2(i,j,:))+sum(conn_mat_S2(j,i,:));
+            part=(s1c>0)*2+(s2c>0)*4;
+            csvcell(end+1,:)={reg_set{i},reg_set{j},s1c+s2c,part,(s1c+s2c)/2/sum(pair_mat(i,j,:))};
+        end
+    end
+end
+writecell(csvcell,'selec_sum_ratio.csv');

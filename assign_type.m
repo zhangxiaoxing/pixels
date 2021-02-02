@@ -24,7 +24,7 @@ for onefile=fl'
         end
         wfpath=replace(rootpath,disk,'K:\neupix\WF\neuropixel');
         if isfile(fullfile(wfpath,'waveform.mat'))
-            continue
+%             continue
             wf_fstr=load(fullfile(wfpath,'waveform.mat'));
             wf_all=wf_fstr.waveform;
             if numel(wf_all)<4
@@ -51,6 +51,8 @@ for onefile=fl'
         end
     end
 end
+
+keyboard()
 
 all_wf_mat=reshape([all_wfstats{:,2}],5,[])';
 % save('assign_type.mat','all_wfstats','fl','missing_disk','all_wf_mat')
