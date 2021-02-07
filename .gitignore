@@ -16,3 +16,4 @@ transient/
 *.p
 slurm*
 *.fig
+neuropixel-utils/

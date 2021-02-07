@@ -1,4 +1,4 @@
-function mono_res = bz_MonoSynConvClick (spikeIDs,spiketimes,varargin)
+function mono_res = zx_MonoSynConvClick (spikeIDs,spiketimes,varargin)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,8 +71,6 @@ function mono_res = bz_MonoSynConvClick (spikeIDs,spiketimes,varargin)
 %parse inputs
 
 %set defaults
-% binSize = .0004; %.4ms
-% duration = .2; %200ms
 binSize = .0004; %.4ms
 duration = .2; %200ms
 
@@ -81,7 +79,6 @@ epoch = [0 inf]; %whole session
 cells = unique(spikeIDs(:,1:2),'rows');
 nCel = size(cells,1);
 conv_w = .010/binSize;  % 10ms window
-% alpha = 0.001; %high frequency cut off, must be .001 for causal p-value matrix
 alpha = 0.001; %high frequency cut off, must be .001 for causal p-value matrix
 plotit = false;
 sorted = false;
@@ -176,11 +173,12 @@ sig_con = [];
 % FalsePositive = nan(nCel,nCel);
 Pcausal = nan(nCel,nCel);
 for refcellID=1:max(IDindex)
+    fprintf('%d of %d\n',refcellID,max(IDindex));
     for cell2ID= refcellID+1:max(IDindex)
         
         cch=ccgR(:,refcellID,cell2ID);			% extract corresponding cross-correlation histogram vector
         %% bz's upstream code differs process due to same-shanke limitation
-        %  neuropixels seems untroubled by this?
+        %  neuropixels/kilosort seems untroubled by this?
         
         
 %         refcellshank=completeIndex(completeIndex(:,3)==refcellID);
@@ -214,10 +212,9 @@ for refcellID=1:max(IDindex)
         Pval(:,cell2ID,refcellID)=flipud(pvals(:));
         
         % Calculate upper and lower limits with bonferonni correction
-        % monosynaptic connection will be +/- 4 ms
+        % monosynaptic connection will be +/- 8 ms
         
-%         nBonf = round(.004/binSize)*2;
-        nBonf = round(.004/binSize)*2;
+        nBonf = round(.01/binSize)*2;
         hiBound=poissinv(1-alpha/nBonf,pred);
         loBound=poissinv(alpha/nBonf, pred);
         Bounds(:,refcellID,cell2ID,1)=hiBound;
@@ -229,9 +226,9 @@ for refcellID=1:max(IDindex)
         % sig = cch>hiBound | cch < loBound;
         sig = cch>hiBound;
         
-        % Find if significant periods falls in monosynaptic window +/- 4ms
-        prebins = round(length(cch)/2 - .0072/binSize):round(length(cch)/2);
-        postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .008/binSize);
+        % Find if significant periods falls in monosynaptic window +/- 8ms
+        prebins = round(length(cch)/2 - .0092/binSize):round(length(cch)/2);
+        postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .01/binSize);
         cchud  = flipud(cch);
         sigud  = flipud(sig);
         sigpost=max(cch(postbins))>poissinv(1-alpha,max(cch(prebins)));
@@ -301,7 +298,7 @@ if plotit
 end
 nCel = size(completeIndex,1);
 n = histc(spikeIDs(:,3),1:length(allID));
-[nn1,nn2] = meshgrid(n);
+[nn1,nn2] = meshgrid(n); %number of spikes pre, post
 
 temp = ccgR - Pred;
 prob = temp./permute(repmat(nn2,1,1,size(ccgR,1)),[3 1 2]);
@@ -310,12 +307,12 @@ prob = temp./permute(repmat(nn2,1,1,size(ccgR,1)),[3 1 2]);
 
 %save outputs
 mono_res.ccgR = ccgR;
-mono_res.Pval = Pval;
-mono_res.prob = prob;
-mono_res.prob_noncor = ccgR./permute(repmat(nn2,1,1,size(ccgR,1)),[3 1 2]);
+mono_res.Pval = Pval; %larger than convolution prediction
+mono_res.prob = prob; %fraction of excessive FC spike over all post spike
+mono_res.prob_noncor = ccgR./permute(repmat(nn2,1,1,size(ccgR,1)),[3 1 2]); %raw FC spike fraction
 mono_res.n = n;
 mono_res.sig_con = sig_con;
-mono_res.Pred = Pred;
+mono_res.Pred = Pred; %convolution prediction
 mono_res.Bounds = Bounds;
 mono_res.completeIndex = completeIndex;
 mono_res.binSize = binSize;
@@ -324,7 +321,7 @@ mono_res.duration = duration;
 %mono_res.spikeIDs = spikeIDs;
 mono_res.ManuelEdit = plotit;
 mono_res.conv_w = conv_w;
-mono_res.Pcausal = Pcausal;
+mono_res.Pcausal = Pcausal; %related to pre-post comparison
 
 % 
 % if foundMat
