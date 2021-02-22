@@ -1,4 +1,4 @@
-function out=clearBadPerf(facSeq, mode)
+function out=procPerf(facSeq, mode)
 if exist('mode','var') && strcmp(mode, 'error')
     if length(facSeq)>=40
         errorsel=~xor(facSeq(:,5)==facSeq(:,6) , facSeq(:,7)>0);
