@@ -21,11 +21,13 @@ if gen_conn_chain
         conn_chain_S1=zeros(0,2);
         reg_chain_S1=zeros(0,2);
         pref_chain_S1=zeros(0,12);
+        scores_S1=zeros(0,10);
         totalcount_S1=[];
 
         conn_chain_S2=zeros(0,2);
         reg_chain_S2=zeros(0,2);
         pref_chain_S2=zeros(0,12);
+        scores_S2=zeros(0,10);
         totalcount_S2=[];
 %        conn_chain_both=zeros(0,2);
 %        reg_chain_both=zeros(0,2);
@@ -64,11 +66,13 @@ if gen_conn_chain
                     reg_chain_S1(end+1,:)=[su1reg_idx,su2reg_idx];
                     pref_chain_S1(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
                     totalcount_S1(end+1)=s.totalcount_S1;
+                    scores_S1(end+1,:)=s.scores1;
                 elseif s.AIs1<-0.4
                     conn_chain_S1(end+1,:)=[s.uid2,s.uid1];
                     reg_chain_S1(end+1,:)=[su2reg_idx,su1reg_idx];
                     pref_chain_S1(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
                     totalcount_S1(end+1)=s.totalcount_S1;
+                    scores_S1(end+1,:)=fliplr(s.scores1);
                 end
             end
             if s.totalcount_S2>=250 && s.s2_peak_significant
@@ -77,11 +81,13 @@ if gen_conn_chain
                     reg_chain_S2(end+1,:)=[su1reg_idx,su2reg_idx];
                     pref_chain_S2(end+1,:)=[s.prefered_sample_su1(2:end),s.prefered_sample_su2(2:end)];
                     totalcount_S2(end+1)=s.totalcount_S2;
+                    scores_S2(end+1,:)=s.scores2;
                 elseif s.AIs2<-0.4
                     conn_chain_S2(end+1,:)=[s.uid2,s.uid1];
                     reg_chain_S2(end+1,:)=[su2reg_idx,su1reg_idx];
                     pref_chain_S2(end+1,:)=[s.prefered_sample_su2(2:end),s.prefered_sample_su1(2:end)];
                     totalcount_S2(end+1)=s.totalcount_S2;
+                    scores_S2(end+1,:)=fliplr(s.scores2);
                 end
             end
 %            if s.s1_peak_significant && s.s2_peak_significant 
@@ -100,7 +106,7 @@ if gen_conn_chain
         end
         disp('check file name')
         disp(bin);
-        save(sprintf('%s_%s_conn_chain_duo_6s_%d_%d.mat',prefix,currmodel,bin,bin+1),'conn_chain_S1','reg_chain_S1','pref_chain_S1','conn_chain_S2','reg_chain_S2','pref_chain_S2','pair_chain','pair_reg','pref_pair','totalcount_S1','totalcount_S2');    
+        save(sprintf('%s_%s_conn_chain_duo_6s_%d_%d.mat',prefix,currmodel,bin,bin+1),'conn_chain_S1','reg_chain_S1','pref_chain_S1','conn_chain_S2','reg_chain_S2','pref_chain_S2','pair_chain','pair_reg','pref_pair','totalcount_S1','totalcount_S2','scores_S1','scores_S2');    
     %end
 return
 end

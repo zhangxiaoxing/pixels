@@ -1,4 +1,4 @@
-if ~exist('fidx','var') || ~isfile(fullfile('+bz',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
+if ~exist('fidx','var') || ~isfile(fullfile('.',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
     disp('Error loading file')
     if isunix
         quit(0);
@@ -6,7 +6,8 @@ if ~exist('fidx','var') || ~isfile(fullfile('+bz',sprintf('0203_BZ_XCORR_duo_f%d
         return
     end
 end
-load(fullfile('+bz',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
+disp(fidx)
+load(fullfile('.',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
 % ts_sep=0.2;
 ts_sep=0;
 pre_thresh=0;

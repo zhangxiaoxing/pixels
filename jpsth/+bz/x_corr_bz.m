@@ -1,13 +1,23 @@
 if ~exist('i','var')
     disp('missing i value')
-    return
+    if isunix
+        quit(0)
+    else
+        return
+    end
 end
 
 if ~exist('debug','var')
     debug=false;
 end
-bz.util.dependency
+
 prefix='0203';
+if isfile(sprintf('%s_BZ_XCORR_duo_f%d.mat',prefix,i))
+    quit(0)
+end
+disp(i)
+debug=false;
+bz.util.dependency
 dualprobe=dir(fullfile(homedir,'**','spike_info.mat'));
 singleprobe=dir(fullfile(homedir,'DataSum','singleProbe','**','spike_times.npy'));
 

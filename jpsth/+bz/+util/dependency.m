@@ -19,7 +19,7 @@ else
     addpath('~/Lib/buzcode/buzcode/visualization/')
     addpath('~/Lib/buzcode/buzcode/externalPackages/FMAToolbox/General/');
     addpath('~/Lib/buzcode/buzcode/externalPackages/FMAToolbox/Helpers/');
-    addpath(fullfile('npy-matlab-master','npy-matlab'))
-    addpath('fieldtrip-20200320')
+    addpath(fullfile('~','Lib','npy-matlab-master','npy-matlab'))
+    addpath(fullfile('~','Lib','fieldtrip-20200320'))
     ft_defaults
 end

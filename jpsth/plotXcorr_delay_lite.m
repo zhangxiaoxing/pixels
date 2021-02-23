@@ -85,21 +85,21 @@ if prepare_stats_file
                     hists1=squeeze(xc_s1.xcorr(si,sj,:));
                     shufs1=squeeze(xshuf_s1.shiftpredictor(si,sj,:));
                     diffs1=hists1-smooth(shufs1);
-                    diffs1(50:51)=0;
+                    %diffs1(50:51)=0;
                     stds1=std(shufs1);
                     scores1=diffs1(46:55)./stds1;
                     %any score > thresh
-                    if any(scores1>thresh)
-                        peaks1=nanmax(scores1);
+                    if any(scores1([1:4,6:10])>thresh)
+                        peaks1=nanmax(scores1([1:4,6:10]));
                         bincounts1=diffs1(46:55);
                         bincounts1(scores1<=thresh)=0;
                         % A peak at a negative lag (I.E. AI>0) for stat.xcorr(chan1,chan2,:) means that chan1 is leading
                         % chan2.
-                        sumdiffs1=(sum(bincounts1(1:5))-sum(bincounts1(6:10)));
+                        sumdiffs1=(sum(bincounts1(1:4))-sum(bincounts1(7:10)));
                         if sumdiffs1==0
                             AIs1=0;
                         else
-                            AIs1=sumdiffs1/(sum(bincounts1(1:5))+sum(bincounts1(6:end)));
+                            AIs1=sumdiffs1/(sum(bincounts1(1:4))+sum(bincounts1(7:end)));
                         end
                     else
                         AIs1=0;
@@ -110,19 +110,19 @@ if prepare_stats_file
                     hists2=squeeze(xc_s2.xcorr(si,sj,:));
                     shufs2=squeeze(xshuf_s2.shiftpredictor(si,sj,:));
                     diffs2=hists2-smooth(shufs2);
-                    diffs2(50:51)=0;
+                    %diffs2(50:51)=0;
                     stds2=std(shufs2);
                     scores2=diffs2(46:55)./stds2;
                     %any score > thresh
-                    if any(scores2>thresh)
-                        peaks2=nanmax(scores2);
+                    if any(scores2([1:4,6:10])>thresh)
+                        peaks2=nanmax(scores2([1:4,6:10]));
                         bincounts2=diffs2(46:55);
                         bincounts2(scores2<=thresh)=0;
-                        sumdiffs2=(sum(bincounts2(1:5))-sum(bincounts2(6:10)));
+                        sumdiffs2=(sum(bincounts2(1:4))-sum(bincounts2(7:10)));
                         if sumdiffs2==0
                             AIs2=0;
                         else
-                            AIs2=sumdiffs2/(sum(bincounts2(1:5))+sum(bincounts2(6:end)));
+                            AIs2=sumdiffs2/(sum(bincounts2(1:4))+sum(bincounts2(7:end)));
                         end
                     else
                         AIs2=0;
@@ -134,8 +134,8 @@ if prepare_stats_file
                     onepair.totalcount_S2=totalCount_S2;
                     onepair.su1_clusterid=su1id;
                     onepair.su2_clusterid=su2id;
-                    onepair.s1_peak_significant=any(scores1>thresh);
-                    onepair.s2_peak_significant=any(scores2>thresh);
+                    onepair.s1_peak_significant=any(scores1([1:4,6:10])>thresh);
+                    onepair.s2_peak_significant=any(scores2([1:4,6:10])>thresh);
                     onepair.AIs1=AIs1;
                     onepair.AIs2=AIs2;
                     onepair.prefered_sample_su1=xc_s1.label{si,4};
@@ -144,6 +144,8 @@ if prepare_stats_file
                     onepair.reg_su2=xc_s1.label{sj,5};
                     onepair.s1_trials=numel(xc_s1.cfg.trials);
                     onepair.s2_trials=numel(xc_s2.cfg.trials);
+                    onepair.scores1=scores1;
+                    onepair.scores2=scores2;
                     stats{end+1}=onepair;
                     
                     %TODO: plot
