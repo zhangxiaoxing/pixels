@@ -1,4 +1,4 @@
-if ~exist('fidx','var') || ~isfile(fullfile('.',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
+if ~exist('fidx','var') || ~isfile(fullfile('bzdata',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
     disp('Error loading file')
     if isunix
         quit(0);
@@ -7,7 +7,7 @@ if ~exist('fidx','var') || ~isfile(fullfile('.',sprintf('0203_BZ_XCORR_duo_f%d.m
     end
 end
 disp(fidx)
-load(fullfile('.',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
+load(fullfile('bzdata',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
 % ts_sep=0.2;
 ts_sep=0;
 pre_thresh=0;
@@ -78,7 +78,7 @@ for idx=1:size(mono.sig_con,1)
 
         s32fc=stats(3,sel_3s_S2 & pre_sel,sbin);
         s32pre=stats(1,sel_3s_S2 & pre_sel,sbin);
-        s32post=stats(2,sel_3s_S1 & pre_sel,sbin);
+        s32post=stats(2,sel_3s_S2 & pre_sel,sbin);
 
         s61fc=stats(3,sel_6s_S1 & pre_sel,sbin);
         s61pre=stats(1,sel_6s_S1 & pre_sel,sbin);
@@ -161,7 +161,6 @@ for idx=1:size(mono.sig_con,1)
                 mean(s62post),std(s62post),numel(s62post),...
                 p6,p6pre,p6post];
 
-
         else
             continue
         end
@@ -177,34 +176,6 @@ if isunix
 else
     return
 end
-% 
-% for i=1:size(sums,1)
-%     if nnz([sums{i,3}(:,5,1);sums{i,3}(:,5,2)]<0.01)>2
-% %         disp(sums{i,3})
-%         fh=figure();
-%         hold on
-%         plot((-2:11)-0.5,sums{i,3}(:,1,1),'m-');
-%         plot((-2:11)-0.5,sums{i,3}(:,2,1),'c-');
-%         plot((-2:11)-0.5,sums{i,3}(:,1,2),'r-');
-%         plot((-2:11)-0.5,sums{i,3}(:,2,2),'b-');
-%         arrayfun(@(x) xline(x,'k:'),[0,1,4,5,7,8]);
-%         waitfor(fh)
-%     end
-% end
-% 
-% 
-% for i=1:size(sums,1)
-%     if nnz([sums{i,3}(:,5,1);sums{i,3}(:,5,2)]<0.01)>2
-% %         disp(sums{i,3})
-% 
-%         fh=figure();
-%         hold on
-% 
-%         arrayfun(@(x) xline(x,'k:'),[0,1,4,5,7,8]);
-%         waitfor(fh)
-%     end
-% end
-
 
 
 
