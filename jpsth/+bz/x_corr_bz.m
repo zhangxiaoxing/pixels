@@ -15,11 +15,10 @@ prefix='0203';
 if isfile(sprintf('%s_BZ_XCORR_duo_f%d.mat',prefix,i))
     quit(0)
 end
-disp(i)
-debug=false;
+disp(i);
+
 bz.util.dependency
 dualprobe=dir(fullfile(homedir,'**','spike_info.mat'));
-singleprobe=dir(fullfile(homedir,'DataSum','singleProbe','**','spike_times.npy'));
 
 error_list=cell(0);
 % for i=102%11:numel(dualprobe)

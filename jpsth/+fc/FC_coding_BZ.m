@@ -18,14 +18,15 @@ fc.util.dependency
 %%
 sums=cell(0);
 
+trials=h5read(fullfile(folder,'events.hdf5'),'/trials')';
+trials=behav.procPerf(trials);
+fstr=load(fullfile(folder,'spike_info.mat'));
+spkId=double([fstr.spike_info{1}{1};fstr.spike_info{1}{2}]);
+spkTS=double([fstr.spike_info{2}{1};fstr.spike_info{2}{2}]);
+
 for idx=1:size(mono.sig_con,1)
-    trials=h5read(fullfile(folder,'events.hdf5'),'/trials')';
-    ctrials=behav.procPerf(trials);
-    fstr=load(fullfile(folder,'spike_info.mat'));
-    spkId=double([fstr.spike_info{1}{1};fstr.spike_info{1}{2}]);
-    spkTS=double([fstr.spike_info{2}{1};fstr.spike_info{2}{2}]);
     FT_SPIKE=struct();
-    cluster_ids=mono.sig_con(idx,:);
+    cluster_ids=mono.completeIndex(mono.sig_con(idx,:),2);
     FT_SPIKE.label=strtrim(cellstr(num2str(cluster_ids')));
     FT_SPIKE.timestamp=cell(1,2);
     for i=1:numel(cluster_ids)
