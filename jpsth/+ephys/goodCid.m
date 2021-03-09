@@ -1,7 +1,14 @@
-function cid=goodCid(folder)
-cid0=oneFolder(folder);
-cid1=oneFolder(replace(folder,'imec0','imec1'));
-cid=[cid0;cid1+10000];
+function cid=goodCid(folder,opt)
+arguments
+    folder (1,:) char
+    opt.ntrack (1,1) double {mustBeMember(opt.ntrack,[1,2])} = 2
+    opt.waveform (1,1) logical = true
+end
+cid=oneFolder(folder);
+if opt.ntrack>1
+    cid1=oneFolder(replace(folder,'imec0','imec1'));
+    cid=[cid;cid1+10000];
+end
 end
 
 
@@ -17,4 +24,5 @@ clusterInfo = readtable(fullfile(folder,'cluster_info.tsv'),'FileType','text','D
 contamGood=strcmp(clusterInfo{:,4},'good');
 freqGood=clusterInfo{:,10}>spkNThresh;
 cluster_ids = table2array(clusterInfo(contamGood & freqGood,1));
+
 end

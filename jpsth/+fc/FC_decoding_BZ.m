@@ -11,13 +11,13 @@ end
 trialthresh=20;
 
 disp(fidx)
-load(fullfile('bzdata',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)))
+load(fullfile('bzdata',sprintf('0203_BZ_XCORR_duo_f%d.mat',fidx)),'mono','folder')
 
 ts_sep=0;
 pre_thresh=0;
 trl_thresh=5;
 %%
-fc.util.loaded
+[avail,folder]=fc.util.loaded(mono,folder);
 fc.util.dependency
 %%
 
@@ -35,12 +35,10 @@ if min([nnz(sel_6s_S1),nnz(sel_6s_S2),nnz(sel_3s_S1),nnz(sel_3s_S2)])<trialthres
     quit(0);
 end
 
-
 sums=cell(0);
 fstr=load(fullfile(folder,'spike_info.mat'));
 spkId=double([fstr.spike_info{1}{1};fstr.spike_info{1}{2}]);
 spkTS=double([fstr.spike_info{2}{1};fstr.spike_info{2}{2}]);
-
 
 for idx=1:size(mono.sig_con,1)
     FT_SPIKE=struct();
@@ -85,7 +83,7 @@ for idx=1:size(mono.sig_con,1)
         break
     end
 end
-save(sprintf('fc_decoding_f%d.mat',fidx),'sums','trials')
+save(sprintf('fc_decoding_f%d.mat',fidx),'sums','trials','folder')
 if isunix
     quit(0)
 else

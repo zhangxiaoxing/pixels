@@ -1,44 +1,19 @@
 function pixFlatFR()
-addpath('R:\ZX\neupix\npy-matlab\npy-matlab');
 binSize=0.25;
 binsOnset=-3;
 FR_Th=1.0;
 s1s=30000;
-% 
-javaaddpath('R:\ZX\java\spk2fr\build\classes');
-% javaaddpath('R:\ZX\java\spk2fr\lib\jmatio.jar');
-% javaaddpath('R:\ZX\java\spk2fr\lib\commons-math3-3.5.jar');
-% javaaddpath('R:\ZX\java\DualEvtParser\build\classes');
 
-
-bf=spk2fr.multiplesample.BuildFileList();
-fs=string(bf.buildPixels('R:\ZX\neupix\DataSum\').toArray);
-clear('bf');
-
-% i=325
-% 
-% [toPath,~,~]=fileparts(fs(i));
-% plotOneDir(char(toPath))
-% return
-
-% parpool(12);
-futures=parallel.FevalFuture.empty(0,length(fs));
-for i=1:length(fs)
-    [toPath,~,~]=fileparts(fs(i));
-    futures(i)=parfeval(@plotOneDir,0,char(toPath));
+flist=dir('K:\neupix\HEMYCY\**\spike_info.hdf5');
+for i=1:length(flist)
+    cstr=h5info(fullfile(flist(i).folder,flist(i).name));
+    for prb=1:size(cstr.Groups,1)
+        cids=h5read(fullfile(flist(i).folder,flist(i).name),'/imec1/clusters');
+        disp(flist(i).folder);
+        disp(cids(1));
+        keyboard();
+    end
 end
-
-for i=1:length(fs)
-    fetchOutputs(futures(i));
-    fprintf('%d of %d\n',i,length(fs));
-end
-
-
-% for i=1:length(fs)
-%     [toPath,~,~]=fileparts(fs(i));
-%     plotOneDir(char(toPath));
-%     
-% end
 
 
     function plotOneDir(rootpath)

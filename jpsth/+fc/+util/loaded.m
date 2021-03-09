@@ -1,12 +1,19 @@
-if ~exist('mono','var')
-    disp('Missing mono variable')
-    return
+function [avail,folder]=loaded(mono,folder,opt)
+arguments
+    mono struct = []
+    folder char = []
+    opt.mono (1,1) logical = true
+    opt.folder (1,1) logical = true
 end
-% cids=mono.sig_con(sigidx,:);
-if ~exist('folder','var')
-    disp('Missing folder variable')
-    return
+avail=true;
+if opt.mono && isempty(mono)
+    avail=false;
 end
-if startsWith(folder,'/home') && ispc
+
+if opt.folder && isempty(folder)
+    avail=false;
+end
+if avail && startsWith(folder,'/home') && ispc
     folder=replace(replace(folder,'/','\'),'\home\zx','K:');
+end
 end

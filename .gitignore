@@ -15,6 +15,7 @@ transient/
 *.txt
 *.p
 *.fig
+*.asv
 neuropixel-utils/
 slurm*.out
 slurm*.err

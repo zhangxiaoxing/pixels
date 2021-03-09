@@ -36,7 +36,7 @@ error_list=cell(0);
     spkID=[fstr.spike_info{1}{1};fstr.spike_info{1}{2}];
     spkTS=[fstr.spike_info{2}{1};fstr.spike_info{2}{2}];
     
-    suids=bz.util.goodCid(dualprobe(i).folder);
+    suids=ephys.goodCid(dualprobe(i).folder);
     if debug
         suids=suids(1:20);
         keyboard()
