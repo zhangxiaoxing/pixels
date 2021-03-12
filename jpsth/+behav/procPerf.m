@@ -1,9 +1,9 @@
-function out=procPerf(facSeq, mode)
+function out=procPerf(facSeq, opt)
 arguments
     facSeq (:,8) double
-    mode   (1,1) string = 'correct'
+    opt.mode   (1,:) char {mustBeMember(opt.mode,{'correct','all','error'})} = 'correct'
 end
-if strcmp(mode, 'error')
+if strcmp(opt.mode, 'error')
     if length(facSeq)>=40
         errorsel=~xor(facSeq(:,5)==facSeq(:,6) , facSeq(:,7)>0);
         out=facSeq(errorsel,:);
@@ -22,7 +22,7 @@ else
             end
             i=i+1;
         end
-        if strcmp(mode,'correct')
+        if strcmp(opt.mode,'correct')
             out=facSeq(all(facSeq(:,9:10),2),:);
         else
             out=facSeq;

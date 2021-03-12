@@ -1,93 +1,79 @@
-function pixFlatFR()
-binSize=0.25;
-binsOnset=-3;
-FR_Th=1.0;
-s1s=30000;
-
-flist=dir('K:\neupix\HEMYCY\**\spike_info.hdf5');
-for i=1:length(flist)
-    cstr=h5info(fullfile(flist(i).folder,flist(i).name));
-    for prb=1:size(cstr.Groups,1)
-        cids=h5read(fullfile(flist(i).folder,flist(i).name),'/imec1/clusters');
-        disp(flist(i).folder);
-        disp(cids(1));
-        keyboard();
-    end
+function pixFlatFR(opt)
+arguments
+    opt.binsize (1,1) double = 1.0
+    opt.writefile (1,1) logical = false
+    opt.rootdir (1,:) char = 'K:\neupix\SPKINFO'
+    opt.overwrite (1,1) logical = false
 end
 
+if ispc, libroot='K:'; else, libroot='~'; end
+addpath(fullfile(libroot,'Lib','fieldtrip-20200320'))
+ft_defaults
+sps=30000;
 
-    function plotOneDir(rootpath)
-        %rootpath=char(toPath);
-        if exist(fullfile(rootpath,'FR_All.hdf5'),'file') || exist(fullfile(rootpath,'NOSU'),'file')
-            return
-        end
-        spkTS=readNPY(fullfile(rootpath,'spike_times.npy'));
-        spkId=readNPY(fullfile(rootpath,'spike_clusters.npy'));
-        
-        metaf=ls(fullfile(rootpath,'*.meta'));
-        fh=fopen(fullfile(rootpath,metaf));
-        ts=textscan(fh,'%s','Delimiter',{'\n'});
-        nSample=str2double(replace(ts{1}{startsWith(ts{1},'fileSizeBytes')},'fileSizeBytes=',''));
-        spkNThresh=nSample/385/s1s/2*FR_Th;
-        clusterInfo = readtable(fullfile(rootpath,'cluster_info.tsv'),'FileType','text','Delimiter','tab');
-        trials=h5read(fullfile(rootpath,'events.hdf5'),'/trials')';
-        trials=double(trials);
-        spk=[double(ones(size(spkId))),double(spkId),double(spkTS)/s1s];
-        clear spkTS
-        waveformGood=strcmp(clusterInfo{:,4},'good');
-        freqGood=clusterInfo{:,10}>spkNThresh;
-        cluster_ids = table2array(clusterInfo(waveformGood & freqGood,1));
-        spk=spk(ismember(spk(:,2),cluster_ids),:);
-        
-        info=[trials(:,1)/s1s,trials(:,2)/s1s,trials(:,5),trials(:,6),trials(:,7),trials(:,8)];
-        
-        genAll(spk,info,rootpath);
-        
-%         delayLen=6;
-%         filter=(trials(:,8)==delayLen);
-%         rLim=delayLen+7;% 9 for 4s delay, 13 for 8s delay
-%         genAll(spk,info,filter,isCorrect,rootpath,delayLen,rLim);
+flist=dir(fullfile(opt.rootdir,'**','spike_info.hdf5'));
+for i=1:length(flist)
+    if isfile(fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
+        disp(strjoin({'skiped',flist(i).folder}));
+        continue
     end
-
-
-
-
-    function genAll(spk,info,rootpath)
-       
-        if(numel(spk)>1000)
-            javaaddpath('R:\ZX\java\spk2fr\build\classes');
-            javaaddpath('R:\ZX\java\spk2fr\lib\jmatio.jar');
-            javaaddpath('R:\ZX\java\spk2fr\lib\commons-math3-3.5.jar');
-            javaaddpath('R:\ZX\java\DualEvtParser\build\classes');
-            
-            s2f=spk2fr.Spk2fr;
-            s2f.setRefracRatio(1);
-            s2f.setLeastFR('all');
-            
- 
-            cb=s2f.getAllFiringRate(s2f.buildData(info,spk,'pixels'), ...
-                'everytrialall', ...
-                s2f.setBin(binsOnset,binSize,14.0));
-            FR_All=cb.getFRDataA();
-            keyIdx=cb.getKeyIdx();
-            keyIdx=uint16(keyIdx(:,2));
-            
-            FR_File=fullfile(rootpath,'FR_All.hdf5');
-            if exist(FR_File,'file')
-                delete(FR_File)
-            end
-            h5create(FR_File,'/FR_All',size(FR_All),'Datatype','double')
-            h5write(FR_File,'/FR_All',FR_All)
-            h5create(FR_File,'/Trials',size(info),'Datatype','double')
-            h5write(FR_File,'/Trials',info)
-            h5create(FR_File,'/SU_id',size(keyIdx),'Datatype','uint16')
-            h5write(FR_File,'/SU_id',keyIdx)
-
-        else
-            fid=fopen(fullfile(rootpath,'NOSU'),'w');
-            fclose(fid);
-        end
+        
+    trials=h5read(fullfile(replace(flist(i).folder,'SPKINFO','META'),'events.hdf5'),'/trials')';
+    trials=behav.procPerf(trials,'mode','all');
+    if isempty(trials), continue,  end
+    
+    cstr=h5info(fullfile(flist(i).folder,flist(i).name));
+    fr_good=ephys.goodCid(replace(flist(i).folder,'SPKINFO','META')); % Good firing rate
+    fr_wf_good=ephys.waveform.goodWaveform(replace(flist(i).folder,'SPKINFO','WF'),'presel',fr_good); %Good waveform
+    if isempty(fr_wf_good)
+        disp(flist(i).folder)
+        keyboard()
+        continue
     end
-
-
+    spkID=[];spkTS=[];
+    for prb=1:size(cstr.Groups,1)
+        prbName=cstr.Groups(prb).Name;
+        spkID=cat(1,spkID,h5read(fullfile(flist(i).folder,flist(i).name),[prbName,'/clusters']));
+        spkTS=cat(1,spkTS,h5read(fullfile(flist(i).folder,flist(i).name),[prbName,'/times']));
+    end
+    susel=ismember(spkID,fr_wf_good);
+    spkID=double(spkID(susel));
+    spkTS=double(spkTS(susel));
+    suids=unique(spkID);
+    
+    FT_SPIKE=struct();
+    
+    FT_SPIKE.label=strtrim(cellstr(num2str(suids)));
+    FT_SPIKE.timestamp=cell(1,numel(suids));
+    for su=1:numel(suids)
+        FT_SPIKE.timestamp{su}=spkTS(spkID==suids(su))';
+    end
+    %  continuous format F T struct file
+    cfg=struct();
+    cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
+    cfg.trlunit='timestamps';
+    cfg.timestampspersecond=sps;
+    
+    FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
+    
+    cfg=struct();
+    cfg.binsize=opt.binsize;
+    cfg.keeptrials='yes';
+    FT_PSTH=ft_spike_psth(cfg, FT_SPIKE);
+    
+    if opt.writefile
+        FR_File=fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000));
+        if exist(FR_File,'file')
+            delete(FR_File)
+        end
+        h5create(FR_File,'/FR_All',size(FT_PSTH.trial),'Datatype','double')
+        h5write(FR_File,'/FR_All',FT_PSTH.trial)
+        h5create(FR_File,'/Trials',size(FT_PSTH.trialinfo),'Datatype','double')
+        h5write(FR_File,'/Trials',FT_PSTH.trialinfo)
+        h5create(FR_File,'/SU_id',size(suids),'Datatype','double')
+        h5write(FR_File,'/SU_id',suids)
+    else 
+        keyboard()% for devp
+    end
+end
 end

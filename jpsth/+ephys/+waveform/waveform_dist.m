@@ -11,9 +11,7 @@ for f=fl'
         %criteria 1
         if max(wf)>-min(wf)
             disp('type 1 bad wf')
-%             plot(wf)
             stats(end+1,:)=[-1,0,0];
-            pause(0.2)
             continue
         end
         %criteria 2
@@ -22,7 +20,6 @@ for f=fl'
             disp('type 2 bad wf')
 %             findpeaks(wf,'MinPeakProminence',-0.05*min(wf));
             stats(end+1,:)=[-2,0,0];
-            pause(0.2)
             continue
         end
         %criteria 3

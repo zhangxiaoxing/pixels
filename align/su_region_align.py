@@ -1,0 +1,158 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 13 17:29:29 2019
+
+@author: Libra
+
+This script is responsible for generating the  su_id2reg.csv which is further used by other statistics
+first column is cluster id, second is current alignment, third is old alignment
+
+
+"""
+
+import os
+import h5py
+import sys
+import re
+import csv
+import numpy as np
+import pandas as pd
+import align.fileutil as futil
+
+
+def imecNo2side(who_did, date, imecNo, mid):
+    if date == "191130" and mid == "49":
+        return "L"
+
+    if date == "191101" and mid == "26":
+        return "R"
+
+    if who_did == "HEM" and (int(date)) >= 191028:
+        if imecNo == "1":
+            return "R"
+        elif imecNo == "0":
+            return "L"
+    else:
+        if imecNo == "1":
+            return "L"
+        elif imecNo == "0":
+            return "R"
+
+    print("Error parsing imec No")
+    return "X"
+
+
+def matchDepth(depth, depthL, date, mice_id, imec_no):
+    if not depthL.empty:
+        label = depthL.loc[
+            (depthL["distance2tipLow"] <= depth) & (depth < depthL["distance2tipHigh"]),
+            ["acronym"],
+        ]
+        if len(label.index) == 1:
+            return (label.iloc[0, 0],None)
+
+    unlabeledRecord=[date, mice_id, imec_no, depth]
+    return ('unlabeled',unlabeledRecord)
+
+
+def getTrackRegion(regionL, mice_id, date, imecNo, who_did):
+    depthL = regionL.loc[
+        (regionL["mouse_id"] == mice_id)
+        & (regionL["implanting_date"] == "20" + date)
+        & (regionL["side"] == imecNo2side(who_did, date, imecNo, mice_id)),
+        ["acronym", "distance2tipLow", "distance2tipHigh"],
+    ]
+    return depthL
+
+
+def combineSubRegion(r):
+    if re.match("CA[123]", r):
+        return r
+    if r.startswith("COAp"):
+        return "COAp"
+    if r.startswith("DG-"):
+        return "DG"
+    if r.startswith("LGd-"):
+        return "LGd"
+    if r.startswith("SSp-"):
+        return "SSp"
+    if re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r):
+        g = re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r)
+        return g.group(1)
+    else:
+        return r
+
+
+def getRegionList():
+    site_file = r"K:\neupix\track_meta\NP tracks revised 0319.csv"
+    regionL = pd.read_csv(site_file).astype(
+        {"mouse_id": "str", "implanting_date": "str"}
+    )[
+        [
+            "mouse_id",
+            "implanting_date",
+            "side",
+            "acronym",
+            "distance2tipHigh",
+            "distance2tipLow",
+        ]
+    ]
+
+    regionL["acronym"] = regionL["acronym"].apply(combineSubRegion)
+    return regionL
+
+
+def align_onefolder(su_ids,path,regionL,offset):
+        (bs_id, time_s, who) = futil.get_bsid_duration_who(path)
+        (mice_id, date, imec_no) = futil.get_miceid_date_imecno(path)
+        depthL = getTrackRegion(regionL, mice_id, date, imec_no, who)
+        su_region_corr = []
+        unitInfo = pd.read_csv(os.path.join(path, "cluster_info.tsv"), sep="\t")
+        unlabeled=[]
+
+        ### su ids match reg in sequence
+        for one_su in su_ids:
+            depth = unitInfo.loc[unitInfo['id'] == one_su, ['depth']].iat[0, 0]
+            (reg,one_unlabeled) = matchDepth(depth, depthL, date, mice_id, imec_no)
+            su_region_corr.append([one_su+offset, reg])
+            if one_unlabeled:
+                unlabeled.append(one_unlabeled)
+        return (su_region_corr,unlabeled)
+
+### Walk through
+def gen_align_files(cmp=False):
+    regionL = getRegionList()
+    unlabeledRecord = []
+
+    for path in futil.traverse(r"K:\neupix\SPKINFO"):
+        su_region_corr = []
+        sep_p=re.split('imec[01]',path)
+        path0=sep_p[0]+'imec0'+sep_p[1]
+        path1=sep_p[0]+'imec1'+sep_p[1]
+        print(path)
+        with h5py.File(os.path.join(path, "FR_All_1000.hdf5"), "r") as ffr:
+            if not "SU_id" in ffr.keys():
+                print("missing su_id key in path ", path)
+                continue
+            su_ids = np.array(ffr["SU_id"], dtype="double")[0]
+
+        if sum(su_ids<10000)>0:
+            (su_region,unlabeled)=align_onefolder(su_ids[su_ids<10000],path0,regionL,0)
+            su_region_corr.append(su_region)
+            unlabeledRecord.append(unlabeled)
+        if sum(su_ids>=10000)>0:
+            (su_region,unlabeled)=align_onefolder(su_ids[su_ids>=10000]-10000,path1,regionL,10000)
+            su_region_corr.append(su_region)
+            unlabeledRecord.append(unlabeled)
+
+        su_region_corr=list(filter(None, su_region_corr))
+        if su_region_corr:
+            tbl = pd.DataFrame(np.vstack(su_region_corr), columns=['index', 'region']).set_index('index')[:]
+            tbl.to_csv(os.path.join(path, 'su_id2reg.csv'), header=True)
+        # else:
+            # breakpoint()
+
+    unlabeledRecord=list(filter(None, unlabeledRecord))
+    with open("unlabeled.csv", "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerows(unlabeledRecord)
