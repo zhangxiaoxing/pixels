@@ -8,6 +8,8 @@ reg_tree=deblank(h5read(fullfile(homedir,'transient_6.hdf5'),'/reg_tree'));
 reg_tree_depth=h5read(fullfile(homedir,'transient_6.hdf5'),'/reg_tree_depth');
 wf_good=h5read(fullfile(homedir,'transient_6.hdf5'),'/wf_good');
 
+[B,BG]=groupcounts(allpath);
+
 wf_sel=(wf_good~=0)';
 reg_sel=strcmp(reg_tree(1,:),'BS') | strcmp(reg_tree(1,:),'CH');
 trial_sel=all(trial_counts>20,1);

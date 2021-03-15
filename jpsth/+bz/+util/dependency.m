@@ -1,5 +1,5 @@
 if ispc
-    homedir='k:\neupix\wyt';
+    homedir='k:\neupix\SPKINFO';
     addpath('K:\Lib\buzcode\buzcode\io')
     addpath('K:\Lib\buzcode\buzcode\utilities\')
     addpath('K:\Lib\buzcode\buzcode\analysis\spikes\correlation\')
@@ -11,7 +11,7 @@ if ispc
     addpath(fullfile('K:','Lib','fieldtrip-20200320'))
     ft_defaults
 else
-    homedir='/home/zx/neupix/wyt';
+    homedir='/home/zx/neupix/SPKINFO';
     addpath('~/Lib/buzcode/buzcode/io')
     addpath('~/Lib/buzcode/buzcode/utilities/')
     addpath('~/Lib/buzcode/buzcode/analysis/spikes/correlation/')
