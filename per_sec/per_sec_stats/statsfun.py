@@ -10,21 +10,18 @@ import scipy.stats as stats
 from sklearn.metrics import roc_auc_score
 
 
-def bool_stats_test(self, A, B, bonf=1):
+def wrs(A, B, bonf=1):
 ####TODO: fischers exact alternative
 ####TODO: check for variance
 
-    try:
-        # flatten is used instead of mean to control for variance
-        # ranksum is supposedly insensitive to length of data
-        (stat, p) = stats.mannwhitneyu(
-            A.flatten(),
-            B.flatten(),
-            alternative="two-sided",
-        )
-    except ValueError:
-        p = 1
 
+    (stat, p) = stats.mannwhitneyu(
+        A.flatten(),
+        B.flatten(),
+        alternative="two-sided")
+    return p*bonf
+
+def auc(A,B):
     try:
         auc = roc_auc_score(
             np.concatenate((
@@ -39,14 +36,7 @@ def bool_stats_test(self, A, B, bonf=1):
     except ValueError:
         auc = 0.5
 
-    if np.sum(A)+np.sum(B)==0:
-        selectivity=0
-    else:
-        mma = np.mean(A)
-        mmb = np.mean(B)
-        selectivity=(mma-mmb)/(mma+mmb)
-
-    return (p < (0.05 / bonf), p, selectivity,auc)
+    return auc
 
 
 def exact_mc_perm_test(self, xs, ys, nmc):

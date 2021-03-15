@@ -8,85 +8,64 @@ Created on Wed Mar 10 16:08:14 2021
 import os
 import re
 import csv
-import platform
+
 import numpy as np
 import h5py
-import sys
+
 from per_sec_stats.per_sec_data import per_sec_data
+from per_sec_stats.get_stats import get_stats
+import align.fileutil as futil
 
-from align import su_region_align as align
-
-
-def prepare_data(delay=6):
-    curr_stats = per_sec_data()
-    per_sec_sel_list = []
-    non_sel_mod_list = []
-    bs_sel_list = []
-    perfS1_list = []
-    perfS2_list = []
-    raw_sel_list = []
-    auc_list = []
-    fr_list=[]
-    wrs_p_list=[]
-    # non_mod_list = []
-    folder_list = []
+def prepare_data(delay=6,debug=False):
+    sel_list = []
+    wrsp_list =[]
     cluster_id_list = []
     reg_list = []
-    dpath = align.get_root_path()
-    for path in sorted(align.traverse(dpath)):
+    folder_list = []
+    dpath = futil.get_root_path()
+    counter = 0
+    for path in sorted(futil.traverse(dpath)):
         print(path)
+        with h5py.File(os.path.join(path, "FR_All_1000.hdf5"), "r") as ffr:
+            # print(list(ffr.keys()))
+            if not "SU_id" in ffr.keys():
+                done_read = True
+                print("missing su_id key in path ", path)
+                continue
+            dset = ffr["SU_id"]
+            SU_ids = np.array(dset, dtype="uint16")
+            dset = ffr["FR_All"]
+            trial_FR = np.array(dset, dtype="double")
+            dset = ffr["Trials"]
+            trials = np.array(dset, dtype="double").T
+
+        if (trials is None) or np.sum(trials[:,8])<80:
+            continue
+
         if not os.path.isfile(os.path.join(path, "su_id2reg.csv")):
             continue
-        done_read = False
-        while not done_read:
-            try:
-                with h5py.File(os.path.join(path, "FR_All.hdf5"), "r") as ffr:
-                    # print(list(ffr.keys()))
-                    if not "SU_id" in ffr.keys():
-                        done_read = True
-                        print("missing su_id key in path ", path)
-                        continue
-                    dset = ffr["SU_id"]
-                    SU_ids = np.array(dset, dtype="uint16")
-                    dset = ffr["FR_All"]
-                    trial_FR = np.array(dset, dtype="double")
-                    dset = ffr["Trials"]
-                    trials = np.array(dset, dtype="double").T
-                done_read = True
-            except OSError:
-                print("h5py read error handled")
-        if trials is None:
-            continue
-        with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
-            l = list(csv.reader(csvfile))[1:]
-            suid_reg = [list(i) for i in zip(*l)]
+        with open(os.path.join(path, "su_id2reg.csv"),'r') as csvfile:
+            reg_l = list(csv.reader(csvfile))
+            reg_l=reg_l[1:] # discard header
 
-        (perf_desc, perf_code, welltrain_window, correct_resp) = align.judgePerformance(trials)
+        dict_stats=get_stats(trial_FR, trials, delay=delay, debug=debug)
 
-        if perf_code != 3:
-            continue
+        if debug:
+            SU_ids=SU_ids[:,:20]
+            reg_l=reg_l[:20]
 
-        curr_stats.process_select_stats(trial_FR, trials, welltrain_window, correct_resp, delay=delay)
+        sel_list.extend(dict_stats['per_sec_selectivity']) #(n(Delay), n(SU))
+        wrsp_list.extend(dict_stats['per_sec_wrs_p']) #(n(Delay), n(SU))
+        cluster_id_list.extend(SU_ids[0]) # (n(SU),)
+        folder_list.extend([re.search(r"(?<=SPKINFO\\)(.*)", path)[1]] * SU_ids.shape[1]) # (n(SU),)
+        reg_list.extend(reg_l) # (n(SU),)
+        counter += 1
+        if debug and counter>2:
+            break
 
-        (per_sec_sel, non_sel_mod, perfS1, perfS2, bs_sel, raw_sel,auc,wrsp,fr) = curr_stats.getFeatures()
-        per_sec_sel_list.append(per_sec_sel)
-        non_sel_mod_list.append(non_sel_mod)
-        bs_sel_list.append(bs_sel)
-        # non_mod_list.append(non_sel_mod)
-        perfS1_list.append(perfS1)
-        perfS2_list.append(perfS2)
-        raw_sel_list.append(raw_sel)
-        auc_list.append(auc)
-        fr_list.append(fr)
-        wrs_p_list.append(wrsp)
-        cluster_id_list.append(SU_ids)
-        folder_list.append([re.search(r"(?<=DataSum\\)(.*)", path)[1]] * SU_ids.shape[1])
-
-        for i in range(SU_ids.shape[1]):
-            if suid_reg[0][i] != str(SU_ids[0, i]):
-                print(f"unmatch cluster id and id_reg, {path}, {SU_ids[0, i]}")
-                input("press Enter to continue")
-        reg_list.append(suid_reg[1])
-    return (
-        per_sec_sel_list, non_sel_mod_list, perfS1_list, perfS2_list, reg_list, bs_sel_list, raw_sel_list,
-        cluster_id_list, folder_list,auc_list,wrs_p_list,fr_list)
+    return {'cid':cluster_id_list,
+            'sel':sel_list,
+            'wrsp':wrsp_list,
+            'reg':reg_list,
+            'folder':folder_list,
+            'delay':delay}

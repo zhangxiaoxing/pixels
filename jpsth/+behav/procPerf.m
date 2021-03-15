@@ -16,7 +16,7 @@ else
         i=40;
         while i<=length(facSeq)
             good=xor(facSeq(i-39:i,5)==facSeq(i-39:i,6) , facSeq(i-39:i,7)>0);
-            facSeq(i-39:i,10)=good;
+            facSeq(i-39:i,10)=good;   % col9->well-train, col10->correct response
             if nnz(good)>=30 %.75 correct rate
                 facSeq(i-39:i,9)=1;
             end

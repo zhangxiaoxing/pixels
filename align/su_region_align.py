@@ -18,7 +18,7 @@ import csv
 import numpy as np
 import pandas as pd
 import align.fileutil as futil
-
+import align.parsetree as parsetree
 
 def imecNo2side(who_did, date, imecNo, mid):
     if date == "191130" and mid == "49":
@@ -65,26 +65,8 @@ def getTrackRegion(regionL, mice_id, date, imecNo, who_did):
     return depthL
 
 
-def combineSubRegion(r):
-    if re.match("CA[123]", r):
-        return r
-    if r.startswith("COAp"):
-        return "COAp"
-    if r.startswith("DG-"):
-        return "DG"
-    if r.startswith("LGd-"):
-        return "LGd"
-    if r.startswith("SSp-"):
-        return "SSp"
-    if re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r):
-        g = re.match("([A-Za-z-]+)[1-6/]{0,3}[ab]{0,1}", r)
-        return g.group(1)
-    else:
-        return r
-
-
 def getRegionList():
-    site_file = r"K:\neupix\track_meta\NP tracks revised 0319.csv"
+    site_file = r"K:\neupix\track_meta\NP_tracks_revised_0312.csv"
     regionL = pd.read_csv(site_file).astype(
         {"mouse_id": "str", "implanting_date": "str"}
     )[
@@ -98,7 +80,6 @@ def getRegionList():
         ]
     ]
 
-    regionL["acronym"] = regionL["acronym"].apply(combineSubRegion)
     return regionL
 
 
@@ -107,14 +88,24 @@ def align_onefolder(su_ids,path,regionL,offset):
         (mice_id, date, imec_no) = futil.get_miceid_date_imecno(path)
         depthL = getTrackRegion(regionL, mice_id, date, imec_no, who)
         su_region_corr = []
-        unitInfo = pd.read_csv(os.path.join(path, "cluster_info.tsv"), sep="\t")
+        unitInfo = pd.read_csv(os.path.join(path, "cluster_info.tsv"),
+                               sep="\t",
+                               usecols=['id','depth'],
+                               index_col='id')
         unlabeled=[]
 
         ### su ids match reg in sequence
         for one_su in su_ids:
-            depth = unitInfo.loc[unitInfo['id'] == one_su, ['depth']].iat[0, 0]
+            depth = unitInfo.loc[one_su, ['depth']][0]
             (reg,one_unlabeled) = matchDepth(depth, depthL, date, mice_id, imec_no)
-            su_region_corr.append([one_su+offset, reg])
+            if reg=='unlabeled':
+                reg_depth=-1
+                tree_str=['',]
+            else:
+                (regidx,reg_depth,tree_idces,tree_str)=parsetree.get_tree_path(reg)
+            while len(tree_str)<6:
+                tree_str.append('')
+            su_region_corr.append([one_su+offset,reg_depth]+tree_str[:6])
             if one_unlabeled:
                 unlabeled.append(one_unlabeled)
         return (su_region_corr,unlabeled)
@@ -147,7 +138,8 @@ def gen_align_files(cmp=False):
 
         su_region_corr=list(filter(None, su_region_corr))
         if su_region_corr:
-            tbl = pd.DataFrame(np.vstack(su_region_corr), columns=['index', 'region']).set_index('index')[:]
+            tbl = pd.DataFrame(np.vstack(su_region_corr),
+                               columns=['index', 'depth','d3','d4','d5','d6','d7','d8']).set_index('index')[:]
             tbl.to_csv(os.path.join(path, 'su_id2reg.csv'), header=True)
         # else:
             # breakpoint()

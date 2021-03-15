@@ -59,12 +59,10 @@ def get_root_path():
     dpath = None
     if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
         dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
-    elif os.path.exists(r"K:\neupix\DataSum"):
-        dpath = r"K:\neupix\DataSum"
     elif os.path.exists("/public1/home/sc51281/neupix/DataSum/"):
         dpath = "/public1/home/sc51281/neupix/DataSum/"
     else:
-        dpath = r"K:\neupix\META"
+        dpath = r"K:\neupix\SPKINFO"
 
     return dpath
 
@@ -94,9 +92,11 @@ def judgePerformance(trials, criteria=75):
         if well-trained, the trials in the engaging window, all trials otherwise.
 
     """
-    sample_loc = 4 if trials.shape[1] > 6 else 2
-    test_loc = 5 if trials.shape[1] > 6 else 3
-    lick_loc = 6 if trials.shape[1] > 6 else 4
+
+    #assuming 10-col trial array
+    sample_loc = 4
+    test_loc = 5
+    lick_loc = 6
 
     if trials.shape[0] >= 40:
         correctResp = np.bitwise_xor(trials[:, sample_loc] == trials[:, test_loc], trials[:, lick_loc] == 1)
