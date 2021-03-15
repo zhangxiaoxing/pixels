@@ -5,23 +5,26 @@ arguments
     opt.rootdir (1,:) char = 'K:\neupix\SPKINFO'
     opt.overwrite (1,1) logical = false
 end
-
+%% dependency
 if ispc, libroot='K:'; else, libroot='~'; end
 addpath(fullfile(libroot,'Lib','fieldtrip-20200320'))
 ft_defaults
-sps=30000;
 
+%% constant
+sps=30000; %sample per second
+
+%% input from YCY's time-aligned spike file
 flist=dir(fullfile(opt.rootdir,'**','spike_info.hdf5'));
 for i=1:length(flist)
     if isfile(fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
         disp(strjoin({'skiped',flist(i).folder}));
         continue
     end
-        
+    %% per session behavioral data
     trials=h5read(fullfile(replace(flist(i).folder,'SPKINFO','META'),'events.hdf5'),'/trials')';
     trials=behav.procPerf(trials,'mode','all');
     if isempty(trials), continue,  end
-    
+    %% select SUs with low contam rate, high FR and good waveform, for all probes
     cstr=h5info(fullfile(flist(i).folder,flist(i).name));
     fr_good=ephys.goodCid(replace(flist(i).folder,'SPKINFO','META')); % Good firing rate
     fr_wf_good=ephys.waveform.goodWaveform(replace(flist(i).folder,'SPKINFO','WF'),'presel',fr_good); %Good waveform
@@ -36,11 +39,12 @@ for i=1:length(flist)
         spkID=cat(1,spkID,h5read(fullfile(flist(i).folder,flist(i).name),[prbName,'/clusters']));
         spkTS=cat(1,spkTS,h5read(fullfile(flist(i).folder,flist(i).name),[prbName,'/times']));
     end
-    susel=ismember(spkID,fr_wf_good);
+    susel=ismember(spkID,fr_good);
     spkID=double(spkID(susel));
     spkTS=double(spkTS(susel));
     suids=unique(spkID);
     
+    %% split trials with external lib
     FT_SPIKE=struct();
     
     FT_SPIKE.label=strtrim(cellstr(num2str(suids)));
@@ -60,7 +64,7 @@ for i=1:length(flist)
     cfg.binsize=opt.binsize;
     cfg.keeptrials='yes';
     FT_PSTH=ft_spike_psth(cfg, FT_SPIKE);
-    
+    %% export result as file
     if opt.writefile
         FR_File=fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000));
         if exist(FR_File,'file')
@@ -72,6 +76,8 @@ for i=1:length(flist)
         h5write(FR_File,'/Trials',FT_PSTH.trialinfo)
         h5create(FR_File,'/SU_id',size(suids),'Datatype','double')
         h5write(FR_File,'/SU_id',suids)
+        h5create(FR_File,'/WF_good',size(suids),'Datatype','int8')
+        h5write(FR_File,'/WF_good',int8(ismember(suids,fr_wf_good)))
     else 
         keyboard()% for devp
     end

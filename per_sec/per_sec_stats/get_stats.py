@@ -9,7 +9,7 @@ from per_sec_stats import statsfun
 
 def get_stats(trial_FR, trials, delay=6, debug=False):
     if debug:
-        trial_FR=trial_FR[:,:20,:]
+        trial_FR=trial_FR[:,:10,:]
 
     ### TODO: when variables are none
 
@@ -21,9 +21,11 @@ def get_stats(trial_FR, trials, delay=6, debug=False):
     # per_sec_fr_s1 = np.zeros((trial_FR.shape[0], trial_FR.shape[1]))
     # per_sec_fr_s2 = np.zeros((trial_FR.shape[0], trial_FR.shape[1]))
     per_sec_wrs_p = np.zeros((trial_FR.shape[1],trial_FR.shape[0]))
+    trial_counts=np.tile([np.sum(s1sel),np.sum(s2sel)],(trial_FR.shape[1],1))
 
     for su_idx in range(trial_FR.shape[1]):
-        print(su_idx)
+        if su_idx % 50 == 0:
+            print(su_idx)
         for bin_idx in range(0, trial_FR.shape[0]):
                 mm=[np.mean(trial_FR[:,su_idx,x],axis=1) for x in [s1sel,s2sel]]
 
@@ -45,5 +47,6 @@ def get_stats(trial_FR, trials, delay=6, debug=False):
     return {'per_sec_selectivity':per_sec_selectivity,
             # 'per_sec_fr_s1':per_sec_fr_s1,
             # 'per_sec_fr_s2':per_sec_fr_s2,
-            'per_sec_wrs_p':per_sec_wrs_p}
+            'per_sec_wrs_p':per_sec_wrs_p,
+            'trial_counts':trial_counts}
                 # TODO AUC
