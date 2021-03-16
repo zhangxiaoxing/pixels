@@ -10,7 +10,7 @@ import re
 import numpy as np
 
 
-def _get_struct_tree():
+def _get_struct_tree(): #import from Allen CCF v3 file
     tree_file = r"K:\neupix\track_meta\structure_tree_safe_2017.csv"
     return pd.read_csv(tree_file,
                           usecols=['id','acronym','depth','structure_id_path',],
@@ -21,7 +21,7 @@ def _get_struct_tree():
                           index_col='id')
 
 
-def get_tree_path(regstr):
+def get_tree_path(regstr): #build up entire region tree from leaf node
     try:
         regidx=_treetbl.iloc[np.where(_treetbl['acronym']==regstr)[0]].index[0]
     except Exception:

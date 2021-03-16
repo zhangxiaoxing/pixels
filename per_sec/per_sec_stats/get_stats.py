@@ -8,6 +8,11 @@ import numpy as np
 from per_sec_stats import statsfun
 
 def get_stats(trial_FR, trials, delay=6, debug=False):
+
+'''
+Calculate FR statistics, e.g. selectivity
+'''
+
     if debug:
         trial_FR=trial_FR[:,:10,:]
 

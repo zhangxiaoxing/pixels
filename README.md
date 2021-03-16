@@ -7,38 +7,33 @@ This repository hosts necessary codes for the statistics and visualization in FN
 - MATLAB (>R2020a)
 	- [FieldTrip Toolbox](https://www.fieldtriptoolbox.org)
 	- [npy-matlab](https://github.com/kwikteam/npy-matlab)
-
 - Python
-	- [Elephant - Electrophysiology Analysis Toolkit](https://github.com/INM-6/elephant) 
-- [Gephi and GephiToolkit](https://gephi.org)
+	- [Elephant - Electrophysiology Analysis Toolkit](https://github.com/INM-6/elephant)
+- Java SE
+	- [Gephi and GephiToolkit](https://gephi.org)  
+` `  
+` `  
+---
 
+### Bleeding edge data pipeline
 
+- `jpsth/extract_waveform.m`  
+Extract waveform from neuropixels binary data  
 
-## For abg4582 manuscript
-(Working-In-Progress)
+- `jpsth/+ephys/pixFlatFR.m`  
+Generate *FR_All_{bin_width}.hdf5* firing rate file.  
+Include tagged trials, no criteria applied yet  
 
-1. Codes used for Fig.1
-	- Fig.1C, `/code_hem/Performance_pixel.m`
-	- Fig.1D top. Refer to [DaXu's](https://github.com/StringXD/SmartTrack-Histology) code
-	- Fig.1D bottom and 1E. Refer to [ChengyangYu's](https://github.com/ChengyangYu/3D-brainrender) code
-	- Fig.1F-H, `/code_hem/showcase.m`
-	- Fig.1I, `/jpsth/sus_trans_fraction.m` 
-	- Fig.1J, `/code_hem/xcorr-showcase.m`
-	- Fig.1K, `/jpsth/basic_stats.m`
-	- Fig.1L and 1M, `/conn_differentFR.m`
+- `per_sec/per_sec_stats.gen_align_files()`  
+Cluster_id to brain region localization
+- `per_sec/per_sec_stats.gen_selectivity_stats`  
+Generate *transient_{delay}.hdf5* dataset  
+Well-trained performace criteria applied  
 
-2. Codes used for Fig.2
-	- Fig.2B, 2D, 2F, `/jpsth/spike_rings_showcase.m`
-	- Fig.2G-M, `/jpsth/ring_motif.m`
-	- Fig.2N `/jpsth/ring_decoding_lda.m`
-	- Fig.2P-R Refer to [DaXu's](https://github.com/StringXD/fCellAssembly) code
+- `+bz/x_corr_bz.m`  
+Function coupling based on ccg
+- `+bz/sums_conn.m`  
+(map->)reduce functional coupling data  
 
-
-3. Codes used for Fig.3
-	- Fig.3C-F, `/SPADE/plot_spade_showcase_4.py`
-	- Fig.3G, `/SPADE/spade_pattern_list.py`
-	- Fig.3H-J, `/SPADE/spade_stats.py`
-4. Codes used for Fig.4
-	- Fig.4A, `/jpsth/conn_mat_network_SC.m`
-	- Fig.4D-G, `/gephiTK/src/gephitk/GephiTK.java`
-	- Fig.4H `/SPADE/global_conn.py`, [gephi](https://gephi.org)
+-  `+bz/reg_conn_bz.m`  
+Assign selectivity & region for function coupling

@@ -5,7 +5,7 @@ arguments
     opt.rootdir (1,:) char = 'K:\neupix\SPKINFO'
     opt.overwrite (1,1) logical = false
 end
-%% dependency
+%% external lib dependency
 if ispc, libroot='K:'; else, libroot='~'; end
 addpath(fullfile(libroot,'Lib','fieldtrip-20200320'))
 ft_defaults

@@ -1,3 +1,6 @@
+% assuming slurm sbatch calls
+% request session idx as i ,1:173 as of Mar. 2021
+% TODO wrap as function with argument block
 if ~exist('i','var')
     disp('missing i value')
     if isunix
@@ -17,7 +20,7 @@ if isfile(sprintf('%s_BZ_XCORR_duo_f%d.mat',prefix,i))
 end
 disp(i);
 
-bz.util.dependency
+bz.util.dependency %data path and lib path dependency
 sess=dir(fullfile(homedir,'**','spike_info.hdf5'));
 
 error_list=cell(0);
@@ -26,7 +29,7 @@ error_list=cell(0);
     folder=sess(i).folder;
     trials=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/Trials');
     SU_id=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/SU_id');
-    if sum(trials(:,9))<40 || numel(SU_id)<2
+    if sum(trials(:,9))<40 || numel(SU_id)<2  % apply well-trained criteria
         if isunix
             quit(0)
         else
@@ -34,19 +37,19 @@ error_list=cell(0);
         end
     end
     
-    cstr=h5info(fullfile(sess(i).folder,sess(i).name));
+    cstr=h5info(fullfile(sess(i).folder,sess(i).name)); % probe for available probes
     spkID=[];spkTS=[];
-    for prb=1:size(cstr.Groups,1)
+    for prb=1:size(cstr.Groups,1) % concatenate same session data for cross probe function coupling
         prbName=cstr.Groups(prb).Name;
         spkID=cat(1,spkID,h5read(fullfile(sess(i).folder,sess(i).name),[prbName,'/clusters']));
         spkTS=cat(1,spkTS,h5read(fullfile(sess(i).folder,sess(i).name),[prbName,'/times']));
     end
     
-    susel=ismember(spkID,SU_id);
+    susel=ismember(spkID,SU_id); % data cleaning by FR and contam rate criteria %TODO optional waveform cleaning
     spkID=double(spkID(susel));
     spkTS=double(spkTS(susel));
     
-    mono=bz.sortSpikeIDz(spkTS,spkID);
+    mono=bz.sortSpikeIDz(spkTS,spkID); % adapted from English, Buzsaki, 2017
     
     if debug && false
         bz.util.plotCCG

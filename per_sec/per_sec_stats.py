@@ -23,18 +23,24 @@ from per_sec_stats.export import exporth5py
 
 import align.su_region_align as align
 
-def gen_align_files(): # generate su_id2reg csv file
+def gen_align_files():
+    '''
+    Generate su_id2reg csv file
+    '''
     align.gen_align_files()
 
-def gen_selectivity_stats(delay, debug = False, denovo = True): # generate per SU file with selectivity and localization
+def gen_selectivity_stats(delay, debug = False, denovo = True):
+    '''
+    Generate per SU selectivity and brain region tree file
+    '''
     if denovo:
         (dict_stats,error_files)=prepare_data(delay = delay, debug = debug)
         pickle.dump(dict_stats,open(f'per_sec_sel_{delay}.p','wb'))
-        #TODO ^^^^ not necessary
+        #TODO ^^^^ deprecated, for debug only
     else:
         dict_stats = pickle.load(open(f'per_sec_sel_{delay}.p','rb'))
 
-    exporth5py(dict_stats)
+    exporth5py(dict_stats) # transient_{delay}.hdf5
     return error_files
 
 

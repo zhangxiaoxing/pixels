@@ -11,9 +11,7 @@ from sklearn.metrics import roc_auc_score
 
 
 def wrs(A, B, bonf=1):
-####TODO: fischers exact alternative
-####TODO: check for variance
-
+#Bonferroni adjusted Wilcoxon rank sum, assuming cleaned data with variance
 
     (stat, p) = stats.mannwhitneyu(
         A.flatten(),
@@ -21,7 +19,7 @@ def wrs(A, B, bonf=1):
         alternative="two-sided")
     return p*bonf
 
-def auc(A,B):
+def auc(A,B): # deprecated, developer only
     try:
         auc = roc_auc_score(
             np.concatenate((
