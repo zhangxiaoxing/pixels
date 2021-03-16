@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Spyder Editor
-
-This is a temporary script file.
+@author: Libra
 """
 
 # import glob
@@ -10,11 +8,11 @@ import h5py
 import numpy as np
 
 
-# import os
-
-
 def parseGNGEvents(events):
-    s1s = 30000
+    '''
+    for Go/Nogo task event parsing
+    '''
+    s1s = 30000 #sample per seconds
     trials = []
     lastTS = -300000
     lastCue = -1
@@ -23,9 +21,9 @@ def parseGNGEvents(events):
     cue = -1
 
     for eidx in range(len(events)):
-        cue = events[eidx][1] & 0x0C
-        cueTS = events[eidx][0]
-        if cue > 0 and cueTS > (lastTS + s1s):
+        cue = events[eidx][1] & 0x0C #bit mask S1, S2
+        cueTS = events[eidx][0] #Time stamp
+        if cue > 0 and cueTS > (lastTS + s1s): #update trial
             if lastCue > 0:
                 trials.append([lastTS, lastCue, rsps])
                 rsps = -1
@@ -37,7 +35,7 @@ def parseGNGEvents(events):
                 and rsps < 0
                 and events[eidx][0] >= lastTS + 30000
                 and events[eidx][0] < lastTS + 90000
-                and (events[eidx][1] & 0x03) > 0
+                and (events[eidx][1] & 0x03) > 0 #bit mask lick L/R
         ):
             rsps = events[eidx][1] & 0x03
 
@@ -46,18 +44,19 @@ def parseGNGEvents(events):
 
 def parseDPAEvents(events):
     """
+    for DPA task parsing
     if no cue,  assume sample
     if has cue history check time diff
     time diff < 3 discard
     time diff > 3 < 10, this cue is test, last cue is sample
     time diff >10
-    
+
     if sample and test set
         if responsed
             add responsed trial
         else
             add unresponsed trial
-        
+
         reinit sample test response
         this cue is sample
 """
@@ -74,11 +73,11 @@ def parseDPAEvents(events):
     testTS = -1
 
     for eidx in range(len(events)):
-        cue = events[eidx][1] & 0x0C
-        cueTS = events[eidx][0]
+        cue = events[eidx][1] & 0x0C #bit mask S1, S2
+        cueTS = events[eidx][0] #Time stamp
         if cue > 0 and cueTS > lastTS + s1s and cueTS < lastTS + 2 * s1s:
             print("error processing evt idx ", eidx)
-        elif cue > 0 and cueTS > lastTS + s1s * 2 and cueTS < lastTS + s1s * 8:
+        elif cue > 0 and cueTS > lastTS + s1s * 2 and cueTS < lastTS + s1s * 8: # following delay
             sample = lastCue
             sampleTS = lastTS
             test = cue
@@ -87,7 +86,7 @@ def parseDPAEvents(events):
             lastCue = cue
             lastTS = cueTS
 
-        elif cue > 0 and cueTS > lastTS + s1s * 8:
+        elif cue > 0 and cueTS > lastTS + s1s * 8: #following ITI
             if sample > 0 and test > 0:
                 trials.append(
                     [
@@ -110,10 +109,10 @@ def parseDPAEvents(events):
             lastTS = cueTS
 
         if (test > 0 and rsps < 0 and events[eidx][0] >= testTS + s1s and events[eidx][0] < lastTS + 2 * s1s and (
-                events[eidx][1] & 0x01) > 0):
+                events[eidx][1] & 0x01) > 0): #response window
             rsps = 1
 
-    if sample > 0 and test > 0:
+    if sample > 0 and test > 0: #pick up last trial
         trials.append(
             [
                 sampleTS,
@@ -142,7 +141,7 @@ def getEvents():
     events = []
     pct = 0
     while ts < (len(syncs)):
-        currPct = ts * 100 // len(syncs)
+        currPct = ts * 100 // len(syncs) # pct for tracking progress
         if currPct > pct:
             print(currPct)
             pct = currPct
@@ -151,16 +150,16 @@ def getEvents():
             blockCount += 1
             ts += 1
         else:
-            if blockCount < 34:
+            if blockCount < 34: #skip processed data
                 ts += 1
             else:
-                blockCount = 0
-                state = [ts, 0, 0, 0, 0]
+                blockCount = 0 # triggerd new block
+                state = [ts, 0, 0, 0, 0] # bit-masked behavior data from MCU, ref. 12F1572SyncEncoder
                 state[1] = 1 if np.sum(syncs[ts + 5: ts + 10]) > 128 else 0
                 state[2] = 1 if np.sum(syncs[ts + 10: ts + 14]) > 127 else 0
                 state[3] = 1 if np.sum(syncs[ts + 14: ts + 19]) > 128 else 0
                 state[4] = 1 if np.sum(syncs[ts + 19: ts + 24]) > 128 else 0
-                if (not events) or not np.array_equal(events[-1][1:], state[1:]):
+                if (not events) or not np.array_equal(events[-1][1:], state[1:]): #skip contineous event
                     events.append(state)
                 ts += 24
     events = np.array(events)
@@ -174,6 +173,20 @@ def writeEvents(events, trials):
 
 
 def filter_events(events):
+    '''
+    if consecutive identical events interrupted by minimal noise, clean up the noise
+
+    Parameters
+    ----------
+    events : [TS, bit-masked-type]
+        as exported from neuropixels binary data
+
+    Returns
+    -------
+    output : [TS, bit-masked-type]
+        cleaned events
+
+    '''
     lick_interval = 30000 * 0.05  # 50ms
     cue_interval = 30000 * 0.5
     prev_idx = np.argmax(events[:, 1])
@@ -223,7 +236,7 @@ def runsync():
     return trials
 
 
-if __name__ == "__main__":
+if __name__ == "__main__": # Debuging entry. Import module when possible.
     events = getEvents()
     trials = parseDPAEvents(events)
     writeEvents(events, trials)

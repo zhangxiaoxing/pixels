@@ -11,18 +11,22 @@ This repository hosts necessary codes for the statistics and visualization in FN
 	- [Elephant - Electrophysiology Analysis Toolkit](https://github.com/INM-6/elephant)
 - Java SE
 	- [Gephi and GephiToolkit](https://gephi.org)  
-` `  
-` `  
+  
+  
 ---
 
 ### Bleeding edge data pipeline
+
+- `sync.py`  
+For extract behavior events from neuropixels binary data
+
 
 - `jpsth/extract_waveform.m`  
 Extract waveform from neuropixels binary data  
 
 - `jpsth/+ephys/pixFlatFR.m`  
 Generate *FR_All_{bin_width}.hdf5* firing rate file.  
-Include tagged trials, no criteria applied yet  
+Include tagged behavioral trials, no criteria applied yet  
 
 - `per_sec/per_sec_stats.gen_align_files()`  
 Cluster_id to brain region localization
