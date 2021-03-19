@@ -4,7 +4,7 @@ arguments
     pair (1,1) struct
     depth (1,1) double {mustBeMember(depth,1:6)}
     opt.homedir (1,:) char = fullfile('K:','code','per_sec');
-    opt.min_su (1,1) double = 30
+    opt.min_su (1,1) double = 10
     opt.subsel (1,:) logical = []
     opt.overwrite (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'all','memory','nonmem'})} = 'all'
