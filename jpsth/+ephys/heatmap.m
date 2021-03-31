@@ -1,16 +1,4 @@
-if ispc
-    homedir='k:\neupix\wyt';
-    addpath(fullfile('K:','Lib','npy-matlab-master','npy-matlab'))
-    addpath(fullfile('K:','Lib','fieldtrip-20200320'))
-    ft_defaults
-else
-    homedir='/home/zx/neupix/wyt';
-    addpath(fullfile('~','Lib','npy-matlab-master','npy-matlab'))
-    addpath(fullfile('~','Lib','fieldtrip-20200320'))
-    ft_defaults
-end
-
-
+ephys.util.dependency
 dualprobe=dir(fullfile(homedir,'**','spike_info.mat'));
 % accu=0;
 sps=30000;

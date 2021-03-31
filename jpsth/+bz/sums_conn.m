@@ -16,4 +16,5 @@ fstr=load(fullfile(f.folder,f.name));
 suid=fstr.mono.completeIndex(:,2);
 out.sig_con=suid(fstr.mono.sig_con);
 out.folder=fstr.folder;
+% out.ccg=cell2mat(arrayfun(@(x) fstr.mono.ccgR(:,fstr.mono.sig_con(x,1),fstr.mono.sig_con(x,2)),1:size(fstr.mono.sig_con,1),'UniformOutput',false));
 end

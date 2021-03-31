@@ -91,7 +91,7 @@ for sess=1:114
             end
         end
     end
-     
+    writecell(csvcell_S1,sprintf('congru_conn_sc_inter_%03d_S1.csv',sess))
     
     csvcell_S1={'Id','Label','Reg','AP','DV'};
     for i=1:length(congru_mat_S1)

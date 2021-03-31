@@ -1,12 +1,14 @@
+%TODO merge with load_sig_pair script
+
 load('sums_conn.mat','sums_conn_str')
-
-sig=struct(); % for significant connection
-sig.suid=[]; % cluster id assigned by kilosort, 2nd+ probe prefixed by probe# 
-sig.reg=[]; % brain region tree
-sig.wrsp=[]; % Wilcoxon rank summation p value
-sig.selec=[]; % selectivity index
-
-pair=sig; % for all pairs
+% 
+% sig=struct(); % for significant connection
+% sig.suid=[]; % cluster id assigned by kilosort, 2nd+ probe prefixed by probe# 
+% sig.reg=[]; % brain region tree
+% sig.mem_type=[]; % Wilcoxon rank summation p value
+% sig.sess=[];
+% 
+% pair=sig; % for all pairs
 
 for fidx=1:length(sums_conn_str)
     disp(fidx);
@@ -18,13 +20,14 @@ for fidx=1:length(sums_conn_str)
     pair_comb_one_dir=nchoosek(all_su,2); % all pairs combination
     [sig_meta,pair_meta]=bz.util.get_meta(sig_con,pair_comb_one_dir,pc_stem); % assign meta info
     
-    fields={'suid','reg','wrsp','selec'};
+    fields={'suid','reg','wrsp','selec','mem_type'};
     for fi=fields
-        sig.(fi{1})=cat(1,sig.(fi{1}),sig_meta.(fi{1}));
+        %TODO online genenrate session tag
+%         sig.(fi{1})=cat(1,sig.(fi{1}),sig_meta.(fi{1}));
         pair_meta.(fi{1})=cat(1,pair_meta.(fi{1}),flip(pair_meta.(fi{1}),ndims(pair_meta.(fi{1}))));%uni-dir to bi-dir
-        pair.(fi{1})=cat(1,pair.(fi{1}),pair_meta.(fi{1}));
+%         pair.(fi{1})=cat(1,pair.(fi{1}),pair_meta.(fi{1}));
     end
     tic
-    save(sprintf('0315_conn_w_reg_%d.mat',fidx),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+    save(fullfile('bzdata',sprintf('0315_conn_w_reg_%d.mat',fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
     toc
 end

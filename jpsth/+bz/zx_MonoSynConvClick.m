@@ -177,8 +177,8 @@ for refcellID=1:max(IDindex)
     for cell2ID= refcellID+1:max(IDindex)
         
         cch=ccgR(:,refcellID,cell2ID);			% extract corresponding cross-correlation histogram vector
-        %% bz's upstream code differs process due to same-shanke limitation
-        %  neuropixels/kilosort seems untroubled by this?
+        % bz's upstream code differs process due to same-shanke limitation
+        % neuropixels/kilosort seems not troubled by this?
         
         
 %         refcellshank=completeIndex(completeIndex(:,3)==refcellID);
