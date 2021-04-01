@@ -5,7 +5,7 @@ end
 persistent map
 
 if isempty(map)
-    homedir=fullfile('K:','code','per_sec');
+    homedir=ephys.util.getHomedir();
     allpath=deblank(h5read(fullfile(homedir,'transient_6.hdf5'),'/path'));
     upath=unique(allpath);
     [upath,uidx]=sort(upath);

@@ -16,7 +16,7 @@ cfg.outputunit  = 'raw'; % make unit area
 cfg.latency     = bin_range; % time bin based on sample onset
 cfg.vartriallen = 'no'; % allow variable trial lengths
 cfg.debias      = 'yes';
-cfg.keeptrials  = 'yes';
+cfg.keeptrials  = 'no';
 
 perfsel=spikeTrials.trialinfo(:,9)>0 & spikeTrials.trialinfo(:,10)>0;
 

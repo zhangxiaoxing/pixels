@@ -9,12 +9,15 @@ arguments
     opt.prefix (1,:) char = '0319'
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
     opt.bin_range (1,2) double = [0,1]
+    opt.overwrite (1,1) logical = false
 end
-if isfile(sprintf('%s_MY_XCORR_duo_f%d.mat',opt.prefix,fidx))
-    disp('File exist'); if isunix, quit(0); else, return; end
+if isfile(sprintf('%s_XCORR_duo_f%3d_delay_%d_%d_%d_2msbin.mat',opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2))) && ~opt.overwrite
+    disp('File exist'); 
+    return;
 end
 %% copied BZ logic
 disp(fidx);
+maxNumCompThreads(16)
 ephys.util.dependency %data path and lib path dependency
 sess=dir(fullfile(homedir,'**','spike_info.hdf5'));
 [~,idces]=sort({sess.folder});sess=sess(idces);
@@ -25,7 +28,7 @@ trials=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/Trials');
 SU_id=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/SU_id');
 
 if sum(trials(:,9))<40 || numel(SU_id)<2  % apply well-trained criteria
-    if isunix, quit(0); else, return; end
+    return
 end
 
 cstr=h5info(fullfile(sess(fidx).folder,sess(fidx).name)); % probe for available probes
@@ -52,7 +55,6 @@ FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
 [xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=my.x_corr_my(FT_SPIKE,opt.delay,opt.bin_range);
 
 sums={folder,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
-save(sprintf('%s_XCORR_duo_f3%d_delay_%d_%d_%d_2msbin.mat',opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2)),'sums','-v7.3') %prefix
-if isunix, quit(0); else, return; end
+save(sprintf('%s_XCORR_duo_f%3d_delay_%d_%d_%d_2msbin.mat',opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2)),'sums','-v7.3') %prefix
 end
 

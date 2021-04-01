@@ -9,6 +9,10 @@ if ispc
     elseif strcmp(opt.type,'raw')
         homedir = fullfile('K:','neupix','SPKINFO');
     end
-else
-    keyboard
+elseif isunix
+    if strcmp(opt.type,'sums')
+        homedir = fullfile('~','pixels','per_sec');
+    elseif strcmp(opt.type,'raw')
+        homedir = fullfile('~','neupix','SPKINFO');
+    end
 end

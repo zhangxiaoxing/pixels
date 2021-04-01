@@ -7,7 +7,7 @@ persistent spkID spkTS trials SU_id folder fidx_
 
 if isempty(fidx_) || fidx ~= fidx_
     homedir=ephys.util.getHomedir('type','raw');
-    folder=ephys.sessid2path(fidx);
+    folder=replace(ephys.sessid2path(fidx),'\',filesep());
     trials=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/Trials');
     SU_id=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/SU_id');
 
