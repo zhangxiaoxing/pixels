@@ -1,5 +1,4 @@
 %TODO merge with reg_conn_bz script
-%TODO load data in unit and merge session later to improve memory performace
 function [sig_,pair_]=load_sig_pair(opt)
 arguments
     opt.pair (1,1) logical = false
