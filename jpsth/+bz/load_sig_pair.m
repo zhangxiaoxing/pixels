@@ -13,7 +13,8 @@ if isempty(sig) || (opt.pair && isempty(pair))
     sig.wrsp=cell(0); % Wilcoxon rank summation p value
     sig.selec=cell(0); % selectivity index
     sig.sess=cell(0);
-    sig.mem_type=cell(0);
+    sig.mem_type=cell(0); % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched, see epys.get_mem_type
+
 
     if opt.pair, pair=sig; end% for all pairs
 

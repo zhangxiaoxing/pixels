@@ -4,6 +4,7 @@ arguments
     incongru (:,11) double
     nonmem (:,11) double
     opt.type (1,:) char {mustBeMember(opt.type,{'spk','fc_eff','fc_prob'})} = 'spk'
+    opt.title (1,:) char = '' %figure title
 end
 congci=fliplr(bootci(1000,@(x) mean(x),congru(:,2:end)))*100;
 incongci=fliplr(bootci(1000,@(x) mean(x),incongru(:,2:end)))*100;
@@ -33,5 +34,8 @@ switch opt.type
 end
 grid on
 legend([hcong,hincong,hnm],{'Congruent FC','Incongruent FC','NonMem FC'});
+if ~isempty(opt.title)
+    title(opt.title)
+end
 % exportgraphics(fh,'prehistory_post_firing.pdf');
 end
