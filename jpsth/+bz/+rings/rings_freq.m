@@ -23,43 +23,43 @@ for ring_id=1:size(sess_rings,1)
         ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
     end
     ts_id=sortrows(ts_id,1);
-    ts_id_tagged=bz.rings.relax_tag(ts_id,rsize);
-    coact_count=nnz(ts_id_tagged(:,3));
+    ring_stats=bz.rings.relax_tag(ts_id,rsize);
+    coact_count=sum(ring_stats.spk_cnt);
     if coact_count>ts_id(end,1)*0.1/30000
         %sess, ring_id, cids, cid spk count, cid asso spk,
         %ring_spk_count_dist <-, ring_duration_dist
-        [GC,GR]=groupcounts(ts_id(ts_id_tagged(:,3)~=0,2));
-        per_su_asso=arrayfun(@(x) GC(GR==x),sort(GR));
-        [spk_cnt_dist,dur_dist]=get_dist(tagged);
-        sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,per_su_asso,...
-            spk_cnt_dist,dur_dist};
+%         [GC,GR]=groupcounts(ts_id(ring_stats(:,3)~=0,2));
+%         per_su_asso=arrayfun(@(x) GC(GR==x),sort(GR));
+%         [spk_cnt_dist,dur_dist]=get_dist(ring_stats);
+        sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats};
     end
 end
 save(sprintf('ring_stats_%d_%d.mat',rsize,sessidx),'sums');
-
-function [spk_cnt_dist,dur_dist]=get_dist(tagged)
-spk_cnt_dist=[];
-dur_dist=[];
-curr_ptr=1;
-% fprintf('000000');
-while true
-    %     fprintf('\b\b\b\b\b\b%06d',curr_ptr);
-    curr_entry=find(tagged(curr_ptr:end,3)~=0,1)+curr_ptr-1;
-    if ~isempty(curr_entry)
-        curr_sep=find(tagged(curr_entry:end,3)==0,1);
-        if ~isempty(curr_sep)
-            curr_ptr=curr_sep+curr_entry-1;
-            spk_cnt_dist=horzcat(spk_cnt_dist,curr_sep-1);
-            dur_dist=horzcat(dur_dist,tagged(curr_ptr-1,1)-tagged(curr_entry,1));
-        else
-            %             spk_cnt_dist=horzcat(spk_cnt_dist,size(tagged,1)-curr_entry+1);
-            break
-        end
-    else
-        break
-    end
-end
-end
+% 
+% function [spk_cnt_dist,dur_dist]=get_dist(tagged)
+% % tagged=[tagged,(1:size(tagged,1))'];
+% spk_cnt_dist=[];
+% dur_dist=[];
+% rpt_idx=1;
+% rhead=1;
+% rtail=rhead;
+% % fprintf('000000');
+% while true
+%     %     fprintf('\b\b\b\b\b\b%06d',curr_ptr);
+%     rhead=find(tagged(:,3)==rpt_idx,1);
+%     if ~isempty(rhead)
+%         rtail=find(tagged(:,3)==rpt_idx,1,'last');
+%         spk_cnt_dist=horzcat(spk_cnt_dist,nnz(tagged(rhead:rtail,3)));
+%         if nnz(tagged(rhead:rtail,3))<4
+%             keyboard
+%         end
+%         dur_dist=horzcat(dur_dist,tagged(rtail,1)-tagged(rhead,1));
+%         rpt_idx=rpt_idx+1;
+%     else
+%         break
+%     end
+% end
+% end
 
 
 
