@@ -12,9 +12,10 @@ sess_rings=rings{sessidx,rsize-2};
 if isempty(spkID), quit(0); end
 
 ts_id=[];
-fprintf('0000');
+
 for ring_id=1:size(sess_rings,1)
-    fprintf('\b\b\b\b%04d',ring_id);
+    disp(ring_id);
+    disp('RRRRR');
     cids=sess_rings(ring_id,:);
     per_cid_spk_cnt=cids;
     for in_ring_pos=1:rsize
@@ -32,9 +33,10 @@ for ring_id=1:size(sess_rings,1)
 %         per_su_asso=arrayfun(@(x) GC(GR==x),sort(GR));
 %         [spk_cnt_dist,dur_dist]=get_dist(ring_stats);
         sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats};
+        save(sprintf('ring_stats_%d_%d.mat',rsize,sessidx),'sums');
     end
 end
-save(sprintf('ring_stats_%d_%d.mat',rsize,sessidx),'sums');
+
 % 
 % function [spk_cnt_dist,dur_dist]=get_dist(tagged)
 % % tagged=[tagged,(1:size(tagged,1))'];

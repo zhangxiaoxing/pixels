@@ -15,11 +15,14 @@ starts=[];
 ends=[];
 spk_cnt=[];
 durs=[];
+% fprintf('000000');
 while curr_pre_ptr<size(in,1)
+    if rem(curr_pre_ptr,100)==0, fprintf('%06d.',curr_pre_ptr);end
+
     cyc_post_pos=rem(in(curr_pre_ptr,2)+1,msize);
     if cyc_post_pos==0, cyc_post_pos=msize;end
-    syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1);
-    syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+15,1); %matching time window, assuming 1kHz
+    syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1); if isempty(syn_win_ubound), break;end
+    syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+15,1); if isempty(syn_win_lbound), break;end %matching time window, assuming 1kHz
     diff_post_ptr=find(in(curr_pre_ptr+1:end,2)==cyc_post_pos,1); %post unit
     if ~isempty(diff_post_ptr) && diff_post_ptr>=syn_win_lbound && diff_post_ptr<syn_win_ubound
         %TODO temp list ring spk
