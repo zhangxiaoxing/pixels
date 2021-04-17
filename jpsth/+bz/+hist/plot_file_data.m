@@ -1,3 +1,6 @@
+% Plots the history effect/short term plasticity/time constant between
+% pairs of neuronal functional couplings. 
+% Require dataset from \jpsth\+bz\+hist\hist_coeff_mem_nonmem.m
 fl=struct();
 fl.congru=dir(fullfile('bzdata','0331_stp_congru_*.mat'));
 fl.incongru=dir(fullfile('bzdata','0331_stp_incongru_*.mat'));
