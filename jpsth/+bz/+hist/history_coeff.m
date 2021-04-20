@@ -72,8 +72,8 @@ maxiter=false(1,3);
 glmopt=statset('fitglm');
 glmopt.MaxIter=1000;
 
-if opt.postspike
-    spksel=post_spike_prob(:,1)>0;
+spksel=post_spike_prob(:,1)>0;
+if opt.postspike && nnz(spksel)>1
     spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
     spk_out=spk_mdl.Coefficients.Estimate;
     maxiter(1)=checkWarning();
