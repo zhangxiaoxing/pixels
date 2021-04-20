@@ -27,18 +27,17 @@ pre_ptr=1;precnt=numel(tspre);%for performance optimizaiton
 post_ptr=1;postcnt=numel(tspost);
 for i=1:(length(histpre)-10)
     if any(histpre(i:i+9))
-        hist_type=histpre(i:i+9)*bitmask;
+        hist_type=[histpre(i:i+8),0]*bitmask; %will supply last bin later
     else
         hist_type=0;
     end
-    post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
-    post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
     
     while pre_ptr<=precnt && binpre(pre_ptr)<i+10, pre_ptr=pre_ptr+1; end
     while post_ptr<=postcnt && binpost(post_ptr)<i+10, post_ptr=post_ptr+1; end
     
-    if pre_ptr>precnt || binpre(pre_ptr)>i+10 %not threre yet
+    if pre_ptr>precnt || binpre(pre_ptr)>i+10 %not there yet
         continue
+        %Also skip post_spike model modification by design
     elseif binpre(pre_ptr)==i+10
         presel=[];postsel=[];
         while pre_ptr<=precnt && binpre(pre_ptr)==i+10
@@ -51,7 +50,11 @@ for i=1:(length(histpre)-10)
         end
         if nnz(postsel)>0
             [fchit,fcmiss]=getfc(tspre(presel),tspost(postsel));
+            if before_post(tspre(presel),tspost(postsel))
+                hist_type=hist_type+bitmask(end);
+            end
         else
+            hist_type=hist_type+bitmask(end);
             fchit=0;fcmiss=numel(presel);
         end
         fc_effi(hist_type+1,1)=fc_effi(hist_type+1,1)+fchit+fcmiss;
@@ -60,12 +63,18 @@ for i=1:(length(histpre)-10)
             fc_prob(hist_type+1,1)=fc_prob(hist_type+1,1)+1;
         end
     end
+    post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+    post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
+    
 end
 maxiter=false(1,3);
 
+glmopt=statset('fitglm');
+glmopt.MaxIter=1000;
+
 if opt.postspike
     spksel=post_spike_prob(:,1)>0;
-    spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity');
+    spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
     spk_out=spk_mdl.Coefficients.Estimate;
     maxiter(1)=checkWarning();
 else
@@ -73,7 +82,7 @@ else
 end
 if opt.fc_effi
     fceffsel=fc_effi(:,1)>0;
-    fc_eff_mdl=fitglm(X(fceffsel,:),fc_effi(fceffsel,[2,1]),'Distribution','binomial','Link','identity');
+    fc_eff_mdl=fitglm(X(fceffsel,:),fc_effi(fceffsel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
     fc_eff_out=fc_eff_mdl.Coefficients.Estimate;
     maxiter(2)=checkWarning();
 else
@@ -81,7 +90,7 @@ else
 end
 
 if opt.fc_prob
-    fc_mdl=fitglm(X(spksel,:),[fc_prob(spksel),post_spike_prob(spksel,1)],'Distribution','binomial','Link','identity');
+    fc_mdl=fitglm(X(spksel,:),[fc_prob(spksel),post_spike_prob(spksel,1)],'Distribution','binomial','Link','identity','Options',glmopt);
     fc_prob_out=fc_mdl.Coefficients.Estimate;
     maxiter(3)=checkWarning();
 else
@@ -93,8 +102,13 @@ end
 
 function [hit,miss]=getfc(pre,post)
 lag=post-(pre.');
-hit=nnz(any(lag>15 & lag<300,1)); %assuming 30K sps.
+hit=nnz(any(lag>=24 & lag<300,1)); %assuming 30K sps,0.8ms min latency according to English 2017 code
 miss=numel(pre)-hit;
+end
+
+function out=before_post(pre,post)
+lag=post-(pre.');
+out=any(lag>=24,'all'); %assuming 30K sps.
 end
 
 function X=buildX()

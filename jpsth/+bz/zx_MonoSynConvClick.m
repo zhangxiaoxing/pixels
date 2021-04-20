@@ -1,5 +1,7 @@
 function mono_res = zx_MonoSynConvClick (spikeIDs,spiketimes,varargin)
-
+% Adapted from English, Butzaki 2017
+% Adjusted synaptic latency upper bound to adapt for longer-distance
+% couplings
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%  INPUTS
@@ -226,7 +228,9 @@ for refcellID=1:max(IDindex)
         % sig = cch>hiBound | cch < loBound;
         sig = cch>hiBound;
         
-        % Find if significant periods falls in monosynaptic window +/- 8ms
+        % Find if significant periods falls in monosynaptic window -9.2/+10
+        % ms
+
         prebins = round(length(cch)/2 - .0092/binSize):round(length(cch)/2);
         postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .01/binSize);
         cchud  = flipud(cch);

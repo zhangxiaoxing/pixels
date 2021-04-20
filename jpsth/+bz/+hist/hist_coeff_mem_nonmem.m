@@ -29,7 +29,7 @@ if dim==0
 end
 idces=find(typesel);
 sess_suids=nan(dim,2);
-postspk=nan(dim,11); %sess,pre-cid,post-cid,incept+coefficients
+postspk=nan(dim,11); %incept+coefficients
 fc_eff=nan(dim,11);
 fc_prob=nan(dim,11);
 maxiter=false(dim,3);
