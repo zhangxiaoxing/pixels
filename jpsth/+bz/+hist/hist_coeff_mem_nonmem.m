@@ -3,6 +3,7 @@ function hist_coeff_mem_nonmem(sess,type,opt)
 % neuron with a general linear model
 %
 % use \jpsth\+bz\+hist\plot_file_data.m for visualization
+
 arguments
     sess (1,1) double {mustBeInteger,mustBePositive,mustBeNonempty}
     type (1,:) char {mustBeMember(type,{'congru','incongru','non-mem'})}

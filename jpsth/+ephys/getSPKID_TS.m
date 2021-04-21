@@ -10,7 +10,7 @@ if isempty(fidx_) || fidx ~= fidx_
     folder=replace(ephys.sessid2path(fidx),'\',filesep());
     trials=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/Trials');
     SU_id=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/SU_id');
-
+%     FR_All=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/FR_All');
     spkID=[];spkTS=[];
     if sum(trials(:,9))<40 || numel(SU_id)<2  % apply well-trained criteria
         trials=[];SU_id=[];return;

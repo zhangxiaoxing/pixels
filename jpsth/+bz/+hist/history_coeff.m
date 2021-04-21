@@ -31,7 +31,33 @@ for i=1:(length(histpre)-10)
     else
         hist_type=0;
     end
-    
+
+    while pre_ptr<=precnt && binpre(pre_ptr)<i+9, pre_ptr=pre_ptr+1; end
+    while post_ptr<=postcnt && binpost(post_ptr)<i+9, post_ptr=post_ptr+1; end
+    if pre_ptr>precnt || binpre(pre_ptr)>i+9 %not there yet
+        post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
+        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+    elseif binpre(pre_ptr)==i+9
+        presel=[];postsel=[];
+        while pre_ptr<=precnt && binpre(pre_ptr)==i+9
+            presel=[presel,pre_ptr];
+            pre_ptr=pre_ptr+1;
+        end
+        while post_ptr<=postcnt && binpost(post_ptr)==i+9
+            postsel=[postsel,post_ptr];
+            post_ptr=post_ptr+1;
+        end
+        if nnz(postsel)>0
+            if before_post(tspre(presel),tspost(postsel))
+                hist_type=hist_type+bitmask(end);
+            end
+            post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+1; % blind detect post spike
+        else
+            hist_type=hist_type+bitmask(end);
+        end
+        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+    end
+
     while pre_ptr<=precnt && binpre(pre_ptr)<i+10, pre_ptr=pre_ptr+1; end
     while post_ptr<=postcnt && binpost(post_ptr)<i+10, post_ptr=post_ptr+1; end
     
@@ -50,11 +76,7 @@ for i=1:(length(histpre)-10)
         end
         if nnz(postsel)>0
             [fchit,fcmiss]=getfc(tspre(presel),tspost(postsel));
-            if before_post(tspre(presel),tspost(postsel))
-                hist_type=hist_type+bitmask(end);
-            end
         else
-            hist_type=hist_type+bitmask(end);
             fchit=0;fcmiss=numel(presel);
         end
         fc_effi(hist_type+1,1)=fc_effi(hist_type+1,1)+fchit+fcmiss;
@@ -62,9 +84,10 @@ for i=1:(length(histpre)-10)
         if fchit>0
             fc_prob(hist_type+1,1)=fc_prob(hist_type+1,1)+1;
         end
+        post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
+        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+
     end
-    post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
-    post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
     
 end
 maxiter=false(1,3);
