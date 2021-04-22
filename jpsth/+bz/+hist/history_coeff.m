@@ -16,78 +16,65 @@ end
 tspre=spkTS(spkID==suid(1));
 tspost=spkTS(spkID==suid(2));
 tmax=max([tspre;tspost]);
-histpre=histcounts(tspre,0:opt.tsbin_size:tmax)>0;
-histpost=histcounts(tspost,0:opt.tsbin_size:tmax)>0;
-binpre=discretize(tspre,0:opt.tsbin_size:tmax);
-binpost=discretize(tspost,0:opt.tsbin_size:tmax);
+histpre=histcounts(tspre,1:opt.tsbin_size:tmax)>0;
+histpost=histcounts(tspost,1:opt.tsbin_size:tmax)>0;
+binpre=discretize(tspre,1:opt.tsbin_size:tmax);
+binpost=discretize(tspost,1:opt.tsbin_size:tmax);
+[bgppre,bidpre]=findgroups(binpre);
+[bgppost,bidpost]=findgroups(binpost);
+prebins=splitapply(@(x) {x}, tspre, bgppre);
+postbins=splitapply(@(x) {x}, tspost, bgppost);
 post_spike_prob=zeros(1024,2);
 fc_effi=zeros(1024,2);
 fc_prob=zeros(1024,1);
-pre_ptr=1;precnt=numel(tspre);%for performance optimizaiton
-post_ptr=1;postcnt=numel(tspost);
+% pre_ptr=1;precnt=numel(tspre);%for performance optimizaiton
+% post_ptr=1;postcnt=numel(tspost);
 for i=1:(length(histpre)-10)
     if any(histpre(i:i+9))
-        hist_type=[histpre(i:i+8),0]*bitmask; %will supply last bin later
+        if histpre(i+9) && histpost(i+9) && ~before_post(prebins{bidpre==i+9},postbins{bidpost==i+9})
+            hist_type=histpre(i:i+8)*bitmask(1:9);
+        else
+            hist_type=histpre(i:i+9)*bitmask; %will supply last bin later
+        end
     else
         hist_type=0;
     end
 
-    while pre_ptr<=precnt && binpre(pre_ptr)<i+9, pre_ptr=pre_ptr+1; end
-    while post_ptr<=postcnt && binpost(post_ptr)<i+9, post_ptr=post_ptr+1; end
-    if pre_ptr>precnt || binpre(pre_ptr)>i+9 %not there yet
-        post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
-        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
-    elseif binpre(pre_ptr)==i+9
-        presel=[];postsel=[];
-        while pre_ptr<=precnt && binpre(pre_ptr)==i+9
-            presel=[presel,pre_ptr];
-            pre_ptr=pre_ptr+1;
-        end
-        while post_ptr<=postcnt && binpost(post_ptr)==i+9
-            postsel=[postsel,post_ptr];
-            post_ptr=post_ptr+1;
-        end
-        if nnz(postsel)>0
-            if before_post(tspre(presel),tspost(postsel))
-                hist_type=hist_type+bitmask(end);
-            end
-            post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+1; % blind detect post spike
-        else
-            hist_type=hist_type+bitmask(end);
-        end
-        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
-    end
 
-    while pre_ptr<=precnt && binpre(pre_ptr)<i+10, pre_ptr=pre_ptr+1; end
-    while post_ptr<=postcnt && binpost(post_ptr)<i+10, post_ptr=post_ptr+1; end
-    
-    if pre_ptr>precnt || binpre(pre_ptr)>i+10 %not there yet
-        continue
-        %Also skip post_spike model modification by design
-    elseif binpre(pre_ptr)==i+10
-        presel=[];postsel=[];
-        while pre_ptr<=precnt && binpre(pre_ptr)==i+10
-            presel=[presel,pre_ptr];
-            pre_ptr=pre_ptr+1;
-        end
-        while post_ptr<=postcnt && binpost(post_ptr)==i+10
-            postsel=[postsel,post_ptr];
-            post_ptr=post_ptr+1;
-        end
-        if nnz(postsel)>0
-            [fchit,fcmiss]=getfc(tspre(presel),tspost(postsel));
-        else
-            fchit=0;fcmiss=numel(presel);
-        end
-        fc_effi(hist_type+1,1)=fc_effi(hist_type+1,1)+fchit+fcmiss;
-        fc_effi(hist_type+1,2)=fc_effi(hist_type+1,2)+fchit;
-        if fchit>0
-            fc_prob(hist_type+1,1)=fc_prob(hist_type+1,1)+1;
-        end
-        post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
-        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+    post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
+    post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
 
-    end
+
+%     while pre_ptr<=precnt && binpre(pre_ptr)<i+10, pre_ptr=pre_ptr+1; end
+%     while post_ptr<=postcnt && binpost(post_ptr)<i+10, post_ptr=post_ptr+1; end
+%     
+%     if pre_ptr>precnt || binpre(pre_ptr)>i+10 %not there yet
+%         continue
+%         %Also skip post_spike model modification by design
+%     elseif binpre(pre_ptr)==i+10
+%         presel=[];postsel=[];
+%         while pre_ptr<=precnt && binpre(pre_ptr)==i+10
+%             presel=[presel,pre_ptr];
+%             pre_ptr=pre_ptr+1;
+%         end
+%         while post_ptr<=postcnt && binpost(post_ptr)==i+10
+%             postsel=[postsel,post_ptr];
+%             post_ptr=post_ptr+1;
+%         end
+%         if nnz(postsel)>0
+%             [fchit,fcmiss]=getfc(tspre(presel),tspost(postsel));
+%         else
+%             fchit=0;fcmiss=numel(presel);
+%         end
+%         fc_effi(hist_type+1,1)=fc_effi(hist_type+1,1)+fchit+fcmiss;
+%         fc_effi(hist_type+1,2)=fc_effi(hist_type+1,2)+fchit;
+%         if fchit>0
+%             fc_prob(hist_type+1,1)=fc_prob(hist_type+1,1)+1;
+%         end
+%         post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
+%         post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+% 
+%     end
     
 end
 maxiter=false(1,3);
@@ -103,22 +90,22 @@ if opt.postspike && nnz(spksel)>1
 else
     spk_out=zeros(1,11);
 end
-if opt.fc_effi
-    fceffsel=fc_effi(:,1)>0;
-    fc_eff_mdl=fitglm(X(fceffsel,:),fc_effi(fceffsel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
-    fc_eff_out=fc_eff_mdl.Coefficients.Estimate;
-    maxiter(2)=checkWarning();
-else
+% if opt.fc_effi
+%     fceffsel=fc_effi(:,1)>0;
+%     fc_eff_mdl=fitglm(X(fceffsel,:),fc_effi(fceffsel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
+%     fc_eff_out=fc_eff_mdl.Coefficients.Estimate;
+%     maxiter(2)=checkWarning();
+% else
     fc_eff_out=zeros(1,11);
-end
+% end
 
-if opt.fc_prob
-    fc_mdl=fitglm(X(spksel,:),[fc_prob(spksel),post_spike_prob(spksel,1)],'Distribution','binomial','Link','identity','Options',glmopt);
-    fc_prob_out=fc_mdl.Coefficients.Estimate;
-    maxiter(3)=checkWarning();
-else
+% if opt.fc_prob
+%     fc_mdl=fitglm(X(spksel,:),[fc_prob(spksel),post_spike_prob(spksel,1)],'Distribution','binomial','Link','identity','Options',glmopt);
+%     fc_prob_out=fc_mdl.Coefficients.Estimate;
+%     maxiter(3)=checkWarning();
+% else
     fc_prob_out=zeros(1,11);
-end
+% end
 
 
 end
