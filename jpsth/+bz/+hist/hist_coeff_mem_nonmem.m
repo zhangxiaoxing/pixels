@@ -1,4 +1,4 @@
-function hist_coeff_mem_nonmem(sess,type,opt)
+function hist_coeff_mem_nonmem(sess,mtype,opt)
 % fit history effect/short term plasticity/time constant between pairs of
 % neuron with a general linear model
 %
@@ -6,15 +6,17 @@ function hist_coeff_mem_nonmem(sess,type,opt)
 
 arguments
     sess (1,1) double {mustBeInteger,mustBePositive,mustBeNonempty}
-    type (1,:) char {mustBeMember(type,{'congru','incongru','non-mem'})}
+    mtype (1,:) char {mustBeMember(mtype,{'congru','incongru','non-mem'})}
     opt.prefix (1,:) char = '0331'
     opt.tsbin_size (1,1) double = 600
     opt.postspike (1,1) logical = true
     opt.fc_effi (1,1) logical = false
     opt.fc_prob (1,1) logical = false
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
 end
-sig=bz.load_sig_pair();
-switch type
+
+sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix);
+switch mtype
     case 'congru'
         typesel=sig.sess==sess & (all(ismember(sig.mem_type,1:2),2) | all(ismember(sig.mem_type,3:4),2));
     case 'incongru'
@@ -43,10 +45,11 @@ for i=reshape(idces,1,[])
         'tsbin_size',opt.tsbin_size,...
         'postspike',opt.postspike,...
         'fc_effi',opt.fc_effi,...
-        'fc_prob',opt.fc_prob);
+        'fc_prob',opt.fc_prob,...
+        'type',opt.type);
     %maxiter->[SPK,FC_EFF,FC_PROB] 
     sidx=sidx+1;
 end
 %TODO return if whatever-empty
-save(sprintf('%s_stp_%s_%d_%d.mat',opt.prefix,type,sess,opt.tsbin_size),'fc_eff','fc_prob','postspk','sess_suids','maxiter','sess','type');
+save(sprintf('%s_stp_%s_%d_%d.mat',opt.prefix,mtype,sess,opt.tsbin_size),'fc_eff','fc_prob','postspk','sess_suids','maxiter','sess','mtype');
 end

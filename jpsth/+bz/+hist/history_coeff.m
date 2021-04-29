@@ -6,15 +6,20 @@ arguments
     opt.postspike (1,1) logical = true
     opt.fc_effi (1,1) logical = false
     opt.fc_prob (1,1) logical = false
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
 end
 persistent bitmask X
 if isempty(bitmask) || isempty(X)
     bitmask=2.^(0:9)';
     X=buildX();
 end
-[spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid);
-tspre=spkTS(spkID==suid(1));
-tspost=spkTS(spkID==suid(2));
+if strcmp(opt.type,'neupix')
+    [spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid);
+    tspre=spkTS(spkID==suid(1));
+    tspost=spkTS(spkID==suid(2));
+else
+    [tspre,tspost]=ephys.getSPKID_TS_HEM(sessid,suid(1),suid(2));
+end
 tmax=max([tspre;tspost]);
 histpre=histcounts(tspre,1:opt.tsbin_size:tmax)>0;
 histpost=histcounts(tspost,1:opt.tsbin_size:tmax)>0;
@@ -31,17 +36,12 @@ fc_prob=zeros(1024,1);
 % post_ptr=1;postcnt=numel(tspost);
 for i=1:(length(histpre)-10)
     if any(histpre(i:i+9))
-        if histpre(i+9) && histpost(i+9) && ~before_post(prebins{bidpre==i+9},postbins{bidpost==i+9})
-            hist_type=histpre(i:i+8)*bitmask(1:9);
-        else
-            hist_type=histpre(i:i+9)*bitmask; %will supply last bin later
-        end
+        hist_type=histpre(i:i+9)*bitmask; %will supply last bin later
     else
         hist_type=0;
     end
 
-
-    post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+9); % blind detect post spike
+    post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+10); % blind detect post spike
     post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
 
 

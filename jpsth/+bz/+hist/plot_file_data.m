@@ -2,37 +2,13 @@
 % pairs of neuronal functional couplings. 
 % Require dataset from \jpsth\+bz\+hist\hist_coeff_mem_nonmem.m
 ftick=6000;
+[stats,memtypes]=bz.hist.util.get_stp_stats(ftick);
 binsize=ftick./30;
-fl=struct();
-fl.congru=dir(fullfile('bzdata',sprintf('0331_stp_congru_*%d.mat',ftick)));
-fl.incongru=dir(fullfile('bzdata',sprintf('0331_stp_incongru_*%d.mat',ftick)));
-fl.nonmem=dir(fullfile('bzdata',sprintf('0331_stp_non-mem_*%d.mat',ftick)));
-
-memtypes=convertCharsToStrings(fieldnames(fl))';
-statfields=["fc_eff","fc_prob","postspk","maxiter","sess_suids"];
-stats=struct();
-
-for memtype=memtypes
-    stats.(memtype)=struct();
-    for sf=statfields, stats.(memtype).(sf)=[]; end
-    stats.(memtype).sess=[];
-    for fidx=1:size(fl.(memtype))
-        fstr=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
-        for sf=statfields, stats.(memtype).(sf)=[stats.(memtype).(sf);fstr.(sf)]; end
-        stats.(memtype).sess=[stats.(memtype).sess;repmat(fstr.sess,size(fstr.sess_suids,1),1)];
-    end
-    stats.(memtype).reg=bz.hist.tag_hist_reg(stats.(memtype));
-end
-
 %level3 ->{CTXpl,STR,TH,HY}
 %level5 ->{PIR,AI,ORB,ILA,etc}
 % stats_all=stats;
 for level=5
-    for memtype=memtypes
-        [is_diff,is_same]=bz.hist.util.diff_at_level(stats.(memtype).reg,level);
-        stats.(memtype).diff_reg=is_diff;
-        stats.(memtype).same_reg=is_same;
-    end
+
     fhspk_diff=bz.hist.plot_hist(stats.congru.postspk(stats.congru.maxiter(:,1)==0 & stats.congru.diff_reg,:),...
         stats.incongru.postspk(stats.incongru.maxiter(:,1)==0 & stats.incongru.diff_reg,:),...
         stats.nonmem.postspk(stats.nonmem.maxiter(:,1)==0 & stats.nonmem.diff_reg,:),...
