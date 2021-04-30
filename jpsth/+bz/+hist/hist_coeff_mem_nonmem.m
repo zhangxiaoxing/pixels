@@ -13,6 +13,7 @@ arguments
     opt.fc_effi (1,1) logical = false
     opt.fc_prob (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
 end
 
 sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix);
@@ -46,10 +47,18 @@ for i=reshape(idces,1,[])
         'postspike',opt.postspike,...
         'fc_effi',opt.fc_effi,...
         'fc_prob',opt.fc_prob,...
-        'type',opt.type);
+        'type',opt.type,...
+        'laser',opt.laser);
     %maxiter->[SPK,FC_EFF,FC_PROB] 
     sidx=sidx+1;
 end
 %TODO return if whatever-empty
-save(sprintf('%s_stp_%s_%d_%d.mat',opt.prefix,mtype,sess,opt.tsbin_size),'fc_eff','fc_prob','postspk','sess_suids','maxiter','sess','mtype');
+switch opt.laser
+    case 'on',laser_suffix='_laserOn';
+    case 'off',laser_suffix='_laserOff';
+    case 'any',laser_suffix='';
+end
+save(sprintf('%s_stp_%s_%d_%d%s.mat',...
+opt.prefix,mtype,sess,opt.tsbin_size,laser_suffix),...
+'fc_eff','fc_prob','postspk','sess_suids','maxiter','sess','mtype');
 end

@@ -7,6 +7,8 @@ arguments
     opt.fc_effi (1,1) logical = false
     opt.fc_prob (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
+    % Optional TODO EPOCH
 end
 persistent bitmask X
 if isempty(bitmask) || isempty(X)
@@ -18,7 +20,8 @@ if strcmp(opt.type,'neupix')
     tspre=spkTS(spkID==suid(1));
     tspost=spkTS(spkID==suid(2));
 else
-    [tspre,tspost]=ephys.getSPKID_TS_HEM(sessid,suid(1),suid(2));
+    % TODO laser on laser off
+    [tspre,tspost]=ephys.getSPKID_TS_HEM(sessid,suid(1),suid(2),'laser',opt.laser);
 end
 tmax=max([tspre;tspost]);
 histpre=histcounts(tspre,1:opt.tsbin_size:tmax)>0;
