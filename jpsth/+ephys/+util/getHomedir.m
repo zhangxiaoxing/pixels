@@ -29,7 +29,7 @@ else
         if strcmp(opt.type,'sums')
             homedir = fullfile('~','neupix','AIOPTO','META');
         elseif strcmp(opt.type,'raw')
-            homedir = fullfile('~','neupix','SPKINFO');
+            homedir = fullfile('~','neupix','AIOPTO','RECDATA');
         end
     end
     

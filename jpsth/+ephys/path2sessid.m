@@ -20,7 +20,6 @@ if isempty(map)
         map(upath{i})=uidx(i);
     end
 end
-
 out=map(path);
 
 end

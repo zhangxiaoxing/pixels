@@ -6,6 +6,7 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'spk','fc_eff','fc_prob'})} = 'spk'
     opt.title (1,:) char = '' %figure title
     opt.binw (1,1) double = 20
+    opt.ylim (1,2) double {mustBeNonnegative}= []
 end
 congci=fliplr(bootci(1000,@(x) mean(x),congru(:,2:end)))*100;
 incongci=fliplr(bootci(1000,@(x) mean(x),incongru(:,2:end)))*100;
@@ -38,8 +39,7 @@ switch opt.type
 end
 grid on
 legend([hcong,hincong,hnm],{'Congruent FC','Incongruent FC','Non-Memory FC'});
-if ~isempty(opt.title)
-    title(opt.title)
-end
+if ~isempty(opt.title), title(opt.title);end
+if ~isempty(opt.ylim), ylim(opt.ylim);end
 % exportgraphics(fh,'prehistory_post_firing.pdf');
 end

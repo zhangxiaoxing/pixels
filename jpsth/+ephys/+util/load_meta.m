@@ -19,7 +19,8 @@ if isempty(meta_str) || ~strcmp(currtype,opt.type)
         ccftree=deblank(h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/reg'));
         meta_str.reg_tree=ccftree(3:8,:);
         meta_str.mem_type=hem2memtype(h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/sus_trans_noPermutaion'));
-        meta_str.allpath=deblank(h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/path'));
+        fullpath=deblank(h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/path'));
+        meta_str.allpath=regexp(fullpath,'.*(?=\\.*)','match','once');
         meta_str.allcid=h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/cluster_id');
         currtype=opt.type;
     end
@@ -29,12 +30,13 @@ end
 
 function memtype=hem2memtype(HEM)
 % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched
+delay_pref=max(HEM(7:end,:));
 memtype=zeros(size(HEM,2),1);
-memtype(HEM(1,:)==1)=1;
-memtype(HEM(1,:)==2)=3;
+memtype(HEM(1,:)==1 & delay_pref==1)=1;
+memtype(HEM(1,:)==1 & delay_pref==2)=3;
 
-memtype(HEM(2,:)==1)=2;
-memtype(HEM(2,:)==2)=4;
+memtype(HEM(2,:)==1 & delay_pref==1)=2;
+memtype(HEM(2,:)==1 & delay_pref==2)=4;
 
 memtype(HEM(4,:)~=0)=-1;
 end

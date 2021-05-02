@@ -1,11 +1,12 @@
-function reg=tag_hist_reg(per_type_stats)
+function reg=tag_hist_reg(per_type_stats,opt)
 arguments
     per_type_stats (1,1) struct
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
 end
 persistent meta
 if isempty(meta)
-    meta=ephys.util.load_meta();
-    meta.sessid=int32(cellfun(@(x) ephys.path2sessid(x),meta.allpath));
+    meta=ephys.util.load_meta('type',opt.type);
+    meta.sessid=int32(cellfun(@(x) ephys.path2sessid(x,'type',opt.type),meta.allpath));
 end
 reg_map=containers.Map('KeyType','int32','ValueType','any');
 for i=1:numel(meta.sessid)

@@ -9,7 +9,7 @@ persistent sig pair
 if isempty(sig) || (opt.pair && isempty(pair))
     fl=dir(fullfile('bzdata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
     if size(fl,1)<9, return; end
-    sig=struct(); % for significant connection
+    sig=struct(); % for significant connect
     sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#
     sig.reg=cell(0); % brain region tree
 %     sig.wrsp=cell(0); % Wilcoxon rank summation p value
