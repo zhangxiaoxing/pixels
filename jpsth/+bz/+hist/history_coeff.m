@@ -1,4 +1,4 @@
-function [spk_out,fc_eff_out,fc_prob_out,maxiter]=history_coeff(sessid,suid,opt)
+function [spk_out,fc_eff_out,fc_prob_out,skip]=history_coeff(sessid,suid,opt)
 arguments
     sessid (1,1) int32
     suid (1,2) int32
@@ -20,9 +20,17 @@ if strcmp(opt.type,'neupix')
     tspre=spkTS(spkID==suid(1));
     tspost=spkTS(spkID==suid(2));
 else
-    % TODO laser on laser off
     [tspre,tspost]=ephys.getSPKID_TS_HEM(sessid,suid(1),suid(2),'laser',opt.laser);
 end
+
+if isempty(tspre) || isempty(tspost)
+    spk_out=zeros(1,11);
+    fc_eff_out=zeros(1,11);
+    fc_prob_out=zeros(1,11);
+    skip=true(1,3);
+    return
+end
+
 tmax=max([tspre;tspost]);
 histpre=histcounts(tspre,1:opt.tsbin_size:tmax)>0;
 histpost=histcounts(tspost,1:opt.tsbin_size:tmax)>0;
@@ -80,7 +88,7 @@ for i=1:(length(histpre)-10)
 %     end
     
 end
-maxiter=false(1,3);
+skip=true(1,3);
 
 glmopt=statset('fitglm');
 glmopt.MaxIter=1000;
@@ -89,7 +97,7 @@ spksel=post_spike_prob(:,1)>0;
 if opt.postspike && nnz(spksel)>1
     spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
     spk_out=spk_mdl.Coefficients.Estimate;
-    maxiter(1)=checkWarning();
+    skip(1)=checkWarning();
 else
     spk_out=zeros(1,11);
 end
