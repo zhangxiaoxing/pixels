@@ -28,23 +28,15 @@ end
 end
 
 function out=laserProcess(spkTS,trialInfo,laserType)
-
+tssel=false(size(spkTS));
 if strcmp(laserType,'off')
-    tssel=true(size(spkTS));
-    for i=1:size(trialInfo,1)
-        if trialInfo(i,9)>0
-            tssel(spkTS>=(trialInfo(i,10)-30000) &...
-                spkTS<(trialInfo(i,10)+300000))=false;
-        end
-    end
-elseif strcmp(laserType,'on')
-    tssel=false(size(spkTS));
-    for i=1:size(trialInfo,1)
-        if trialInfo(i,9)>0
-            tssel(spkTS>=(trialInfo(i,10)+15000) &...
-                spkTS<(trialInfo(i,10)+300000))=true;
-        end
-    end
+    t=trialInfo(trialInfo(:,9)<0,:);
+else
+    t=trialInfo(trialInfo(:,9)>0,:);
+end
+for i=1:size(t,1)
+    tssel(spkTS>=(trialInfo(i,2)-45000) &...
+        spkTS<trialInfo(i,2))=true;
 end
 out=spkTS(tssel);
 end
