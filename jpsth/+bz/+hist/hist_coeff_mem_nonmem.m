@@ -9,9 +9,6 @@ arguments
     mtype (1,:) char {mustBeMember(mtype,{'congru','incongru','non-mem'})}
     opt.prefix (1,:) char = '0331'
     opt.tsbin_size (1,1) double = 600
-    opt.postspike (1,1) logical = true
-    opt.fc_effi (1,1) logical = false
-    opt.fc_prob (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
 end
@@ -34,19 +31,14 @@ end
 idces=find(typesel);
 sess_suids=nan(dim,2);
 postspk=nan(dim,11); %incept+coefficients
-fc_eff=nan(dim,11);
-fc_prob=nan(dim,11);
-skip=false(dim,3);
+skip=false(dim);
 sidx=1;
 for i=reshape(idces,1,[])
     fprintf('%d of %d\n',sidx,dim);
     sess_suids(sidx,:)=sig.suid(i,:);
-    [postspk(sidx,:),fc_eff(sidx,:),fc_prob(sidx,:),skip(sidx,:)]=...
+    [postspk(sidx,:),skip(sidx)]=...
         bz.hist.history_coeff(sig.sess(i),sig.suid(i,:),...
         'tsbin_size',opt.tsbin_size,...
-        'postspike',opt.postspike,...
-        'fc_effi',opt.fc_effi,...
-        'fc_prob',opt.fc_prob,...
         'type',opt.type,...
         'laser',opt.laser);
     %maxiter->[SPK,FC_EFF,FC_PROB] 
@@ -60,5 +52,5 @@ switch opt.laser
 end
 save(sprintf('%s_stp_%s_%d_%d%s.mat',...
 opt.prefix,mtype,sess,opt.tsbin_size,laser_suffix),...
-'fc_eff','fc_prob','postspk','sess_suids','skip','sess','mtype');
+'postspk','sess_suids','skip','sess','mtype');
 end

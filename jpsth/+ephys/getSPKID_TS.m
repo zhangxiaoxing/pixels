@@ -33,5 +33,6 @@ spkTS_=spkTS;
 trials_=trials;
 SU_id_=SU_id;
 folder_=folder;
+fidx_=fidx;
 
 end

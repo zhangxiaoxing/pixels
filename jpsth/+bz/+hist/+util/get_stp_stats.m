@@ -1,6 +1,6 @@
 function [stats,memtypes]=get_stp_stats(ftick,opt)
 arguments
-    ftick (1,1) double {mustBeMember(ftick,[600,6000])}
+    ftick (1,1) double {mustBeMember(ftick,[300,600,3000,6000])}
     opt.prefix (1,:) char
     opt.suffix (1,:) char
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
@@ -18,7 +18,7 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(opt.prefix,prefix_) || ~strcmp(op
     fl.nonmem=dir(fullfile('bzdata',sprintf('%s_stp_non-mem_*%d%s.mat',opt.prefix,ftick,opt.suffix)));
     memtypes=convertCharsToStrings(fieldnames(fl))';
     
-    statfields=["fc_eff","fc_prob","postspk","maxiter","sess_suids"];
+    statfields=["fc_eff","fc_prob","postspk","skip","sess_suids"];
     stats=struct();
 
     for memtype=memtypes
