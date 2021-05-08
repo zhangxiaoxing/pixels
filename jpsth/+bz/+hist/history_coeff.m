@@ -5,7 +5,7 @@ arguments
     opt.tsbin_size (1,1) double = 600
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
-    % Optional TODO EPOCH
+    opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
 end
 persistent bitmask X
 if isempty(bitmask) || isempty(X)
@@ -13,7 +13,7 @@ if isempty(bitmask) || isempty(X)
     X=buildX();
 end
 if strcmp(opt.type,'neupix')
-    [spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid);
+    [spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid,'epoch',opt.epoch);
     tspre=spkTS(spkID==suid(1));
     tspost=spkTS(spkID==suid(2));
 else
