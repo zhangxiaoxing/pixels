@@ -11,6 +11,7 @@ arguments
     opt.tsbin_size (1,1) double = 600
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
+    opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
 end
 
 sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix);
@@ -40,7 +41,8 @@ for i=reshape(idces,1,[])
         bz.hist.history_coeff(sig.sess(i),sig.suid(i,:),...
         'tsbin_size',opt.tsbin_size,...
         'type',opt.type,...
-        'laser',opt.laser);
+        'laser',opt.laser,...
+        'epoch',opt.epoch);
     %maxiter->[SPK,FC_EFF,FC_PROB] 
     sidx=sidx+1;
 end

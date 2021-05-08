@@ -5,8 +5,8 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.prefix (1,:) char = '0315'
 end
-persistent sig pair
-if isempty(sig) || (opt.pair && isempty(pair))
+persistent sig pair type_
+if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
     fl=dir(fullfile('bzdata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
     if size(fl,1)<9, return; end
     sig=struct(); % for significant connect
@@ -40,4 +40,5 @@ if isempty(sig) || (opt.pair && isempty(pair))
 end
 sig_=sig;
 pair_=pair;
+type_=opt.type;
 end
