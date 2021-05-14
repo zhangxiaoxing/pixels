@@ -12,6 +12,7 @@ reg_map=containers.Map('KeyType','int32','ValueType','any'); %reg_map(su_id)=reg
 % wrsp_map=containers.Map('KeyType','int32','ValueType','any'); 
 % selec_map=containers.Map('KeyType','int32','ValueType','any');
 mem_type_map=containers.Map('KeyType','int32','ValueType','int32');
+per_bin_map=containers.Map('KeyType','int32','ValueType','any');
 % pc_stem=replace(regexp(fpath,'(?<=SPKINFO/).*$','match','once'),'/','\');
 sess_idx=find(startsWith(meta_str.allpath,fpath));
 for suidx=reshape(sess_idx,1,[])
@@ -23,6 +24,7 @@ for suidx=reshape(sess_idx,1,[])
 %     wrsp_map(suid)=meta_str.wrs_p(:,suidx);
 %     selec_map(suid)=meta_str.selec(:,suidx);
     mem_type_map(suid)=meta_str.mem_type(suidx);
+    per_bin_map(suid)=meta_str.per_bin(:,suidx)';
 end
 sig=struct();
 sig.suid=sig_id;
@@ -30,6 +32,8 @@ sig.reg=reshape(cell2mat(arrayfun(@(x) reg_map(x),sig_id,'UniformOutput',false))
 % sig.wrsp=reshape(cell2mat(arrayfun(@(x) wrsp_map(x),sig_id,'UniformOutput',false)),[],14,2);
 % sig.selec=reshape(cell2mat(arrayfun(@(x) selec_map(x),sig_id,'UniformOutput',false)),[],14,2);
 sig.mem_type=reshape(cell2mat(arrayfun(@(x) mem_type_map(x),sig_id,'UniformOutput',false)),[],2);
+c=cell2mat(arrayfun(@(x) per_bin_map(x),sig_id,'UniformOutput',false));
+sig.per_bin=cat(3,c(:,1:6),c(:,7:end));
 
 pair=struct();
 pair.suid=pair_id_one_dir;
@@ -37,4 +41,6 @@ pair.reg=reshape(cell2mat(arrayfun(@(x) reg_map(x),pair_id_one_dir,'UniformOutpu
 % pair.wrsp=reshape(cell2mat(arrayfun(@(x) wrsp_map(x),pair_id_one_dir,'UniformOutput',false)),[],14,2);
 % pair.selec=reshape(cell2mat(arrayfun(@(x) selec_map(x),pair_id_one_dir,'UniformOutput',false)),[],14,2);
 pair.mem_type=reshape(cell2mat(arrayfun(@(x) mem_type_map(x),pair_id_one_dir,'UniformOutput',false)),[],2);
+c=cell2mat(arrayfun(@(x) per_bin_map(x),pair_id_one_dir,'UniformOutput',false));
+pair.per_bin=cat(3,c(:,1:6),c(:,7:end));
 end

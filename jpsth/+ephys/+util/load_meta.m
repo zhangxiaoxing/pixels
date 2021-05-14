@@ -14,6 +14,7 @@ if isempty(meta_str) || ~strcmp(currtype,opt.type)
         meta_str.allcid=h5read(fullfile(homedir,'transient_6.hdf5'),'/cluster_id');
         meta_str.reg_tree=deblank(h5read(fullfile(homedir,'transient_6.hdf5'),'/reg_tree'));
         meta_str.mem_type=h5read(fullfile(homedir,'transient_6.hdf5'),'/mem_type');
+        [~,meta_str.per_bin]=ephys.get_mem_type(meta_str.wrs_p,meta_str.selec);
         currtype=opt.type;
     else
         ccftree=deblank(h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/reg'));

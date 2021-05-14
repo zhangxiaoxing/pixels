@@ -8,7 +8,7 @@ end
 persistent sig pair type_
 if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
     fl=dir(fullfile('bzdata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
-    if size(fl,1)<9, return; end
+    if size(fl,1)<9, warning('Files not found');return; end
     sig=struct(); % for significant connect
     sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#
     sig.reg=cell(0); % brain region tree
@@ -21,7 +21,7 @@ if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
     if opt.pair, pair=sig; end% for all pairs
 
 %     fields={'suid','reg','wrsp','selec','mem_type'};
-    fields={'suid','reg','mem_type'};
+    fields={'suid','reg','mem_type','per_bin'};
     for fidx=1:size(fl,1)
         disp(fidx);
         fstr=load(fullfile(fl(fidx).folder,fl(fidx).name));

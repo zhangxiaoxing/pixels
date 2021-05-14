@@ -34,8 +34,8 @@ for fidx=1:length(sums_conn_str)
     pair_comb_one_dir=nchoosek(all_su,2); % all pairs combination
     [sig_meta,pair_meta]=bz.util.get_meta(sig_con,pair_comb_one_dir,pc_stem,'type',opt.type); % assign meta info
     
-%     fields={'suid','reg','wrsp','selec','mem_type'};
-    fields={'suid','reg','mem_type'};
+    %mirror unidirection pair data
+    fields={'suid','reg','mem_type','per_bin'};
     for fi=fields
         %TODO online genenrate session tag
 %         sig.(fi{1})=cat(1,sig.(fi{1}),sig_meta.(fi{1}));

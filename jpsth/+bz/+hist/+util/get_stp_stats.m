@@ -18,7 +18,7 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(opt.prefix,prefix_) || ~strcmp(op
     fl.nonmem=dir(fullfile('bzdata',sprintf('%s_stp_non-mem_*%d%s.mat',opt.prefix,ftick,opt.suffix)));
     memtypes=convertCharsToStrings(fieldnames(fl))';
     
-    statfields=["fc_eff","fc_prob","postspk","skip","sess_suids"];
+    statfields=["postspk","skip","sess_suids"];
     stats=struct();
 
     for memtype=memtypes
@@ -27,6 +27,9 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(opt.prefix,prefix_) || ~strcmp(op
         stats.(memtype).sess=[];
         for fidx=1:size(fl.(memtype))
             fstr=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
+            %HOTFIX>>>>>>>>>>>
+            fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
+            %<<<<<<<<<<<<<<<<<
             for sf=statfields, stats.(memtype).(sf)=[stats.(memtype).(sf);fstr.(sf)]; end
             stats.(memtype).sess=[stats.(memtype).sess;repmat(fstr.sess,size(fstr.sess_suids,1),1)];
         end
