@@ -15,15 +15,18 @@ if isfile(sprintf('%s_XCORR_duo_f%3d_delay_%d_%d_%d_2msbin.mat',opt.prefix,fidx,
     disp('File exist'); 
     return;
 end
-%% copied BZ logic
+%% copied BZ logic, skipped cell selectivity type classification
 disp(fidx);
 maxNumCompThreads(16)
 ephys.util.dependency %data path and lib path dependency
 sess=dir(fullfile(homedir,'**','spike_info.hdf5'));
 [~,idces]=sort({sess.folder});sess=sess(idces);
 bz.util.pause(fidx,'xcorrpause');
-
-folder=sess(fidx).folder;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This fidx->folder mapping is differernt from later ephys.sessid2path
+% mapping. A intermediate layer will be necessary to link these data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+folder=sess(fidx).folder; 
 trials=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/Trials');
 SU_id=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/SU_id');
 
