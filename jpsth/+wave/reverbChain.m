@@ -1,87 +1,70 @@
-fstr=cell(1,6);
-for bin=1:6
-    fstr{bin}=load(sprintf('0116_memory_conn_chain_duo_6s_%d_%d.mat',bin,bin+1));
+sig_str=my.load_sig_pair();
+
+onesample(sig_str.s1,'prefsamp',1,'plot',true);
+onesample(sig_str.s1,'prefsamp',2,'plot',true);
+
+onesample(sig_str.s2,'prefsamp',2,'plot',true);
+onesample(sig_str.s2,'prefsamp',1,'plot',true);
+% onesample(sig);
+
+
+function onesample(sig,opt)
+arguments
+    sig (1,1) struct
+    opt.plot (1,1) logical = false
+    opt.prefsamp (1,1) int32 = 1
 end
-onesample(fstr,true,1);
-onesample(fstr,true,2);
-% onesample(2,fstr);
 
+    prefsamp=opt.prefsamp;
 
-function onesample(fstr,to_plot,prefidx)
-if ~exist('to_plot','var')
-    to_plot=false;
-end
-
-if ~exist('prefidx','var')
-    prefidx=1;
-end
-
-% for bin=1:6
-%     disp(length(fstr{bin}.conn_chain_S1))
-%     disp(length(fstr{bin}.conn_chain_S1)/length(fstr{bin}.pair_chain))
-% end
-
-
-% prefsamp=1;
-    prefsamp=1;
-    bin1sel1=(fstr{1}.(sprintf('pref_chain_S%d',prefidx))(:,1)==prefsamp & all(fstr{1}.(sprintf('pref_chain_S%d',prefidx))(:,7:8)==prefsamp,2));
-    bin1postu=unique(fstr{1}.(sprintf('conn_chain_S%d',prefidx))(bin1sel1,2));
-
-    bin2sel1=ismember(fstr{2}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin1postu) & all(fstr{2}.(sprintf('pref_chain_S%d',prefidx))(:,8:9)==prefsamp,2);
-    bin2postu=unique(fstr{2}.(sprintf('conn_chain_S%d',prefidx))(bin2sel1,2));
-
-    bin3sel1=ismember(fstr{3}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin2postu) & all(fstr{3}.(sprintf('pref_chain_S%d',prefidx))(:,9:10)==prefsamp,2);
-    bin3postu=unique(fstr{3}.(sprintf('conn_chain_S%d',prefidx))(bin3sel1,2));
-
-    bin4sel1=ismember(fstr{4}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin3postu) & all(fstr{4}.(sprintf('pref_chain_S%d',prefidx))(:,10:11)==prefsamp,2);
-    bin4postu=unique(fstr{4}.(sprintf('conn_chain_S%d',prefidx))(bin4sel1,2));
-
-    bin5sel1=ismember(fstr{5}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin4postu) & all(fstr{5}.(sprintf('pref_chain_S%d',prefidx))(:,11:12)==prefsamp,2);
+    bin1postsel=(sig.per_bin(:,1,1)==prefsamp & all(sig.per_bin(:,1:2,2)==prefsamp,2));
     
-    prefsamp=2;
-    bin1sel2=(fstr{1}.(sprintf('pref_chain_S%d',prefidx))(:,1)==prefsamp & all(fstr{1}.(sprintf('pref_chain_S%d',prefidx))(:,7:8)==prefsamp,2));
-    bin1postu=unique(fstr{1}.(sprintf('conn_chain_S%d',prefidx))(bin1sel2,2));
+    bin2presel=post2pre(sig,bin1postsel);
+    
+    bin2postsel=bin2presel & all(sig.per_bin(:,2:3,2)==prefsamp,2);
+    
+    bin3presel=post2pre(sig,bin2postsel);
+    
+    bin3postsel=bin3presel & all(sig.per_bin(:,3:4,2)==prefsamp,2);
+    
+    bin4presel=post2pre(sig,bin3postsel);
 
-    bin2sel2=ismember(fstr{2}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin1postu) & all(fstr{2}.(sprintf('pref_chain_S%d',prefidx))(:,8:9)==prefsamp,2);
-    bin2postu=unique(fstr{2}.(sprintf('conn_chain_S%d',prefidx))(bin2sel2,2));
-
-    bin3sel2=ismember(fstr{3}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin2postu) & all(fstr{3}.(sprintf('pref_chain_S%d',prefidx))(:,9:10)==prefsamp,2);
-    bin3postu=unique(fstr{3}.(sprintf('conn_chain_S%d',prefidx))(bin3sel2,2));
-
-    bin4sel2=ismember(fstr{4}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin3postu) & all(fstr{4}.(sprintf('pref_chain_S%d',prefidx))(:,10:11)==prefsamp,2);
-    bin4postu=unique(fstr{4}.(sprintf('conn_chain_S%d',prefidx))(bin4sel2,2));
-
-    bin5sel2=ismember(fstr{5}.(sprintf('conn_chain_S%d',prefidx))(:,1),bin4postu) & all(fstr{5}.(sprintf('pref_chain_S%d',prefidx))(:,11:12)==prefsamp,2);
+    bin4postsel=bin4presel & all(sig.per_bin(:,4:5,2)==prefsamp,2);
+    
+    bin5presel=post2pre(sig,bin4postsel);
+    
+    bin5postsel= bin5presel & all(sig.per_bin(:,5:6,2)==prefsamp,2);
+    
     
 %%
-if to_plot
+if opt.plot
     cmap=[1,1,1;1,0,0];
-    fh=figure('Color','w','Position',[100,100,200,1000]);
+    fh=figure('Color','w','Position',[32,32,200,9000]);
     subplot(6,1,1)
-    imagesc(fstr{1}.(sprintf('pref_chain_S%d',prefidx))(bin1sel1|bin1sel2,1:6))
+    imagesc(sig.per_bin(bin1postsel,1:6,1))
     colormap(cmap);
     ax1=gca();
     subplot(6,1,2)
-    imagesc(fstr{1}.(sprintf('pref_chain_S%d',prefidx))(bin1sel1|bin1sel2,7:12))
+    imagesc(sig.per_bin(bin1postsel,1:6,2))
     colormap(cmap);
     ax2=gca();
     subplot(6,1,3)
-    imagesc(fstr{2}.(sprintf('pref_chain_S%d',prefidx))(bin2sel1|bin2sel2,7:12))
+    imagesc(sig.per_bin(bin2postsel,1:6,2))
     colormap(cmap);
     ax3=gca();
     subplot(6,1,4)
-    imagesc(fstr{3}.(sprintf('pref_chain_S%d',prefidx))(bin3sel1|bin3sel2,7:12))
+    imagesc(sig.per_bin(bin3postsel,1:6,2))
     colormap(cmap);
     ax4=gca();
     subplot(6,1,5)
-    imagesc(fstr{4}.(sprintf('pref_chain_S%d',prefidx))(bin4sel1|bin4sel2,7:12))
+    imagesc(sig.per_bin(bin4postsel,1:6,2))
     colormap(cmap);
     ax5=gca();
     subplot(6,1,6)
-    imagesc(fstr{5}.(sprintf('pref_chain_S%d',prefidx))(bin5sel1|bin5sel2,7:12))
+    imagesc(sig.per_bin(bin5postsel,1:6,2))
     colormap(cmap);
     ax6=gca();
-    % linkaxes([ax1 ax2 ax3 ax4 ax5 ax6])
+
     for ax=[ax1 ax2 ax3 ax4 ax5 ax6]
         ax.XTick=[];
         ax.YTick=[1,max(ax.YTick)];
@@ -89,22 +72,17 @@ if to_plot
     ax6.XTick=1:6;
     ax6.XLabel.String='Time bin (sec)';
 %     keyboard
-    exportgraphics(fh,sprintf('prolonged_showcase_%d.pdf',prefidx),'ContentType','vector');
+    exportgraphics(fh,sprintf('prolonged_showcase_%d.pdf',prefsamp),'ContentType','vector');
 end
 end
 
-% conn_pref_mat=[fstr{1}.pref_chain_S1(bin1sel,1:6);...
-%     nan(25,6);...
-%     fstr{1}.pref_chain_S1(bin1sel,7:12);...
-%     nan(25,6);...
-%     fstr{2}.pref_chain_S1(bin2sel,7:12);...
-%     nan(25,6);...
-%     fstr{3}.pref_chain_S1(bin3sel,7:12);...
-%     nan(25,6);...
-%     fstr{4}.pref_chain_S1(bin4sel,7:12);...
-%     nan(25,6);...
-%     fstr{5}.pref_chain_S1(bin5sel,7:12)];
-% % close all
-% fh=figure();
-% imagesc(conn_pref_mat);
-% % exportgraphics(fh,'enhance_showcase_v01.pdf','ContentType','vector')
+function out=post2pre(sig,sel)
+    out=false(size(sel));
+    id=sig.suid(sel,2);
+    sess=sig.sess(sel);
+    usess=reshape(unique(sess),1,[]);
+    for s=usess
+        sid=id(sess==s);
+        out(ismember(sig.suid(:,1),sid) & sig.sess==s)=true;
+    end
+end

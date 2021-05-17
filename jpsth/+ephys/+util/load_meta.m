@@ -1,11 +1,11 @@
 function out=load_meta(opt)
 arguments
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MYWT'})}='neupix'
 end
 persistent meta_str currtype
 
 if isempty(meta_str) || ~strcmp(currtype,opt.type)
-    if strcmp(opt.type,'neupix')
+    if strcmp(opt.type,'neupix') || strcmp(opt.type,'MYWT')
         homedir=ephys.util.getHomedir();
         meta_str.trial_counts=h5read(fullfile(homedir,'transient_6.hdf5'),'/trial_counts');
         meta_str.wrs_p=h5read(fullfile(homedir,'transient_6.hdf5'),'/wrs_p');

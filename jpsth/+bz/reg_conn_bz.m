@@ -1,8 +1,9 @@
 function reg_conn_bz(opt)
 arguments
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MYWT'})}='neupix'
     opt.data (:,1) struct =[]
     opt.prefix (1,:) char = '0315'
+    opt.bin_range (1,2) double = [1 2]
 end
 
 %TODO merge with load_sig_pair script
