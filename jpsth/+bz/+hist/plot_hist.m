@@ -7,10 +7,16 @@ arguments
     opt.title (1,:) char = '' %figure title
     opt.binw (1,1) double = 20
     opt.ylim (1,2) double {mustBeNonnegative}= [0,0]
+    opt.bootrpt (1,1) double {mustBeNonnegative,mustBeInteger} = 1000
 end
-congci=fliplr(bootci(1000,@(x) mean(x),congru(:,2:end)))*100;
-incongci=fliplr(bootci(1000,@(x) mean(x),incongru(:,2:end)))*100;
-nmci=fliplr(bootci(1000,@(x) mean(x),nonmem(:,2:end)))*100;
+% congci=fliplr(bootci(opt.bootrpt,@(x) mean(x),congru(:,2:end)))*100;
+% incongci=fliplr(bootci(opt.bootrpt,@(x) mean(x),incongru(:,2:end),'UseParallel',true))*100;
+% nmci=fliplr(bootci(opt.bootrpt,@(x) mean(x),nonmem(:,2:end),'UseParallel',true))*100;
+
+congsem=std(congru(:,2:end))./sqrt(size(congru,1));
+incongsem=std(incongru(:,2:end))./sqrt(size(incongru,1));
+nmsem=std(nonmem(:,2:end))./sqrt(size(nonmem,1));
+
 congmm=flip(mean(congru(:,2:end)))*100;
 incongmm=flip(mean(incongru(:,2:end)))*100;
 nmmm=flip(mean(nonmem(:,2:end)))*100;
@@ -19,9 +25,14 @@ mxbin=(size(congru,2)-1)*opt.binw;
 
 fh=figure('Color','w','Position',[100,100,400,300]);
 hold on;
-fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[congci(1,:),fliplr(congci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2);
-fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[incongci(1,:),fliplr(incongci(2,:))],'b','EdgeColor','none','FaceAlpha',0.2);
-fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[nmci(1,:),fliplr(nmci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2);
+% fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[congci(1,:),fliplr(congci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2);
+% fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[incongci(1,:),fliplr(incongci(2,:))],'b','EdgeColor','none','FaceAlpha',0.2);
+% fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[nmci(1,:),fliplr(nmci(2,:))],'k','EdgeColor','none','FaceAlpha',0.2);
+
+fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[congmm+congsem,fliplr(congmm-congsem)],'r','EdgeColor','none','FaceAlpha',0.2);
+fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[incongmm+incongsem,fliplr(incongmm-incongsem)],'b','EdgeColor','none','FaceAlpha',0.2);
+fill([minbin:opt.binw:mxbin,fliplr(minbin:opt.binw:mxbin)],[nmmm+nmsem,fliplr(nmmm-nmsem)],'k','EdgeColor','none','FaceAlpha',0.2);
+
 hcong=plot(minbin:opt.binw:mxbin,congmm,'-r');
 hincong=plot(minbin:opt.binw:mxbin,incongmm,'-b');
 hnm=plot(minbin:opt.binw:mxbin,nmmm,'-k');

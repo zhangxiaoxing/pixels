@@ -13,7 +13,7 @@ binsize=ftick./30;
 %level3 ->{CTXpl,STR,TH,HY}
 %level5 ->{PIR,AI,ORB,ILA,etc}
 % stats_all=stats;
-for level=5
+for level=4
 
     fhspk_diff=bz.hist.plot_hist(stats.congru.postspk(stats.congru.skip(:,1)==0 & stats.congru.diff_reg(:,level),:),...
         stats.incongru.postspk(stats.incongru.skip(:,1)==0 & stats.incongru.diff_reg(:,level),:),...

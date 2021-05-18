@@ -1,4 +1,10 @@
-function [Xc_S1,Xshuf_S1,Xc_S2,Xshuf_S2]=x_corr_my(spikeTrials,delay,bin_range)
+function [Xc_S1,Xshuf_S1,Xc_S2,Xshuf_S2]=x_corr_my(spikeTrials,delay,bin_range,opt)
+arguments
+    spikeTrials (1,1) struct {mustBeNonempty}
+    delay (1,1) double {mustBePositive,mustBeInteger} = 6
+    bin_range (1,2) double = [-2 7]
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+end
 % https://www.nature.com/articles/nn799
 % A role for inhibition in shaping the temporal flow of information in prefrontal cortex
 % Christos Constantinidis, Graham V. Williams & Patricia S. Goldman-Rakic 
@@ -17,8 +23,11 @@ cfg.latency     = bin_range; % time bin based on sample onset
 cfg.vartriallen = 'no'; % allow variable trial lengths
 cfg.debias      = 'yes';
 cfg.keeptrials  = 'no';
-
-perfsel=spikeTrials.trialinfo(:,9)>0 & spikeTrials.trialinfo(:,10)>0;
+if strcmp(opt.criteria,'WT')
+    perfsel=spikeTrials.trialinfo(:,9)>0 & spikeTrials.trialinfo(:,10)>0;
+else
+    perfsel=spikeTrials.trialinfo(:,1)>0;
+end
 
 cfg.trials      = find(spikeTrials.trialinfo(:,5)==4 & spikeTrials.trialinfo(:,8)==delay & perfsel);
 if numel(cfg.trials)<2

@@ -15,7 +15,7 @@ import h5py
 from per_sec_stats.get_stats import get_stats
 import align.fileutil as futil
 
-def prepare_data(delay=6,debug=False):
+def prepare_data(delay=6,debug=False,complete=False):
     '''
     Assign per SU selectivity and brain-region-tree for further analysis
 
@@ -51,7 +51,6 @@ def prepare_data(delay=6,debug=False):
         with h5py.File(os.path.join(path, "FR_All_1000.hdf5"), "r") as ffr: # Trial-aligned firing rate
             # print(list(ffr.keys()))
             if not "SU_id" in ffr.keys():
-                done_read = True
                 # print("missing su_id key in path ", path)
                 error_files.append(['Missing SU_id',path])
                 continue
@@ -59,8 +58,9 @@ def prepare_data(delay=6,debug=False):
             trial_FR = np.array(ffr["FR_All"], dtype="double")
             trials = np.array(ffr["Trials"], dtype="double").T
             WF_good = np.array(ffr["WF_good"], dtype="int8") # waveform criteria
+        #TODO: optional performance criteria
 
-        if np.sum(trials[:,8])<40: #Well-trained criteria
+        if np.sum(trials[:,8])<40 and not complete: #Well-trained criteria
             error_files.append(['Lack trials',path])
             continue
 
@@ -72,7 +72,7 @@ def prepare_data(delay=6,debug=False):
             reg_l = list(csv.reader(csvfile))
             reg_l=reg_l[1:] # discard header
 
-        dict_stats=get_stats(trial_FR, trials, delay=delay, debug=debug) #FR statistics
+        dict_stats=get_stats(trial_FR, trials, delay=delay, debug=debug,complete=complete) #FR statistics
 
         if debug:
             SU_ids=SU_ids[:,:20]

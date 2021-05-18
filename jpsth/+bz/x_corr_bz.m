@@ -5,13 +5,14 @@ arguments
     fidx (1,1) double
     opt.debug (1,1) logical = false
     opt.prefix (1,:) char = '0315'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 if isfile(sprintf('%s_BZ_XCORR_duo_f%d.mat',opt.prefix,fidx))
     disp('File exist'); if isunix, quit(0); else, return; end
 end
 disp(fidx);
 bz.util.pause(fidx,'xcorrpause');
-[spkID,spkTS,~,~,folder]=ephys.getSPKID_TS(fidx);
+[spkID,spkTS,~,~,folder]=ephys.getSPKID_TS(fidx,'criteria',opt.criteria);
 if isempty(spkID)
     if isunix, quit(0); else, return; end
 end

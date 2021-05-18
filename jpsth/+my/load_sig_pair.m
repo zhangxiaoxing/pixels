@@ -1,7 +1,6 @@
 %TODO merge with reg_conn_bz script
-function [sig_,pair_]=load_sig_pair(opt)
+function [sig_]=load_sig_pair(opt)
 arguments
-    %     opt.pair (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'MYWT'})}='MYWT'
     opt.prefix (1,:) char = '0516'
     opt.bin_range (1,2) double = [-2 7]
@@ -19,10 +18,6 @@ if isempty(sig) || ~strcmp(opt.type,type_)
         sig.(s).sess=cell(0);
         sig.(s).mem_type=cell(0); % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched, see epys.get_mem_type
         
-        
-        %     if opt.pair, pair=sig; end% for all pairs
-        
-        %     fields={'suid','reg','wrsp','selec','mem_type'};
         fields={'suid','reg','mem_type','per_bin'};
         for fidx=1:size(fl,1)
             disp(fidx);
@@ -30,28 +25,20 @@ if isempty(sig) || ~strcmp(opt.type,type_)
             if isfield(fstr.sig_meta,'s1') && isfield(fstr.sig_meta,'s2')
                 for fi=fields
                     sig.(s).(fi{1}){fidx}=fstr.sig_meta.(s).(fi{1});
-                    %             if opt.pair, pair.(fi{1}){fidx}=fstr.pair_meta.(fi{1}); end
                 end
                 sig.(s).sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem,'type','neupix'),size(fstr.sig_meta.(s).suid,1),1);
-                %         if opt.pair, pair.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem),size(fstr.pair_meta.suid,1),1); end
             else
                 for fi=fields
                     sig.(s).(fi{1}){fidx}=int32([]);
-                    %             if opt.pair, pair.(fi{1}){fidx}=fstr.pair_meta.(fi{1}); end
                 end
                 sig.(s).sess{fidx}=int32([]);
-                %         if opt.pair, pair.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem),size(fstr.pair_meta.suid,1),1); end
-                
             end
         end
-        
         for fi=[fields,{'sess'}]
             sig.(s).(fi{1})=cell2mat(reshape(sig.(s).(fi{1}),[],1));
-            %         if opt.pair, pair.(fi{1})=cell2mat(pair.(fi{1})'); end
         end
     end
 end
 sig_=sig;
-% pair_=pair;
 type_=opt.type;
 end

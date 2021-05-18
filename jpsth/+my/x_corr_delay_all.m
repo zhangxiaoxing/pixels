@@ -9,55 +9,44 @@ arguments
     opt.prefix (1,:) char = '0319'
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
     opt.bin_range (1,2) double = [0,1]
-    opt.overwrite (1,1) logical = false
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.overwrite (1,1) logical =false
+%     opt.overwrite (1,1) logical = false
 end
-if isfile(sprintf('%s_XCORR_duo_f%3d_delay_%d_%d_%d_2msbin.mat',opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2))) && ~opt.overwrite
-    disp('File exist'); 
-    return;
+
+if strcmp(opt.criteria,'any'), suffix='';
+else, suffix=opt.criteria; end
+
+if isfile(sprintf('%s_XCORR_duo_f%03d_delay_%d_%d_%d_%s_2msbin.mat',opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2),suffix)) && ~opt.overwrite
+    disp('File exist'); return;
 end
-%% copied BZ logic, skipped cell selectivity type classification
+% copied BZ logic, skipped cell selectivity type classification
 disp(fidx);
-maxNumCompThreads(16)
+if isunix,maxNumCompThreads(16);end
 ephys.util.dependency %data path and lib path dependency
-sess=dir(fullfile(homedir,'**','spike_info.hdf5'));
-[~,idces]=sort({sess.folder});sess=sess(idces);
+
 bz.util.pause(fidx,'xcorrpause');
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% This fidx->folder mapping is differernt from later ephys.sessid2path
-% mapping. A intermediate layer will be necessary to link these data
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-folder=sess(fidx).folder; 
-trials=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/Trials');
-SU_id=h5read(fullfile(folder,'FR_All_1000.hdf5'),'/SU_id');
-
-if sum(trials(:,9))<40 || numel(SU_id)<2  % apply well-trained criteria
-    return
+[spkID,spkTS,trials,SU_id,folder]=ephys.getSPKID_TS(fidx,'criteria',opt.criteria);
+if isempty(spkID)
+    if isunix, quit(0); else, return; end
 end
-
-cstr=h5info(fullfile(sess(fidx).folder,sess(fidx).name)); % probe for available probes
-spkID=[];spkTS=[];
-for prb=1:size(cstr.Groups,1) % concatenate same session data for cross probe function coupling
-    prbName=cstr.Groups(prb).Name;
-    spkID=cat(1,spkID,h5read(fullfile(sess(fidx).folder,sess(fidx).name),[prbName,'/clusters']));
-    spkTS=cat(1,spkTS,h5read(fullfile(sess(fidx).folder,sess(fidx).name),[prbName,'/times']));
-end
-
 [G,ID]=findgroups(spkID);
 SP=splitapply(@(x) {x}, spkTS, G);
 FT_SPIKE=struct();
 FT_SPIKE.label=arrayfun(@(x) num2str(x),SU_id,'UniformOutput',false);
 FT_SPIKE.timestamp=SP(ismember(ID,SU_id));
 
-%  continuous format F T struct file
 sps=30000;
 cfg=struct();
 cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
 cfg.trlunit='timestamps';
 cfg.timestampspersecond=sps;
 FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
-[xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=my.x_corr_my(FT_SPIKE,opt.delay,opt.bin_range);
-
+[xc_s1,xcshuf_s1,xc_s2,xcshuf_x2]=my.x_corr_my(FT_SPIKE,opt.delay,opt.bin_range,'criteria',opt.criteria);
 sums={folder,xc_s1,xcshuf_s1,xc_s2,xcshuf_x2}; %per folder save
-save(sprintf('%s_XCORR_duo_f%3d_delay_%d_%d_%d_2msbin.mat',opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2)),'sums','-v7.3') %prefix
+blame=vcs.blame();
+save(sprintf('%s_XCORR_duo_f%03d_delay_%d_%d_%d_%s_2msbin.mat',...
+    opt.prefix,fidx,opt.delay,opt.bin_range(1),opt.bin_range(2),suffix),...
+    'sums','blame','-v7.3') %prefix
 end
 

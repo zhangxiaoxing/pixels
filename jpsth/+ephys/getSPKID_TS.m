@@ -3,19 +3,25 @@ arguments
     fidx (1,1) double {mustBeInteger,mustBeGreaterThanOrEqual(fidx,1)}
     %TODO EPOCH
     opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
-persistent spkID spkTS trials SU_id folder fidx_
+persistent spkID spkTS trials SU_id folder fidx_ criteria_
 
-if isempty(fidx_) || fidx ~= fidx_
+if isempty(fidx_) || fidx ~= fidx_ || ~strcmp(criteria_,opt.criteria)
     homedir=ephys.util.getHomedir('type','raw');
-    folder=replace(ephys.sessid2path(fidx),'\',filesep());
+    folder=replace(ephys.sessid2path(fidx,'criteria',opt.criteria),'\',filesep());
     trials=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/Trials');
     SU_id=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/SU_id');
     %     FR_All=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/FR_All');
     spkID=[];spkTS=[];
-    if sum(trials(:,9))<40 || numel(SU_id)<2  % apply well-trained criteria
-        trials=[];SU_id=[];return;
+
+    %% Behavior performance parameter controlled data retrival
+    if (numel(SU_id)<2) ...
+            || (strcmp(opt.criteria,'WT') && sum(trials(:,9))<40) ...  % apply well-trained criteria
+            || (strcmp(opt.criteria,'Learning') && sum(trials(:,9))>=40)
+        disp('Did not meet criteria');
+        spkID_=[];spkTS_=[];trials_=trials;SU_id_=SU_id;folder_=folder;return;
     end
     
     cstr=h5info(fullfile(homedir,folder,'spike_info.hdf5')); % probe for available probes
@@ -25,7 +31,8 @@ if isempty(fidx_) || fidx ~= fidx_
         spkTS=cat(1,spkTS,h5read(fullfile(homedir,folder,'spike_info.hdf5'),[prbName,'/times']));
     end
     
-    susel=ismember(spkID,SU_id); % data cleaning by FR and contam rate criteria %TODO optional waveform cleaning
+    susel=ismember(spkID,SU_id); % data cleaning by FR and contam rate criteria 
+    %TODO optional further cleaning by bwaveform
     spkID=double(spkID(susel));
     spkTS=double(spkTS(susel));
     if ~strcmp(opt.epoch,'any')
@@ -41,6 +48,7 @@ trials_=trials;
 SU_id_=SU_id;
 folder_=folder;
 fidx_=fidx;
+criteria_=opt.criteria;
 
 end
 

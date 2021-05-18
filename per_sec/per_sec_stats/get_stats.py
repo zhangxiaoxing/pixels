@@ -7,19 +7,23 @@ Created on Fri Mar  5 08:45:24 2021
 import numpy as np
 from per_sec_stats import statsfun
 
-def get_stats(trial_FR, trials, delay=6, debug=False):
+def get_stats(trial_FR, trials, delay=6, debug=False, complete=False):
 
-'''
-Calculate FR statistics, e.g. selectivity
-'''
-
+    '''
+    Calculate FR statistics, e.g. selectivity
+    '''
     if debug:
         trial_FR=trial_FR[:,:10,:]
 
     ### TODO: when variables are none
+    if complete:
+        s1sel=np.all((trials[:,7]==delay, trials[:,4]==4),axis=0)
+        s2sel=np.all((trials[:,7]==delay, trials[:,4]==8),axis=0)
 
-    s1sel=np.all((trials[:,9]>0, trials[:,8]>0, trials[:,7]==delay, trials[:,4]==4),axis=0)
-    s2sel=np.all((trials[:,9]>0, trials[:,8]>0, trials[:,7]==delay, trials[:,4]==8),axis=0)
+    else:
+        s1sel=np.all((trials[:,9]>0, trials[:,8]>0, trials[:,7]==delay, trials[:,4]==4),axis=0)
+        s2sel=np.all((trials[:,9]>0, trials[:,8]>0, trials[:,7]==delay, trials[:,4]==8),axis=0)
+
 
     per_sec_selectivity = np.zeros((trial_FR.shape[1],trial_FR.shape[0]))
     # per_sec_auc = np.zeros((trial_FR.shape[0], trial_FR.shape[1]))
