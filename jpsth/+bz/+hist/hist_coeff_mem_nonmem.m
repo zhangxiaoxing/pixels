@@ -6,15 +6,16 @@ function hist_coeff_mem_nonmem(sess,mtype,opt)
 
 arguments
     sess (1,1) double {mustBeInteger,mustBePositive,mustBeNonempty}
-    mtype (1,:) char {mustBeMember(mtype,{'congru','incongru','non-mem'})}
+    mtype (1,:) char {mustBeMember(mtype,{'congru','incongru','non-mem','any'})}
     opt.prefix (1,:) char = '0331'
     opt.tsbin_size (1,1) double = 600
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
     opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
-sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix);
+sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix,'criteria',opt.criteria);
 switch mtype
     case 'congru'
         typesel=sig.sess==sess & (all(ismember(sig.mem_type,1:2),2) | all(ismember(sig.mem_type,3:4),2));
@@ -57,6 +58,10 @@ switch opt.epoch
     case 'ITI',epoch_suffix='_ITI';
     case 'delay',epoch_suffix='_delay';
     case 'any',epoch_suffix='';
+end
+
+switch opt.criteria
+    case 'Learning',epoch_suffix='_Learning';
 end
 
 save(sprintf('%s_stp_%s_%d_%d%s%s.mat',...

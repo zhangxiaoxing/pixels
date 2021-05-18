@@ -1,13 +1,16 @@
+%TODO move to ephys package
 function [sig,pair]=get_meta(sig_id,pair_id_one_dir,fpath,opt)
 arguments
     sig_id (:,2) int32
     pair_id_one_dir (:,2) int32
     fpath (1,:) char
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MYWT'})}='neupix'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+
 end
 
 idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-meta_str=ephys.util.load_meta('type',opt.type);
+meta_str=ephys.util.load_meta('type',opt.type,'criteria',opt.criteria);
 reg_map=containers.Map('KeyType','int32','ValueType','any'); %reg_map(su_id)=reg
 % wrsp_map=containers.Map('KeyType','int32','ValueType','any');
 % selec_map=containers.Map('KeyType','int32','ValueType','any');

@@ -4,10 +4,15 @@ arguments
     opt.pair (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.prefix (1,:) char = '0315'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 persistent sig pair type_
 if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
-    fl=dir(fullfile('bzdata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
+    if strcmp(opt.criteria,'Learning')
+        fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_my_learning_*.mat',opt.prefix)));
+    else
+        fl=dir(fullfile('bzdata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
+    end
     if size(fl,1)<9, warning('Files not found');return; end
     sig=struct(); % for significant connect
     sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#
