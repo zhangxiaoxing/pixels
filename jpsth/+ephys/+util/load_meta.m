@@ -1,12 +1,12 @@
 function out=load_meta(opt)
 arguments
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MYWT'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 persistent meta_str currtype criteria
 
 if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.criteria)
-    if strcmp(opt.type,'neupix') || strcmp(opt.type,'MYWT')
+    if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
         homedir=ephys.util.getHomedir();
         if strcmp(opt.criteria,'WT'),fpath=fullfile(homedir,'transient_6.hdf5');
         elseif strcmp(opt.criteria,'Learning'),fpath=fullfile(homedir,'transient_6_complete.hdf5');end

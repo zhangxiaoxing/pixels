@@ -34,7 +34,7 @@ if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
             sig.(fi{1}){fidx}=fstr.sig_meta.(fi{1});
             if opt.pair, pair.(fi{1}){fidx}=fstr.pair_meta.(fi{1}); end
         end
-        sig.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem,'type',opt.type),size(fstr.sig_meta.suid,1),1);
+        sig.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem,'type',opt.type,'criteria',opt.criteria),size(fstr.sig_meta.suid,1),1);
         if opt.pair, pair.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem),size(fstr.pair_meta.suid,1),1); end
     end
 

@@ -1,12 +1,15 @@
 function reg=tag_hist_reg(per_type_stats,opt)
 arguments
     per_type_stats (1,1) struct
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
-persistent meta
-if isempty(meta)
-    meta=ephys.util.load_meta('type',opt.type);
-    meta.sessid=int32(cellfun(@(x) ephys.path2sessid(x,'type',opt.type),meta.allpath));
+persistent meta type criteria
+if isempty(meta) || ~strcmp(type,opt.type) || ~strcmp(criteria,opt.criteria)
+    meta=ephys.util.load_meta('type',opt.type,'criteria',opt.criteria);
+    meta.sessid=int32(cellfun(@(x) ephys.path2sessid(x,'type',opt.type,'criteria',opt.criteria),meta.allpath));
+    type=opt.type;
+    criteria=opt.criteria;
 end
 reg_map=containers.Map('KeyType','int32','ValueType','any');
 for i=1:numel(meta.sessid)

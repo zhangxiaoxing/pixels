@@ -9,7 +9,7 @@ arguments
     mtype (1,:) char {mustBeMember(mtype,{'congru','incongru','non-mem','any'})}
     opt.prefix (1,:) char = '0331'
     opt.tsbin_size (1,1) double = 600
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
     opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
@@ -25,6 +25,8 @@ switch mtype
             |(ismember(sig.mem_type(:,1),3:4) & ismember(sig.mem_type(:,2),1:2)));
     case 'non-mem'
         typesel=sig.sess==sess & all(sig.mem_type==0,2);
+    case 'any'
+        typesel=sig.sess==sess;
 end
 dim=nnz(typesel);
 if dim==0
@@ -63,8 +65,9 @@ end
 switch opt.criteria
     case 'Learning',epoch_suffix='_Learning';
 end
-
+blame=vcs.blame();
 save(sprintf('%s_stp_%s_%d_%d%s%s.mat',...
 opt.prefix,mtype,sess,opt.tsbin_size,laser_suffix,epoch_suffix),...
-'postspk','sess_suids','skip','sess','mtype');
+'postspk','sess_suids','skip','sess','mtype','blame');
+end
 end

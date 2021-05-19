@@ -1,15 +1,15 @@
 function out=path2sessid(path,opt)
 arguments
     path (1,:) char
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
-persistent map
+persistent map type criteria
 
-if isempty(map)
+if isempty(map) || ~strcmp(opt.type,type) || ~strcmp(opt.criteria,criteria)
     homedir=ephys.util.getHomedir('dtype',opt.type);
-    if strcmp(opt.type,'neupix')
-        if strcmp(opt.criteria,'Learning')
+    if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
+        if ~strcmp(opt.criteria,'Learning')
             allpath=deblank(h5read(fullfile(homedir,'transient_6.hdf5'),'/path'));
         else
             allpath=deblank(h5read(fullfile(homedir,'transient_6_complete.hdf5'),'/path'));
@@ -24,6 +24,9 @@ if isempty(map)
     for i=1:numel(uidx)
         map(upath{i})=uidx(i);
     end
+    type=opt.type;
+    criteria=opt.criteria;
+    
 end
 out=map(path);
 
