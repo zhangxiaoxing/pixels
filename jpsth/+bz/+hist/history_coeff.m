@@ -3,7 +3,7 @@ arguments
     sessid (1,1) int32
     suid (1,2) int32
     opt.tsbin_size (1,1) double = 600
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
     opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
@@ -13,7 +13,7 @@ if isempty(bitmask) || isempty(X)
     bitmask=2.^(0:9)';
     X=buildX();
 end
-if strcmp(opt.type,'neupix')
+if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
     [spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid,'epoch',opt.epoch,'criteria',opt.criteria);
     tspre=spkTS(spkID==suid(1));
     tspost=spkTS(spkID==suid(2));

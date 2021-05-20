@@ -20,10 +20,9 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
         fl.congru=dir(fullfile('bzdata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
         fl.incongru=dir(fullfile('bzdata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
         fl.nonmem=dir(fullfile('bzdata',sprintf('%s_stp_non-mem_*%d%s.mat',prefix,ftick,opt.suffix)));
-        
     else
         if opt.any
-            fl.any=dir(fullfile('mydata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
+            fl.any=dir(fullfile('mydata',sprintf('%s_stp_any_*%d%s.mat',prefix,ftick,opt.suffix)));
         else
             fl.congru=dir(fullfile('mydata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
             fl.incongru=dir(fullfile('mydata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
@@ -43,6 +42,9 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
         for fidx=1:size(fl.(memtype))
             fstr=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
             %HOTFIX>>>>>>>>>>>
+            if ~isfield(fstr,'skip')
+                continue
+            end
             if size(fstr.skip,2)>1
                 fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
             end
