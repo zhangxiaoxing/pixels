@@ -35,7 +35,7 @@ end
 idces=find(typesel);
 sess_suids=nan(dim,2);
 postspk=nan(dim,11); %incept+coefficients
-skip=false(dim);
+skip=false(dim,1);
 sidx=1;
 for i=reshape(idces,1,[])
     fprintf('%d of %d\n',sidx,dim);
@@ -45,7 +45,8 @@ for i=reshape(idces,1,[])
         'tsbin_size',opt.tsbin_size,...
         'type',opt.type,...
         'laser',opt.laser,...
-        'epoch',opt.epoch);
+        'epoch',opt.epoch,...
+        'criteria',opt.criteria);
     %maxiter->[SPK,FC_EFF,FC_PROB] 
     sidx=sidx+1;
 end
@@ -69,5 +70,4 @@ blame=vcs.blame();
 save(sprintf('%s_stp_%s_%d_%d%s%s.mat',...
 opt.prefix,mtype,sess,opt.tsbin_size,laser_suffix,epoch_suffix),...
 'postspk','sess_suids','skip','sess','mtype','blame');
-end
 end

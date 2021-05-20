@@ -5,6 +5,7 @@ arguments
     opt.suffix (1,:) char = []
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.any (1,1) logical = false
 end
 if ~isempty(opt.suffix) && ~startsWith(opt.suffix,'_'), opt.suffix=['_',opt.suffix];end
 persistent stats_ ftick_ memtypes_ prefix_ suffix_ type_ criteria_
@@ -13,21 +14,28 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
     disp('Updating STP stats from files');
     ftick_=ftick;
     fl=struct();
+    
     if ~strcmp(opt.type,'MY')
+        
         fl.congru=dir(fullfile('bzdata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
         fl.incongru=dir(fullfile('bzdata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
         fl.nonmem=dir(fullfile('bzdata',sprintf('%s_stp_non-mem_*%d%s.mat',prefix,ftick,opt.suffix)));
+        
     else
-        fl.congru=dir(fullfile('mydata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
-        fl.incongru=dir(fullfile('mydata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
-        fl.nonmem=dir(fullfile('mydata',sprintf('%s_stp_non-mem_*%d%s.mat',prefix,ftick,opt.suffix)));
-
+        if opt.any
+            fl.any=dir(fullfile('mydata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
+        else
+            fl.congru=dir(fullfile('mydata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
+            fl.incongru=dir(fullfile('mydata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
+            fl.nonmem=dir(fullfile('mydata',sprintf('%s_stp_non-mem_*%d%s.mat',prefix,ftick,opt.suffix)));
+        end
     end
+    
     memtypes=convertCharsToStrings(fieldnames(fl))';
     
     statfields=["postspk","skip","sess_suids"];
     stats=struct();
-
+    
     for memtype=memtypes
         stats.(memtype)=struct();
         for sf=statfields, stats.(memtype).(sf)=[]; end
@@ -35,7 +43,9 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
         for fidx=1:size(fl.(memtype))
             fstr=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
             %HOTFIX>>>>>>>>>>>
-            fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
+            if size(fstr.skip,2)>1
+                fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
+            end
             %<<<<<<<<<<<<<<<<<
             for sf=statfields, stats.(memtype).(sf)=[stats.(memtype).(sf);fstr.(sf)]; end
             stats.(memtype).sess=[stats.(memtype).sess;repmat(fstr.sess,size(fstr.sess_suids,1),1)];
