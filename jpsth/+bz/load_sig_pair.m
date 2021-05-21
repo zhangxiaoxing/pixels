@@ -6,8 +6,8 @@ arguments
     opt.prefix (1,:) char = 'BZWT'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
-persistent sig pair type_
-if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
+persistent sig pair type_ criteria_ prefix_
+if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_) || ~strcmp(opt.criteria,criteria_) ~strcmp(opt.prefix,prefix_)
     if strcmp(opt.criteria,'Learning') && strcmp(opt.type,'MY')
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_my_learning_*.mat',opt.prefix)));
     elseif strcmp(opt.type,'MY')
@@ -48,4 +48,6 @@ end
 sig_=sig;
 pair_=pair;
 type_=opt.type;
+prefix_=opt.prefix;
+criteria_=opt.criteria;
 end

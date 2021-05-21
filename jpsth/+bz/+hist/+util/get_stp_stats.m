@@ -16,10 +16,13 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
     fl=struct();
     
     if ~strcmp(opt.type,'MY')
-        
-        fl.congru=dir(fullfile('bzdata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
-        fl.incongru=dir(fullfile('bzdata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
-        fl.nonmem=dir(fullfile('bzdata',sprintf('%s_stp_non-mem_*%d%s.mat',prefix,ftick,opt.suffix)));
+        if opt.any
+            fl.any=dir(fullfile('bzdata',sprintf('%s_stp_any_*%d%s.mat',prefix,ftick,opt.suffix)));
+        else
+            fl.congru=dir(fullfile('bzdata',sprintf('%s_stp_congru_*%d%s.mat',prefix,ftick,opt.suffix)));
+            fl.incongru=dir(fullfile('bzdata',sprintf('%s_stp_incongru_*%d%s.mat',prefix,ftick,opt.suffix)));
+            fl.nonmem=dir(fullfile('bzdata',sprintf('%s_stp_non-mem_*%d%s.mat',prefix,ftick,opt.suffix)));
+        end
     else
         if opt.any
             fl.any=dir(fullfile('mydata',sprintf('%s_stp_any_*%d%s.mat',prefix,ftick,opt.suffix)));
@@ -44,7 +47,7 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
             %HOTFIX>>>>>>>>>>>
             if ~isfield(fstr,'skip')
                 if isfield(fstr,'maxiter')
-                    fstr.skip=fstr.maxiter(:,1)
+                    fstr.skip=fstr.maxiter(:,1);
                 else
                     continue
                 end
