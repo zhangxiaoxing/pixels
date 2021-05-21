@@ -4,7 +4,7 @@
 function plot_file_data(ftick,opt)
 arguments
     ftick (1,1) double {mustBeMember(ftick,[300,600,3000,6000])}=3000;
-    opt.prefix (1,:) char ='0428';
+    opt.prefix (1,:) char ='BZWT';
     opt.suffix (1,:) char ='';
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'

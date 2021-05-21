@@ -2,14 +2,18 @@ function reg_conn_bz(opt)
 arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MYWT'})}='neupix'
     opt.data (:,1) struct =[]
-    opt.prefix (1,:) char = '0315'
-    opt.bin_range (1,2) double = [1 2]
+    opt.prefix (1,:) char = 'BZWT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 %TODO merge with load_sig_pair script
 if isempty(opt.data)
     if strcmp(opt.type,'neupix')
-        load('sums_conn.mat','sums_conn_str')
+        if ~strcmp(opt.criteria,'Learning')
+            load('sums_conn.mat','sums_conn_str')
+        else
+            load('sums_conn_learning.mat','sums_conn_str')
+        end
     else
         load('aiopto_sums_conn.mat','sums_conn_str')
     end
@@ -21,7 +25,11 @@ for fidx=1:length(sums_conn_str)
     disp(fidx);
     fpath=sums_conn_str(fidx).folder; %session data folder
     if strcmp(opt.type,'neupix')
-        pc_stem=replace(regexp(fpath,'(?<=SPKINFO/).*$','match','once'),'/','\');
+        if contains(fpath,'SPKINFO')
+            pc_stem=replace(regexp(fpath,'(?<=SPKINFO/).*$','match','once'),'/','\');
+        else
+            pc_stem=replace(fpath,'/','\');
+        end
         inputf=fullfile('K:','neupix','SPKINFO',pc_stem,'FR_All_1000.hdf5');
         all_su=int32(h5read(inputf,'/SU_id'));
     else
@@ -33,7 +41,7 @@ for fidx=1:length(sums_conn_str)
     
     sig_con=int32(sums_conn_str(fidx).sig_con); % significant functional coupling
     pair_comb_one_dir=nchoosek(all_su,2); % all pairs combination
-    [sig_meta,pair_meta]=bz.util.get_meta(sig_con,pair_comb_one_dir,pc_stem,'type',opt.type); % assign meta info
+    [sig_meta,pair_meta]=bz.util.get_meta(sig_con,pair_comb_one_dir,pc_stem,'type',opt.type,'criteria',opt.criteria); % assign meta info
     
     %mirror unidirection pair data
     fields={'suid','reg','mem_type','per_bin'};

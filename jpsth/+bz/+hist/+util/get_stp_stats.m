@@ -43,7 +43,11 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
             fstr=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
             %HOTFIX>>>>>>>>>>>
             if ~isfield(fstr,'skip')
-                continue
+                if isfield(fstr,'maxiter')
+                    fstr.skip=fstr.maxiter(:,1)
+                else
+                    continue
+                end
             end
             if size(fstr.skip,2)>1
                 fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';

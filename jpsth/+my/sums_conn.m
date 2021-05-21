@@ -4,7 +4,7 @@
 % chan2.
 function [out,avail]=sums_conn(prefix,opt)
 arguments
-    prefix (1,:) char = '0319'
+    prefix (1,:) char = 'MYLN'
     opt.bin_range (1,2) double = [-2 7]
     opt.ntrial (1,1) double  {mustBePositive,mustBeInteger} = 20
     opt.nspk_thres (1,1) double {mustBePositive,mustBeInteger} = 1000

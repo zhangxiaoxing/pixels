@@ -3,12 +3,12 @@ function [sig_,pair_]=load_sig_pair(opt)
 arguments
     opt.pair (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
-    opt.prefix (1,:) char = '0315'
+    opt.prefix (1,:) char = 'BZWT'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 persistent sig pair type_
 if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_)
-    if strcmp(opt.criteria,'Learning')
+    if strcmp(opt.criteria,'Learning') && strcmp(opt.type,'MY')
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_my_learning_*.mat',opt.prefix)));
     elseif strcmp(opt.type,'MY')
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));

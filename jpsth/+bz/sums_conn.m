@@ -2,15 +2,21 @@ function sums_conn_str=sums_conn(opt)
 arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive}= 2
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
-    opt.prefix (1,:) char = '0315';
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.prefix (1,:) char = 'BZWT';
 end
 pool = gcp('nocreate');
 if isempty(pool)
     pool=parpool(opt.poolsize);
 end
 if strcmp(opt.type,'neupix')
-    fl=dir(sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix));
-    sfn='sums_conn.mat';
+    if strcmp(opt.criteria,'Learning')
+        fl=dir(sprintf('%s_BZ_XCORR_duo_f*_Learning.mat',opt.prefix));
+        sfn='sums_conn_learning.mat';        
+    else
+        fl=dir(sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix));
+        sfn='sums_conn.mat';
+    end
 else
     fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));
     sfn='aiopto_sums_conn.mat';

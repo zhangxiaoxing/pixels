@@ -4,7 +4,7 @@ function x_corr_bz(fidx,opt)
 arguments
     fidx (1,1) double
     opt.debug (1,1) logical = false
-    opt.prefix (1,:) char = '0315'
+    opt.prefix (1,:) char = 'BZWT'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 ephys.util.dependency('ft',false);
