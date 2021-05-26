@@ -1,13 +1,14 @@
-function [mem_type,per_bin]=get_mem_type(wrs_p,selec)
+function [mem_type,per_bin]=get_mem_type(wrs_p,selec,opt)
 % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched
 arguments
     wrs_p (14,:) double % assuming 1 sec bin
     selec (14,:) double % assuming 1 sec bin
+    opt.alpha (1,1) double = 0.05
 end
 mem_type=nan(1,size(selec,2));
 per_bin=nan(6,size(selec,2));
 for i=1:size(selec,2)
-    sel_bin=find(wrs_p(5:10,i)<0.05);
+    sel_bin=find(wrs_p(5:10,i)<opt.alpha);
     if isempty(sel_bin)
         mem_type(i)=0;
         per_bin(:,i)=0;

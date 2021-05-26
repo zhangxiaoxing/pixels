@@ -1,7 +1,14 @@
+function reverbChainBZ(opt)
+arguments
+    opt.pair (1,1) logical = false
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
+    opt.prefix (1,:) char = 'BZWT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+end
 sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix);
 onesample(sig,'prefsamp',2,'plot',true);
 % onesample(sig);
-
+end
 
 function onesample(sig,opt)
 arguments
@@ -9,7 +16,7 @@ arguments
     opt.plot (1,1) logical = false
     opt.prefsamp (1,1) int32 = 1
 end
-
+ 
     prefsamp=opt.prefsamp;
 
     bin1sel1=(sig.per_bin(:,1,1)==prefsamp & all(sig.per_bin(:,1:2,2)==prefsamp,2));
@@ -34,7 +41,7 @@ end
 %%
 if opt.plot
     cmap=[1,1,1;1,0,0];
-    fh=figure('Color','w','Position',[100,100,200,1000]);
+    fh=figure('Color','w','Position',[100,100,200,600]);
     subplot(6,1,1)
     imagesc(sig.per_bin(bin1sel1,1:6,1))
     colormap(cmap);

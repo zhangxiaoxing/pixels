@@ -49,9 +49,11 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
                 if isfield(fstr,'maxiter')
                     fstr.skip=fstr.maxiter(:,1);
                 else
+                    disp(fl.(memtype)(fidx).folder);
+                    keyboard
                     continue
                 end
-            end
+            end 
             if size(fstr.skip,2)>1
                 fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
             end
@@ -59,7 +61,7 @@ if isempty(stats_) || ftick~=ftick_ || ~strcmp(prefix,prefix_) || ~strcmp(opt.su
             for sf=statfields, stats.(memtype).(sf)=[stats.(memtype).(sf);fstr.(sf)]; end
             stats.(memtype).sess=[stats.(memtype).sess;repmat(fstr.sess,size(fstr.sess_suids,1),1)];
         end
-        stats.(memtype).reg=bz.hist.tag_hist_reg(stats.(memtype),'type',opt.type,'criteria',opt.criteria);
+        [stats.(memtype).reg,stats.(memtype).mem_type]=bz.hist.tag_hist_meta(stats.(memtype),'type',opt.type,'criteria',opt.criteria);
         [is_diff,is_same]=bz.hist.util.diff_at_level(stats.(memtype).reg);
         stats.(memtype).diff_reg=is_diff;
         stats.(memtype).same_reg=is_same;
