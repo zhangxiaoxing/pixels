@@ -18,7 +18,8 @@ for onetype=types
     typesel=find(meta.mem_type==onetype);
     if strcmp(type,'trans')
         if opt.lastbin
-            typesel=typesel(1:5:numel(typesel));
+            subsel=meta.per_bin(6,typesel)~=0;
+            typesel=typesel(subsel);
         else
             typesel=typesel(1:50:numel(typesel));
         end
@@ -32,7 +33,7 @@ for onetype=types
         suid=h5read(fpath,'/SU_id');
         fr=h5read(fpath,'/FR_All');
         if opt.lastbin
-            bins=6;
+            bins=6+4;
             if meta.per_bin(6,ii)==0
                 continue
             end
@@ -52,6 +53,8 @@ for onetype=types
         cs2=(cs2-delaymm)./delaystd;
         es1=(es1-delaymm)./delaystd;
         es2=(es2-delaymm)./delaystd;
+        
+%         if onetype==2 && mean(cs1)<mean(cs2),keyboard;end
         
         ch(fidx)=scatter(mean(cs1),mean(cs2),36,colors{fidx},'MarkerFaceColor',colors{fidx},'MarkerFaceAlpha',0.8,'MarkerEdgeColor','none');
         eh=scatter(mean(es1),mean(es2),16,'k','MarkerFaceColor','k','MarkerFaceAlpha',0.2,'MarkerEdgeColor','none');

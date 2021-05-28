@@ -46,7 +46,11 @@ if opt.combined
     s1s2=sums_conn_str;
     sums_conn_str=[];
     for ii=1:size(s1s2,1)
-        sums_conn_str(ii).sig_con=unique(cat(1,s1s2(ii).sums_conn_s1,s1s2(ii).sums_conn_s2),'rows');
+        sums_conn_str(ii).sig_con=unique([s1s2(ii).sums_conn_s1(s1s2(ii).meta_s1(:,3)>0,:);...
+        s1s2(ii).sums_conn_s1(s1s2(ii).meta_s1(:,3)<0,[2,1]);...
+        s1s2(ii).sums_conn_s2(s1s2(ii).meta_s2(:,3)>0,:);...
+        s1s2(ii).sums_conn_s2(s1s2(ii).meta_s2(:,3)<0,[2,1]);], 'rows')
+       
         sums_conn_str(ii).folder=s1s2(ii).folder;
     end
     suffix='_combined';
