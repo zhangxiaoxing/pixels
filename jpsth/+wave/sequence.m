@@ -1,8 +1,11 @@
 meta_str=ephys.util.load_meta('type','neupix');
 homedir=ephys.util.getHomedir('type','raw');
 fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
-h1=[];
-h2=[];
+h11=[];
+h21=[];
+h12=[];
+h22=[];
+
 for ii=1:size(fl,1)
     pc_stem=replace(regexp(fl(ii).folder,'(?<=SPKINFO[\\/]).*$','match','once'),'/','\');
     sesssel=startsWith(meta_str.allpath,pc_stem);
@@ -10,53 +13,38 @@ for ii=1:size(fl,1)
     fr=h5read(fullfile(fl(ii).folder,fl(ii).name),'/FR_All');
     trial=h5read(fullfile(fl(ii).folder,fl(ii).name),'/Trials');
     suid=h5read(fullfile(fl(ii).folder,fl(ii).name),'/SU_id');
-    mcid=meta_str.allcid(meta_str.mem_type>2 & sesssel.');
-    msel=ismember(suid,mcid);
+    mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.');
+    msel1=find(ismember(suid,mcid1));
+    mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.');
+    msel2=find(ismember(suid,mcid2));
 %     sel_id=
 %     if sum(trial(:,9))<40,continue;end
     s1sel=trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
     s2sel=trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
-    h1=[h1;reshape(squeeze(mean(fr(s1sel,msel,:))),[],size(fr,3))];
-    h2=[h2;reshape(squeeze(mean(fr(s2sel,msel,:))),[],size(fr,3))];
+
+    for su=reshape(msel1,1,[])
+        basemm=mean(fr(s1sel | s2sel,su,17:40),'all');
+        basestd=std(fr(s1sel | s2sel,su,17:40),0,'all');
+        h11=[h11;((squeeze(mean(fr(s1sel,su,:)))-basemm)./basestd).'];    
+        h21=[h21;((squeeze(mean(fr(s2sel,su,:)))-basemm)./basestd).'];    
+    end
+    
+    for su=reshape(msel2,1,[])
+        basemm=mean(fr(s1sel | s2sel,su,17:40),'all');
+        basestd=std(fr(s1sel | s2sel,su,17:40),0,'all');
+        h12=[h12;((squeeze(mean(fr(s1sel,su,:)))-basemm)./basestd).'];    
+        h22=[h22;((squeeze(mean(fr(s2sel,su,:)))-basemm)./basestd).'];    
+    end
 end
 
-normh1=h1./max(h1,[],2);
-normh2=h2./max(h2,[],2);
-std1=std(normh1,0,2);
-std2=std(normh2,0,2);
-
-normh1=normh1(std1>0 & std2>0,:);
-normh2=normh2(std1>0 & std2>0,:);
-
-com1=sum(((1:24).*normh1(:,17:40)),2)./sum(normh1(:,17:40),2);
-com2=sum(((1:24).*normh2(:,17:40)),2)./sum(normh2(:,17:40),2);
+com1=sum(((1:24).*h11(:,17:40)),2)./sum(h11(:,17:40),2);
+com2=sum(((1:24).*h22(:,17:40)),2)./sum(h22(:,17:40),2);
 
 [~,iidx1]=sort(com1);
 [~,iidx2]=sort(com2);
 
-figure('Color','w');
-subplot(1,2,1)
-imagesc(normh1(iidx1,:))
-colormap('jet')
-ax=gca();
-ax.YDir='normal';
-
-subplot(1,2,2)
-imagesc(normh2(iidx1,:))
-colormap('jet')
-ax=gca();
-ax.YDir='normal';
-
-figure('Color','w');
-subplot(1,2,1)
-imagesc(normh1(iidx2,:))
-colormap('jet')
-ax=gca();
-ax.YDir='normal';
-
-subplot(1,2,2)
-imagesc(normh2(iidx2,:))
-colormap('jet')
-ax=gca();
-ax.YDir='normal';
-
+fh=figure('Color','w');
+wave.plotOne(h11(iidx1,:),1,'S1 trials');
+wave.plotOne(h21(iidx1,:),2,'S2 trials');
+wave.plotOne(h12(iidx2,:),3,'S1 trials');
+wave.plotOne(h22(iidx2,:),4,'S2 trials');
