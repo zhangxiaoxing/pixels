@@ -9,14 +9,13 @@ elseif numel(range)~=2
     return
 end
 for j=range
-    fh=figure('Position',[32,32,320,240]);
+    fh=figure('Position',[32,32,400,400]);
     plot(mono.ccgR(:,mono.sig_con(j,1),mono.sig_con(j,2)),'r-');
     xlim([1,501])
     arrayfun(@(x) xline(x,'b:'),[251-25,251,251+25])
     set(gca(),'XTick',[1,251-25,251,251+25,501],'XTickLabel',[-100,-10,0,10,100])
     xlim([151,351])
     title(j)
-    keyboard();
-    close(fh)
+    waitfor(fh);
 end
 end

@@ -84,7 +84,7 @@ conv_w = .010/binSize;  % 10ms window
 alpha = 0.001; %high frequency cut off, must be .001 for causal p-value matrix
 plotit = false;
 sorted = false;
-
+negccg = false;
 if length(varargin) ==1 && iscell(varargin{1})
     varargin = varargin{1};
 end
@@ -132,8 +132,14 @@ for i = 1:2:length(varargin)
             
         case 'sorted'
             sorted = varargin{i+1};
+            
+        case 'negccg'
+            negccg = varargin{i+1};            
+            
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) ''' (type ''help LoadBinary'' for details).']);
+            
+
     end
 end
 
@@ -226,11 +232,15 @@ for refcellID=1:max(IDindex)
         Bounds(:,cell2ID,refcellID,2)=flipud(loBound(:));
         
         % sig = cch>hiBound | cch < loBound;
-        sig = cch>hiBound;
+        if negccg
+            sig =  cch < loBound;
+        else
+            sig = cch>hiBound;
+        end
         
         % Find if significant periods falls in monosynaptic window -9.2/+10
         % ms
-
+        
         prebins = round(length(cch)/2 - .0092/binSize):round(length(cch)/2);
         postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .01/binSize);
         cchud  = flipud(cch);

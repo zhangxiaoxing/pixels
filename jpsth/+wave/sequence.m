@@ -37,8 +37,10 @@ for ii=1:size(fl,1)
     end
 end
 
-com1=sum(((1:24).*h11(:,17:40)),2)./sum(h11(:,17:40),2);
-com2=sum(((1:24).*h22(:,17:40)),2)./sum(h22(:,17:40),2);
+h11pos=h11-min(h11,[],'all');
+h22pos=h22-min(h22,[],'all');
+com1=sum(((1:24).*h11pos(:,17:40)),2)./sum(h11pos(:,17:40),2);
+com2=sum(((1:24).*h22pos(:,17:40)),2)./sum(h22pos(:,17:40),2);
 
 [~,iidx1]=sort(com1);
 [~,iidx2]=sort(com2);

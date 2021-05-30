@@ -4,7 +4,7 @@ arguments
     sig_id (:,2) int32
     pair_id_one_dir (:,2) int32
     fpath (1,:) char
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MYWT'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 
 end

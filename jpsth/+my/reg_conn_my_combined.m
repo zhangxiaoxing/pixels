@@ -1,9 +1,9 @@
 function reg_conn_my_combined(prefix, opt)
 arguments
     prefix (1,:) char
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix'})}='neupix'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','MY'})}='MY'
     opt.data (:,1) struct =[]
-    opt.bin_range (1,2) double = [1 2]
+    opt.bin_range (1,2) double = [-2 7]
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
