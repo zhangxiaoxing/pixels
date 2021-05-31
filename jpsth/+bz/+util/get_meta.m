@@ -8,8 +8,11 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 
 end
-
-idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+if ispc
+    idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+elseif isunix
+    idmap=load(fullfile('~/pixels','align','reg_ccfid_map.mat'));
+end
 meta_str=ephys.util.load_meta('type',opt.type,'criteria',opt.criteria);
 reg_map=containers.Map('KeyType','int32','ValueType','any'); %reg_map(su_id)=reg
 % wrsp_map=containers.Map('KeyType','int32','ValueType','any');
@@ -17,7 +20,7 @@ reg_map=containers.Map('KeyType','int32','ValueType','any'); %reg_map(su_id)=reg
 mem_type_map=containers.Map('KeyType','int32','ValueType','int32');
 per_bin_map=containers.Map('KeyType','int32','ValueType','any');
 % pc_stem=replace(regexp(fpath,'(?<=SPKINFO/).*$','match','once'),'/','\');
-sess_idx=find(startsWith(meta_str.allpath,fpath));
+sess_idx=find(startsWith(meta_str.allpath,replace(fpath,'/','\')));
 for suidx=reshape(sess_idx,1,[])
     suid=meta_str.allcid(suidx);
     acrontree=meta_str.reg_tree(:,suidx);

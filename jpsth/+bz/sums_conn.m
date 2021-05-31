@@ -15,7 +15,11 @@ if strcmp(opt.type,'neupix')
         fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*_Learning.mat',opt.prefix)));
         sfn='sums_conn_learning.mat';        
     else
-        fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
+        if ispc 
+            fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
+        elseif isunix
+            fl=dir(fullfile('/media/SSD2','bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
+        end
         if opt.inhibit
             sfn='sums_conn_inhibit.mat';
         else
@@ -43,3 +47,4 @@ out.sig_con=suid(fstr.mono.sig_con);
 out.folder=fstr.folder;
 % out.ccg=cell2mat(arrayfun(@(x) fstr.mono.ccgR(:,fstr.mono.sig_con(x,1),fstr.mono.sig_con(x,2)),1:size(fstr.mono.sig_con,1),'UniformOutput',false));
 end
+
