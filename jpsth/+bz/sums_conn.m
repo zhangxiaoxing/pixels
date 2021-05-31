@@ -4,6 +4,7 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.prefix (1,:) char = 'BZWT';
+    opt.inhibit (1,1) logical = false;
 end
 pool = gcp('nocreate');
 if isempty(pool)
@@ -11,11 +12,15 @@ if isempty(pool)
 end
 if strcmp(opt.type,'neupix')
     if strcmp(opt.criteria,'Learning')
-        fl=dir(sprintf('%s_BZ_XCORR_duo_f*_Learning.mat',opt.prefix));
+        fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*_Learning.mat',opt.prefix)));
         sfn='sums_conn_learning.mat';        
     else
-        fl=dir(sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix));
-        sfn='sums_conn.mat';
+        fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
+        if opt.inhibit
+            sfn='sums_conn_inhibit.mat';
+        else
+            sfn='sums_conn.mat';
+        end
     end
 else
     fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));

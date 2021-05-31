@@ -1,3 +1,6 @@
+% input data from
+% [sig,pair]=bz.load_sig_pair('pair',true)
+
 function bars(sig,pair)
 arguments
     sig (1,1) struct

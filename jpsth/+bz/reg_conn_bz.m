@@ -4,13 +4,18 @@ arguments
     opt.data (:,1) struct =[]
     opt.prefix (1,:) char = 'BZWT'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.inhibit (1,1) logical = false;
 end
 
 %TODO merge with load_sig_pair script
 if isempty(opt.data)
     if strcmp(opt.type,'neupix')
         if ~strcmp(opt.criteria,'Learning')
-            load('sums_conn.mat','sums_conn_str')
+            if opt.inhibit
+                load('sums_conn_inhibit.mat','sums_conn_str')
+            else
+                load('sums_conn.mat','sums_conn_str')
+            end
         else
             load('sums_conn_learning.mat','sums_conn_str')
         end
@@ -26,11 +31,15 @@ for fidx=1:length(sums_conn_str)
     fpath=sums_conn_str(fidx).folder; %session data folder
     if strcmp(opt.type,'neupix')
         if contains(fpath,'SPKINFO')
-            pc_stem=replace(regexp(fpath,'(?<=SPKINFO/).*$','match','once'),'/','\');
+            pc_stem=replace(regexp(fpath,'(?<=SPKINFO/).*$','match','once'),'/',filesep());
         else
-            pc_stem=replace(fpath,'/','\');
+            pc_stem=replace(fpath,'/',filesep());
         end
-        inputf=fullfile('K:','neupix','SPKINFO',pc_stem,'FR_All_1000.hdf5');
+        if ispc
+            inputf=fullfile('K:','neupix','SPKINFO',pc_stem,'FR_All_1000.hdf5');
+        elseif isunix
+            inputf=fullfile('/home/zx/neupix/SPKINFO',pc_stem,'FR_All_1000.hdf5');
+        end
         all_su=int32(h5read(inputf,'/SU_id'));
     else
         pc_stem=fpath;
@@ -40,6 +49,7 @@ for fidx=1:length(sums_conn_str)
     end
     
     sig_con=int32(sums_conn_str(fidx).sig_con); % significant functional coupling
+    if numel(sig_con)==2, sig_con=reshape(sig_con,1,2);end
     pair_comb_one_dir=nchoosek(all_su,2); % all pairs combination
     [sig_meta,pair_meta]=bz.util.get_meta(sig_con,pair_comb_one_dir,pc_stem,'type',opt.type,'criteria',opt.criteria); % assign meta info
     
