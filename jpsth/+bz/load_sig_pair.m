@@ -5,6 +5,7 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.prefix (1,:) char = 'BZWT'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.inhibit (1,1) logical = false
 end
 persistent sig pair type_ criteria_ prefix_
 if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_) || ~strcmp(opt.criteria,criteria_) ~strcmp(opt.prefix,prefix_)
@@ -14,7 +15,15 @@ if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_) || ~st
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
     else
         fl=dir(fullfile('bzdata',sprintf('%s_conn_w_reg_*.mat',opt.prefix)));
+        inhibitsel=contains({fl.name},'inhibitory');
+        if opt.inhibit
+            fl=fl(inhibitsel);
+        else
+            fl=fl(~inhibitsel);
+        end
     end
+
+    fprintf('Total sessions %d\n',size(fl,1));
     if size(fl,1)<9, warning('Files not found');return; end
     sig=struct(); % for significant connect
     sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#

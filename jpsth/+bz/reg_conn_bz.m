@@ -25,8 +25,9 @@ if isempty(opt.data)
 else
     sums_conn_str=opt.data;
 end
-
+fprintf('Total sessions %d\n',length(sums_conn_str));
 for fidx=1:length(sums_conn_str)
+    tic
     disp(fidx);
     fpath=sums_conn_str(fidx).folder; %session data folder
     if strcmp(opt.type,'neupix')
@@ -61,8 +62,11 @@ for fidx=1:length(sums_conn_str)
         pair_meta.(fi{1})=cat(1,pair_meta.(fi{1}),flip(pair_meta.(fi{1}),ndims(pair_meta.(fi{1}))));%uni-dir to bi-dir
 %         pair.(fi{1})=cat(1,pair.(fi{1}),pair_meta.(fi{1}));
     end
-    tic
-    save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+    if opt.inhibit
+        save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d_inhibitory.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+    else
+        save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+    end
     toc
 end
 end
