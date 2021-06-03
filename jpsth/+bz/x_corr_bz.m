@@ -1,4 +1,4 @@
-% assuming slurm sbatch calls
+% assuming called by slurm sbatch 
 % request session idx as i ,1:173 as of Mar. 2021
 function x_corr_bz(fidx,prefix,opt)
 arguments
@@ -22,7 +22,7 @@ mono=bz.sortSpikeIDz(spkTS,spkID,'negccg',opt.negccg); % adapted from English, B
 if opt.debug && false
     bz.util.plotCCG
 end
-if opt.negccg && strcmp(opt.criteria,'Learning'),    suffix='_Inhibitory_Learning';
+if opt.negccg && strcmp(opt.criteria,'Learning'),   suffix='_Inhibitory_Learning';
 elseif opt.negccg,                                  suffix='_Inhibitory';
 elseif strcmp(opt.criteria,'Learning'),             suffix='_Learning';
 else,                                               suffix='';

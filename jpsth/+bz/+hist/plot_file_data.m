@@ -10,6 +10,8 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 [stats,~]=bz.hist.util.get_stp_stats(ftick,opt.prefix,'suffix',opt.suffix,'type',opt.type,'criteria',opt.criteria);
+% [wt_stats,~]=bz.hist.util.get_stp_stats(6000,'BZWT','suffix','','type','neupix','criteria','WT','any',true);
+
 binsize=ftick./30;
 %level3 ->{CTXpl,STR,TH,HY}
 %level5 ->{PIR,AI,ORB,ILA,etc}

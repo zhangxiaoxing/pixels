@@ -7,8 +7,13 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.inhibit (1,1) logical = false
 end
-persistent sig pair type_ criteria_ prefix_
-if isempty(sig) || (opt.pair && isempty(pair)) || ~strcmp(opt.type,type_) || ~strcmp(opt.criteria,criteria_) ~strcmp(opt.prefix,prefix_)
+persistent sig pair type_ criteria_ prefix_ inhibit_
+if isempty(sig) ...
+        || (opt.pair && isempty(pair))...
+        || ~strcmp(opt.type,type_)...
+        || ~strcmp(opt.criteria,criteria_)...
+        || ~strcmp(opt.prefix,prefix_)...
+        || inhibit_~=opt.inhibit
     if strcmp(opt.criteria,'Learning') && strcmp(opt.type,'MY')
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_my_learning_*.mat',opt.prefix)));
     elseif strcmp(opt.type,'MY')
@@ -59,4 +64,5 @@ pair_=pair;
 type_=opt.type;
 prefix_=opt.prefix;
 criteria_=opt.criteria;
+inhibit_=opt.inhibit;
 end

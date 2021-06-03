@@ -1,4 +1,7 @@
 function plot_ln_wt_stp_curve(learn_stats,wt_stats,opt)
+% [learn_stats,~]=bz.hist.util.get_stp_stats(6000,'BZLN','suffix','Learning','type','neupix','criteria','Learning','any',true);
+% [wt_stats,~]=bz.hist.util.get_stp_stats(6000,'BZWT','suffix','','type','neupix','criteria','WT','any',true);
+
 arguments
     learn_stats (1,1) struct
     wt_stats (1,1) struct
