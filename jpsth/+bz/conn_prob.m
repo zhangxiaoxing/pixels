@@ -11,11 +11,11 @@ addpath('k:\code\align\')
 [sig.reg_dist,pair.reg_dist]=get_conn_dist(sig,pair);
 sess_cnt=max(sig.sess);
 stats=struct();
-stats.nm_nm=nan(sess_cnt,1);
-stats.congr=nan(sess_cnt,1);
-stats.incon=nan(sess_cnt,1);
-stats.mem_nm=nan(sess_cnt,1);
-stats.nm_mem=nan(sess_cnt,1);
+stats.nm_nm=nan(sess_cnt,7);
+stats.congr=nan(sess_cnt,7);
+stats.incon=nan(sess_cnt,7);
+stats.mem_nm=nan(sess_cnt,7);
+stats.nm_mem=nan(sess_cnt,7);
 mm=cell(7,1);
 ci=cell(7,1);
 for dist=0:6
@@ -26,14 +26,20 @@ for dist=0:6
         onesess=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
         for fld=["nm_nm","congr","incon","mem_nm","nm_mem"]
             if isfield(onesess,fld)
-                stats.(fld)(i)=onesess.(fld);
+                stats.(fld)(i,dist+1)=onesess.(fld);
             end
         end
     end
-    cell5={stats.nm_nm,stats.nm_mem,stats.mem_nm,stats.incon,stats.congr};
-    mm{dist+1}=cellfun(@(x) nanmean(x)*100,cell5);
-    ci{dist+1}=cell2mat(cellfun(@(x) bootci(1000,@(y) nanmean(y)*100,x),cell5,'UniformOutput',false));
+%     cell5={stats.nm_nm,stats.nm_mem,stats.mem_nm,stats.incon,stats.congr};
 end
+for distbin=1:7
+    mm{distbin}=cellfun(@(x) nanmean(x)*100,cell5);
+    ci{distbin}=cell2mat(cellfun(@(x) bootci(1000,@(y) nanmean(y)*100,x),cell5,'UniformOutput',false));
+end
+finisel=all(cell2mat(cellfun(@(x) all(isfinite(stats.(x)),2),...
+    {'nm_nm','congr','incon','mem_nm','nm_mem'},'UniformOutput',false)),2);
+p=anova2([stats.nm_nm(finisel,:);stats.congr(finisel,:)],nnz(finisel),'off');
+disp(p);
 colors={'k','c','m','b','r'};
 fh=figure('Color','w','Position',[100,100,300,300]);
 hold on;

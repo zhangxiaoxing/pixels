@@ -1,6 +1,5 @@
 function reverbChainBZ(opt)
 arguments
-    opt.pair (1,1) logical = false
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.prefix (1,:) char = 'BZWT'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'

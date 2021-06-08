@@ -1,4 +1,4 @@
-function plot_stp_curve(learn_stats,wt_stats,opt)
+function fh=plot_stp_curve(learn_stats,wt_stats,opt)
 % [learn_stats,~]=bz.hist.util.get_stp_stats(6000,'BZLN','suffix','Learning','type','neupix','criteria','Learning','any',true);
 % [wt_stats,~]=bz.hist.util.get_stp_stats(6000,'BZWT','suffix','','type','neupix','criteria','WT','any',true);
 
@@ -8,7 +8,7 @@ arguments
     opt.levels (1,:) double = 3:5
     opt.plot_learning (1,1) logical = false
 end
-figure('Color','w')
+fh=figure('Color','w');
 fidx=1;
 for level=opt.levels
     %diff
