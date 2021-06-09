@@ -44,10 +44,19 @@ fstr=load(fullfile(f.folder,f.name));
 suid=fstr.mono.completeIndex(:,2);
 out.sig_con=suid(fstr.mono.sig_con);
 out.folder=fstr.folder;
+out.ccg_sc=[];
 sigccg=cell2mat(arrayfun(@(x) fstr.mono.ccgR(:,fstr.mono.sig_con(x,1),fstr.mono.sig_con(x,2)),...
     1:size(fstr.mono.sig_con,1),'UniformOutput',false));
 for i=1:size(fstr.mono.sig_con,1)
     out.qc(i,:)=bz.good_ccg(sigccg(:,i));
+    if out.qc(i,1)>0 ... % peak dir
+            && out.qc(i,3)<10 ... % noise
+            && out.qc(i,4)<5 ... % fwhm
+            && out.qc(i,2)>253 ... % peak time
+            && out.qc(i,2)<257 % peak time
+        out.ccg_sc=[out.ccg_sc;...
+            fstr.mono.sig_con(i,:),out.qc(i,:),sigccg(:,i)];
+    end
 end
 end
 
