@@ -55,9 +55,10 @@ for i=1:size(fstr.mono.sig_con,1)
             && out.qc(i,2)>253 ... % peak time
             && out.qc(i,2)<257 % peak time
         out.ccg_sc=[out.ccg_sc;...
-            fstr.mono.sig_con(i,:),out.qc(i,:),sigccg(:,i)];
+            out.sig_con(i,:),out.qc(i,:),sigccg(:,i).'];
     end
 end
+%dimord:su1,su2
 end
 
 

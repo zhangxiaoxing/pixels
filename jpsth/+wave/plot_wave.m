@@ -1,3 +1,5 @@
+%TODO to reuse wave.get_comm_map and purge duplicated codes
+
 function plot_wave(opt)
 arguments
     opt.plot_error (1,1) logical = false
