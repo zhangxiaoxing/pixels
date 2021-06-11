@@ -11,7 +11,7 @@ cis=[prctile(boots,2.5);prctile(boots,97.5)];
 cid=[prctile(bootd,2.5);prctile(bootd,97.5)];
 
 close all
-fhfigure('Color','w','Position',[100,100,215,215])
+fh=figure('Color','w','Position',[100,100,215,215]);
 hold on
 fill([bin_edge(1:end-1)+50,fliplr(bin_edge(1:end-1)+50)],...
     [cis(1,:),fliplr(cis(2,:))],'k','EdgeColor','none','FaceAlpha',0.2)
@@ -31,6 +31,7 @@ legend([hs,hd],{'Within','Between'},...
     'Location','southeast');
 
 xlim([-1000,1000])
+ylim([0,1])
 text(min(xlim()),max(ylim()),sprintf('p = %.3f',p),'HorizontalAlignment','left','VerticalAlignment','top')
 xlabel('COM lag (ms)');
 ylabel('Cumulated probability')

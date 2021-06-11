@@ -1,6 +1,6 @@
 %TODO to reuse wave.get_comm_map and purge duplicated codes
 
-function plot_wave(opt)
+function fh=plot_wave(opt)
 arguments
     opt.plot_error (1,1) logical = false
 end
@@ -61,17 +61,17 @@ for ii=1:size(fl,1)
     end
 end
 
-h11pos=h11-min(h11,[],'all');
-h22pos=h22-min(h22,[],'all');
+h11pos=h11;h11pos(h11pos<0)=0;
+h22pos=h22;h22pos(h22pos<0)=0;
 com1=sum(((1:24).*h11pos(:,17:40)),2)./sum(h11pos(:,17:40),2);
 com2=sum(((1:24).*h22pos(:,17:40)),2)./sum(h22pos(:,17:40),2);
 
-[~,iidx1]=sort(com1);
-[~,iidx2]=sort(com2);
+[scom1,iidx1]=sort(com1);
+[scom2,iidx2]=sort(com2);
 
-fh=figure('Color','w');
-wave.plotOne(h11(iidx1,:),1,'S1 trials');
+fh=figure('Color','w','Position',[100,100,500,600]);
+wave.plotOne(h11(iidx1,:),1,'S1 trials','com',scom1+16);
 wave.plotOne(h21(iidx1,:),2,'S2 trials');
 wave.plotOne(h12(iidx2,:),3,'S1 trials');
-wave.plotOne(h22(iidx2,:),4,'S2 trials');
+wave.plotOne(h22(iidx2,:),4,'S2 trials','com',scom2+16);
 end
