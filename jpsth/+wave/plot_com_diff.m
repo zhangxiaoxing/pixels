@@ -22,6 +22,7 @@ hd=plot(bin_edge(1:end-1)+50,dc,'-r');
 
 xline(mean(samedist),'--k')
 xline(mean(diffdist),'--r')
+disp(sprintf('same mean %.3f, diff mean %.3f\n',mean(samedist),mean(diffdist)));
 [h,p]=ttest2(samedist,diffdist);
 % legend([hs,hd],{sprintf('Within region,\nmean=%.1fms',mean(samedist)),...
 %     sprintf('Between region,\nmean=%.1fms',mean(diffdist))},...
