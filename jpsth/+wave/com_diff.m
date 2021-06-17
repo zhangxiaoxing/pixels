@@ -7,8 +7,9 @@ arguments
     opt.to_plot (1,1) logical = false
     opt.bin_edge (1,:) double = -2000:200:2000
     opt.peak (1,1) logical = false
+    opt.per_sec_stats (1,1) logical = true
 end
-com_map=wave.get_com_map('peak',opt.peak);
+com_map=wave.get_com_map('peak',opt.peak,'per_sec_stats',opt.per_sec_stats);
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
 [is_diff,is_same]=bz.util.diff_at_level(sig.reg);
 comdiff_stats=[];

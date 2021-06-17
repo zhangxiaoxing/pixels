@@ -1,8 +1,9 @@
 %TODO to reuse wave.get_comm_map and purge duplicated codes
 
-function fh=plot_wave(opt)
+function [fh,data]=plot_wave(opt)
 arguments
     opt.plot_error (1,1) logical = false
+    opt.per_sec_stats (1,1) logical = true
 end
 meta_str=ephys.util.load_meta('type','neupix');
 homedir=ephys.util.getHomedir('type','raw');
@@ -37,26 +38,38 @@ for ii=1:size(fl,1)
     end
     
     for su=reshape(msel1,1,[])
-        basemm=mean([mean(squeeze(fr(s1sel,su,17:40)),'all'),mean(squeeze(fr(s2sel,su,17:40)),'all')]);
-        basestd=mean([std(fr(s1sel,su,17:40),0,'all'),std(fr(s2sel,su,17:40),0,'all')]);
+        basemm=mean([mean(squeeze(fr(s1sel,su,:)));mean(squeeze(fr(s2sel,su,:)))]);
+        basestd=mean([std(squeeze(fr(s1sel,su,:)));std(squeeze(fr(s2sel,su,:)))]);
+        basestd(basestd==0 & basemm==0)=1;
+        if ~opt.per_sec_stats
+            basemm=mean(basemm(17:40));
+            basestd=mean(basestd(17:40));
+        end
+        if any(basestd==0),keyboard();end
         if opt.plot_error
-            h11=[h11;((squeeze(mean(fr(es1sel,su,:)))-basemm)./basestd).'];
-            h21=[h21;((squeeze(mean(fr(es2sel,su,:)))-basemm)./basestd).'];    
+            h11=[h11;((squeeze(mean(fr(es1sel,su,:))).'-basemm)./basestd)];
+            h21=[h21;((squeeze(mean(fr(es2sel,su,:))).'-basemm)./basestd)];
         else
-            h11=[h11;((squeeze(mean(fr(s1sel,su,:)))-basemm)./basestd).'];    
-            h21=[h21;((squeeze(mean(fr(s2sel,su,:)))-basemm)./basestd).'];    
+            h11=[h11;((squeeze(mean(fr(s1sel,su,:))).'-basemm)./basestd)];   
+            h21=[h21;((squeeze(mean(fr(s2sel,su,:))).'-basemm)./basestd)];  
         end
     end
     
     for su=reshape(msel2,1,[])
-        basemm=mean([mean(squeeze(fr(s1sel,su,17:40)),'all'),mean(squeeze(fr(s2sel,su,17:40)),'all')]);
-        basestd=mean([std(fr(s1sel,su,17:40),0,'all'),std(fr(s2sel,su,17:40),0,'all')]);
+        basemm=mean([mean(squeeze(fr(s1sel,su,:)));mean(squeeze(fr(s2sel,su,:)))]);
+        basestd=mean([std(squeeze(fr(s1sel,su,:)));std(squeeze(fr(s2sel,su,:)))]);
+        basestd(basestd==0 & basemm==0)=1;
+        if any(basestd==0),keyboard();end
+        if ~opt.per_sec_stats
+            basemm=mean(basemm(17:40));
+            basestd=mean(basestd(17:40));
+        end
         if opt.plot_error
-            h12=[h12;((squeeze(mean(fr(es1sel,su,:)))-basemm)./basestd).'];
-            h22=[h22;((squeeze(mean(fr(es2sel,su,:)))-basemm)./basestd).'];
+            h12=[h12;((squeeze(mean(fr(es1sel,su,:))).'-basemm)./basestd)];
+            h22=[h22;((squeeze(mean(fr(es2sel,su,:))).'-basemm)./basestd)];
         else
-            h12=[h12;((squeeze(mean(fr(s1sel,su,:)))-basemm)./basestd).'];
-            h22=[h22;((squeeze(mean(fr(s2sel,su,:)))-basemm)./basestd).'];
+            h12=[h12;((squeeze(mean(fr(s1sel,su,:))).'-basemm)./basestd)];
+            h22=[h22;((squeeze(mean(fr(s2sel,su,:))).'-basemm)./basestd)];
         end
     end
 end
@@ -74,4 +87,5 @@ wave.plotOne(h11(iidx1,:),1,'S1 trials','com',scom1+16);
 wave.plotOne(h21(iidx1,:),2,'S2 trials');
 wave.plotOne(h12(iidx2,:),3,'S1 trials');
 wave.plotOne(h22(iidx2,:),4,'S2 trials','com',scom2+16);
+[data.h11,data.h21,data.h12,data.h22]=deal(h11,h21,h12,h22);
 end

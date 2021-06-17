@@ -6,9 +6,9 @@ function x_corr_delay_all(fidx,opt)
 arguments
     fidx (1,1) double
     opt.debug (1,1) logical = false
-    opt.prefix (1,:) char = 'MYLN'
+    opt.prefix (1,:) char = 'MYWT'
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
-    opt.bin_range (1,2) double = [0,1]
+    opt.bin_range (1,2) double = [0,7]
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.overwrite (1,1) logical =false
 %     opt.overwrite (1,1) logical = false

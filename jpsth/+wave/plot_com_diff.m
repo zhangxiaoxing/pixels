@@ -1,5 +1,5 @@
-samedist=wave.com_diff('level',5,'diff',false,'to_plot',false);
-diffdist=wave.com_diff('level',5,'diff',true,'to_plot',false);
+samedist=wave.com_diff('level',5,'diff',false,'to_plot',false,'per_sec_stats',false);
+diffdist=wave.com_diff('level',5,'diff',true,'to_plot',false,'per_sec_stats',false);
 bin_edge=-2000:100:2000;
 sc=histcounts(samedist,bin_edge,'Normalization','cdf');
 dc=histcounts(diffdist,bin_edge,'Normalization','cdf');

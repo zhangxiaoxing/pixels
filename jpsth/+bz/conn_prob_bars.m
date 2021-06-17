@@ -9,20 +9,13 @@ arguments
 end
 
 addpath('k:\code\align\')
-% [sig.reg_dist,pair.reg_dist]=get_conn_dist(sig,pair);
 sess_cnt=max(sig.sess);
 same_stats=struct();
-same_stats.nm_nm=nan(sess_cnt,1);
-same_stats.congr=nan(sess_cnt,1);
-same_stats.incon=nan(sess_cnt,1);
-same_stats.mem_nm=nan(sess_cnt,1);
-same_stats.nm_mem=nan(sess_cnt,1);
+[same_stats.nm_nm,same_stats.congr,same_stats.incon,same_stats.mem_nm,same_stats.nm_mem]...
+    =deal(nan(sess_cnt,1));
 diff_stats=same_stats;
-mm=cell(7,1);
-ci=cell(7,1);
 [sig_diff,sig_same]=bz.util.diff_at_level(sig.reg);
 [pair_diff,pair_same]=bz.util.diff_at_level(pair.reg);
-
 
 for i=1:sess_cnt
     if rem(i,20)==0, disp(i);end
@@ -35,7 +28,6 @@ for i=1:sess_cnt
             same_stats.(fld)(i)=onesess.(fld);
         end
     end
-    
     %diff
     sess_sig_type=sig.mem_type(sig.sess==i & sig_diff(:,opt.dist),:);
     sess_pair_type=pair.mem_type(pair.sess==i & pair_diff(:,opt.dist),:);
@@ -46,70 +38,41 @@ for i=1:sess_cnt
         end
     end
 end
-%same + diff
-% for distbin=1:7
-%     mm{distbin}=cellfun(@(x) nanmean(x)*100,cell5);
-%     ci{distbin}=cell2mat(cellfun(@(x) bootci(1000,@(y) nanmean(y)*100,x),cell5,'UniformOutput',false));
-% end
-for fld=["nm_nm","congr","incon","mem_nm","nm_mem"]
-    if isfield(onesess,fld)
-        same_stats.sums.(fld).mm=nanmean(same_stats.(fld)).*100;
-        same_stats.sums.(fld).ci=bootci(1000,@(x) nanmean(x),same_stats.(fld)).*100;
-        diff_stats.sums.(fld).mm=nanmean(diff_stats.(fld)).*100;
-        diff_stats.sums.(fld).ci=bootci(1000,@(x) nanmean(x),diff_stats.(fld)).*100;
-    end
-end
+flds=["nm_nm","congr","incon","mem_nm","nm_mem"];
+samemat=cell2mat(arrayfun(@(x) same_stats.(x),flds,'UniformOutput',false));
+diffmat=cell2mat(arrayfun(@(x) diff_stats.(x),flds,'UniformOutput',false));
+finisel=all(isfinite([samemat,diffmat]),2);
 
-% finisel=all(cell2mat(cellfun(@(x) ...
-%     all(isfinite(same_stats.(x)),2)...
-%     & all(isfinite(diff_stats.(x)),2),...
-%     {'nm_nm','congr','incon','mem_nm','nm_mem'},'UniformOutput',false)),2);
-% p=anova2([same_stats.nm_nm(finisel,:);same_stats.congr(finisel,:)],nnz(finisel),'off');
-% disp(p);
-colors={'k','c','m','b','r'};
+same_stats.sums.mm=mean(samemat(finisel,:)).*100;
+same_stats.sums.ci=bootci(1000,@(x) mean(x),samemat(finisel,:)).*100;
+diff_stats.sums.mm=mean(diffmat(finisel,:)).*100;
+diff_stats.sums.ci=bootci(1000,@(x) mean(x),diffmat(finisel,:)).*100;
+
+psame=anova1(samemat(finisel,:),flds,'off');
+pdiff=anova1(diffmat(finisel,:),flds,'off');
+
 fh=figure('Color','w','Position',[100,100,250,250]);
-subplot(1,2,1);
-hold on;
-xidx=1;
-for fld=["nm_nm","congr","incon","mem_nm","nm_mem"]
-    if isfield(onesess,fld)
-        bar(xidx,same_stats.sums.(fld).mm,'FaceColor','w','EdgeColor','k');
-        errorbar(xidx,...
-            same_stats.sums.(fld).mm,...
-            same_stats.sums.(fld).ci(1)-same_stats.sums.(fld).mm,...
-            same_stats.sums.(fld).ci(2)-same_stats.sums.(fld).mm,...
-            '-k.');
-        xidx=xidx+1;
-    end
+subplot(1,2,1);hold on;
+plotOne(same_stats,psame)
+subplot(1,2,2);hold on;
+plotOne(diff_stats,pdiff)
 end
-ylabel('Coupling fraction (%)');
-set(gca(),'XTick',1:5,'XTickLabel',["Non-Non","Congru","Incongru","Mem-Non","Non-Mem"],...
-    'XTickLabelRotation',60,'TickLabelInterpreter','none','FontSize',10,...
-    'YTick',0:2)
-subplot(1,2,2);
-hold on;
-xidx=1;
-for fld=["nm_nm","congr","incon","mem_nm","nm_mem"]
-    if isfield(onesess,fld)
-        bar(xidx,diff_stats.sums.(fld).mm,'FaceColor','w','EdgeColor','k');
-        errorbar(xidx,...
-            diff_stats.sums.(fld).mm,...
-            diff_stats.sums.(fld).ci(1)-diff_stats.sums.(fld).mm,...
-            diff_stats.sums.(fld).ci(2)-diff_stats.sums.(fld).mm,...
-            '-k.');
-        xidx=xidx+1;
-    end
-end
-ylim([0,1]);
-set(gca(),'XTick',1:5,'XTickLabel',["Non-Non","Congru","Incongru","Mem-Non","Non-Mem"],...
-    'XTickLabelRotation',60,'TickLabelInterpreter','none','FontSize',10,...
-    'YTick',0:0.5:1)
 
-% exportgraphics
-% 
-% arrayfun(@(x) errorbar(x,mm(x),ci{x}(1)-mm(x),ci{x}(2)-mm(x),'k.','LineWidth',1),1:5);
-% set(gca,'XTick',1:5,'XTickLabel',{'NonMem-NonMem','NonMem-Mem','Mem-NonMem','Incongruent','Congruent'},'XTickLabelRotation',45);
-% ylabel('Connection fraction (%)')
-% xlim([0.5,5.5]);
-% % exportgraphics(fh,fullfile('bzdata','conn_frac.pdf'));
+
+function plotOne(data,p)
+bar(1:5,data.sums.mm,'FaceColor','w','EdgeColor','k');
+errorbar(1:5,...
+    data.sums.mm,...
+    data.sums.ci(1,:)-data.sums.mm,...
+    data.sums.ci(2,:)-data.sums.mm,...
+    'k.');
+
+if max(ylim())<1
+    ylim([0,1]);
+end
+    
+set(gca(),'XTick',1:5,'XTickLabel',["Non-Non","Congru","Incongru","Mem-Non","Non-Mem"],...
+    'XTickLabelRotation',60,'TickLabelInterpreter','none','FontSize',10,...
+    'YTick',0:0.5:max(ylim()))
+text(max(xlim()),max(ylim()),sprintf('p=%.3f',p),'HorizontalAlignment','right','VerticalAlignment','top');
 end

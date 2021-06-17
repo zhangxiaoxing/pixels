@@ -1,7 +1,10 @@
+%TODO Waveform based SU filter
+
 function out=load_meta(opt)
 arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.filter_waveform (1,1)
 end
 persistent meta_str currtype criteria
 
@@ -17,6 +20,7 @@ if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.crit
         meta_str.allpath=deblank(h5read(fpath,'/path'));
         meta_str.allcid=h5read(fpath,'/cluster_id');
         meta_str.reg_tree=deblank(h5read(fpath,'/reg_tree'));
+        meta_str.good_waveform=h5read(fpath,'/wf_good');
 %         meta_str.mem_type=h5read(fpath,'/mem_type');
         [meta_str.mem_type,meta_str.per_bin]=ephys.get_mem_type(meta_str.wrs_p,meta_str.selec);
         currtype=opt.type;
@@ -46,3 +50,14 @@ memtype(HEM(2,:)==1 & delay_pref==2)=4;
 
 memtype(HEM(4,:)~=0)=-1;
 end
+
+% Temporary script for waveform sanity check
+% meta=ephys.util.load_meta();
+% upath=unique(meta.allpath);
+% 
+% for ii=1:numel(upath)
+%     sesssel=strcmp(meta.allpath,upath{ii});
+%     wf_good_rate=nnz(meta.good_waveform(sesssel))./nnz(sesssel);
+%     rate_stats(ii)=wf_good_rate;
+%     fprintf('%d, %.2f, %s\n',ii,wf_good_rate,upath{ii});
+% end

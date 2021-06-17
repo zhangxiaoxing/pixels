@@ -17,6 +17,7 @@ import pickle
 
 if platform.system() == 'Windows':
     sys.path.insert(0, r"k:\code")
+    #TODO linux compatibility
 
 from per_sec_stats.prepare_data import prepare_data
 from per_sec_stats.export import exporth5py

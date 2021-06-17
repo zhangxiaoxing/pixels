@@ -1,4 +1,5 @@
 %% DO NOT RUN
+%% May overwrite critical dataset
 %% WIP
 
 function rings_maketrial(sums,opt)

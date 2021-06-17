@@ -16,6 +16,7 @@ sps=30000; %sample per second
 %% input from YCY's time-aligned spike file
 flist=dir(fullfile(opt.rootdir,'**','spike_info.hdf5'));
 for i=1:length(flist)
+    fprintf('=== %d of %d ===\n',i,length(flist))
     if isfile(fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
         disp(strjoin({'skiped',flist(i).folder}));
         continue

@@ -5,7 +5,7 @@ arguments
 end
 load('sums_conn.mat','sums_conn_str');
 warning('partial iteration for illustration')
-for fidx=87%1:numel(sums_conn_str)
+for fidx=1:numel(sums_conn_str)
     disp(fidx);
     if opt.strict
         if isempty(sums_conn_str(fidx).ccg_sc)
@@ -25,14 +25,13 @@ for fidx=87%1:numel(sums_conn_str)
         typesel=all(ismember(int32(oneccg(:,1:2)),mapkeys),2);
         typesigcon=oneccg(typesel,1:2);
         con_com_diff=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(oneccg(typesel,1:2)));
-        % disp(min(con_com_diff,[],'all'))
-        % disp(max(con_com_diff,[],'all'))
+
         if opt.peak
-            dirsel=con_com_diff(:,2)>=con_com_diff(:,1);
+            dirsel=con_com_diff(:,2)>con_com_diff(:,1)...
+                &con_com_diff(:,2)<=con_com_diff(:,1)+8;
         else
             dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(50/250);
         end
-        %         dircom=con_com_diff(dirsel,:);
         dirsigcon=typesigcon(dirsel,:);
         upre=unique(dirsigcon(:,1)).';
         
@@ -57,41 +56,34 @@ for fidx=87%1:numel(sums_conn_str)
         end
         if numel(chains)>0
             for ii=1:numel(chains)
-                onechain=chains{ii};
-                if ~(dt(onechain)>4)
-                    continue
-                end
-                fh=figure('Color','w','Position',[100,100,250,250]);
-                hold on;
-                yidx=1;
-                text(onechain{1}{2}(1,1),yidx,num2str(onechain{1}{1}(1,1)));
-                for jj=1:numel(onechain)
-                    plot(onechain{jj}{2}.',repmat([yidx;yidx+1],[1,size(onechain{jj}{2},1)]),'ko','MarkerFaceColor','k');
-                    arrayfun(@(x) ...
-                        quiver(onechain{jj}{2}(x,1),yidx,diff(onechain{jj}{2}(x,:)),1,'-r',...
-                        'MaxHeadSize',2./sqrt(diff(onechain{jj}{2}(x,:)).^2+1)...
-                        ),1:size(onechain{jj}{2},1));
-                    arrayfun(@(x) ...
-                        text(onechain{jj}{2}(x,2),yidx+1,num2str(onechain{jj}{1}(x,2))),...
-                        1:size(onechain{jj}{2},1));                    
-                    yidx=yidx+1;
+                split_chains=wave.recursive_chain(chains{ii},[]);
+                %TODO split chains with shared components
+                for pp=1:2:size(split_chains,1)
+                    onechain=split_chains(pp:pp+1,:);
+                    if onechain(2,end)-onechain(2,1)<4
+                        continue
+                    end
+                    fh=figure('Color','w','Position',[100,100,500,500]);
+                    subplot(2,2,3);
+                    hold on;
+                    for jj=1:size(onechain,2)
+                        text(onechain(2,jj),jj,num2str(onechain(1,jj)));
+                        plot(onechain(2,jj),jj,'ko','MarkerFaceColor','k');
+                    end
+                    for jj=1:size(onechain,2)-1
+                        plot(onechain(2,jj:jj+1),[jj;jj+1],'r-');
+                    end
+                    ylim([0.5,size(onechain,2)+0.5]);
+                    xlim([0,24]);
+                    set(gca(),'XTick',[0,8,16,24],'XTickLabel',[0,2,4,6],'YTick',0:numel(onechain)+1)
+                    xlabel('COM time in delay (s)')
+                    ylabel('Functional coupling order in wave ->');
+                    title(sprintf('Session %s, sample %s',skey{1},samp));
                     
-                end
-                ylim([0.5,yidx+0.5]);
-                xlim([0,24]);
-                set(gca(),'XTick',[0,8,16,24],'XTickLabel',[0,2,4,6],'YTick',0:numel(onechain)+1)
-                xlabel('COM time in delay (s)')
-                ylabel('Functional coupling order in wave ->');
-                title(sprintf('Session %s, sample %s',skey{1},samp));
-                fhccg=figure('Color','w','Position',[100,100,250,500]);
-                vlen=3%size(onechain,2);
-                hlen=2%max(cellfun(@(x) size(x{1},1), onechain));
-                cidx=1;
-                for kk=1:vlen
-                    for ll=1:size(onechain{kk}{1},1)
-                        conn=onechain{kk}{1}(ll,:);
-%                         disp(conn)
-                        subplot(vlen,hlen,cidx);cidx=cidx+1;%(kk-1)*hlen+ll);
+                    
+                    for kk=1:size(onechain,2)-1
+                        conn=onechain(1,kk:kk+1);
+                        subplot(2,size(onechain,2)-1,kk);
                         ccgsel=oneccg(:,1)==conn(1) & oneccg(:,2)==conn(2);
                         plot(oneccg(ccgsel,7:end),'-r');
                         arrayfun(@(x) xline(x,'--k'),[226,251,276]);
@@ -100,17 +92,30 @@ for fidx=87%1:numel(sums_conn_str)
                         text(191,max(ylim()),num2str(conn(1)),'HorizontalAlignment','left','VerticalAlignment','top');
                         text(301,max(ylim()),num2str(conn(2)),'HorizontalAlignment','right','VerticalAlignment','top');
                     end
+                    
+                    
+                    subplot(2,2,4)
+                    hold on
+                    suids=onechain(1,:);
+%                     pdim=ceil(sqrt(numel(suids)));
+                    cmap=colormap('cool');
+                    deltac=floor(size(cmap,1)./numel(suids));
+                    for mm=1:numel(suids)
+    %                     subplot(pdim,pdim,mm);
+
+                        plot(smooth(onecom.(skey{1}).(sprintf('%scurve',samp))(suids(mm)),5),...
+                            '-','Color',cmap((mm-1)*deltac+1,:));
+    %                     title(suids(mm));
+                        xline(onecom.(skey{1}).(samp)(suids(mm)),'--','Color',cmap((mm-1)*deltac+1,:));
+                    end
+                    ylim([0,0.3])
+                    set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6)
+                    keyboard();
                 end
-                keyboard();
-                a
             end
         else
             disp('Empty Chain');
         end
     end
 end
-end
-function out=dt(onechain)
-out=max(cellfun(@(x) max(x{2},[],'all'),onechain))...
-    - min(cellfun(@(x) min(x{2},[],'all'),onechain));
 end

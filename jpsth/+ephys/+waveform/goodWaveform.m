@@ -1,4 +1,5 @@
-function cid=goodWaveform(folder,opt)
+% TODO: also export filter judge result value
+function [cid,judge]=goodWaveform(folder,opt)
 
 % Extracellular Spike Waveform Dissociates Four Functionally Distinct Cell Classes in Primate Cortex
 % Current Biology 2019 Earl K. Miller,Markus Siegel
@@ -14,18 +15,20 @@ arguments
     folder (1,:) char
     opt.presel (1,:) double = []
     opt.stats (1,1) logical = false
+    opt.verbose (1,1) logical = false
 end
 seppath=regexp(folder,'(^.*)(imec[01])(.*$)','tokens');
 folder0=[seppath{1}{1},'imec0',seppath{1}{3}];
 folder1=[seppath{1}{1},'imec1',seppath{1}{3}];
-cid0=[];cid1=[];
-if isfolder(folder0),cid0=oneFolder(folder0,opt);end
-if isfolder(folder1),cid1=oneFolder(folder1,opt);end
-cid=[cid0;cid1+10000];
+[cid0,cid1,judge0,judge1]=deal([]);
+if isfolder(folder0),[cid0,judge0]=oneFolder(folder0,opt);end
+if isfolder(folder1),[cid1,judge1]=oneFolder(folder1,opt);end
+cid=[cid0;cid1];
+judge=[judge0;judge1];
 end
 
 
-function out=oneFolder(folder,opt)
+function [out,judge]=oneFolder(folder,opt)
 stats=[];% type, trough-peak, fwhm
 showcaseCount=0;
 if ~isfile(fullfile(folder,'waveform.mat'))
@@ -37,6 +40,10 @@ if ~isfile(fullfile(folder,'waveform.mat'))
 end
 fstr=load(fullfile(folder,'waveform.mat'));
 wf_all=fstr.waveform;
+if contains(folder,'imec1') && max([wf_all{:,2}])<10000
+    warning('Missing probe# tag');
+    wf_all(:,2)=num2cell([wf_all{:,2}].'+10000);
+end
 % for one_wf=wf_all(:,4)'
 for i=1:size(wf_all,1)
     cid=wf_all{i,2};
@@ -106,5 +113,5 @@ for i=1:size(wf_all,1)
     end
 end
 out=cell2mat(wf_all(stats(:,1)>0,2));
-
+judge=stats(:,1);
 end
