@@ -55,6 +55,7 @@ ylabel('Post spike increase (%)')
 ylim([-1,5])
 xlim([0,2000])
 set(gca,'XTick',500:500:2000)
+xlabel('Time lag (ms)')
 grid on
 end
 

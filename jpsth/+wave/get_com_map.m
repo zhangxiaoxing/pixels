@@ -4,6 +4,7 @@ arguments
     opt.peak (1,1) logical = false
     opt.curve (1,1) logical = false
     opt.per_sec_stats (1,1) logical = false
+    opt.selidx_curve (1,1) logical = false
 end
 persistent com_str onepath_
 if isempty(onepath_), onepath_='';end
@@ -36,68 +37,47 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         com_str.(['s',num2str(sessid)]).s2=containers.Map('KeyType','int32','ValueType','any');
         com_str.(['s',num2str(sessid)]).s1curve=containers.Map('KeyType','int32','ValueType','any');
         com_str.(['s',num2str(sessid)]).s2curve=containers.Map('KeyType','int32','ValueType','any');
-        
-        
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed
         %     welltrained dataset
         s1sel=trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
         s2sel=trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
-        
+        sess=['s',num2str(sessid)];
+        com_str=per_su_process(sess,suid,msel1,fr,s1sel,s2sel,com_str,'s1',opt);
+        com_str=per_su_process(sess,suid,msel2,fr,s2sel,s1sel,com_str,'s2',opt);
 
-        for su=reshape(msel1,1,[])
-            basemm=mean([mean(squeeze(fr(s1sel,su,:)));mean(squeeze(fr(s2sel,su,:)))]);
-            basestd=mean([std(squeeze(fr(s1sel,su,:)));std(squeeze(fr(s2sel,su,:)))]);
-            basestd(basestd==0 & basemm==0)=1;
-            if ~opt.per_sec_stats
-                basemm=mean(basemm(17:40));
-                basestd=mean(basestd(17:40));
-            else
-                basemm=basemm(17:40);
-                basestd=basestd(17:40);
-            end
-            mm1=((squeeze(mean(fr(s1sel,su,17:40)))-basemm)./basestd).';
-
-            mm1(mm1<0)=0;
-            if opt.peak
-                [~,pidx]=max(mm1);
-                com_str.(['s',num2str(sessid)]).s1(suid(su))=pidx;
-            else
-                com=sum((1:24).*mm1)./sum(mm1);
-                com_str.(['s',num2str(sessid)]).s1(suid(su))=com;
-            end
-%             fr1=squeeze(mean(fr(s1sel,su,17:40)));
-%             fr2=squeeze(mean(fr(s2sel,su,17:40)));
-            com_str.(['s',num2str(sessid)]).s1curve(suid(su))=mm1;%(fr1-fr2)./(fr1+fr2);
-        end
-        for su=reshape(msel2,1,[])
-            basemm=mean([mean(squeeze(fr(s1sel,su,:)));mean(squeeze(fr(s2sel,su,:)))]);
-            basestd=mean([std(squeeze(fr(s1sel,su,:)));std(squeeze(fr(s2sel,su,:)))]);
-            basestd(basestd==0 & basemm==0)=1;
-            if ~opt.per_sec_stats
-                basemm=mean(basemm(17:40));
-                basestd=mean(basestd(17:40));
-            else
-                basemm=basemm(17:40);
-                basestd=basestd(17:40);
-            end
-            mm2=((squeeze(mean(fr(s2sel,su,17:40)))-basemm)./basestd).';
-            mm2(mm2<0)=0;
-            if opt.peak
-                [~,pidx]=max(mm2);
-                com_str.(['s',num2str(sessid)]).s2(suid(su))=pidx;
-            else
-                com=sum((1:24).*mm2)./sum(mm2);
-                com_str.(['s',num2str(sessid)]).s2(suid(su))=com;
-            end
-%             fr1=squeeze(mean(fr(s1sel,su,17:40)));
-%             fr2=squeeze(mean(fr(s2sel,su,17:40)));
-            com_str.(['s',num2str(sessid)]).s2curve(suid(su))=mm2;%(fr2-fr1)./(fr1+fr2);
-            
-        end
         if ~strlength(opt.onepath)==0
             break;
         end
     end
 end
 com_str_=com_str;
+end
+
+function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,samp,opt)
+for su=reshape(msel,1,[])
+    basemm=mean([mean(squeeze(fr(pref_sel,su,17:40)));mean(squeeze(fr(nonpref_sel,su,17:40)))]);
+    if ~opt.per_sec_stats
+        basemm=mean(basemm);
+    end
+    mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
+    mm_pref=mm(17:40)-basemm;
+    mm_pref=mm_pref./max(mm_pref);
+    mm_pref(mm_pref<0)=0;
+    if opt.peak
+        [~,pidx]=max(mm_pref);
+        com_str.(sess).(samp)(suid(su))=pidx;
+    else
+        com=sum((1:24).*mm_pref)./sum(mm_pref);
+        com_str.(sess).(samp)(suid(su))=com;
+    end
+    if opt.selidx_curve
+        fr_pref=squeeze(mean(fr(pref_sel,su,17:40)));
+        fr_nonp=squeeze(mean(fr(nonpref_sel,su,17:40)));
+        com_str.(sess).([samp,'curve'])(suid(su))...
+            =(fr_pref-fr_nonp)./(fr_pref+fr_nonp);
+    else
+        com_str.(sess).([samp,'curve'])(suid(su))...
+            =mm_pref;
+    end
+end
 end

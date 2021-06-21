@@ -1,12 +1,12 @@
 function sust_trans_correct_error(type,opt)
 arguments
     type (1,:) char {mustBeMember(type,{'Sustained','Transient'})}
-    opt.lastbin (1,1) logical = false
+    opt.lastbin (1,1) logical = true
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
-    opt.plot_per_trial (1,1) logical = true
+    opt.plot_per_trial (1,1) logical = false
 end
-
+set(groot,'defaultTextFontSize',10);
 meta=ephys.util.load_meta();
 stats=struct();
 if opt.plot_scatter
@@ -42,9 +42,9 @@ for onetype=types
         fr=h5read(fpath,'/FR_All');
         if opt.lastbin
             bins=6+4;
-            if meta.per_bin(6,ii)==0
-                continue
-            end
+%             if meta.per_bin(6,ii)==0
+%                 continue
+%             end
         else
             bins=find(meta.per_bin(:,ii)~=0)+4;
         end
@@ -92,13 +92,14 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-figure('Color','w','Position',[100,100,1200,300]);
+figure('Color','w','Position',[100,100,750,176]);
 subplot(1,3,1);
 hold on;
 ph=histogram([stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2)],-2:0.1:2,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
 nph=histogram([stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)],-2:0.1:2,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
 xline(nanmean([stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2)]),'--r','LineWidth',1);
 xline(nanmean([stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)]),'--k','LineWidth',1)
+xlim([-1.5,1.5]);
 title('Correct trials')
 xlabel('Normalized FR (Z-Score)');
 ylabel('Probability')
@@ -110,6 +111,7 @@ ph=histogram([stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',ty
 nph=histogram([stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)],-2:0.1:2,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
 xline(nanmean([stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',types(2)))(:,4)]),'--r','LineWidth',1)
 xline(nanmean([stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)]),'--k','LineWidth',1)
+xlim([-1.5,1.5]);
 title('Error trials');
 legend([ph,nph],{'Prefered','Non-prefered'});
 xlabel('Normalized FR (Z-Score)');

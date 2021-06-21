@@ -1,4 +1,4 @@
-function comdiff_stats=com_diff(opt)
+function [comdiff_stats,com_pair]=com_diff(opt)
 
 arguments
     opt.level (1,1) double {mustBeInteger} = 5
@@ -12,7 +12,7 @@ end
 com_map=wave.get_com_map('peak',opt.peak,'per_sec_stats',opt.per_sec_stats);
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
 [is_diff,is_same]=bz.util.diff_at_level(sig.reg);
-comdiff_stats=[];
+[comdiff_stats,com_pair]=deal([]);
 %mem_type [2 2] then [4 4]
 if opt.diff
     trans1sel=find(all(sig.mem_type==2,2) & is_diff(:,opt.level)).';
@@ -27,6 +27,7 @@ for ii=trans1sel
     suid=sig.suid(ii,:);
     com=arrayfun(@(x) com_map.(['s',num2str(sess)]).s1(x),suid);
     comdiff_stats=[comdiff_stats;diff(com)*250];
+    com_pair=[com_pair;com*250-125];
 end
 
 for ii=trans2sel
@@ -34,6 +35,7 @@ for ii=trans2sel
     suid=sig.suid(ii,:);
     com=arrayfun(@(x) com_map.(['s',num2str(sess)]).s2(x),suid);
     comdiff_stats=[comdiff_stats;diff(com)*250];
+    com_pair=[com_pair;com*250-125];
 end
 
 if opt.to_plot

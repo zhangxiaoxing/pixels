@@ -17,7 +17,7 @@ sustci=bootci(1000,@(x) mean(x), sustfrac).*100;
 transci=bootci(1000,@(x) mean(x), transfrac).*100;
 sustmm=mean(sustfrac.*100);
 transmm=mean(transfrac.*100);
-fh=figure('Color','w','Position',[100,100,235,235]);
+fh=figure('Color','w','Position',[100,100,150,235]);
 hold on
 
 bar(1,sustmm,'FaceColor','w','EdgeColor','k');
@@ -25,7 +25,7 @@ bar(2,transmm,'FaceColor','w','EdgeColor','k');
 errorbar(1,sustmm,sustci(1)-sustmm,sustci(2)-sustmm,'k.');
 errorbar(2,transmm,transci(1)-transmm,transci(2)-transmm,'k.');
 ylabel('Fraction of all neurons (%)')
-set(gca(),'XTick',1:2,'XTickLabel',{'Sustained','Transient'},'XTickLabelRotation',45,'FontSize',10)
+set(gca(),'XTick',1:2,'XTickLabel',{'Sustained','Transient'},'XTickLabelRotation',90,'FontSize',10)
 if opt.good_wf
     text(1,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[1 3]) & meta.good_waveform.')),'Rotation',90,'FontSize',10)
     text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]) & meta.good_waveform.')),'Rotation',90,'FontSize',10)

@@ -37,12 +37,12 @@ if isempty(sig) ...
 %     sig.selec=cell(0); % selectivity index
     sig.sess=cell(0);
     sig.mem_type=cell(0); % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched, see epys.get_mem_type
-
+    sig.wf_good=cell(0);
 
     if opt.pair, pair=sig; end% for all pairs
 
 %     fields={'suid','reg','wrsp','selec','mem_type'};
-    fields={'suid','reg','mem_type','per_bin'};
+    fields={'suid','reg','mem_type','per_bin','wf_good'};
     for fidx=1:size(fl,1)
         disp(fidx);
         fstr=load(fullfile(fl(fidx).folder,fl(fidx).name));

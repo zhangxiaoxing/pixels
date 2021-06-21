@@ -5,8 +5,6 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.prefix (1,:) char = 'BZWT'
     opt.inhibit (1,1) logical = false
-    opt.ccg_strict_qc (1,1) logical = false
-    opt.full_ccg (1,1) logical = false
 end
 pool = gcp('nocreate');
 if isempty(pool)
@@ -34,16 +32,15 @@ else
 end
 futures=parallel.FevalFuture.empty(numel(fl),0);
 for task_idx = 1:numel(fl)
-    futures(task_idx) = parfeval(pool,@sum_one,1,fl(task_idx),'full_ccg',opt.full_ccg); % async significant functional coupling map->reduce
+    futures(task_idx) = parfeval(pool,@sum_one,1,fl(task_idx)); % async significant functional coupling map->reduce
 end
 sums_conn_str=fetchOutputs(futures);
 save(sfn,'sums_conn_str')
 end
 
-function out=sum_one(f,opt)
+function out=sum_one(f)
 arguments
     f (1,1) struct
-    opt.full_ccg (1,1) logical
 end
 
 fstr=load(fullfile(f.folder,f.name));
@@ -55,19 +52,8 @@ sigccg=cell2mat(arrayfun(@(x) fstr.mono.ccgR(:,fstr.mono.sig_con(x,1),fstr.mono.
     1:size(fstr.mono.sig_con,1),'UniformOutput',false));
 for i=1:size(fstr.mono.sig_con,1)
     out.qc(i,:)=bz.good_ccg(sigccg(:,i));
-    if opt.full_ccg
-        out.ccg_sc=[out.ccg_sc;...
-            out.sig_con(i,:),out.qc(i,:),sigccg(:,i).'];
-    elseif out.qc(i,1)>0 ... % peak dir
-            && out.qc(i,3)<10 ... % noise
-            && out.qc(i,4)<5 ... % fwhm
-            && out.qc(i,2)>253 ... % peak time
-            && out.qc(i,2)<257 % peak time
-        out.ccg_sc=[out.ccg_sc;...
-            out.sig_con(i,:),out.qc(i,:),sigccg(:,i).'];
-    end
+    out.ccg_sc=[out.ccg_sc;sigccg(:,i).'];
 end
-%dimord:su1,su2
 end
 
 
