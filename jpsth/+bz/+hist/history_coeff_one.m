@@ -1,4 +1,4 @@
-function [spk_out,skip]=history_coeff(sessid,suid,opt)
+function [spk_out,skip]=history_coeff_one(sessid,suid,opt)
 arguments
     sessid (1,1) int32
     suid (1,2) int32
