@@ -2,6 +2,7 @@ function COM_chain_SC(opt)
 arguments
     opt.peak (1,1) logical = false
     opt.strict (1,1) logical = true %strict FC criteria
+%     opt.min_diff (1,1)
     opt.screen (1,1) logical = false
 end
 load('sums_conn.mat','sums_conn_str');
@@ -11,30 +12,30 @@ figidx=1;
 for fidx=72%1:numel(sums_conn_str)
     disp(fidx);
     if opt.strict
-        if isempty(sums_conn_str(fidx).ccg_sc)
-            continue
-        end
-        ccg=sums_conn_str(fidx).ccg_sc;
-        strict_sel=ccg(:,3)>0; %& ccg(:,4)<350 & ccg(:,4)>252 & ccg(:,6)<20 & ccg(:,5)<20 & ccg(:,6)<20 ;
-        %3:Polar 4:Tpeak 5:Noise Peak 6:FWHM
-        oneccg=ccg(strict_sel,:);
-    else
+        ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
+        strict_sel=ccgqc(:,1)>0; %& ccg(:,4)<350 & ccg(:,4)>252 & ccg(:,6)<20 & ccg(:,5)<20 & ccg(:,6)<20 ;
+        %1:Polar 2:Time of peak 3:Noise peaks 4:FWHM
+        oneccg=sums_conn_str(fidx).ccg_sc(strict_sel,:); %ccg
+        onecon=sums_conn_str(fidx).sig_con(strict_sel,:); %jitter controlled significant functional coupling
+        
+    else % full input from English, Buzsaki code
         oneccg=sums_conn_str(fidx).ccg_sc;
+        onecon=sums_conn_str(fidx).sig_con;
     end
-    
-    onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder,'peak',opt.peak);
+    %TODO nonmem,incongruent
+    onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder,'peak',opt.peak); %per su center of mass, normalized FR
     skey=fieldnames(onecom);
     for samp=["s1","s2"]
-        mapkeys=cell2mat(onecom.(skey{1}).(samp).keys);
-        typesel=all(ismember(int32(oneccg(:,1:2)),mapkeys),2);
-        typesigcon=oneccg(typesel,1:2);
-        con_com_diff=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(oneccg(typesel,1:2)));
+        mapkeys=cell2mat(onecom.(skey{1}).(samp).keys); %pre-selected transient selective su
+        typesel=all(ismember(int32(onecon(:,:)),mapkeys),2);
+        typesigcon=onecon(typesel,:);
+        con_com_diff=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(onecon(typesel,:)));
 
-        if opt.peak
+        if opt.peak 
             dirsel=con_com_diff(:,2)>con_com_diff(:,1)...
-                &con_com_diff(:,2)<=con_com_diff(:,1)+8;
+                &con_com_diff(:,2)<=con_com_diff(:,1)+8; % minimum 1-bin resolution
         else
-            dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(50/250);
+            dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(50/250); % Assuming 250ms bin
         end
         dirsigcon=typesigcon(dirsel,:);
         upre=unique(dirsigcon(:,1)).';
@@ -43,7 +44,7 @@ for fidx=72%1:numel(sums_conn_str)
         for i=upre
             onechain=cell(0);
             cpre=i;
-            while true
+            while true %many to many wave iteration
                 newpair=dirsigcon(ismember(dirsigcon(:,1),cpre),:);
                 if isempty(newpair)
                     if numel(onechain)>2
@@ -60,13 +61,13 @@ for fidx=72%1:numel(sums_conn_str)
         end
         if numel(chains)>0
             for ii=1:numel(chains)
-                split_chains=wave.recursive_chain(chains{ii},[]);
+                split_chains=wave.recursive_chain(chains{ii},[]); %one su per order
                 for pp=1:2:size(split_chains,1)
                     onechain=split_chains(pp:pp+1,:);
                     if onechain(2,end)-onechain(2,1)<4
                         continue
                     end
-                    fh=figure('Color','w','Position',[100,100,500,500]);
+                    fh=figure('Color','w','Position',[100,100,500,500]); %illustration
                     subplot(2,2,3);
                     hold on;
                     for jj=1:size(onechain,2)
@@ -87,8 +88,8 @@ for fidx=72%1:numel(sums_conn_str)
                     for kk=1:size(onechain,2)-1
                         conn=onechain(1,kk:kk+1);
                         subplot(2,size(onechain,2)-1,kk);
-                        ccgsel=oneccg(:,1)==conn(1) & oneccg(:,2)==conn(2);
-                        plot(oneccg(ccgsel,7:end),'-r');
+                        ccgsel=onecon(:,1)==conn(1) & onecon(:,2)==conn(2);
+                        plot(oneccg(ccgsel,:),'-r');
                         arrayfun(@(x) xline(x,'--k'),[226,251,276]);
                         xlim([191,311]);
                         set(gca(),'XTick',201:25:301,'XTickLabel',-20:10:20)
@@ -117,7 +118,8 @@ for fidx=72%1:numel(sums_conn_str)
                     ylabel('Normalized firing rate [0,1]');
                     sgtitle(sprintf('fidx %d',fidx));
                     if opt.screen
-                        exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
+%                         exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
+                        keyboard()
                     else
                         keyboard()
                         exportgraphics(fh,'SC\SC_select.pdf');
