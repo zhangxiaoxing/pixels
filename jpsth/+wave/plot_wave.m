@@ -4,6 +4,7 @@ function [fh,data]=plot_wave(opt)
 arguments
     opt.plot_error (1,1) logical = false
     opt.per_sec_stats (1,1) logical = true
+    opt.mtype (1,:) char {mustBeMember(opt.mtype,{'memory','nonmem'})}='memory'
 end
 meta_str=ephys.util.load_meta('type','neupix');
 homedir=ephys.util.getHomedir('type','raw');
@@ -20,12 +21,13 @@ for ii=1:size(fl,1)
     fr=h5read(fullfile(fl(ii).folder,fl(ii).name),'/FR_All');
     trial=h5read(fullfile(fl(ii).folder,fl(ii).name),'/Trials');
     suid=h5read(fullfile(fl(ii).folder,fl(ii).name),'/SU_id');
+    
+    %TODO nonmemory, incongruent?
     mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.');
     msel1=find(ismember(suid,mcid1));
     mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.');
     msel2=find(ismember(suid,mcid2));
-%     sel_id=
-%     if sum(trial(:,9))<40,continue;end
+
     s1sel=trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
     s2sel=trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
 

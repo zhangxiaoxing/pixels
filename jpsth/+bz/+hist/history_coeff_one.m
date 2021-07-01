@@ -1,4 +1,4 @@
-function [spk_out,skip]=history_coeff_one(sessid,suid,opt)
+function [spk_out,skip,pp,rsq]=history_coeff_one(sessid,suid,opt)
 arguments
     sessid (1,1) int32
     suid (1,2) int32
@@ -7,6 +7,7 @@ arguments
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
     opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.correct_error (1,:) char {mustBeMember(opt.correct_error,{'correct','error','any'})} = 'any'
 end
 persistent bitmask X
 if isempty(bitmask) || isempty(X)
@@ -14,7 +15,10 @@ if isempty(bitmask) || isempty(X)
     X=buildX();
 end
 if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
-    [spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid,'epoch',opt.epoch,'criteria',opt.criteria);
+    [spkID,spkTS,~,~,~]=ephys.getSPKID_TS(sessid,...
+        'epoch',opt.epoch,...
+        'criteria',opt.criteria,...
+        'correct_error',opt.correct_error);
     tspre=spkTS(spkID==suid(1));
     tspost=spkTS(spkID==suid(2));
 else
@@ -42,8 +46,6 @@ for i=1:(length(histpre)-10)
     post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
    
 end
-skip=true;
-
 glmopt=statset('fitglm');
 glmopt.MaxIter=1000;
 
@@ -52,8 +54,13 @@ if nnz(spksel)>1
     spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
     spk_out=spk_mdl.Coefficients.Estimate;
     skip=checkWarning();
+    pp=spk_mdl.coefTest();
+    rsq=spk_mdl.Rsquared.Ordinary;
 else
     spk_out=zeros(1,11);
+    skip=true;    
+    pp=1;
+    rsq=0;
 end
 end
 

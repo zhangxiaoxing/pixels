@@ -6,13 +6,13 @@ function hist_coeff(sess,opt)
 
 arguments
     sess (1,1) double {mustBeInteger,mustBePositive,mustBeNonempty}
-    opt.prefix (1,:) char = '0331'
+    opt.prefix (1,:) char = 'BZWT'
     opt.tsbin_size (1,1) double = 600
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.laser (1,:) char {mustBeMember(opt.laser,{'on','off','any'})} = 'any'
     opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
-    opt.error_trials (1,1) logical = false
+    opt.correct_error (1,:) char {mustBeMember(opt.correct_error,{'correct','error','any'})} = 'any'
 end
 
 sig=bz.load_sig_pair('type',opt.type,'prefix',opt.prefix,'criteria',opt.criteria);
@@ -25,17 +25,19 @@ idces=find(typesel);
 sess_suids=nan(dim,2);
 postspk=nan(dim,11); %incept+coefficients
 skip=false(dim,1);
+[pp,rsq]=deal(nan(dim,1));
 sidx=1;
 for i=reshape(idces,1,[])
     fprintf('%d of %d\n',sidx,dim);
     sess_suids(sidx,:)=sig.suid(i,:);
-    [postspk(sidx,:),skip(sidx)]=...
+    [postspk(sidx,:),skip(sidx),pp(sidx),rsq(sidx)]=...
         bz.hist.history_coeff_one(sig.sess(i),sig.suid(i,:),...
         'tsbin_size',opt.tsbin_size,...
         'type',opt.type,...
         'laser',opt.laser,...
         'epoch',opt.epoch,...
-        'criteria',opt.criteria);
+        'criteria',opt.criteria,...
+        'correct_error',opt.correct_error);
     %maxiter->[SPK,FC_EFF,FC_PROB] 
     sidx=sidx+1;
 end
@@ -55,8 +57,9 @@ end
 switch opt.criteria
     case 'Learning',epoch_suffix='_Learning';
 end
+
 blame=vcs.blame();
-save(sprintf('%s_stp_ANY_%d_%d%s%s.mat',...
-opt.prefix,sess,opt.tsbin_size,laser_suffix,epoch_suffix),...
-'postspk','sess_suids','skip','sess','blame');
+save(sprintf('%s_stp_%s_%d_%d%s%s.mat',...
+opt.prefix,opt.correct_error,sess,opt.tsbin_size,laser_suffix,epoch_suffix),...
+'postspk','pp','rsq','sess_suids','skip','sess','blame');
 end

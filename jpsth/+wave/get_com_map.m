@@ -27,6 +27,7 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         fr=h5read(fpath,'/FR_All');
         trial=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
+        %TODO nonmem,incongruent
         mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.');
         msel1=find(ismember(suid,mcid1));
         mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.');
