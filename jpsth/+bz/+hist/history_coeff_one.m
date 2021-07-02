@@ -27,24 +27,23 @@ if strcmp(opt.correct_error,'any')
         [tspre,tspost]=ephys.getSPKID_TS_HEM(sessid,suid(1),suid(2),'laser',opt.laser);
     end
     
-    if (~isempty(tspre)) && ~isempty(tspost)
-        tmax=max([tspre;tspost]);
-        histpre=histcounts(tspre,1:opt.tsbin_size:tmax)>0;
-        histpost=histcounts(tspost,1:opt.tsbin_size:tmax)>0;
-        post_spike_prob=zeros(1024,2);
-        %TODO: per trial
-        for i=1:(length(histpre)-10)
-            if any(histpre(i:i+9))
-                hist_type=histpre(i:i+9)*bitmask; %will supply last bin later
-            else
-                hist_type=0;
-            end
-            
-            post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+10); % blind detect post spike
-            post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
-            
+    tmax=max([tspre;tspost]);
+    histpre=histcounts(tspre,1:opt.tsbin_size:tmax)>0;
+    histpost=histcounts(tspost,1:opt.tsbin_size:tmax)>0;
+    post_spike_prob=zeros(1024,2);
+    %TODO: per trial
+    for i=1:(length(histpre)-10)
+        if any(histpre(i:i+9))
+            hist_type=histpre(i:i+9)*bitmask; %will supply last bin later
+        else
+            hist_type=0;
         end
+        
+        post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+10); % blind detect post spike
+        post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
+        
     end
+    
 else
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% correct error trials %%%%
@@ -60,11 +59,9 @@ else
     presel=str2double(FT_SPIKE.label)==suid(1);
     postsel=str2double(FT_SPIKE.label)==suid(2);
     for tt=reshape(target_trials,1,[])
+%         disp(tt)
         tspre=FT_SPIKE.timestamp{presel}(FT_SPIKE.trial{presel}==tt);
         tspost=FT_SPIKE.timestamp{postsel}(FT_SPIKE.trial{postsel}==tt);
-        if isempty(tspre) || isempty(tspost)
-            continue
-        end
         skip=false;
         histpre=histcounts(tspre,trials(tt,1)-30000*3:opt.tsbin_size:trials(tt,1)+30000*11)>0;
         histpost=histcounts(tspost,trials(tt,1)-30000*3:opt.tsbin_size:trials(tt,1)+30000*11)>0;
@@ -83,14 +80,21 @@ end
 %% 
 
 spksel=post_spike_prob(:,1)>0;
-if (~skip) && nnz(spksel)>1
-    glmopt=statset('fitglm');
-    glmopt.MaxIter=1000;
-    spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
-    spk_out=spk_mdl.Coefficients.Estimate;
-    skip=checkWarning();
-    pp=spk_mdl.coefTest();
-    rsq=spk_mdl.Rsquared.Ordinary;
+if (~skip) && nnz(spksel)>20
+    try
+        glmopt=statset('fitglm');
+        glmopt.MaxIter=1000;
+        spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
+        spk_out=spk_mdl.Coefficients.Estimate;
+        skip=checkWarning();
+        pp=spk_mdl.coefTest();
+        rsq=spk_mdl.Rsquared.Ordinary;
+    catch ME
+        spk_out=zeros(1,11);
+        skip=true;
+        pp=-1;
+        rsq=0;
+    end
 else
     spk_out=zeros(1,11);
     skip=true;

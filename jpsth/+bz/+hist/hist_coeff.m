@@ -29,6 +29,7 @@ skip=false(dim,1);
 sidx=1;
 for i=reshape(idces,1,[])
     fprintf('%d of %d\n',sidx,dim);
+%     if sidx==39, keyboard();end
     sess_suids(sidx,:)=sig.suid(i,:);
     [postspk(sidx,:),skip(sidx),pp(sidx),rsq(sidx)]=...
         bz.hist.history_coeff_one(sig.sess(i),sig.suid(i,:),...
