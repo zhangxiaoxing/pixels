@@ -1,49 +1,49 @@
-function plot_one_stp_curve(wt,ln,title_,opt)
+function plot_one_stp_curve(ref_data,cmp_data,title_,opt)
 arguments
-    wt (1,1) struct {mustBeNonempty}
-    ln (1,1) struct {mustBeNonempty}
+    ref_data (1,1) struct {mustBeNonempty}
+    cmp_data (1,1) struct {mustBeNonempty}
     title_ (1,:) char
-    opt.plot_learning (1,1) logical = false
+    opt.plot_dual (1,1) logical = false
 end
 hdl=[];
 lgd=cell(0);
 
 % fh=figure('Color','w');
 hold on
-if isfield(wt,'congru')
-    if opt.plot_learning
-        shadow(fliplr(ln.congru(:,2:end)),200:200:2000,'r');
-        hlnc=plot(200:200:2000,fliplr(mean(ln.congru(:,2:end)))*100,'--r');
+if isfield(ref_data,'congru')
+    if opt.plot_dual
+        shadow(fliplr(cmp_data.congru(:,2:end)),200:200:2000,'r');
+        hlnc=plot(200:200:2000,fliplr(mean(cmp_data.congru(:,2:end)))*100,'--r');
         hdl=cat(2,hdl,hlnc);
         lgd=cat(2,lgd,'Congruent learning');
     end
-    shadow(fliplr(wt.congru(:,2:end)),200:200:2000,'r');
-    hwtc=plot(200:200:2000,fliplr(mean(wt.congru(:,2:end)))*100,'-r');
+    shadow(fliplr(ref_data.congru(:,2:end)),200:200:2000,'r');
+    hwtc=plot(200:200:2000,fliplr(mean(ref_data.congru(:,2:end)))*100,'-r');
     hdl=cat(2,hdl,hwtc);
     lgd=cat(2,lgd,'Congruent welltrained');
 end
-if isfield(wt,'nonmem')
-    if opt.plot_learning
-        shadow(fliplr(ln.nonmem(:,2:end)),200:200:2000,'k');
-        hlnn=plot(200:200:2000,fliplr(mean(ln.nonmem(:,2:end)))*100,'--k');
+if isfield(ref_data,'nonmem')
+    if opt.plot_dual
+        shadow(fliplr(cmp_data.nonmem(:,2:end)),200:200:2000,'k');
+        hlnn=plot(200:200:2000,fliplr(mean(cmp_data.nonmem(:,2:end)))*100,'--k');
         hdl=cat(2,hdl,hlnn);
         lgd=cat(2,lgd,'Nonmem learning');
     end
-    shadow(fliplr(wt.nonmem(:,2:end)),200:200:2000,'k');
-    hwtn=plot(200:200:2000,fliplr(mean(wt.nonmem(:,2:end)))*100,'-k');
+    shadow(fliplr(ref_data.nonmem(:,2:end)),200:200:2000,'k');
+    hwtn=plot(200:200:2000,fliplr(mean(ref_data.nonmem(:,2:end)))*100,'-k');
     hdl=cat(2,hdl,hwtn);
     lgd=cat(2,lgd,'Nonmem welltrained');
 end
-if isfield(wt,'incong')
-    if opt.plot_learning
-    shadow(fliplr(ln.incong(:,2:end)),200:200:2000,'b');
-    hlni=plot(200:200:2000,fliplr(mean(ln.incong(:,2:end)))*100,'--b');
+if isfield(ref_data,'incong')
+    if opt.plot_dual
+    shadow(fliplr(cmp_data.incong(:,2:end)),200:200:2000,'b');
+    hlni=plot(200:200:2000,fliplr(mean(cmp_data.incong(:,2:end)))*100,'--b');
     hdl=cat(2,hdl,hlni);
     lgd=cat(2,lgd,'Incongru learning');
     end
-    shadow(fliplr(wt.incong(:,2:end)),200:200:2000,'b');
+    shadow(fliplr(ref_data.incong(:,2:end)),200:200:2000,'b');
     
-    hwti=plot(200:200:2000,fliplr(mean(wt.incong(:,2:end)))*100,'-b');
+    hwti=plot(200:200:2000,fliplr(mean(ref_data.incong(:,2:end)))*100,'-b');
     hdl=cat(2,hdl,hwti);
     lgd=cat(2,lgd,'Incongru welltrained');
 end
@@ -52,7 +52,7 @@ if ~isempty(hdl),legend(hdl,lgd);end
 
 title(title_);
 ylabel('Post spike increase (%)')
-ylim([-1,5])
+% ylim([-1,5])
 xlim([0,2000])
 set(gca,'XTick',500:500:2000)
 xlabel('Time lag (ms)')

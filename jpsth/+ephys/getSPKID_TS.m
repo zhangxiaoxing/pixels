@@ -1,18 +1,15 @@
-function [spkID_,spkTS_,trials_,SU_id_,folder_]=getSPKID_TS(fidx,opt)
+function [spkID_,spkTS_,trials_,SU_id_,folder_,FT_SPIKE_]=getSPKID_TS(fidx,opt)
 arguments
     fidx (1,1) double {mustBeInteger,mustBeGreaterThanOrEqual(fidx,1)}
-    %TODO EPOCH
-    opt.epoch (1,:) char {mustBeMember(opt.epoch,{'delay','ITI','any'})} = 'any'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
-    opt.correct_error (1,:) char {mustBeMember(opt.correct_error,{'correct','error','any'})} = 'any'
+    opt.keep_trial (1,1) logical = false
 end
 
-persistent spkID spkTS trials SU_id folder fidx_ criteria_ correct_error_
+persistent spkID spkTS trials SU_id folder fidx_ criteria_ FT_SPIKE
 
 if isempty(fidx_)...
         || fidx ~= fidx_ ...
-        || ~strcmp(criteria_,opt.criteria) ...
-        || ~strcmp(correct_error_,opt.correct_error)
+        || ~strcmp(criteria_,opt.criteria)
     homedir=ephys.util.getHomedir('type','raw');
     folder=replace(ephys.sessid2path(fidx,'criteria',opt.criteria),'\',filesep());
     trials=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/Trials');
@@ -36,19 +33,27 @@ if isempty(fidx_)...
     end
     
     susel=ismember(spkID,SU_id); % data cleaning by FR and contam rate criteria 
-    %TODO optional further cleaning by bwaveform
+    %TODO optional further cleaning by waveform
     spkID=double(spkID(susel));
     spkTS=double(spkTS(susel));
-    if strcmp(opt.correct_error,'any') &&~strcmp(opt.epoch,'any')
-        tsel=epochProcess(spkTS,trials,opt.epoch);
-        spkID=spkID(tsel);spkTS=spkTS(tsel);
-    elseif strcmp(opt.epoch,'any') && ~strcmp(opt.correct_error,'any')
-        tsel=correctErrorProcess(spkTS,trials,opt.correct_error);
-        spkID=spkID(tsel);spkTS=spkTS(tsel);
-    elseif ~strcmp(opt.epoch,'any') && ~strcmp(opt.correct_error,'any')
-        error('Combined selection of epoch and correct/error trial is not implemented')
-    end
     
+    if ~opt.keep_trial
+        FT_SPIKE=[];
+        return
+    end
+
+    ephys.util.dependency('ft',true,'buz',false); %data path and lib path dependency
+    [G,ID]=findgroups(spkID);
+    SP=splitapply(@(x) {x}, spkTS, G);
+    FT_SPIKE=struct();
+    FT_SPIKE.label=arrayfun(@(x) num2str(x),SU_id,'UniformOutput',false);
+    FT_SPIKE.timestamp=SP(ismember(ID,SU_id));
+    sps=30000;
+    cfg=struct();
+    cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
+    cfg.trlunit='timestamps';
+    cfg.timestampspersecond=sps;
+    FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
 end
 
 spkID_=spkID;
@@ -56,37 +61,8 @@ spkTS_=spkTS;
 trials_=trials;
 SU_id_=SU_id;
 folder_=folder;
+FT_SPIKE_=FT_SPIKE;
 fidx_=fidx;
 criteria_=opt.criteria;
-correct_error_=opt.correct_error;
-end
 
-function tssel=epochProcess(spkTS,trials,epochType)
-tssel=false(size(spkTS));
-switch epochType
-    case 'delay'
-        for i=1:size(trials,1)
-            tssel(spkTS>=(trials(i,1)+45000) &...  //sample onset+1.5s, sample onset+3.5s
-                spkTS<(trials(i,1)+105000))=true;
-        end
-    case 'ITI'
-        for i=1:size(trials,1)
-            tssel(spkTS>=(trials(i,1)-75000) &... //sample onset -2.5s, sample onset -0.5s
-                spkTS<trials(i,1)-15000)=true;
-        end
-end
-end
-
-function tssel=correctErrorProcess(spkTS,trials,correct_error)
-tssel=false(size(spkTS));
-switch correct_error
-    case 'correct'
-        trial_sel=find(trials(:,9)>0 & trials(:,10)>0);
-    case 'error'
-        trial_sel=find(trials(:,10)==0);
-end
-for i=reshape(trial_sel,1,[])
-    tssel(spkTS>=(trials(i,1)-3*30000) &...  //sample onset+1.5s, sample onset+3.5s
-        spkTS<(trials(i,1)+11*30000))=true;
-end
 end
