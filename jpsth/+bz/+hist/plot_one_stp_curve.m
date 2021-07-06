@@ -4,6 +4,8 @@ arguments
     cmp_data (1,1) struct {mustBeNonempty}
     title_ (1,:) char
     opt.plot_dual (1,1) logical = false
+    opt.ref_label (1,:) char = 'ref'
+    opt.cmp_label (1,:) char = 'cmp'
 end
 hdl=[];
 lgd=cell(0);
@@ -15,44 +17,44 @@ if isfield(ref_data,'congru')
         shadow(fliplr(cmp_data.congru(:,2:end)),200:200:2000,'r');
         hlnc=plot(200:200:2000,fliplr(mean(cmp_data.congru(:,2:end)))*100,'--r');
         hdl=cat(2,hdl,hlnc);
-        lgd=cat(2,lgd,'Congruent learning');
+        lgd=cat(2,lgd,['Congruent ',opt.cmp_label]);
     end
     shadow(fliplr(ref_data.congru(:,2:end)),200:200:2000,'r');
     hwtc=plot(200:200:2000,fliplr(mean(ref_data.congru(:,2:end)))*100,'-r');
     hdl=cat(2,hdl,hwtc);
-    lgd=cat(2,lgd,'Congruent welltrained');
+    lgd=cat(2,lgd,['Congruent ',opt.ref_label]);
 end
 if isfield(ref_data,'nonmem')
     if opt.plot_dual
         shadow(fliplr(cmp_data.nonmem(:,2:end)),200:200:2000,'k');
         hlnn=plot(200:200:2000,fliplr(mean(cmp_data.nonmem(:,2:end)))*100,'--k');
         hdl=cat(2,hdl,hlnn);
-        lgd=cat(2,lgd,'Nonmem learning');
+        lgd=cat(2,lgd,['NonMem. ',opt.cmp_label]);
     end
     shadow(fliplr(ref_data.nonmem(:,2:end)),200:200:2000,'k');
     hwtn=plot(200:200:2000,fliplr(mean(ref_data.nonmem(:,2:end)))*100,'-k');
     hdl=cat(2,hdl,hwtn);
-    lgd=cat(2,lgd,'Nonmem welltrained');
+    lgd=cat(2,lgd,['NonMem. ',opt.ref_label]);
 end
 if isfield(ref_data,'incong')
     if opt.plot_dual
     shadow(fliplr(cmp_data.incong(:,2:end)),200:200:2000,'b');
     hlni=plot(200:200:2000,fliplr(mean(cmp_data.incong(:,2:end)))*100,'--b');
     hdl=cat(2,hdl,hlni);
-    lgd=cat(2,lgd,'Incongru learning');
+    lgd=cat(2,lgd,['Incongru. ',opt.cmp_label]);
     end
     shadow(fliplr(ref_data.incong(:,2:end)),200:200:2000,'b');
     
     hwti=plot(200:200:2000,fliplr(mean(ref_data.incong(:,2:end)))*100,'-b');
     hdl=cat(2,hdl,hwti);
-    lgd=cat(2,lgd,'Incongru welltrained');
+    lgd=cat(2,lgd,['Incongru. ',opt.ref_label]);
 end
 
 if ~isempty(hdl),legend(hdl,lgd);end
 
 title(title_);
 ylabel('Post spike increase (%)')
-% ylim([-1,5])
+ylim([-1,5]);
 xlim([0,2000])
 set(gca,'XTick',500:500:2000)
 xlabel('Time lag (ms)')

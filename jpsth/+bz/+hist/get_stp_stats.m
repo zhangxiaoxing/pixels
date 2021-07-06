@@ -29,7 +29,7 @@ if isempty(stats_)...
     
     memtypes=convertCharsToStrings(fieldnames(fl))';
     
-    statfields=["postspk","skip","sess_suids"];
+    statfields=["postspk","skip","sess_suids","pp","rsq"];
     stats=struct();
     
     for memtype=memtypes

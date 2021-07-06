@@ -13,11 +13,13 @@ for level=opt.levels
     cr=bz.hist.learn.get_stats_by_mem_type(correct_stats,'between',level);
     er=bz.hist.learn.get_stats_by_mem_type(error_stats,'between',level);
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
-    bz.hist.plot_one_stp_curve(cr,er,sprintf('Between regions %d',level),'plot_dual',true);
+    bz.hist.plot_one_stp_curve(cr,er,sprintf('Between regions %d',level),...
+        'plot_dual',true,'cmp_label','error','ref_label','correct');
     %same    
     cr=bz.hist.learn.get_stats_by_mem_type(correct_stats,'within',level);
     er=bz.hist.learn.get_stats_by_mem_type(error_stats,'within',level);
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
-    bz.hist.plot_one_stp_curve(cr,er,sprintf('Within regions %d',level),'plot_dual',true);
+    bz.hist.plot_one_stp_curve(cr,er,sprintf('Within regions %d',level),...
+        'plot_dual',true,'cmp_label','error','ref_label','correct');
 end
 end
