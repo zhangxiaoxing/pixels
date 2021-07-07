@@ -102,7 +102,7 @@ def judgePerformance(trials, criteria=75):
         correctResp = np.bitwise_xor(trials[:, sample_loc] == trials[:, test_loc], trials[:, lick_loc] == 1)
         inWindow = np.zeros((trials.shape[0],), dtype="bool")
         i = 40
-        while i < trials.shape[0]:
+        while i <= trials.shape[0]:
             #            if np.sum(correctResp[i-40:i])>=32:
             if np.sum(correctResp[i - 40: i]) >= criteria * 40 / 100:
                 inWindow[i - 40: i] = 1
@@ -121,6 +121,6 @@ def judgePerformance(trials, criteria=75):
             if np.sum(inWindow) >= 40:
                 return ("learning", 2, inWindow, correctResp)
             elif np.sum(licks) <= trials.shape[0] // 10:  # Passive
-                return ("passive", 0, np.ones_like(inWindow), correctResp)
+                return ("passive", 0, np.zeros_like(inWindow), correctResp)
             else:
-                return ("transition", 1, np.ones_like(inWindow), correctResp)
+                return ("transition", 1, np.zeros_like(inWindow), correctResp)

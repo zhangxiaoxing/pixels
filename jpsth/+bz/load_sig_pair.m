@@ -31,7 +31,7 @@ if isempty(sig) ...
     end
     
     fprintf('Total sessions %d\n',size(fl,1));
-    if size(fl,1)<9, warning('Files not found');return; end
+%     if size(fl,1)<9, warning('Files not found');return; end
     sig=struct(); % for significant connect
     sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#
     sig.reg=cell(0); % brain region tree

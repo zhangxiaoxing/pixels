@@ -66,7 +66,43 @@ for fidx=1:length(sums_conn_str)
         save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d_inhibitory.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
     else
         save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+%         structWriteHDF5('fpath',fullfile('bzdata',sprintf('%s_conn_w_reg_%d.hdf5',opt.prefix,fidx)),...
+%             'datasets',struct('sig_meta',sig_meta,'pair_meta',pair_meta),...
+%             'pc_stem',pc_stem)
     end
     toc
 end
 end
+
+
+function structWriteHDF5(opt)
+arguments
+    opt.fpath (1,:) char {mustBeNonempty}
+    opt.datasets (1,1) struct {mustBeNonempty}
+    opt.pc_stem (1,:) char {mustBeNonempty}
+end
+    if exist(opt.fpath,'file')
+        delete(opt.fpath)
+    end
+    h5create(opt.fpath,'/pc_stem',1,'Datatype','string')
+    h5write(opt.fpath,'/pc_stem',string(opt.pc_stem))
+    
+    dataset_name=fieldnames(opt.datasets);
+    for ii=1:numel(dataset_name)
+        field_name=fieldnames(opt.datasets.(dataset_name{ii}));
+        for jj=1:numel(field_name)
+            h5writeOne(opt.fpath,opt.datasets,dataset_name{ii},field_name{jj});
+        end
+    end
+end
+
+function h5writeOne(fpath,datasets,dataset_name,field_name)
+h5create(fpath,...
+    sprintf('/%s/%s',dataset_name,field_name),...
+    size(datasets.(dataset_name).(field_name)),...
+    'Datatype',class(datasets.(dataset_name).(field_name)))
+h5write(fpath,...
+    sprintf('/%s/%s',dataset_name,field_name),...
+    datasets.(dataset_name).(field_name))
+end
+
