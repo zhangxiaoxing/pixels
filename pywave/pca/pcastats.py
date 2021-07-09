@@ -4,7 +4,8 @@ Created on Wed Jul  7 14:17:30 2021
 
 @author: Libra
 """
-
+import numpy as np
+from sklearn.model_selection import KFold
 
 class PCA_stats:
     def __init__(self):
@@ -25,7 +26,7 @@ class PCA_stats:
 
         ### unprocessed data entry point
 
-    def process_pca_stats(self, trial_FR, trials, welltrain_window=None, correct_resp=None, random_type=None):
+    def processCTDStats(self, trial_FR, trials, welltrain_window=None, correct_resp=None, random_type=None):
         shifted_trial = np.vstack((np.zeros(6), trials[:-1, :]))
 
         ### TODO: when variables are empty
@@ -58,7 +59,7 @@ class PCA_stats:
             axis=0, ), :, ]
 
         for su_idx in range(trial_FR.shape[2]):
-            (mm, std) = baselineVector(
+            (mm, std) = self.baselineVector(
                 np.squeeze(trial_FR[:, np.logical_and(welltrain_window, correct_resp), su_idx])
             )
             if std > 0 and np.all([x.shape[1] >= 2 for x in (
@@ -86,6 +87,18 @@ class PCA_stats:
                 self.avail.append(True)
             else:
                 self.avail.append(False)
+    def baselineVector(self,one_su_trial_FR):
+        base = one_su_trial_FR[2:10, :].flatten()
+        if np.std(base):
+            return (np.mean(base), np.std(base))
+        else:
+            base = one_su_trial_FR[-10:-1, :].flatten()
+            if np.std(base):
+                return (np.mean(base), np.std(base))
+            else:
+                print('flat base')
+                base = one_su_trial_FR.flatten()
+                return (0, np.std(base))
 
     def get_features(self):
         # breakpoint()
