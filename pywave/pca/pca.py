@@ -6,9 +6,8 @@ Created on Wed Jul  7 13:57:04 2021
 """
 
 import numpy as np
-import wave.datautils as util
+import pywave.datautils as util
 import matplotlib.pyplot as plt
-from pcastats import PCA_stats
 from sklearn.decomposition import PCA, FastICA
 from sklearn.preprocessing import StandardScaler
 
@@ -72,6 +71,11 @@ def pca_dist(delay=6):
     plt.figure()
     for c in range(pcnum):
         hp[c]=plt.plot(np.abs(np.array(comp[:56,c])-np.array(comp[56:,c])))
+
+#TODO: eculidian distance
+    # eculidian=[np.linalg.norm(
+    #     [proj1E[t]-proj2E[t],proj1M[t]-proj2M[t],proj1L[t]-proj2L[t]]) for t in range(len(proj1E))]
+
 
     plt.legend([hp[c][0] for c in range(pcnum)], [f'PC{c+1}, {ratio[c]*100:.1f}%' for c in range(pcnum)])
     ax=plt.gca()

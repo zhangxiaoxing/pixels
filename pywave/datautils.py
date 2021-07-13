@@ -22,7 +22,7 @@ def traverse_data():
             yield basepath
 
 
-def get_dataset():
+def get_dataset(correct_error='correct'):
     fr_per_su = []
     avails = []
     reg_list = []
@@ -43,15 +43,7 @@ def get_dataset():
         # if np.sum(trials[8,:])<40:
         if perf_code != 3:
             continue
-
-        s1_3_sel = np.all([trials[4, :] == 4, trials[7, :] ==
-                           3, trials[8, :], trials[9, :]], axis=0)
-        s1_6_sel = np.all([trials[4, :] == 4, trials[7, :] ==
-                           6, trials[8, :], trials[9, :]], axis=0)
-        s2_3_sel = np.all([trials[4, :] == 8, trials[7, :] ==
-                           3, trials[8, :], trials[9, :]], axis=0)
-        s2_6_sel = np.all([trials[4, :] == 8, trials[7, :] ==
-                           6, trials[8, :], trials[9, :]], axis=0)
+        (s1_3_sel, s1_6_sel, s2_3_sel, s2_6_sel) = get_trials(correct_error, trials)
 
         onesu = {'S1_3': trial_FR[:, :, s1_3_sel],
                  'S1_6': trial_FR[:, :, s1_6_sel],
@@ -67,3 +59,25 @@ def get_dataset():
     # with open(os.path.join(path, "su_id2reg.csv")) as csvfile:
     #     l = list(csv.reader(csvfile))[1:]
     #     suid_reg = [list(i) for i in zip(*l)]
+
+
+def get_trials(correct_error, trials):
+    if correct_error == 'correct':
+        s1_3_sel = np.all([trials[4, :] == 4, trials[7, :] ==
+                           3, trials[8, :], trials[9, :]], axis=0)
+        s1_6_sel = np.all([trials[4, :] == 4, trials[7, :] ==
+                           6, trials[8, :], trials[9, :]], axis=0)
+        s2_3_sel = np.all([trials[4, :] == 8, trials[7, :] ==
+                           3, trials[8, :], trials[9, :]], axis=0)
+        s2_6_sel = np.all([trials[4, :] == 8, trials[7, :] ==
+                           6, trials[8, :], trials[9, :]], axis=0)
+    else:
+        s1_3_sel = np.all([trials[4, :] == 4, trials[7, :] ==
+                           3, trials[9, :] == 0], axis=0)
+        s1_6_sel = np.all([trials[4, :] == 4, trials[7, :] ==
+                           6,  trials[9, :] == 0], axis=0)
+        s2_3_sel = np.all([trials[4, :] == 8, trials[7, :] ==
+                           3,  trials[9, :] == 0], axis=0)
+        s2_6_sel = np.all([trials[4, :] == 8, trials[7, :] ==
+                           6,  trials[9, :] == 0], axis=0)
+    return (s1_3_sel, s1_6_sel, s2_3_sel, s2_6_sel)

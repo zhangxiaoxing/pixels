@@ -8,7 +8,12 @@ Created on Wed Jul  7 13:57:04 2021
 import numpy as np
 from pywave import datautils as util
 import matplotlib.pyplot as plt
+from matplotlib import rcParams
 
+rcParams['pdf.fonttype'] = 42
+rcParams['ps.fonttype'] = 42
+rcParams['font.family'] = 'sans-serif'
+rcParams['font.sans-serif'] = ['Arial']
 
 def cd_heatmap(delay=6,bound=0.5):
     fr_per_su = util.get_dataset()
@@ -97,13 +102,13 @@ def cd_projection(delay=6):
     S2_mm=np.hstack([np.mean(onesu[f'S2_{delay}'],axis=2) for onesu in fr_per_su])
 
     cdMat=(S1_mm-S2_mm)
-    cdDelayE=np.mean(cdMat[16:24,:],axis=0)
+    cdDelayE=np.mean(cdMat[16:20,:],axis=0)
     cdDelayE=cdDelayE/np.linalg.norm(cdDelayE)
 
-    cdDelayM=np.mean(cdMat[24:32,:],axis=0)
+    cdDelayM=np.mean(cdMat[26:30,:],axis=0)
     cdDelayM=cdDelayM/np.linalg.norm(cdDelayM)
 
-    cdDelayL=np.mean(cdMat[32:40,:],axis=0)
+    cdDelayL=np.mean(cdMat[36:40,:],axis=0)
     cdDelayL=cdDelayL/np.linalg.norm(cdDelayL)
 
     (proj1E,proj1M,proj1L)=(S1_mm @ cdDelayE, S1_mm @ cdDelayM,S1_mm @ cdDelayL)
@@ -151,29 +156,42 @@ def cd_projection(delay=6):
 
 def cd_distance(delay=6):
     fr_per_su = util.get_dataset()
+    # fr_error=util.get_dataset(correct_error='error')
     S1_mm=np.hstack([np.mean(onesu[f'S1_{delay}'],axis=2) for onesu in fr_per_su])
     S2_mm=np.hstack([np.mean(onesu[f'S2_{delay}'],axis=2) for onesu in fr_per_su])
 
+    # S1_mm_err=np.hstack([np.mean(onesu[f'S1_{delay}'],axis=2) for onesu in fr_error])
+    # S2_mm_err=np.hstack([np.mean(onesu[f'S2_{delay}'],axis=2) for onesu in fr_error])
+
     cdMat=(S1_mm-S2_mm)
 
-    cdDelayE=np.mean(cdMat[16:24,:],axis=0)
+    cdDelayE=np.mean(cdMat[16:20,:],axis=0)
     cdDelayE=cdDelayE/np.linalg.norm(cdDelayE)
 
-    cdDelayM=np.mean(cdMat[24:32,:],axis=0)
+    cdDelayM=np.mean(cdMat[26:30,:],axis=0)
     cdDelayM=cdDelayM/np.linalg.norm(cdDelayM)
 
-    cdDelayL=np.mean(cdMat[32:40,:],axis=0)
+    cdDelayL=np.mean(cdMat[36:40,:],axis=0)
     cdDelayL=cdDelayL/np.linalg.norm(cdDelayL)
 
     (proj1E,proj1M,proj1L)=(S1_mm @ cdDelayE, S1_mm @ cdDelayM,S1_mm @ cdDelayL)
     (proj2E,proj2M,proj2L)=(S2_mm @ cdDelayE, S2_mm @ cdDelayM,S2_mm @ cdDelayL)
-    eculidian=[np.linalg.norm([proj1E[t]-proj2E[t],proj1M[t]-proj2M[t],proj1L[t]-proj2L[t]]) for t in range(len(proj1E))]
+
+    # (proj1Eerr,proj1Merr,proj1Lerr)=(S1_mm_err @ cdDelayE, S1_mm_err @ cdDelayM,S1_mm_err @ cdDelayL)
+    # (proj2Eerr,proj2Merr,proj2Lerr)=(S2_mm_err @ cdDelayE, S2_mm_err @ cdDelayM,S2_mm_err @ cdDelayL)
+
+    # eculidian=[np.linalg.norm([proj1E[t]-proj2E[t],proj1M[t]-proj2M[t],proj1L[t]-proj2L[t]]) for t in range(len(proj1E))]
 
     fig=plt.figure()
     he=plt.plot(proj1E-proj2E,'-r')
     hm=plt.plot(proj1M-proj2M,'-m')
     hl=plt.plot(proj1L-proj2L,'-b')
-    hecu=plt.plot(eculidian,'-k')
+
+    # hee=plt.plot(proj1Eerr-proj2Eerr,'--r')
+    # hme=plt.plot(proj1Merr-proj2Merr,'--m')
+    # hle=plt.plot(proj1Lerr-proj2Lerr,'--b')
+
+    # hecu=plt.plot(eculidian,'-k')
     ax=plt.gca()
     ax.set_xticks([12.5, 32.5, 52.5])
     ax.set_xticklabels([0, 5, 10])
@@ -181,4 +199,38 @@ def cd_distance(delay=6):
     ax.set_ylabel('S1-S2 C.D. distance (a.u.)')
     testmark=[40,44] if delay==6 else [28,32]
     [plt.axvline(x,ls='--',c='k') for x in np.array([12,16]+testmark)+0.5]
-    plt.legend((he[0],hm[0],hl[0],hecu[0]),('Early CD','Mid CD','Late CD','Euclidian'))
+    plt.legend((he[0],hm[0],hl[0]),('Early CD','Mid CD','Late CD'))
+
+def cd_FWHM(delay=6):
+    fr_per_su = util.get_dataset()
+    S1_mm=np.hstack([np.mean(onesu[f'S1_{delay}'],axis=2) for onesu in fr_per_su])
+    S2_mm=np.hstack([np.mean(onesu[f'S2_{delay}'],axis=2) for onesu in fr_per_su])
+
+
+    cdMat=(S1_mm-S2_mm)
+
+    cdDelayE=np.mean(cdMat[16:20,:],axis=0)
+    cdDelayE=cdDelayE/np.linalg.norm(cdDelayE)
+
+    cdDelayM=np.mean(cdMat[26:30,:],axis=0)
+    cdDelayM=cdDelayM/np.linalg.norm(cdDelayM)
+
+    cdDelayL=np.mean(cdMat[36:40,:],axis=0)
+    cdDelayL=cdDelayL/np.linalg.norm(cdDelayL)
+
+    (proj1E,proj1M,proj1L)=(S1_mm @ cdDelayE, S1_mm @ cdDelayM,S1_mm @ cdDelayL)
+    (proj2E,proj2M,proj2L)=(S2_mm @ cdDelayE, S2_mm @ cdDelayM,S2_mm @ cdDelayL)
+
+    fig=plt.figure()
+    he=plt.plot(proj1E-proj2E,'-r')
+    hm=plt.plot(proj1M-proj2M,'-m')
+    hl=plt.plot(proj1L-proj2L,'-b')
+
+    ax=plt.gca()
+    ax.set_xticks([12.5, 32.5, 52.5])
+    ax.set_xticklabels([0, 5, 10])
+    ax.set_xlabel('Time (s)')
+    ax.set_ylabel('S1-S2 C.D. distance (a.u.)')
+    testmark=[40,44] if delay==6 else [28,32]
+    [plt.axvline(x,ls='--',c='k') for x in np.array([12,16]+testmark)+0.5]
+    plt.legend((he[0],hm[0],hl[0]),('Early CD','Mid CD','Late CD'))
