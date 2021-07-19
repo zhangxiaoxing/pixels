@@ -4,6 +4,33 @@ bin_edge=-2000:100:2000;
 sc=histcounts(samedist,bin_edge,'Normalization','cdf');
 dc=histcounts(diffdist,bin_edge,'Normalization','cdf');
 
+if true
+    sci=bootci(1000,@(x) nnz(x>0)./numel(x),samedist).*100;
+    dci=bootci(1000,@(x) nnz(x>0)./numel(x),diffdist).*100;
+    fh=figure('Color','w','Position',[100,100,100,235]);
+    hold on;
+    
+    bh=bar(100.*[nnz(samedist<=0)./numel(samedist),nnz(samedist>0)./numel(samedist);
+        nnz(diffdist<=0)./numel(diffdist),nnz(diffdist>0)./numel(diffdist)]);
+    [bh(1).FaceColor,bh(1).EdgeColor,bh(2).EdgeColor]=deal('k');
+    bh(2).FaceColor='w';
+    errorbar(bh(1).XEndPoints,...
+        bh(1).YEndPoints,...
+        [100-sci(1)-bh(1).YEndPoints(1),100-dci(1)-bh(1).YEndPoints(2)],...
+        [100-sci(2)-bh(1).YEndPoints(1),100-dci(2)-bh(1).YEndPoints(2)],...
+        'k.')
+    errorbar(bh(2).XEndPoints,...
+        bh(2).YEndPoints,...
+        [sci(1)-bh(2).YEndPoints(1),dci(1)-bh(2).YEndPoints(2)],...
+        [sci(2)-bh(2).YEndPoints(1),dci(2)-bh(2).YEndPoints(2)],...
+        'k.')    
+    legend({'Recurrent','Propagating'},'Location','northoutside');
+    ylabel('Proportion of all F.C. (%)');
+    set(gca(),'XTick',1:2,'XTickLabel',{'Within reg.','Cross reg.'},'XTickLabelRotation',45);
+    
+    
+end
+
 boots=bootstrp(1000,@(x) histcounts(x,bin_edge,'Normalization','cdf'),samedist);
 bootd=bootstrp(1000,@(x) histcounts(x,bin_edge,'Normalization','cdf'),diffdist);
 
@@ -12,7 +39,8 @@ cid=[prctile(bootd,2.5);prctile(bootd,97.5)];
 
 close all
 fh=figure('Color','w','Position',[100,100,215,215]);
-hold onsamedist=wave.com_diff('level',5,'diff',false,'to_plot',false,'per_sec_stats',false);
+hold on
+samedist=wave.com_diff('level',5,'diff',false,'to_plot',false,'per_sec_stats',false);
 diffdist=wave.com_diff('level',5,'diff',true,'to_plot',false,'per_sec_stats',false);
 bin_edge=-2000:100:2000;
 sc=histcounts(samedist,bin_edge,'Normalization','cdf');

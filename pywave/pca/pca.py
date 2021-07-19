@@ -104,7 +104,6 @@ def ica_dist(delay=6):
     comp=ica.transform(norm_mm)
     coeff = ica.mixing_
 
-
     icnum=5
     hp=[None]*icnum
     plt.figure()

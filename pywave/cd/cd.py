@@ -9,6 +9,8 @@ import numpy as np
 from pywave import datautils as util
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+from scipy.signal import find_peaks, peak_widths
+import scikits.bootstrap as bootstrap
 
 rcParams['pdf.fonttype'] = 42
 rcParams['ps.fonttype'] = 42
@@ -205,32 +207,35 @@ def cd_FWHM(delay=6):
     fr_per_su = util.get_dataset()
     S1_mm=np.hstack([np.mean(onesu[f'S1_{delay}'],axis=2) for onesu in fr_per_su])
     S2_mm=np.hstack([np.mean(onesu[f'S2_{delay}'],axis=2) for onesu in fr_per_su])
-
-
     cdMat=(S1_mm-S2_mm)
 
-    cdDelayE=np.mean(cdMat[16:20,:],axis=0)
-    cdDelayE=cdDelayE/np.linalg.norm(cdDelayE)
+    #TODO:traverse bin
 
-    cdDelayM=np.mean(cdMat[26:30,:],axis=0)
-    cdDelayM=cdDelayM/np.linalg.norm(cdDelayM)
+    widths=[]
+    binws=[8,6,4,3,2,1]
+    for binw in binws:
+        widthbin=[]
+        # fig=plt.figure()
+        for onset in range(16,40,binw):
+            cdBin=np.mean(cdMat[onset:onset+binw,:],axis=0)
+            cdBin=cdBin/np.linalg.norm(cdBin)
+            proj1Bin=S1_mm @ cdBin
+            proj2Bin=S2_mm @ cdBin
+            curve=proj1Bin-proj2Bin
+            # plt.plot(curve)
+            (peaks,prop)=find_peaks(curve,distance=56)
+            (w,_,_,_)=peak_widths(curve, peaks)
+            widthbin.append(w)
+        widths.append(widthbin)
 
-    cdDelayL=np.mean(cdMat[36:40,:],axis=0)
-    cdDelayL=cdDelayL/np.linalg.norm(cdDelayL)
+    ci=np.array([bootstrap.ci(d,np.mean,n_samples=500) for d in widths])*0.25
 
-    (proj1E,proj1M,proj1L)=(S1_mm @ cdDelayE, S1_mm @ cdDelayM,S1_mm @ cdDelayL)
-    (proj2E,proj2M,proj2L)=(S2_mm @ cdDelayE, S2_mm @ cdDelayM,S2_mm @ cdDelayL)
-
-    fig=plt.figure()
-    he=plt.plot(proj1E-proj2E,'-r')
-    hm=plt.plot(proj1M-proj2M,'-m')
-    hl=plt.plot(proj1L-proj2L,'-b')
-
+    plt.figure()
+    plt.fill_between(np.array(binws)*0.25,ci[:,0],ci[:,1],color="r", alpha=0.2)
+    plt.plot(np.array(binws)*0.25, [np.mean(x)*0.25 for x in widths],'-r')
+    plt.plot([0,3],[0,3],':k')
     ax=plt.gca()
-    ax.set_xticks([12.5, 32.5, 52.5])
-    ax.set_xticklabels([0, 5, 10])
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('S1-S2 C.D. distance (a.u.)')
-    testmark=[40,44] if delay==6 else [28,32]
-    [plt.axvline(x,ls='--',c='k') for x in np.array([12,16]+testmark)+0.5]
-    plt.legend((he[0],hm[0],hl[0]),('Early CD','Mid CD','Late CD'))
+    ax.set_xlabel('CD window (s)')
+    ax.set_ylabel('FWHM of CD projection (s)')
+    ax.set_xlim((0,2))
+    ax.set_ylim((0,4))

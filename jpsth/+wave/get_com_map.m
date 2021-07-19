@@ -36,6 +36,8 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         sessid=ephys.path2sessid(pc_stem);
         com_str.(['s',num2str(sessid)]).s1=containers.Map('KeyType','int32','ValueType','any');
         com_str.(['s',num2str(sessid)]).s2=containers.Map('KeyType','int32','ValueType','any');
+        com_str.(['s',num2str(sessid)]).s1heat=containers.Map('KeyType','int32','ValueType','any');
+        com_str.(['s',num2str(sessid)]).s2heat=containers.Map('KeyType','int32','ValueType','any');
         com_str.(['s',num2str(sessid)]).s1curve=containers.Map('KeyType','int32','ValueType','any');
         com_str.(['s',num2str(sessid)]).s2curve=containers.Map('KeyType','int32','ValueType','any');
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed
@@ -71,14 +73,27 @@ for su=reshape(msel,1,[])
         com=sum((1:24).*mm_pref)./sum(mm_pref);
         com_str.(sess).(samp)(suid(su))=com;
     end
+    
     if opt.selidx_curve
         fr_pref=squeeze(mean(fr(pref_sel,su,17:40)));
         fr_nonp=squeeze(mean(fr(nonpref_sel,su,17:40)));
-        com_str.(sess).([samp,'curve'])(suid(su))...
-            =(fr_pref-fr_nonp)./(fr_pref+fr_nonp);
+        curve=(fr_pref-fr_nonp)./(fr_pref+fr_nonp);
+        com_str.(sess).([samp,'curve'])(suid(su))=curve;
+            
     else
-        com_str.(sess).([samp,'curve'])(suid(su))...
-            =mm_pref;
+        curve=mm_pref;
+        com_str.(sess).([samp,'curve'])(suid(su))=curve;
+            
     end
+    
+    heatcent=squeeze(fr(pref_sel,su,17:40))-basemm;
+    heatcent(heatcent<0)=0;
+    heatnorm=heatcent./max(heatcent);
+    if size(heatnorm,1)>10
+        cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
+        [~,idx]=sort(cc,'descend');
+        heatnorm=heatnorm(idx(1:10),:);
+    end
+    com_str.(sess).([samp,'heat'])(suid(su))=heatnorm;    
 end
 end

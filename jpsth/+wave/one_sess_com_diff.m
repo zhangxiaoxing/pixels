@@ -53,15 +53,16 @@ xlim([0,24]);
 ylabel('Funcional coupling #.');
 xlabel('Delay time (s)');
 
-
-fh2=figure('Color','w','Position',[100,100,235,235]);
-hold on;
-imagesc(immatLR,[-1,1]);
-colormap(bluewhitered(256));
-set(gca(),'YDir','normal','XTick',0:8:56,'XTickLabel',[0:2:6,0:2:6]);
-plot(cms(cmidx,1),1:size(immatLR,1),'ko','MarkerSize',2,'MarkerFaceColor','k')
-plot(cms(cmidx,2)+24+8,1:size(immatLR,1),'ko','MarkerSize',2,'MarkerFaceColor','k')
-ylim([0,size(immatLR,1)]);
-xlim([0,48+8]);
-ylabel('Func. coupling #.');
-xlabel('Delay time (s)');
+if false
+    fh2=figure('Color','w','Position',[100,100,235,235]);
+    hold on;
+    imagesc(immatLR,[-1,1]);
+    colormap(bluewhitered(256));
+    set(gca(),'YDir','normal','XTick',0:8:56,'XTickLabel',[0:2:6,0:2:6]);
+    plot(cms(cmidx,1),1:size(immatLR,1),'ko','MarkerSize',2,'MarkerFaceColor','k')
+    plot(cms(cmidx,2)+24+8,1:size(immatLR,1),'ko','MarkerSize',2,'MarkerFaceColor','k')
+    ylim([0,size(immatLR,1)]);
+    xlim([0,48+8]);
+    ylabel('Func. coupling #.');
+    xlabel('Delay time (s)');
+end

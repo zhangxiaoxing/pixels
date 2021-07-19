@@ -9,6 +9,7 @@ load('sums_conn.mat','sums_conn_str');
 meta_str=ephys.util.load_meta('type','neupix');
 warning('partial iteration for illustration')
 figidx=1;
+gk = fspecial('gaussian', [3 3], 1);
 for fidx=72%1:numel(sums_conn_str)
     disp(fidx);
     if opt.strict
@@ -70,6 +71,24 @@ for fidx=72%1:numel(sums_conn_str)
                     fh=figure('Color','w','Position',[100,100,500,500]); %illustration
                     subplot(2,2,3);
                     hold on;
+                    % envelop
+                    yyaxis left
+                    suids=onechain(1,:);
+                    hm=[];
+                    for mm=1:numel(suids)
+                        oneheat=conv2(onecom.(skey{1}).(sprintf('%sheat',samp))(suids(mm)),gk,'same');
+                        hm=[hm;oneheat;zeros(5,size(oneheat,2))];
+                    end
+                    colormap(flip(colormap('gray')));
+                    imagesc(hm);
+                    set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6,'YTick',[])
+                    xlim([0,24])
+                    ylim([0,size(hm,1)-5]);
+                    xlabel('Delay time (s)');
+                    ylabel('Example trials')
+%                     colorbar()
+                    %FC
+                    yyaxis right
                     for jj=1:size(onechain,2)
                         text(onechain(2,jj),jj,num2str(onechain(1,jj)));
                         plot(onechain(2,jj),jj,'ko','MarkerFaceColor','k');
@@ -106,16 +125,18 @@ for fidx=72%1:numel(sums_conn_str)
                     subplot(2,2,4)
                     hold on
                     suids=onechain(1,:);
-                    cmap=colormap('cool');
-                    deltac=floor(size(cmap,1)./numel(suids));
-                    for mm=1:numel(suids)
-                        plot((onecom.(skey{1}).(sprintf('%scurve',samp))(suids(mm))),...
-                            '-','Color',cmap((mm-1)*deltac+1,:));
-                        xline(onecom.(skey{1}).(samp)(suids(mm)),'--','Color',cmap((mm-1)*deltac+1,:));
+                    if false
+                        cmap=colormap('cool');
+                        deltac=floor(size(cmap,1)./numel(suids));
+                        for mm=1:numel(suids)
+                            plot((onecom.(skey{1}).(sprintf('%scurve',samp))(suids(mm))),...
+                                '-','Color',cmap((mm-1)*deltac+1,:));
+                            xline(onecom.(skey{1}).(samp)(suids(mm)),'--','Color',cmap((mm-1)*deltac+1,:));
+                        end
+                        set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6)
+                        xlabel('Delay time (s)');
+                        ylabel('Normalized firing rate [0,1]');
                     end
-                    set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6)
-                    xlabel('Delay time (s)');
-                    ylabel('Normalized firing rate [0,1]');
                     sgtitle(sprintf('fidx %d',fidx));
                     if opt.screen
 %                         exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
@@ -134,3 +155,6 @@ for fidx=72%1:numel(sums_conn_str)
     end
 end
 end
+
+
+
