@@ -6,9 +6,11 @@ arguments
     opt.sesstype (1,:) char {mustBeMember(opt.sesstype,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.trialtype (1,:) char {mustBeMember(opt.trialtype,{'correct','error','any'})} = 'any'
+    opt.datatype (1,:) char {mustBeMember(opt.datatype,{'postspk_out','fc_out'})}='postspk_out'
 end
 if ~isempty(opt.suffix) && ~startsWith(opt.suffix,'_'), opt.suffix=['_',opt.suffix];end
-persistent stats_ ftick_ memtypes_ prefix_ suffix_ sesstype_ trialtype_ criteria_
+
+persistent stats_ ftick_ memtypes_ prefix_ suffix_ sesstype_ trialtype_ criteria_ datatype_
 
 if isempty(stats_)...
         || ftick~=ftick_ ...
@@ -16,7 +18,8 @@ if isempty(stats_)...
         || ~strcmp(opt.suffix,suffix_) ...
         || ~strcmp(opt.sesstype,sesstype_) ...
         || ~strcmp(criteria_,opt.criteria) ...
-        || ~strcmp(opt.trialtype,trialtype_) 
+        || ~strcmp(opt.trialtype,trialtype_) ...
+        || ~strcmp(opt.datatype,datatype_) 
     disp('Updating STP stats from files');
     ftick_=ftick;
     fl=struct();
@@ -29,7 +32,7 @@ if isempty(stats_)...
     
     memtypes=convertCharsToStrings(fieldnames(fl))';
     
-    statfields=["postspk","skip","sess_suids","pp","rsq"];
+    statfields=["coeff","skip","sess_suids","pp","rsq"];
     stats=struct();
     
     for memtype=memtypes
@@ -37,17 +40,10 @@ if isempty(stats_)...
         for sf=statfields, stats.(memtype).(sf)=[]; end
         stats.(memtype).sess=[];
         for fidx=1:size(fl.(memtype))
-            fstr=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
-            %HOTFIX>>>>>>>>>>>
-            %             if ~isfield(fstr,'skip')
-            %                 if isfield(fstr,'maxiter')
-            %                     fstr.skip=fstr.maxiter(:,1);
-            %                 else
-            %                     disp(fl.(memtype)(fidx).folder);
-            %                     keyboard
-            %                     continue
-            %                 end
-            %             end
+            fstrall=load(fullfile(fl.(memtype)(fidx).folder,fl.(memtype)(fidx).name));
+            fstr=fstrall.(opt.datatype);
+            fstr.sess_suids=fstrall.sess_suids;
+            fstr.sess=fstrall.sess;
             if size(fstr.skip,2)>1
                 fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
             end
@@ -67,6 +63,7 @@ if isempty(stats_)...
     sesstype_=opt.sesstype;
     trialtype_=opt.trialtype;
     criteria_=opt.criteria;
+    datatype_=opt.datatype;
 else
     disp('Reusing STP stats in memory');
     stats=stats_;

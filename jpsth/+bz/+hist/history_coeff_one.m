@@ -101,12 +101,13 @@ if nnz(spksel)>20
     try
         glmopt=statset('fitglm');
         glmopt.MaxIter=1000;
+        glmopt.Display='iter';
         spk_mdl=fitglm(X(spksel,:),post_spike_prob(spksel,[2,1]),'linear','Distribution','binomial','Link','identity','Options',glmopt);
         postspk_.coeff=spk_mdl.Coefficients.Estimate;
         postspk_.skip=checkWarning();
         postspk_.pp=spk_mdl.coefTest();
         postspk_.rsq=spk_mdl.Rsquared.Ordinary;
-        if postspk_.rsq<0,keyboard();end
+%         if postspk_.rsq<0,keyboard();end
     catch ME
         postspk_.coeff=zeros(1,11);
         postspk_.skip=true;
@@ -135,7 +136,7 @@ if nnz(fcsel)>20
         fc_.skip=true;
         fc_.pp=-1;
         fc_.rsq=0;
-        if fc_.rsq<0,keyboard();end
+%         if fc_.rsq<0,keyboard();end
     end
 else
     fc_.coeff=zeros(1,11);

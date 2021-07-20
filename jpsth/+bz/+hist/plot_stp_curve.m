@@ -12,13 +12,13 @@ fh=figure('Color','w');
 fidx=1;
 for level=opt.levels
     %diff
-    ln=bz.hist.learn.get_stats_by_mem_type(learn_stats,'between',level);
-    wt=bz.hist.learn.get_stats_by_mem_type(wt_stats,'between',level);
+    ln=bz.hist.get_stats_by_mem_type(learn_stats,'between',level);
+    wt=bz.hist.get_stats_by_mem_type(wt_stats,'between',level);
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
     bz.hist.plot_one_stp_curve(wt,ln,sprintf('Between regions %d',level));
     %same    
-    ln=bz.hist.learn.get_stats_by_mem_type(learn_stats,'within',level);
-    wt=bz.hist.learn.get_stats_by_mem_type(wt_stats,'within',level);
+    ln=bz.hist.get_stats_by_mem_type(learn_stats,'within',level);
+    wt=bz.hist.get_stats_by_mem_type(wt_stats,'within',level);
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
     bz.hist.plot_one_stp_curve(wt,ln,sprintf('Within regions %d',level));
 end
