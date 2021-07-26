@@ -27,10 +27,9 @@ if true
     legend({'Recurrent','Propagating'},'Location','northoutside');
     ylabel('Proportion of all F.C. (%)');
     set(gca(),'XTick',1:2,'XTickLabel',{'Within reg.','Cross reg.'},'XTickLabelRotation',45);
-    
-    
 end
-
+return
+%% cdf curve
 boots=bootstrp(1000,@(x) histcounts(x,bin_edge,'Normalization','cdf'),samedist);
 bootd=bootstrp(1000,@(x) histcounts(x,bin_edge,'Normalization','cdf'),diffdist);
 

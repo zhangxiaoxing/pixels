@@ -23,7 +23,7 @@ end
 
 %% com vs frac
 if opt.frac_COM
-    fh=figure('Color','w');
+    fh=figure('Color','w','Position',[100,100,225,265]);
     hold on;
     coord=[];
     regs=[];
@@ -36,15 +36,15 @@ if opt.frac_COM
             yy=ffrac.collection{fridx,1}.*100;
             coord=[coord;xx,yy];
             regs=[regs,fcom.collection{comidx,2}];
-            plot(xx,yy,'wo','MarkerFaceColor',[255,127,127]./255);
-            text(xx,yy,fcom.collection{comidx,2},'HorizontalAlignment','center','VerticalAlignment','middle');
+            scatter(xx,yy,9,'o','MarkerFaceColor',ephys.getRegColor(ureg{ri}),'MarkerEdgeColor','none');
+            text(xx,yy,fcom.collection{comidx,2},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',7,'Color',ephys.getRegColor(ureg{ri}));
         end
     end
     if strcmp(opt.memtype,'sust')
         ylim([0,4]);
         set(gca(),'YTick',0:2:4);
     else
-        ylim([0,60]);
+        ylim([10,60]);
         set(gca(),'YTick',0:20:60);
     end
     xlim([2.4,3.5]);
@@ -56,7 +56,7 @@ if opt.frac_COM
 end
 %% com vs pv/sst
 if opt.COM_PVSST
-    fh=figure('Color','w');
+    fh=figure('Color','w','Position',[100,100,225,265]);
     hold on;
     coord=[];
     regs=[];
@@ -68,8 +68,8 @@ if opt.COM_PVSST
             yy=ratiomap(ureg{ri});
             coord=[coord;xx,yy];
             regs=[regs,fcom.collection{comidx,2}];
-            plot(xx,yy,'wo','MarkerFaceColor',[255,127,127]./255);
-            text(xx,yy,fcom.collection{comidx,2},'HorizontalAlignment','center','VerticalAlignment','middle');
+            scatter(xx,yy,9,'o','MarkerFaceColor',ephys.getRegColor(ureg{ri}),'MarkerEdgeColor','none');
+            text(xx,yy,fcom.collection{comidx,2},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',7,'Color',ephys.getRegColor(ureg{ri}));
         end
     end
     ylim([0.0,1])
@@ -91,7 +91,7 @@ if opt.frac_PVSST
         end
     end
     
-    fh=figure('Color','w');
+    fh=figure('Color','w','Position',[100,100,225,190]);
     hold on;
     coord=[];
     regs=[];
@@ -102,8 +102,8 @@ if opt.frac_PVSST
             yy=ratiomap(ureg{ri});
             coord=[coord;xx,yy];
             regs=[regs,ffrac.collection{fridx,2}];
-            plot(xx,yy,'wo','MarkerFaceColor',[255,127,127]./255);
-            text(xx,yy,ffrac.collection{fridx,2},'HorizontalAlignment','center','VerticalAlignment','middle');
+            scatter(xx,yy,9,'o','MarkerFaceColor',ephys.getRegColor(ureg{ri}),'MarkerEdgeColor','none');
+            text(xx,yy,ffrac.collection{fridx,2},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',7,'Color',ephys.getRegColor(ureg{ri}));
         end
     end
     ylim([0,1])

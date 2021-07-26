@@ -1,10 +1,11 @@
 function com_str_=get_com_map(opt)
 arguments
-    opt.onepath (1,:) char = ''
-    opt.peak (1,1) logical = false
-    opt.curve (1,1) logical = false
-    opt.per_sec_stats (1,1) logical = false
-    opt.selidx_curve (1,1) logical = false
+    opt.onepath (1,:) char = '' % process one session under the given non-empty path
+    opt.peak (1,1) logical = false % return peak instead, default is COM
+    opt.curve (1,1) logical = false % Norm. FR curve
+    opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
+    opt.selidx_curve (1,1) logical = false % return selectivity index curve instead, default is normalized firing rate
+    opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
 end
 persistent com_str onepath_
 if isempty(onepath_), onepath_='';end
@@ -57,26 +58,35 @@ com_str_=com_str;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,samp,opt)
+%TODO if decision
+if opt.decision
+    stats_window=41:44;
+else
+    stats_window=17:40;
+end
 for su=reshape(msel,1,[])
-    basemm=mean([mean(squeeze(fr(pref_sel,su,17:40)));mean(squeeze(fr(nonpref_sel,su,17:40)))]);
+%     if strcmp(sess,'s67') && suid(su)==10993,keyboard();end
+    basemm=mean([mean(squeeze(fr(pref_sel,su,stats_window)));mean(squeeze(fr(nonpref_sel,su,stats_window)))]);
     if ~opt.per_sec_stats
         basemm=mean(basemm);
     end
+    %TODO check the effect of smooth
     mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
-    mm_pref=mm(17:40)-basemm;
+    mm_pref=mm(stats_window)-basemm;
+    if max(mm_pref)<=0,continue;end
     mm_pref=mm_pref./max(mm_pref);
     mm_pref(mm_pref<0)=0;
     if opt.peak
         [~,pidx]=max(mm_pref);
         com_str.(sess).(samp)(suid(su))=pidx;
     else
-        com=sum((1:24).*mm_pref)./sum(mm_pref);
+        com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
         com_str.(sess).(samp)(suid(su))=com;
     end
     
     if opt.selidx_curve
-        fr_pref=squeeze(mean(fr(pref_sel,su,17:40)));
-        fr_nonp=squeeze(mean(fr(nonpref_sel,su,17:40)));
+        fr_pref=squeeze(mean(fr(pref_sel,su,stats_window)));
+        fr_nonp=squeeze(mean(fr(nonpref_sel,su,stats_window)));
         curve=(fr_pref-fr_nonp)./(fr_pref+fr_nonp);
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
             
@@ -86,7 +96,7 @@ for su=reshape(msel,1,[])
             
     end
     
-    heatcent=squeeze(fr(pref_sel,su,17:40))-basemm;
+    heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
     heatcent(heatcent<0)=0;
     heatnorm=heatcent./max(heatcent);
     if size(heatnorm,1)>10

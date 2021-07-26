@@ -6,10 +6,11 @@ arguments
     opt.subplot (1,3) double {mustBeInteger,mustBePositive} = [1,1,1]
     opt.to_plot (1,1) logical = false
     opt.bin_edge (1,:) double = -2000:200:2000
-    opt.peak (1,1) logical = false
-    opt.per_sec_stats (1,1) logical = false
+    opt.peak (1,1) logical = false % return peak instead, default is COM
+    opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
+    opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
 end
-com_map=wave.get_com_map('peak',opt.peak,'per_sec_stats',opt.per_sec_stats);
+com_map=wave.get_com_map('peak',opt.peak,'per_sec_stats',opt.per_sec_stats,'decision',opt.decision);
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
 [is_diff,is_same]=bz.util.diff_at_level(sig.reg);
 [comdiff_stats,com_pair]=deal([]);
