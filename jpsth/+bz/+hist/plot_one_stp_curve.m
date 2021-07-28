@@ -49,16 +49,16 @@ if isfield(ref_data,'incong')
     hdl=cat(2,hdl,hwti);
     lgd=cat(2,lgd,['Incongru. ',opt.ref_label]);
 end
-
-if ~isempty(hdl),legend(hdl,lgd);end
-
+% if ~isempty(hdl),legend(hdl,lgd);end
 title(title_);
 ylabel('Post spike increase (%)')
 ylim([-1,5]);
 xlim([0,2000])
 set(gca,'XTick',500:500:2000)
 xlabel('Time lag (ms)')
-grid on
+% grid on
+nstr=cellfun(@(x) sprintf('%s,%d',x,size(ref_data.(x),1)),fieldnames(ref_data),'UniformOutput',false);
+text(max(xlim()),max(ylim()),nstr,'HorizontalAlignment','right','VerticalAlignment','top');
 end
 
 
