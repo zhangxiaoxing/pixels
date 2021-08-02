@@ -1,9 +1,9 @@
-function out=relax_tag(in,msize)
+function out=relax_tag(in,rsize)
 % called from \jpsth\+bz\+rings\rings_freq.m
 
 arguments
     in (:,2) double
-    msize (1,1) double {mustBeMember(msize,3:5)}
+    rsize (1,1) double {mustBeMember(rsize,3:5)}
 end
 
 tags=zeros(size(in,1),1);
@@ -19,10 +19,13 @@ durs=[];
 while curr_pre_ptr<size(in,1)
     if rem(curr_pre_ptr,100)==0, fprintf('%06d.',curr_pre_ptr);end
 
-    cyc_post_pos=rem(in(curr_pre_ptr,2)+1,msize);
-    if cyc_post_pos==0, cyc_post_pos=msize;end
-    syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1); if isempty(syn_win_ubound), break;end
-    syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+15,1); if isempty(syn_win_lbound), break;end %matching time window, assuming 1kHz
+    cyc_post_pos=rem(in(curr_pre_ptr,2)+1,rsize);
+    if cyc_post_pos==0, cyc_post_pos=rsize;end
+    %matching time window, assuming 30kHz
+    syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1); 
+    if isempty(syn_win_ubound), break;end %TODO use max available instead
+    syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24,1); 
+    if isempty(syn_win_lbound), break;end %matching time window, assuming 30kHz
     diff_post_ptr=find(in(curr_pre_ptr+1:end,2)==cyc_post_pos,1); %post unit
     if ~isempty(diff_post_ptr) && diff_post_ptr>=syn_win_lbound && diff_post_ptr<syn_win_ubound
         %TODO temp list ring spk
@@ -30,7 +33,7 @@ while curr_pre_ptr<size(in,1)
         curr_pre_ptr=curr_pre_ptr+diff_post_ptr;
         curr_ring=vertcat(curr_ring,curr_pre_ptr);
     else
-        if numel(curr_ring)>msize
+        if numel(curr_ring)>rsize
             tags(curr_ring)=ring_idx;
             ring_idx=ring_idx+1;
             starts(end+1)=in(curr_ring(1),2);
