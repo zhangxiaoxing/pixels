@@ -15,7 +15,7 @@ ts_id=[];
 
 for ring_id=1:size(sess_rings,1)
     disp(ring_id);
-    disp('RRRRR');
+%     disp('RRRRR');
     cids=sess_rings(ring_id,:);
     per_cid_spk_cnt=cids;
     for in_ring_pos=1:rsize

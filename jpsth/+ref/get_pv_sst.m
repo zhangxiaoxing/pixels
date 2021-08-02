@@ -19,6 +19,10 @@ if isempty(pvmap_) || isempty(sstmap_)|| isempty(ratiomap_)
             ratiomap(key)=tbl{i,6}./(tbl{i,6}+tbl{i,4});
         end
     end
+    pvmap('ACB')=pvmap('ACBcr')+pvmap('ACBsh');
+    sstmap('ACB')=sstmap('ACBcr')+sstmap('ACBsh');
+    ratiomap('ACB')=pvmap('ACB')./(pvmap('ACB')+sstmap('ACB'));
+    
     pvmap_=pvmap;
     sstmap_=sstmap;
     ratiomap_=ratiomap;

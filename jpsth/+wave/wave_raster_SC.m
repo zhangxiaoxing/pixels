@@ -2,7 +2,7 @@ if ~exist('sums_conn_str','var')
     load('sums_conn.mat','sums_conn_str');
     sig=bz.load_sig_pair();
     idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-    com_map=wave.get_com_map('peak',false,'per_sec_stats',false);
+    com_map=wave.get_com_map('per_sec_stats',false);
     %caution, parallel index methods
     sumcon_sess=cellfun(@(x) ephys.path2sessid(...
         replace(regexp(x,'(?<=SPKINFO/).*$','match','once'),'/',filesep())...

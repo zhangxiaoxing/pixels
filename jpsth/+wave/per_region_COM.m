@@ -10,7 +10,7 @@ persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_
 if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_
     
     % per region COM
-    com_map=wave.get_com_map('peak',false,'per_sec_stats',false,'decision',opt.decision);
+    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision);
     % COM->SU->region
     meta=ephys.util.load_meta();
     meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);

@@ -3,6 +3,7 @@ arguments
     type (1,:) char {mustBeMember(type,{'delay','delay_shuf'})}
 end
 %bzthres=250;  %TODO filter by spike number % not really necessary when using full-length data
+[sig,~]=bz.load_sig_pair();
 if strcmp(type,'delay')
     rings=cell(max(sig.sess),3);
     for sess=1:max(sig.sess)

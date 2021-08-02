@@ -13,11 +13,11 @@ onesess.trials=trials;
 onesess.fidx=fidx;
 onesess.fc=[];
 
-for fci=1:10%size(suids,1)
+for fci=1:size(suids,1)
     if rem(fci,100)==0,disp(fci);end
     %per fc stats
-    onefc=deal(zeros(size(trials,1),1));
-    cshift=zeros(size(trials,1),opt.circular_rpt);
+    [onefc,onefc_b]=deal(zeros(size(trials,1),1));
+    [cshift,bshift]=deal(zeros(size(trials,1),opt.circular_rpt));
     for ti=1:size(trials,1)
         susel1=strcmp(FT_SPIKE.label,num2str(suids(fci,1)));
         susel2=strcmp(FT_SPIKE.label,num2str(suids(fci,2)));
@@ -25,17 +25,22 @@ for fci=1:10%size(suids,1)
         spk2=FT_SPIKE.time{susel2}(FT_SPIKE.trial{susel2}==ti & FT_SPIKE.time{susel2}<trials(ti,8));
         deltaT=spk2-spk1.';
         evts=deltaT>=0.0008 & deltaT<0.01;
+        bevts=deltaT>=-0.01 & deltaT<=-0.0008;
         onefc(ti)=nnz(any(evts'));
+        onefc_b(ti)=nnz(any(bevts'));
         for rpt=1:opt.circular_rpt
             spk2=rem(spk2+rand()*trials(ti,8),trials(ti,8));
             deltaT=spk2-spk1.';
             evts=deltaT>=0.0008 & deltaT<0.01;
+            bevts=deltaT>=-0.01 & deltaT<=-0.0008;
             cshift(ti,rpt)=nnz(any(evts'));
+            bshift(ti,rpt)=nnz(any(bevts'));
         end
     end
-    onesess.fc=[onesess.fc;{suids(fci,:),onefc,onefc-mean(cshift,2),cshift}];
+    onesess.fc=[onesess.fc;{suids(fci,:),onefc,onefc-mean(cshift,2),cshift,onefc_b,onefc_b-mean(bshift,2),bshift}];
 end
-save(sprintf('fc_coding_%d.mat',fidx),'onesess')
+blame=vcs.blame();
+save(sprintf('fc_coding_%d.mat',fidx),'onesess','blame')
 end
 
 function plotonesess(onesess)
