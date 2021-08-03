@@ -36,6 +36,7 @@ if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.crit
     criteria=opt.criteria;
 end
 out=meta_str;
+out.sess=cellfun(@(x) ephys.path2sessid(x),out.allpath);
 end
 
 function memtype=hem2memtype(HEM)
