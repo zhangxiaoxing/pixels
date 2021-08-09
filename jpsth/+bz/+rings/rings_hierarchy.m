@@ -33,27 +33,6 @@ histogram(span(:,5),0:0.05:0.5,'FaceColor','w','EdgeColor','k','Normalization','
 xlabel('PV-SST ratio span');
 ylabel('Recycle activity probility');
 
-% [starts.HighMost,starts.HighLeast,starts.LowMost,starts.LowLeast]=deal(0);
-% ends=starts;
-% for ri=1:size(starts_ends,1)
-%     [~,low]=max(starts_ends(ri,7:9));
-%     [~,high]=min(starts_ends(ri,7:9));
-%     [~,sMost]=max(starts_ends(ri,1:3));
-%     [~,eMost]=max(starts_ends(ri,4:6));
-%     [~,sLeast]=min(starts_ends(ri,1:3));
-%     [~,eLeast]=min(starts_ends(ri,4:6));
-%     
-%     if low==sMost, starts.LowMost=starts.LowMost+1; end
-%     if low==sLeast, starts.LowLeast=starts.LowMost+1; end
-%     if high==sMost, starts.HighMost=starts.HighMost+1; end
-%     if high==sLeast, starts.HighLeast=starts.HighLeast+1; end
-% 
-%     if low==eMost, ends.LowMost=ends.LowMost+1; end
-%     if low==eLeast, ends.LowLeast=ends.LowMost+1; end
-%     if high==eMost, ends.HighMost=ends.HighMost+1; end
-%     if high==eLeast, ends.HighLeast=ends.HighLeast+1; end
-% end
-
 starts=struct();
 [starts.HighRatio,starts.LowRatio]=deal([]);
 ends=starts;

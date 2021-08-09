@@ -23,6 +23,16 @@ while curr_pre_ptr<size(in,1)
     if cyc_post_pos==0, cyc_post_pos=rsize;end
     %matching time window, assuming 30kHz
     syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1); 
+    
+%     ts=in(curr_pre_ptr,1)+300;
+%     syn_win_ubound=curr_pre_ptr+1;
+%     while in(syn_win_ubound,1)<=ts
+%         syn_win_ubound=syn_win_ubound+1;
+%     end
+    
+    
+    
+    
     if isempty(syn_win_ubound), break;end %TODO use max available instead
     syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24,1); 
     if isempty(syn_win_lbound), break;end %matching time window, assuming 30kHz

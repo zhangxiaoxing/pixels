@@ -1,7 +1,7 @@
 function rings_freq(sessidx, rsize)
 arguments
-    sessidx (1,1) double {mustBePositive,mustBeInteger}
-    rsize (1,1) double {mustBeMember(rsize,3:5)}
+    sessidx (1,1) double {mustBePositive,mustBeInteger} = 1
+    rsize (1,1) double {mustBeMember(rsize,3:5)} = 3
 end
 load(fullfile('bzdata','rings_bz.mat'),'rings');
 sums=cell(0);
