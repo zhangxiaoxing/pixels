@@ -1,7 +1,7 @@
 function c=getRegColor(reg)
 if ismember(reg,{'SS','MO'})
     c=[64,98,159]./255;
-elseif ismember(reg,{'ORB','RSP','ACA','PTLp'})
+elseif ismember(reg,{'ORB','RSP','ACA','PTLp','FRP'})
     c=[220,169,88]./255;
 elseif ismember(reg,{'VIS','AUD'})
     c=[133,102,40]./255;

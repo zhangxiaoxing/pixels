@@ -1,4 +1,8 @@
-function [pvmap,sstmap,ratiomap]=get_pv_sst()
+function [pvmap,sstmap,ratiomap]=get_pv_sst(opt)
+arguments
+    opt.raw_ratio (1,1) logical = false
+end
+
 persistent pvmap_ sstmap_ ratiomap_
 if isempty(pvmap_) || isempty(sstmap_)|| isempty(ratiomap_)
     disp('Rebuild pv-sst ratio map')
@@ -16,7 +20,7 @@ if isempty(pvmap_) || isempty(sstmap_)|| isempty(ratiomap_)
         if ~isempty(key)
             pvmap(key)=tbl{i,4};
             sstmap(key)=tbl{i,6};
-            ratiomap(key)=tbl{i,6}./(tbl{i,6}+tbl{i,4});
+            ratiomap(key)=tbl{i,4}./(tbl{i,6}+tbl{i,4});
         end
     end
     pvmap('ACB')=pvmap('ACBcr')+pvmap('ACBsh');

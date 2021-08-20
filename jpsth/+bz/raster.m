@@ -15,9 +15,9 @@ cfg.timestampspersecond=sps;
 FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
 %%%%%%%
 pref_trial_sel=find(trials(:,9)>0 & trials(:,10)>0 & trials(:,8)==6 & trials(:,5)==prefsamp);
-if numel(pref_trial_sel)>=5
+if numel(pref_trial_sel)>=3
     center=ceil(numel(pref_trial_sel)/2);
-    tsel=center-2:center+2;
+    tsel=center-1:center+1;
 else
     tsel=1:numel(pref_trial_sel);
 end
@@ -42,14 +42,14 @@ for onetrial=pref_trial_sel(tsel).'
     evtstats(3)=evtstats(3)+numel(spk2);
     [evt1,evt2]=find(evts);
     if nnz(evts)>0
-        plot(repmat(spk1(evt1),2,1),[yidx-0.5;yidx+0.3],'r-')
-        plot(repmat(spk2(evt2),2,1),[yidx-0.3;yidx+0.5],'b-')
+        plot(repmat(spk1(evt1),2,1),[yidx-0.4;yidx],'r-')
+        plot(repmat(spk2(evt2),2,1),[yidx;yidx+0.4],'b-')
     end
     if numel(spk1)>nnz(evts)
-        plot(repmat(setdiff(spk1,spk1(evt1)),2,1),[yidx-0.5;yidx+0.3],'-','Color',[1,0.8,0.8])
+        plot(repmat(setdiff(spk1,spk1(evt1)),2,1),[yidx-0.4;yidx],'-','Color',[1,0.7,0.7])
     end
     if numel(spk2)>nnz(evts)
-        plot(repmat(setdiff(spk2,spk2(evt2)),2,1),[yidx-0.3;yidx+0.5],'-','Color',[0.8,0.8,1])
+        plot(repmat(setdiff(spk2,spk2(evt2)),2,1),[yidx;yidx+0.4],'-','Color',[0.7,0.7,1])
     end
     yidx=yidx+1;
 end
@@ -60,7 +60,7 @@ end
 
 arrayfun(@(x) xline(x,'--k'),[0,1]);
 xlim([1,7]);
-ylim([0,yidx]);
+ylim([0,yidx-0.6]);
 set(gca,'XTick',1:2:7,'XTickLabel',0:2:6)
 xlabel('Delay time (s)')
 ylabel('Trial #')

@@ -1,9 +1,8 @@
 function COM_chain_SC(opt)
 arguments
-    opt.peak (1,1) logical = false
     opt.strict (1,1) logical = true %strict FC criteria
 %     opt.min_diff (1,1)
-    opt.screen (1,1) logical = false
+    opt.screen (1,1) logical = true
 end
 load('sums_conn.mat','sums_conn_str');
 meta_str=ephys.util.load_meta('type','neupix');
@@ -24,20 +23,14 @@ for fidx=72%1:numel(sums_conn_str)
         onecon=sums_conn_str(fidx).sig_con;
     end
     %TODO nonmem,incongruent
-    onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder,'peak',opt.peak); %per su center of mass, normalized FR
+    onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder); %per su center of mass, normalized FR
     skey=fieldnames(onecom);
     for samp=["s1","s2"]
         mapkeys=cell2mat(onecom.(skey{1}).(samp).keys); %pre-selected transient selective su
         typesel=all(ismember(int32(onecon(:,:)),mapkeys),2);
         typesigcon=onecon(typesel,:);
         con_com_diff=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(onecon(typesel,:)));
-
-        if opt.peak 
-            dirsel=con_com_diff(:,2)>con_com_diff(:,1)...
-                &con_com_diff(:,2)<=con_com_diff(:,1)+8; % minimum 1-bin resolution
-        else
-            dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(50/250); % Assuming 250ms bin
-        end
+        dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(50/250); % Assuming 250ms bin
         dirsigcon=typesigcon(dirsel,:);
         upre=unique(dirsigcon(:,1)).';
         
@@ -137,7 +130,7 @@ for fidx=72%1:numel(sums_conn_str)
                         xlabel('Delay time (s)');
                         ylabel('Normalized firing rate [0,1]');
                     end
-                    sgtitle(sprintf('fidx %d',fidx));
+                    sgtitle(sprintf('fidx %d chain %d-%d',fidx,ii,pp));
                     if opt.screen
 %                         exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
                         keyboard()

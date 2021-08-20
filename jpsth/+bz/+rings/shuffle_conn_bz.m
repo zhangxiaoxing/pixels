@@ -1,4 +1,4 @@
-function shuff_conn_bz(opt)
+gitfunction shuffle_conn_bz(opt)
 arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive} = 2
     opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 5

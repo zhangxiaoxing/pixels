@@ -15,7 +15,7 @@ if ~exist('sums_conn_str','var')
 end
 strict_sel=sumcon_qc(:,1)>0 & sumcon_qc(:,4)<25 & sumcon_qc(:,3)<4 & sumcon_qc(:,2)<276 & sumcon_qc(:,2)>251;
 if ~exist('done','var'), done=[];end
-for sumcon_idx=35264%find(strict_sel).'
+for sumcon_idx=33208%find(strict_sel).'
 %     if ismember(sumcon_idx,done), continue;end
 %     done=[done,sumcon_idx];
     %transient, congruent, COM shift, cross region, good_wf
@@ -35,26 +35,33 @@ for sumcon_idx=35264%find(strict_sel).'
         continue
     end
     %     keyboard
-    if com_map.(['s',num2str(sumconn_currsess)]).(samp)(sumcon_suids(sumcon_idx,2))...
-            -com_map.(['s',num2str(sumconn_currsess)]).(samp)(sumcon_suids(sumcon_idx,1))<0
+%     if com_map.(['s',num2str(sumconn_currsess)]).(samp)(sumcon_suids(sumcon_idx,2))...
+%             -com_map.(['s',num2str(sumconn_currsess)]).(samp)(sumcon_suids(sumcon_idx,1))<0
+%         continue
+%     end
+    if sig.reg(sig_idx,5,1)==sig.reg(sig_idx,5,2)
         continue
     end
     fh=figure('Color','w','Position',[32,32,500,235]);
     sgtitle(sprintf('%d,%d,%d,%d,%s',sumcon_idx,sumcon_allsess(sumcon_idx),sumcon_suids(sumcon_idx,1),sumcon_suids(sumcon_idx,2),samp));
+    
     subplot(2,2,3)
     hold on;
     plot(sumcon_ccg(sumcon_idx,:),'-r');
-    xlim([101,401])
+    xlim([251-30,251+60])
     text(min(xlim()),max(ylim()),idmap.ccfid2reg(sig.reg(sig_idx,5,1)),'HorizontalAlignment','left','VerticalAlignment','top')
     text(max(xlim()),max(ylim()),idmap.ccfid2reg(sig.reg(sig_idx,5,2)),'HorizontalAlignment','right','VerticalAlignment','top')
     arrayfun(@(x) xline(x,'--k'),[251,251-25,251+25]);
-    set(gca,'XTick',126:125:401,'XTickLabel',-50:50:50)
+    set(gca,'XTick',126:25:401,'XTickLabel',-50:10:50)
     xlabel('Lag (ms)')
     ylabel('Coupling events');
+    
+    
     subplot(2,1,1)
     hold on
     psth=bz.raster(sumconn_currsess,sumcon_suids(sumcon_idx,:),rsamp);
-    
+%     ah=gca();
+    xlim([2,4])
     subplot(2,2,4);
     hold on;
     fill([psth.time,fliplr(psth.time)],...
@@ -83,7 +90,7 @@ for sumcon_idx=35264%find(strict_sel).'
 %     ylim([0,max(ylim())]);
     grid on
 %     exportgraphics(fh,sprintf('SC\\wave_raster_SC_%d.png',sumcon_idx),'Resolution',300);
-    if false
+    if true
         exportgraphics(fh,sprintf('SC\\wave_raster_SC_%d.pdf',sumcon_idx));
     end
 %     close(fh);

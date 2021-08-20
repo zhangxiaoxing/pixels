@@ -3,21 +3,37 @@ arguments
     opt.ring_size (1,1) double {mustBeMember(opt.ring_size,3:5)}=3
     opt.to_plot (1,1) logical = false
     opt.memtype (1,:) char {mustBeMember(opt.memtype,{'any','congru','nonmem'})}='any'
+    opt.shufid double {mustBeScalarOrEmpty} = []
 end
 persistent meta
 if isempty(meta)
     meta=ephys.util.load_meta();
-    meta.sess=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
+%     meta.sess=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
 end
-load(fullfile('bzdata','rings_bz.mat'),'rings');
+if isempty(opt.shufid)
+    load(fullfile('bzdata','rings_bz.mat'),'rings'); % data generated with ring_list_bz.m
+else
+    if ~isfile(fullfile('bzdata',sprintf('rings_bz_shuf_%d.mat',opt.shufid)))
+        warning('Missing shuffle file %d',opt.shufid);
+        cross=[];
+        within=[];
+        return
+    else
+        load(fullfile('bzdata',sprintf('rings_bz_shuf_%d.mat',opt.shufid)),'rings');
+    end
+end
 rsidx=opt.ring_size-2;
 [~,~,ratiomap]=ref.get_pv_sst();
+idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+fcom=load('per_region_com_collection.mat','collection'); % /4
+ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
 cross=struct();
 cross.meta=[];
 cross.reg=cell(0);
 within=cross;
 cross.pv_ratio=[];
-
+cross.frcom=[];
+cross.ffrac=[];
 for fi=1:size(rings,1)
     if isempty(rings{fi,rsidx})
         continue
@@ -26,7 +42,7 @@ for fi=1:size(rings,1)
     sesssel=meta.sess==sess;
     cids=meta.allcid(sesssel);
     regs=meta.reg_tree(5,sesssel);
-    reg_class=meta.reg_tree(1,sesssel);
+    reg_class=meta.reg_tree(2,sesssel);
     memtypes=meta.mem_type(sesssel);
     %TODO within region
     for ri=1:size(rings{fi,rsidx},1)
@@ -39,7 +55,7 @@ for fi=1:size(rings,1)
         end
         
         ring_class=arrayfun(@(x) reg_class(cids==x),rings{fi,rsidx}(ri,:),'UniformOutput',false);
-        if ~all(cellfun(@(x) strcmp(char(x),'CH'),ring_class),'all')
+        if ~all(cellfun(@(x) strcmp(char(x),'CTX'),ring_class),'all')
             continue
         end
         ring_reg=arrayfun(@(x) regs(cids==x),rings{fi,rsidx}(ri,:),'UniformOutput',false);
@@ -51,10 +67,12 @@ for fi=1:size(rings,1)
             within.meta=[within.meta;sess,rings{fi,rsidx}(ri,:)];
             within.reg=[within.reg;ring_reg{1}];
         else
-            pv_ratio=cellfun(@(x) ratiomap(char(x)),ring_reg);
+            pv_ratio=cellfun(@(x) ratiomap(char(x)),ring_reg).*100;
             cross.meta=[cross.meta;sess,rings{fi,rsidx}(ri,:)];
             cross.reg=[cross.reg;ring_reg];
             cross.pv_ratio=[cross.pv_ratio;pv_ratio];
+            cross.frcom=[cross.frcom;cell2mat(cellfun(@(x) fcom.collection(strcmp(fcom.collection(:,2),x),1),ring_reg)).*0.25];
+            cross.ffrac=[cross.ffrac;cell2mat(cellfun(@(x) ffrac.collection(strcmp(ffrac.collection(:,2),x),1),ring_reg)).*100];
         end
     end
 end

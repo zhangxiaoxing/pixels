@@ -4,10 +4,11 @@ arguments
     opt.pdf (1,1) logical = false
     opt.png (1,1) logical = false
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
+    opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
 end
 
-persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_
-if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_
+persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_ stats_method
+if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_ || ~strcmp(stats_method,opt.stats_method)
     
     % per region COM
     com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision);
@@ -62,6 +63,7 @@ if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png 
     png_=opt.png;
     keep_figure_=opt.keep_figure;
     decision_=opt.decision;
+    stats_method=opt.stats_method;
 else
     collection=collection_;
     com_meta=com_meta_;
@@ -70,13 +72,28 @@ end
 
 
 function collection=recurSubregions(curr_branch,prev_sel,prev_accu,prev_ratio,cmap,com_meta,collection,opt)
+% arguments
+%     curr_branch
+%     prev_sel
+%     prev_accu
+%     prev_ratio
+%     cmap
+%     com_meta
+%     collection
+%     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
+% end
+    
 xbound=0:0.2:1;
 if curr_branch==1
     curr_ureg={'BS','CH'};
 else
     curr_ureg=unique(com_meta(prev_sel,curr_branch+3));
 end
-curr_com_all=cellfun(@(x) mean([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);
+if strcmp(opt.stats_method,'mean')
+    curr_com_all=cellfun(@(x) mean([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);
+else
+    curr_com_all=cellfun(@(x) median([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);    
+end
 [curr_com_all,sidx]=sort(curr_com_all);
 curr_ureg=curr_ureg(sidx);
 curr_count=cellfun(@(x) nnz(strcmp(com_meta(:,curr_branch+3),x)),curr_ureg);

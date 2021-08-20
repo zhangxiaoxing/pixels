@@ -16,14 +16,14 @@ figure('Color','w','Position',[32,32,750,235])
 % plot_one(true,within_3,within_3_shuf,1);
 plot_one(true,within_4,within_4_shuf,2);
 % plot_one(true,within_5,within_5_shuf,3);
-exportgraphics(gcf,'loops_within_region_norm.pdf')
+% exportgraphics(gcf,'loops_within_region_norm.pdf')
 
 %% cross
 figure('Color','w','Position',[32,32,750,235])
-plot_one(false,cross_3,cross_3_shuf,1);
+% plot_one(false,cross_3,cross_3_shuf,1);
 plot_one(false,cross_4,cross_4_shuf,2);
-[c5r,c5n]=plot_one(false,cross_5,cross_5_shuf,3);
-exportgraphics(gcf,'loops_cross_region_norm.pdf')
+% [c5r,c5n]=plot_one(false,cross_5,cross_5_shuf,3);
+% exportgraphics(gcf,'loops_cross_region_norm.pdf')
 
 %% dependency
 function [ureg,normw]=norm_within(rreal,shuf)
@@ -86,7 +86,7 @@ if within
     ylim([-4,4])
     ylabel('Normalized number of within-region loops')
 else
-    ylim([-1,6])
+    ylim([-1,8])
     ylabel('Normalized number of cross-region loops')
 end
 title(sprintf('%d-neuron loops',spidx+2));

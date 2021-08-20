@@ -31,7 +31,7 @@ end
 fh=figure('Color','w');
 histogram(span(:,5),0:0.05:0.5,'FaceColor','w','EdgeColor','k','Normalization','probability')
 xlabel('PV-SST ratio span');
-ylabel('Recycle activity probility');
+ylabel('Loop activity probility');
 
 starts=struct();
 [starts.HighRatio,starts.LowRatio]=deal([]);
