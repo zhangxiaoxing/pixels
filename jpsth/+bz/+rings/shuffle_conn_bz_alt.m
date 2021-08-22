@@ -3,9 +3,9 @@ arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive} = 2
     opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 2
 end
-% parpool(opt.poolsize)
+parpool(opt.poolsize)
 shufs=cell(opt.rpt,1);
-for rpt=1:opt.rpt
+par0for rpt=1:opt.rpt
     shufs{rpt}=shuffle_conn_onerpt(rpt);
 end
 save('bz_ring_shufs.mat','shufs')

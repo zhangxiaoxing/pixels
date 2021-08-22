@@ -1,4 +1,17 @@
-keyboard();
+shufrpt=500;
+%%other stats
+[cross_3,within_3]=bz.rings.rings_span('ring_size',3,'memtype','congru');
+[cross_4,within_4]=bz.rings.rings_span('ring_size',4,'memtype','congru');
+[cross_5,within_5]=bz.rings.rings_span('ring_size',5,'memtype','congru');
+
+[cross_3_shuf,cross_4_shuf,cross_5_shuf,within_3_shuf,within_4_shuf,within_5_shuf]=deal(cell(shufrpt,1));
+for ri=1:shufrpt
+    disp(ri);
+    [cross_3_shuf{ri},within_3_shuf{ri}]=bz.rings.rings_span('ring_size',3,'memtype','congru','shufid',ri);
+    [cross_4_shuf{ri},within_4_shuf{ri}]=bz.rings.rings_span('ring_size',4,'memtype','congru','shufid',ri);
+    [cross_5_shuf{ri},within_5_shuf{ri}]=bz.rings.rings_span('ring_size',5,'memtype','congru','shufid',ri);
+end
+keyboard()
 %% count number
 [ratio3,z3]=get_ratio(cross_3,within_3_shuf);
 [ratio4,z4]=get_ratio(cross_4,within_4_shuf);
@@ -13,25 +26,12 @@ set(gca(),'XTick',1:3,'XTickLabel',{'3-Neuron','4-Neuron','5-Neuron'},'XTickLabe
 ylabel('Relative number of loops')
 xlim([0.5,3.5])
 
-%%other stats
-[cross_3,within_3]=bz.rings.rings_span('ring_size',3,'memtype','congru');
-[cross_4,within_4]=bz.rings.rings_span('ring_size',4,'memtype','congru');
-[cross_5,within_5]=bz.rings.rings_span('ring_size',5,'memtype','congru');
-
-[cross_3_shuf,cross_4_shuf,cross_5_shuf,within_3_shuf,within_4_shuf,within_5_shuf]=deal(cell(100,1));
-for ri=1:100
-    disp(ri);
-    [cross_3_shuf{ri},within_3_shuf{ri}]=bz.rings.rings_span('ring_size',3,'memtype','congru','shufid',ri);
-    [cross_4_shuf{ri},within_4_shuf{ri}]=bz.rings.rings_span('ring_size',4,'memtype','congru','shufid',ri);
-    [cross_5_shuf{ri},within_5_shuf{ri}]=bz.rings.rings_span('ring_size',5,'memtype','congru','shufid',ri);
-end
-
 plotone(cross_3,cross_4,cross_5,within_3,within_4,within_5,'Congruent')
-
-[cross_3,within_3]=bz.rings.rings_span('ring_size',3,'memtype','nonmem');
-[cross_4,within_4]=bz.rings.rings_span('ring_size',4,'memtype','nonmem');
-[cross_5,within_5]=bz.rings.rings_span('ring_size',5,'memtype','nonmem');
-plotone(cross_3,cross_4,cross_5,within_3,within_4,within_5,'Non-mem')
+% 
+% [cross_3,within_3]=bz.rings.rings_span('ring_size',3,'memtype','nonmem');
+% [cross_4,within_4]=bz.rings.rings_span('ring_size',4,'memtype','nonmem');
+% [cross_5,within_5]=bz.rings.rings_span('ring_size',5,'memtype','nonmem');
+% plotone(cross_3,cross_4,cross_5,within_3,within_4,within_5,'Non-mem')
 
 %% span
 fh=figure('Color','w','Position',[32,32,400,235]);

@@ -5,27 +5,25 @@ arguments
     opt.memtype (1,:) char {mustBeMember(opt.memtype,{'any','congru','nonmem'})}='any'
     opt.shufid double {mustBeScalarOrEmpty} = []
 end
-persistent meta
+persistent meta rings_shuf
 if isempty(meta)
     meta=ephys.util.load_meta();
 %     meta.sess=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
 end
+if ~isempty(opt.shufid) && isempty(rings_shuf)
+    load(fullfile('bzdata','rings_bz_shuf.mat'),'rings_shuf');
+end
+
 if isempty(opt.shufid)
     load(fullfile('bzdata','rings_bz.mat'),'rings'); % data generated with ring_list_bz.m
 else
-    if ~isfile(fullfile('bzdata',sprintf('rings_bz_shuf_%d.mat',opt.shufid)))
-        warning('Missing shuffle file %d',opt.shufid);
-        cross=[];
-        within=[];
-        return
-    else
-        load(fullfile('bzdata',sprintf('rings_bz_shuf_%d.mat',opt.shufid)),'rings');
-    end
+    rings=rings_shuf{opt.shufid};
 end
+
 rsidx=opt.ring_size-2;
 [~,~,ratiomap]=ref.get_pv_sst();
 idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-fcom=load('per_region_com_collection.mat','collection'); % /4
+[fcom.collection,fcom.com_meta]=wave.per_region_COM('stats_method','mean');
 ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
 cross=struct();
 cross.meta=[];
@@ -71,7 +69,8 @@ for fi=1:size(rings,1)
             cross.meta=[cross.meta;sess,rings{fi,rsidx}(ri,:)];
             cross.reg=[cross.reg;ring_reg];
             cross.pv_ratio=[cross.pv_ratio;pv_ratio];
-            cross.frcom=[cross.frcom;cell2mat(cellfun(@(x) fcom.collection(strcmp(fcom.collection(:,2),x),1),ring_reg)).*0.25];
+            cross.frcom=[cross.frcom;
+                cell2mat(cellfun(@(x) fcom.collection(strcmp(fcom.collection(:,2),x),1),ring_reg)).*0.25];
             cross.ffrac=[cross.ffrac;cell2mat(cellfun(@(x) ffrac.collection(strcmp(ffrac.collection(:,2),x),1),ring_reg)).*100];
         end
     end

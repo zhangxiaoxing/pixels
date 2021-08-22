@@ -106,7 +106,7 @@ curr_accu=prev_accu;
 for curr_idx=1:numel(curr_ureg)
     if isempty(char(curr_ureg(curr_idx))), continue;end
     curr_sel=strcmp(com_meta(:,curr_branch+3),curr_ureg(curr_idx));
-    if nnz(curr_sel)<20, continue;end
+%     if nnz(curr_sel)<20, continue;end
     sub_ratio=nnz(curr_sel)./nnz(prev_sel)*prev_ratio;
     patch(xbound([curr_branch,curr_branch+1,curr_branch+1,curr_branch]),[curr_accu,curr_accu,curr_accu+sub_ratio,curr_accu+sub_ratio],[-1,-1,-1,-1],cmap(com2cmapidx(curr_com_all(curr_idx),opt),:),'EdgeColor','none');
     %     if curr_branch>3
