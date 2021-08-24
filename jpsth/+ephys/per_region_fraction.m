@@ -68,7 +68,7 @@ end
         for curr_idx=1:numel(curr_ureg)
             if isempty(char(curr_ureg(curr_idx))), continue;end
             curr_sel=strcmp(meta.reg_tree(curr_branch,:),curr_ureg(curr_idx));
-            if nnz(curr_sel)<40, continue;end
+%             if nnz(curr_sel)<40, continue;end
             sub_ratio=nnz(curr_sel)./nnz(prev_sel)*prev_ratio;
             patch(xbound([curr_branch,curr_branch+1,curr_branch+1,curr_branch]),[curr_accu,curr_accu,curr_accu+sub_ratio,curr_accu+sub_ratio],[-1,-1,-1,-1],cmap(1+floor(curr_ratio(curr_idx)*320),:),'EdgeColor','none');
             text(mean(xbound([curr_branch,curr_branch+1])),curr_accu+sub_ratio/2,1,curr_ureg(curr_idx),'HorizontalAlignment','left','VerticalAlignment','middle')
