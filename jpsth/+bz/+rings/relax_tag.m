@@ -17,7 +17,7 @@ spk_cnt=[];
 durs=[];
 % fprintf('000000');
 while curr_pre_ptr<size(in,1)
-    if rem(curr_pre_ptr,100)==0, fprintf('%06d.',curr_pre_ptr);end
+    if rem(curr_pre_ptr,1000)==0, fprintf('%06d.',curr_pre_ptr);end
 
     cyc_post_pos=rem(in(curr_pre_ptr,2)+1,rsize);
     if cyc_post_pos==0, cyc_post_pos=rsize;end
