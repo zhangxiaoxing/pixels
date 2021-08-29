@@ -4,6 +4,7 @@ arguments
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
+    opt.rnd_half (1,1) logical = false
 end
 persistent com_str onepath_
 if isempty(onepath_), onepath_='';end
@@ -33,20 +34,31 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         msel2=find(ismember(suid,mcid2));
         if isempty(msel1) && isempty(msel2), continue; end
         sessid=ephys.path2sessid(pc_stem);
-        com_str.(['s',num2str(sessid)]).s1=containers.Map('KeyType','int32','ValueType','any');
-        com_str.(['s',num2str(sessid)]).s2=containers.Map('KeyType','int32','ValueType','any');
-        com_str.(['s',num2str(sessid)]).s1heat=containers.Map('KeyType','int32','ValueType','any');
-        com_str.(['s',num2str(sessid)]).s2heat=containers.Map('KeyType','int32','ValueType','any');
-        com_str.(['s',num2str(sessid)]).s1curve=containers.Map('KeyType','int32','ValueType','any');
-        com_str.(['s',num2str(sessid)]).s2curve=containers.Map('KeyType','int32','ValueType','any');
+        s1sel=find(trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0);
+        s2sel=find(trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0);
+        sess=['s',num2str(sessid)];
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed
         %     welltrained dataset
-        s1sel=trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
-        s2sel=trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0;
-        sess=['s',num2str(sessid)];
-        com_str=per_su_process(sess,suid,msel1,fr,s1sel,s2sel,com_str,'s1',opt);
-        com_str=per_su_process(sess,suid,msel2,fr,s2sel,s1sel,com_str,'s2',opt);
-
+        if opt.rnd_half
+            for ff=["s1a","s2a","s1aheat","s2aheat","s1acurve","s2acurve",...
+                    "s1b","s2b","s1bheat","s2bheat","s1bcurve","s2bcurve"];
+                com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
+            end
+            s1a=randsample(s1sel,floor(numel(s1sel)./2));
+            s1b=s1sel(~ismember(s1sel,s1a));
+            s2a=randsample(s2sel,floor(numel(s2sel)./2));
+            s2b=s2sel(~ismember(s2sel,s2a));
+            com_str=per_su_process(sess,suid,msel1,fr,s1a,s2a,com_str,'s1a',opt);
+            com_str=per_su_process(sess,suid,msel1,fr,s1b,s2b,com_str,'s1b',opt);
+            com_str=per_su_process(sess,suid,msel2,fr,s2a,s1a,com_str,'s2a',opt);
+            com_str=per_su_process(sess,suid,msel2,fr,s2b,s1b,com_str,'s2b',opt);
+        else
+            for ff=["s1","s2","s1heat","s2heat","s1curve","s2curve"]
+                com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
+            end
+            com_str=per_su_process(sess,suid,msel1,fr,s1sel,s2sel,com_str,'s1',opt);
+            com_str=per_su_process(sess,suid,msel2,fr,s2sel,s1sel,com_str,'s2',opt);
+        end
         if ~strlength(opt.onepath)==0
             break;
         end

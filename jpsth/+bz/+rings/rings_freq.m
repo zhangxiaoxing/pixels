@@ -14,7 +14,7 @@ end
 sess_rings=rings{sessidx,rsize-2};
 [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessidx);
 if isempty(spkID), quit(0); end
-ts_id=[];
+
 if isempty(opt.ridx)
     rids=1:size(sess_rings,1);
 else
@@ -37,11 +37,13 @@ for ring_id=rids
     end
     cids=sess_rings(ring_id,:);
     per_cid_spk_cnt=cids;
+    ts_id=[];
     for in_ring_pos=1:rsize
         one_ring_sel=spkID==cids(in_ring_pos);
         per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
         ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
     end
+    continue;
     ts_id=sortrows(ts_id,1);
     ring_stats=bz.rings.relax_tag(ts_id,rsize);
     coact_count=sum(ring_stats.spk_cnt);

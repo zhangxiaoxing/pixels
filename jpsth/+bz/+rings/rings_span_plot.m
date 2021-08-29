@@ -1,6 +1,7 @@
 %% TODO merge with normalized_within_loops.m
 keyboard()
 %% count number
+ring_meta=bz.rings.get_ring_meta('loadfile',true);
 if false
 [ratio3,z3]=get_ratio(ring_meta.congru.cross_3,ring_meta.congru.within_3_shuf);
 [ratio4,z4]=get_ratio(ring_meta.congru.cross_4,ring_meta.congru.within_4_shuf);
@@ -22,6 +23,7 @@ errorbar(1:3,rdata(:,1),diff(rdata(:,1:2),1,2),diff(rdata(:,1:2:3),1,2),'k.')
 set(gca(),'XTick',1:3,'XTickLabel',{'3-Neuron','4-Neuron','5-Neuron'},'XTickLabelRotation',90)
 ylabel('Relative number of loops')
 xlim([0.5,3.5])
+ylim([0,50])
 exportgraphics(fh,fn)
 
 

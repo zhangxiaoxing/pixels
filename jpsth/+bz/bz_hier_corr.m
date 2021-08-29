@@ -3,15 +3,20 @@ keyboard()
 
 non_stats=onestat('nonmem',5); % 4:5,PV-SST; 6:7,COM; 8:9, frac;
 congru_stats=onestat('congru',5);
-
-congru_exp={'Source','Target','Weight'};
+[~,~,ratiomap]=ref.get_pv_sst();
+congru_exp={'Source','Target','Weight','HierDir'};
 non_exp=congru_exp;
 for fi=1:size(congru_stats.meta,1)
     pre=congru_stats.reg{fi,1};
     post=congru_stats.reg{fi,2};
+    if ratiomap(pre)>ratiomap(post)
+        uddir=['D','U'];
+    else
+        uddir=['U','D'];
+    end
     congru_exp=[congru_exp;...
-        {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2))};...
-        {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2))}];
+        {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2)),uddir(1)};...
+        {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2)),uddir(2)}];
 end
 writecell(congru_exp,'Congru_asym_fc.csv')
 ureg=unique(congru_exp(2:end,1:2));

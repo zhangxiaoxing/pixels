@@ -4,19 +4,24 @@ arguments
     opt.savefile (1,1) logical = false
     opt.congru (1,1) logical = true
     opt.nonmem (1,1) logical = false
+    opt.loadfile (1,1) logical = false
 end
-out=struct();
-if opt.congru
-    out.congru=onetype('congru',opt.shufrpt);
+if opt.loadfile
+    load('ring_meta.mat','ring_meta');
+    out=ring_meta;
+else
+    out=struct();
+    if opt.congru
+        out.congru=onetype('congru',opt.shufrpt);
+    end
+    if opt.nonmem
+        out.nonmem=onetype('nonmem',opt.shufrpt);
+    end
+    if opt.savefile
+        ring_meta=out;
+        save('ring_meta.mat','ring_meta')
+    end
 end
-if opt.nonmem
-    out.nonmem=onetype('nonmem',opt.shufrpt);
-end
-if opt.savefile
-    ring_meta=out;
-    save('ring_meta.mat','ring_meta')
-end
-
 
 end
 %%other stats
