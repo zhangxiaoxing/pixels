@@ -21,7 +21,7 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
             dpath=regexp(opt.onepath,'(?<=SPKINFO[\\/]).*$','match','once');
             fpath=fullfile(homedir,dpath,'FR_All_ 250.hdf5');
         end
-        pc_stem=replace(dpath,'/',filesep());
+        pc_stem=replace(dpath,'/','\');
         sesssel=startsWith(meta_str.allpath,pc_stem);
         if ~any(sesssel), continue;end
         fr=h5read(fpath,'/FR_All');

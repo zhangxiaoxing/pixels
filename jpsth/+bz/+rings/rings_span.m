@@ -22,7 +22,11 @@ end
 
 rsidx=opt.ring_size-2;
 [~,~,ratiomap]=ref.get_pv_sst();
-idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+if ispc
+    idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+elseif isunix
+    idmap=load(fullfile('~','pixels','align','reg_ccfid_map.mat'));
+end
 [fcom.collection,fcom.com_meta]=wave.per_region_COM('stats_method','mean');
 ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
 cross=struct();

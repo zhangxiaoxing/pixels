@@ -6,7 +6,11 @@ end
 persistent pvmap_ sstmap_ ratiomap_
 if isempty(pvmap_) || isempty(sstmap_)|| isempty(ratiomap_)
     disp('Rebuild pv-sst ratio map')
-    fn='k:\neupix\track_meta\1-s2.0-S0092867417310693-mmc1.xlsx';
+    if ispc
+        fn='k:\neupix\track_meta\1-s2.0-S0092867417310693-mmc1.xlsx';
+    elseif isunix
+        fn='~/neupix/track_meta/1-s2.0-S0092867417310693-mmc1.xlsx';
+    end
     fopts=detectImportOptions(fn);
     fopts.Sheet='count';
     fopts.DataRange=3;

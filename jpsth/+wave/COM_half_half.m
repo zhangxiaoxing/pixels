@@ -1,9 +1,13 @@
 % Showcase from s18
 if isunix
-    parpool(50);
+    if isempty(gcp('nocreate'))
+        parpool(50);
+    end
     rpts=500;
 else
-    parpool(2)
+    if isempty(gcp('nocreate'))
+        parpool(2)
+    end
     rpts=5;
 end
 to_plot=false;
@@ -40,6 +44,6 @@ parfor rpt=1:rpts
     end
     [rd,pd]=corr(data1all,data2all);
     [rs,ps]=corr(data1all,localshuff(data2all));
-    stats(rpt,:)=[rd,pd];
+    stats(rpt,:)=[rd,rs];
 end
 
