@@ -40,9 +40,14 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed
         %     welltrained dataset
         if opt.rnd_half
-            for ff=["s1a","s2a","s1aheat","s2aheat","s1acurve","s2acurve",...
-                    "s1b","s2b","s1bheat","s2bheat","s1bcurve","s2bcurve"];
+            for ff=["s1a","s2a","s1b","s2b"]
                 com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
+            end
+            if opt.curve
+                for ff=["s1aheat","s2aheat","s1acurve","s2acurve",...
+                        "s1bheat","s2bheat","s1bcurve","s2bcurve"]
+                    com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
+                end
             end
             s1a=randsample(s1sel,floor(numel(s1sel)./2));
             s1b=s1sel(~ismember(s1sel,s1a));
@@ -53,9 +58,15 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
             com_str=per_su_process(sess,suid,msel2,fr,s2a,s1a,com_str,'s2a',opt);
             com_str=per_su_process(sess,suid,msel2,fr,s2b,s1b,com_str,'s2b',opt);
         else
-            for ff=["s1","s2","s1heat","s2heat","s1curve","s2curve"]
+            for ff=["s1","s2"]
                 com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
             end
+            if opt.curve
+                for ff=["s1heat","s2heat","s1curve","s2curve"]
+                    com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
+                end
+            end
+            
             com_str=per_su_process(sess,suid,msel1,fr,s1sel,s2sel,com_str,'s1',opt);
             com_str=per_su_process(sess,suid,msel2,fr,s2sel,s1sel,com_str,'s2',opt);
         end
@@ -75,7 +86,7 @@ else
     stats_window=17:40;
 end
 for su=reshape(msel,1,[])
-%     if strcmp(sess,'s67') && suid(su)==10993,keyboard();end
+    %     if strcmp(sess,'s67') && suid(su)==10993,keyboard();end
     basemm=mean([mean(squeeze(fr(pref_sel,su,stats_window)));mean(squeeze(fr(nonpref_sel,su,stats_window)))]);
     if ~opt.per_sec_stats
         basemm=mean(basemm);
@@ -88,17 +99,19 @@ for su=reshape(msel,1,[])
     mm_pref(mm_pref<0)=0;
     com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
     com_str.(sess).(samp)(suid(su))=com;
-    curve=mm_pref;
-    com_str.(sess).([samp,'curve'])(suid(su))=curve;
+    if opt.curve
+        curve=mm_pref;
+        com_str.(sess).([samp,'curve'])(suid(su))=curve;
         
-    heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
-    heatcent(heatcent<0)=0;
-    heatnorm=heatcent./max(heatcent);
-    if size(heatnorm,1)>10
-        cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
-        [~,idx]=sort(cc,'descend');
-        heatnorm=heatnorm(idx(1:10),:);
+        heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
+        heatcent(heatcent<0)=0;
+        heatnorm=heatcent./max(heatcent);
+        if size(heatnorm,1)>10
+            cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
+            [~,idx]=sort(cc,'descend');
+            heatnorm=heatnorm(idx(1:10),:);
+        end
+        com_str.(sess).([samp,'heat'])(suid(su))=heatnorm;
     end
-    com_str.(sess).([samp,'heat'])(suid(su))=heatnorm;    
 end
 end
