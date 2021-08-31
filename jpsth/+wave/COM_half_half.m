@@ -1,4 +1,24 @@
 % Showcase from s18
+if isfile('COM_half_half.mat')
+    load('COM_half_half.mat','stats');
+    %TODO else generate small local dataset for showcase?
+    mm=mean(stats);
+    ci=bootci(500,@(x) mean(x), stats);
+    fh=figure('Color','w','Position',[32,32,210,60]);
+    hold on
+    bar(mm,'FaceColor','w','EdgeColor','k','LineWidth',1);
+    errorbar(1:2,mm,ci(1,:)-mm,ci(2,:)-mm,'k.','CapSize',20)
+    ylabel('Pearson r')
+    set(gca(),'XTick',1:2,'XTickLabel',{'Real','Shuffle'});
+    exportgraphics(fh,'COM_half_half_stats.pdf')
+end
+
+
+function stats=gendata(opt)
+arguments
+    opt.to_plot (1,1) logical = false
+end
+
 if isunix
     if isempty(gcp('nocreate'))
         parpool(50);
@@ -10,11 +30,10 @@ else
     end
     rpts=5;
 end
-to_plot=false;
-localshuff=@(x) randsample(x,numel(x));
 
+localshuff=@(x) randsample(x,numel(x));
 stats=nan(rpts,2);
-[data1hsum,data2hsum]=deal([]);
+% [data1hsum,data2hsum]=deal([]);
 parfor rpt=1:rpts
     disp(rpt)
     [data1all,data2all]=deal([]);
@@ -27,7 +46,7 @@ parfor rpt=1:rpts
         data2h=[cell2mat(com_map.(fs).s1b.values(s1key)).';cell2mat(com_map.(fs).s2b.values(s2key)).'].*0.25;
         data1all=[data1all;data1h];
         data2all=[data2all;data2h];
-        if to_plot
+        if opt.to_plot
             [rd,pd]=corr(data1h,data2h);
             [rs,ps]=corr(data1h,localshuff(data2h));
             fh=figure('Color','w','Position',[32,32,210,210]);
@@ -46,4 +65,4 @@ parfor rpt=1:rpts
     [rs,ps]=corr(data1all,localshuff(data2all));
     stats(rpt,:)=[rd,rs];
 end
-
+end
