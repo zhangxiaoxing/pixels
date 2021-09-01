@@ -4,7 +4,7 @@ arguments
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
-    opt.rnd_half (1,1) logical = false
+    opt.rnd_half (1,1) logical = false % for bootstrap variance test
 end
 persistent com_str onepath_
 if isempty(onepath_), onepath_='';end
@@ -87,7 +87,6 @@ else
     stats_window=17:40;
 end
 for su=reshape(msel,1,[])
-    %     if strcmp(sess,'s67') && suid(su)==10993,keyboard();end
     basemm=mean([mean(squeeze(fr(pref_sel,su,stats_window)));mean(squeeze(fr(nonpref_sel,su,stats_window)))]);
     if ~opt.per_sec_stats
         basemm=mean(basemm);
@@ -103,14 +102,17 @@ for su=reshape(msel,1,[])
     if opt.curve
         curve=mm_pref;
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
-        
         heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
-        heatcent(heatcent<0)=0;
         heatnorm=heatcent./max(heatcent);
-        if size(heatnorm,1)>10
-            cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
-            [~,idx]=sort(cc,'descend');
-            heatnorm=heatnorm(idx(1:10),:);
+        if opt.rnd_half
+            heatnorm=mean(heatnorm);
+        else
+            heatnorm(heatnorm<0)=0;
+            if size(heatnorm,1)>10
+                cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
+                [~,idx]=sort(cc,'descend');
+                heatnorm=heatnorm(idx(1:10),:);
+            end
         end
         com_str.(sess).([samp,'heat'])(suid(su))=heatnorm;
     end

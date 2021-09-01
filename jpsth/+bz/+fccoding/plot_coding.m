@@ -1,14 +1,14 @@
 % {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
 % congru, incongru, nonmem
 function plot_coding
-[~,com_meta]=wave.per_region_COM();
+% [~,com_meta]=wave.per_region_COM();
 [~,~,ratiomap]=ref.get_pv_sst();
 idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
 [metas,stats]=bz.fccoding.get_fc_coding();
-commap=containers.Map('KeyType','int32','ValueType','any');
-for ci=1:numel(com_meta,1)
-    commap(bitshift(com_meta{ci,1},16)+com_meta{ci,2})=com_meta{ci,3};
-end
+% commap=containers.Map('KeyType','int32','ValueType','any');
+% for ci=1:numel(com_meta,1)
+%     commap(bitshift(com_meta{ci,1},16)+com_meta{ci,2})=com_meta{ci,3};
+% end
 
 % ccfids=unique(metas(:,6:7));
 % for ri=1:numel(ccfids)

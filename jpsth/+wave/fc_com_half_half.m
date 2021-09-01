@@ -31,6 +31,30 @@ parfor sess=1:116
     sums(sess,:)={fc_fwd,fc_rev,non_fc};
 end
 
+function plot()
+load('fc_com_half_half.mat','sums');
+fc_fwd=cell2mat(sums(:,1));
+fc_rev=cell2mat(sums(:,2));
+non_fc=cell2mat(sums(:,3));
+fc_fwd(:,7)=(fc_fwd(:,6).*0.25).^2;
+fc_rev(:,7)=(fc_rev(:,6).*0.25).^2;
+non_fc(:,7)=(non_fc(:,6).*0.25).^2;
+mm=[mean(fc_fwd(:,7)),mean(fc_rev(:,7)),mean(non_fc(:,7))];
+ci_fwd=bootci(500,@(x) mean(x),fc_fwd(:,7));
+ci_rev=bootci(500,@(x) mean(x),fc_rev(:,7));
+boots=bootstrp(500,@(x) mean(x),non_fc(:,7));
+ci_non=[prctile(boots,2.5);prctile(boots,97.5)];
+fh=figure('Color','w','Position',[32,32,190,190]);
+hold on
+bar(mm,'FaceColor','none','EdgeColor','k','LineWidth',1);
+errorbar(1:3,mm,[ci_fwd(1),ci_rev(1),ci_non(1)]-mm,[ci_fwd(2),ci_rev(2),ci_non(2)]-mm,'k.','CapSize',15)
+ylabel('Relative C.O.M. variance(sec2)')
+set(gca(),'XTick',1:3,'XTickLabel',{'Prog. F.C.','Regres. F.C.','No coupling'},'XTickLabelRotation',30);
+xlim([0.4,3.6]);
+exportgraphics(fh,'FC_com_half_half.pdf');
+end
+
+
 function [stats,key_map]=shuffle_one(sid,rpts,field_a,field_b)
 getkey=@(x) bitshift(x(1),14)+x(2);
 stats=cell(0);
@@ -50,8 +74,8 @@ for rpt=1:2:2*rpts
             stats{statsIdx}=nan(1,100);
             statsIdx=statsIdx+1;
         end
-        stats{key_map(getkey(one_comb(ci,:)))}(rpt)=com_map.(fs).(field_a)(one_comb(ci,1))-com_map.(fs).(field_a)(one_comb(ci,2));
-        stats{key_map(getkey(one_comb(ci,:)))}(rpt+1)=com_map.(fs).(field_b)(one_comb(ci,1))-com_map.(fs).(field_b)(one_comb(ci,2));
+        stats{key_map(getkey(one_comb(ci,:)))}(rpt)=com_map.(fs).(field_a)(one_comb(ci,2))-com_map.(fs).(field_a)(one_comb(ci,1));
+        stats{key_map(getkey(one_comb(ci,:)))}(rpt+1)=com_map.(fs).(field_b)(one_comb(ci,2))-com_map.(fs).(field_b)(one_comb(ci,1));
     end
 end
 end
