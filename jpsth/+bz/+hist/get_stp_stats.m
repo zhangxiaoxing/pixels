@@ -1,11 +1,13 @@
 function [stats,memtypes]=get_stp_stats(ftick,prefix,opt)
+% datafile generated with bz.hist.hist_coeff 
+
 arguments
     ftick (1,1) double {mustBeMember(ftick,[300,600,3000,6000])}
     prefix (1,:) char
     opt.suffix (1,:) char = []
     opt.sesstype (1,:) char {mustBeMember(opt.sesstype,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
-    opt.trialtype (1,:) char {mustBeMember(opt.trialtype,{'correct','error','any'})} = 'any'
+    opt.trialtype (1,:) char {mustBeMember(opt.trialtype,{'correct','error','any'})} = 'correct'
     opt.datatype (1,:) char {mustBeMember(opt.datatype,{'postspk_out','fc_out'})}='postspk_out'
 end
 if ~isempty(opt.suffix) && ~startsWith(opt.suffix,'_'), opt.suffix=['_',opt.suffix];end

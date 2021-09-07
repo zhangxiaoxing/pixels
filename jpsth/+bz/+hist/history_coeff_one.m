@@ -60,8 +60,8 @@ else
     postsel=str2double(FT_SPIKE.label)==suid(2);
     % per trial
     for tt=reshape(target_trials,1,[])
-%         disp(tt)
-%         if tt==28, keyboard;end
+        %         disp(tt)
+        %         if tt==28, keyboard;end
         tspre=FT_SPIKE.timestamp{presel}(FT_SPIKE.trial{presel}==tt);
         tspost=FT_SPIKE.timestamp{postsel}(FT_SPIKE.trial{postsel}==tt);
         tonset=trials(tt,1)-30000*3;
@@ -77,7 +77,7 @@ else
             end
             post_spike_prob(hist_type+1,2)=post_spike_prob(hist_type+1,2)+histpost(i+10); % fast-forward detect post spike
             post_spike_prob(hist_type+1,1)=post_spike_prob(hist_type+1,1)+1;
-
+            
             %% fc effi
             % TODO post sel
             tpresel=tspre> tedges(i+10) & tspre<=tedges(i+11);
@@ -88,7 +88,7 @@ else
                 fchit=0;fcmiss=numel(tpresel);
             end
             homo_plastic(hist_type+1,1)=homo_plastic(hist_type+1,1)+fchit+fcmiss;
-            homo_plastic(hist_type+1,2)=homo_plastic(hist_type+1,2)+fchit;            
+            homo_plastic(hist_type+1,2)=homo_plastic(hist_type+1,2)+fchit;
         end
         %% end of fc effi
         
@@ -107,7 +107,7 @@ if nnz(spksel)>20
         postspk_.skip=checkWarning();
         postspk_.pp=spk_mdl.coefTest();
         postspk_.rsq=spk_mdl.Rsquared.Ordinary;
-%         if postspk_.rsq<0,keyboard();end
+        %         if postspk_.rsq<0,keyboard();end
     catch ME
         postspk_.coeff=zeros(1,11);
         postspk_.skip=true;
@@ -121,28 +121,30 @@ else
     postspk_.rsq=0;
 end
 %% fc effi
-fcsel=homo_plastic(:,1)>0;
-if nnz(fcsel)>20
-    try
-        glmopt=statset('fitglm');
-        glmopt.MaxIter=1000;
-        fc_eff_mdl=fitglm(X(fcsel,:),homo_plastic(fcsel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
-        fc_.coeff=fc_eff_mdl.Coefficients.Estimate;
-        fc_.skip=checkWarning();
-        fc_.pp=fc_eff_mdl.coefTest();
-        fc_.rsq=fc_eff_mdl.Rsquared.Ordinary;
-    catch ME
+if ~strcmp(opt.correct_error,'any')
+    fcsel=homo_plastic(:,1)>0;
+    if nnz(fcsel)>20
+        try
+            glmopt=statset('fitglm');
+            glmopt.MaxIter=1000;
+            fc_eff_mdl=fitglm(X(fcsel,:),homo_plastic(fcsel,[2,1]),'Distribution','binomial','Link','identity','Options',glmopt);
+            fc_.coeff=fc_eff_mdl.Coefficients.Estimate;
+            fc_.skip=checkWarning();
+            fc_.pp=fc_eff_mdl.coefTest();
+            fc_.rsq=fc_eff_mdl.Rsquared.Ordinary;
+        catch ME
+            fc_.coeff=zeros(1,11);
+            fc_.skip=true;
+            fc_.pp=-1;
+            fc_.rsq=0;
+            %         if fc_.rsq<0,keyboard();end
+        end
+    else
         fc_.coeff=zeros(1,11);
         fc_.skip=true;
-        fc_.pp=-1;
+        fc_.pp=1;
         fc_.rsq=0;
-%         if fc_.rsq<0,keyboard();end
     end
-else
-    fc_.coeff=zeros(1,11);
-    fc_.skip=true;
-    fc_.pp=1;
-    fc_.rsq=0;
 end
 %% fc effi end
 

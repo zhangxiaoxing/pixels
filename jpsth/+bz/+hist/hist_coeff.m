@@ -1,8 +1,8 @@
 function hist_coeff(sess,opt)
-% fit history effect/short term plasticity/time constant between pairs of
-% neuron with a general linear model
+% Estimate short term facilitation between pairs of
+% neurons with a general linear model
 %
-% use \jpsth\+bz\+hist\plot_file_data.m for visualization
+% use get_stp_stats.m and plot_stp_curve_correct_error.m for visualization
 
 arguments
     sess (1,1) double {mustBeInteger,mustBePositive,mustBeNonempty}
@@ -24,7 +24,7 @@ end
 idces=find(typesel);
 sess_suids=nan(dim,2);
 postspk_out=struct();
-postspk_out.coeff=nan(dim,11); %incept+coefficients
+postspk_out.coeff=nan(dim,11); %intercept+coefficients
 postspk_out.skip=false(dim,1);
 [postspk_out.pp,postspk_out.rsq]=deal(nan(dim,1));
 fc_out=postspk_out;
