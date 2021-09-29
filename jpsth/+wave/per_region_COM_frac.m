@@ -1,10 +1,10 @@
 function [fcom,ffrac]=per_region_COM_frac(opt)
 arguments
     opt.frac_COM (1,1) logical = false
-    opt.frac_PVSST (1,1) logical = false
+    opt.frac_PVSST (1,1) logical = true
     opt.COM_PVSST (1,1) logical = false
     opt.sust_type (1,:) char {mustBeMember(opt.sust_type,{'any','sust','trans'})} = 'any'
-    opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CH'
+    opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CTX'
     opt.corr (1,:) char {mustBeMember(opt.corr,{'Pearson','Spearman'})} = 'Pearson'
     opt.export (1,1) logical = false
 end
@@ -45,6 +45,10 @@ if opt.frac_COM
             text(xx,yy,fcom.collection{comidx,2},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',7,'Color',ephys.getRegColor(ureg{ri}));
         end
     end
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    plot(coord(:,1),coord(:,1).*regres(1)+regres(2),'--k');
+    keyboard()
     if strcmp(opt.sust_type,'sust')
         ylim([0,4]);
         set(gca(),'YTick',0:2:4);
@@ -123,6 +127,10 @@ if opt.frac_PVSST
             text(xx,yy,ffrac.collection{fridx,2},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',7,'Color',ephys.getRegColor(ureg{ri}));
         end
     end
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    plot(coord(:,1),coord(:,1).*regres(1)+regres(2),'--k');
+    keyboard()
     ylim([0,1])
     if strcmp(opt.sust_type,'sust')
         xlim([0,4]);

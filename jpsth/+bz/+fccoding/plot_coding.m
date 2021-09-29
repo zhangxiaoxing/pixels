@@ -1,28 +1,21 @@
-% {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
-% congru, incongru, nonmem
-function plot_coding
-% [~,com_meta]=wave.per_region_COM();
+
+function plot_coding(opt)
+arguments
+    opt.plot_trial_frac (1,1) logical = true
+    opt.plot_fwd_rev (1,1) logical = false
+    opt.plot_coding_idx (1,1) logical = false
+end
+
 [~,~,ratiomap]=ref.get_pv_sst();
 idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-[metas,stats]=bz.fccoding.get_fc_coding();
-% commap=containers.Map('KeyType','int32','ValueType','any');
-% for ci=1:numel(com_meta,1)
-%     commap(bitshift(com_meta{ci,1},16)+com_meta{ci,2})=com_meta{ci,3};
-% end
+[metas,stats,fwd_rev]=bz.fccoding.get_fc_coding();
 
-% ccfids=unique(metas(:,6:7));
-% for ri=1:numel(ccfids)
-%     if ~ratiomap.isKey(idmap.ccfid2reg(ccfids(ri)))
-%         disp(ccfids(ri))
-%     end
-% end
+% {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
+% congru, incongru, nonmem
 
-% pctmm=mean([stats(congrus1,5);stats(congrus2,6)]);
-% pctci=bootci(1000,@(x) mean(x), [stats(congrus1,5);stats(congrus2,6)]);
-plot_appear=false;
-if plot_appear
-    congrus1=metas(:,4)==2 & metas(:,5)==2 & all(~ismissing(stats),2);
-    congrus2=metas(:,4)==4 & metas(:,5)==4 & all(~ismissing(stats),2);
+if opt.plot_trial_frac
+    congrus1=ismember(metas(:,4),1:2) & ismember(metas(:,5),1:2) & all(~ismissing(stats),2);
+    congrus2=ismember(metas(:,4),3:4) & ismember(metas(:,5),3:4) & all(~ismissing(stats),2);
     fh=figure('Color','w','Position',[100,100,100,235]);
     hold on
     swarmchart(ones(nnz(congrus1+congrus2),1),[stats(congrus1,5);stats(congrus2,6)],4,[0.8,0.8,0.8],'o','MarkerFaceAlpha',0.2,'MarkerFaceColor',[0.8,0.8,0.8],'MarkerEdgeColor','none')
@@ -32,28 +25,46 @@ if plot_appear
     ylabel('Appeared trials (%)')
     exportgraphics(fh,'FC_appearance.pdf')
 end
-out_same=plot_one('same',metas,stats,idmap,ratiomap,false);
-out_h2l=plot_one('h2l',metas,stats,idmap,ratiomap,false);
-out_l2h=plot_one('l2h',metas,stats,idmap,ratiomap,false);
 
-figure('Color','w','Position',[100,100,235,235]);
-hold on;
-for pi=0:3:6
-    if pi==0,mm=out_same.mm;cic=out_same.cic;cie=out_same.cie;...
-    elseif pi==3,mm=out_l2h.mm;cic=out_l2h.cic;cie=out_l2h.cie;...
-    else,mm=out_h2l.mm;cic=out_h2l.cic;cie=out_h2l.cie;
-    end
-    ch=bar(pi+1,mm(1),'FaceColor','w','EdgeColor','k');
-    eh=bar(pi+2,mm(2),'FaceColor','k','EdgeColor','k');
-    errorbar(pi+(1:2),mm,[cic(1),cie(1)]-mm,[cic(2),cie(2)]-mm,'k.');
+if opt.plot_fwd_rev
+    congrus1=ismember(metas(:,4),1:2) & ismember(metas(:,5),1:2) & all(~ismissing(stats),2);
+    congrus2=ismember(metas(:,4),3:4) & ismember(metas(:,5),3:4) & all(~ismissing(stats),2);
+    fridx1=[fwd_rev(congrus1,1)];
+    fridx2=[fwd_rev(congrus2,2)];
+    fh=figure('Color','w','Position',[100,100,100,235]);
+    hold on
+    swarmchart(ones(nnz(congrus1+congrus2),1),[stats(congrus1,5);stats(congrus2,6)],4,[0.8,0.8,0.8],'o','MarkerFaceAlpha',0.2,'MarkerFaceColor',[0.8,0.8,0.8],'MarkerEdgeColor','none')
+    boxplot([stats(congrus1,5);stats(congrus2,6)],'Colors','k','Symbol','','Widths',0.8)
+    set(gca(),'XTick',[],'YTick',0:0.2:1,'YTickLabel',0:20:100)
+    xlabel('Real-shuffle')
+    ylabel('Appeared trials (%)')
+    exportgraphics(fh,'FC_appearance.pdf')
 end
-ylabel('F.C. selectivity  index')
-text(max(xlim()),max(ylim()),sprintf('p=%.3f',ranksum([dists1;dists2],[dists1e;dists2e])),'HorizontalAlignment','right','VerticalAlignment','top');
-ylim([-0.1,0.7]);
-set(gca,'XTick',1.5:3:7.5,'XTickLabel',{'Within reg.','Low.->high.','High.->Low.'},'XTickLabelRotation',45)
-legend([ch,eh],{'Correct trials','Error trials'});
-keyboard()
 
+
+if opt.plot_coding_idx
+    out_same=plot_one('same',metas,stats,idmap,ratiomap,false);
+    out_h2l=plot_one('h2l',metas,stats,idmap,ratiomap,false);
+    out_l2h=plot_one('l2h',metas,stats,idmap,ratiomap,false);
+    
+    figure('Color','w','Position',[100,100,235,235]);
+    hold on;
+    for pi=0:3:6
+        if pi==0,mm=out_same.mm;cic=out_same.cic;cie=out_same.cie;...
+        elseif pi==3,mm=out_l2h.mm;cic=out_l2h.cic;cie=out_l2h.cie;...
+        else,mm=out_h2l.mm;cic=out_h2l.cic;cie=out_h2l.cie;
+        end
+        ch=bar(pi+1,mm(1),'FaceColor','w','EdgeColor','k');
+        eh=bar(pi+2,mm(2),'FaceColor','k','EdgeColor','k');
+        errorbar(pi+(1:2),mm,[cic(1),cie(1)]-mm,[cic(2),cie(2)]-mm,'k.');
+    end
+    ylabel('F.C. selectivity  index')
+    text(max(xlim()),max(ylim()),sprintf('p=%.3f',ranksum([dists1;dists2],[dists1e;dists2e])),'HorizontalAlignment','right','VerticalAlignment','top');
+    ylim([-0.1,0.7]);
+    set(gca,'XTick',1.5:3:7.5,'XTickLabel',{'Within reg.','Low.->high.','High.->Low.'},'XTickLabelRotation',45)
+    legend([ch,eh],{'Correct trials','Error trials'});
+    keyboard()
+end
 end
 function out=plot_one(type,metas,stats,idmap,ratiomap,plot_)
 

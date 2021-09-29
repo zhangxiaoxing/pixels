@@ -2,28 +2,33 @@
 keyboard()
 %% count number
 ring_meta=bz.rings.get_ring_meta('loadfile',true);
-if false
-[ratio3,z3]=get_ratio(ring_meta.congru.cross_3,ring_meta.congru.within_3_shuf);
-[ratio4,z4]=get_ratio(ring_meta.congru.cross_4,ring_meta.congru.within_4_shuf);
-[ratio5,z5]=get_ratio(ring_meta.congru.cross_5,ring_meta.congru.within_5_shuf);
-fn='Relative_loops_number_congru.pdf';
-else
-[ratio3,z3]=get_ratio(ring_meta.nonmem.cross_3,ring_meta.nonmem.within_3_shuf);
-[ratio4,z4]=get_ratio(ring_meta.nonmem.cross_4,ring_meta.nonmem.within_4_shuf);
-[ratio5,z5]=get_ratio(ring_meta.nonmem.cross_5,ring_meta.nonmem.within_5_shuf);
-fn='Relative_loops_number_nonmem.pdf';
-end
+
+[ratio3c,z3c]=get_ratio(ring_meta.congru.cross_3,ring_meta.congru.within_3_shuf);
+[ratio4c,z4c]=get_ratio(ring_meta.congru.cross_4,ring_meta.congru.within_4_shuf);
+[ratio5c,z5c]=get_ratio(ring_meta.congru.cross_5,ring_meta.congru.within_5_shuf);
+% fn='Relative_loops_number_congru.pdf';
+[ratio3n,z3n]=get_ratio(ring_meta.nonmem.cross_3,ring_meta.nonmem.within_3_shuf);
+[ratio4n,z4n]=get_ratio(ring_meta.nonmem.cross_4,ring_meta.nonmem.within_4_shuf);
+[ratio5n,z5n]=get_ratio(ring_meta.nonmem.cross_5,ring_meta.nonmem.within_5_shuf);
+% fn='Relative_loops_number_nonmem.pdf';
+fn='Relative_loops_number.pdf';
 
 
-rdata=[ratio3;ratio4;ratio5];
+rdata=[ratio3c,ratio3n;ratio4c,ratio4n;ratio5c,ratio5n];
 fh=figure('Color','w','Position',[32,32,155,235]);
 hold on
-bar(rdata(:,1),'FaceColor','w','EdgeColor','k')
-errorbar(1:3,rdata(:,1),diff(rdata(:,1:2),1,2),diff(rdata(:,1:2:3),1,2),'k.')
+bh=bar(rdata(:,[1,4]));
+[bh(1).FaceColor,bh(2).FaceColor]=deal('w','k');
+
+errorbar([bh(1).XEndPoints,bh(2).XEndPoints],...
+    [rdata(:,1);rdata(:,4)],...
+    [diff(rdata(:,1:2),1,2);diff(rdata(:,4:5),1,2)],...
+    [diff(rdata(:,1:2:3),1,2);diff(rdata(:,4:2:6),1,2)],'k.');
 set(gca(),'XTick',1:3,'XTickLabel',{'3-Neuron','4-Neuron','5-Neuron'},'XTickLabelRotation',90)
 ylabel('Relative number of loops')
 xlim([0.5,3.5])
 ylim([0,50])
+legend([bh(1),bh(2)],{'Same-memory','Non-memory'},'Location','northoutside');
 exportgraphics(fh,fn)
 
 

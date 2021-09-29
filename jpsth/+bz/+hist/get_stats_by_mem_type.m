@@ -6,10 +6,13 @@ arguments
     opt.congru (1,1) logical = true
     opt.nonmem (1,1) logical = true
     opt.incong (1,1) logical = true
+    opt.pvsst (1,1) logical = false
 end
-persistent ratiomap
-if isempty(ratiomap)
+persistent ratiomap OBM1map
+if isempty(ratiomap) || isempty(OBM1map)
     [~,~,ratiomap]=ref.get_pv_sst();
+    fstr=load('OBM1map.mat','OBM1map');
+    OBM1map=fstr.OBM1map;
 end
 trialtype=char(fieldnames(stats));
 switch reg
@@ -21,9 +24,13 @@ switch reg
         %hierachy
         regsel=false(size(stats.(trialtype).sess));
         for i=1:numel(regsel)
-            if all(cellfun(@(x) ratiomap.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+            if opt.pvsst && all(cellfun(@(x) ratiomap.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
                     && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)...
                     && ratiomap(stats.(trialtype).reg{i,1}{level})<ratiomap(stats.(trialtype).reg{i,2}{level})
+                regsel(i)=true;
+            elseif ~opt.pvsst && all(cellfun(@(x) OBM1map.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+                    && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)...
+                    && OBM1map(stats.(trialtype).reg{i,1}{level})<OBM1map(stats.(trialtype).reg{i,2}{level})
                 regsel(i)=true;
             end
         end
@@ -31,10 +38,15 @@ switch reg
         %hierachy
         regsel=false(size(stats.(trialtype).sess));
         for i=1:numel(regsel)
-            if all(cellfun(@(x) ratiomap.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+            if opt.pvsst && all(cellfun(@(x) ratiomap.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
                     && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)...
                     && ratiomap(stats.(trialtype).reg{i,1}{level})>ratiomap(stats.(trialtype).reg{i,2}{level})
                 regsel(i)=true;
+            elseif  ~opt.pvsst && all(cellfun(@(x) OBM1map.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+                    && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)...
+                    && OBM1map(stats.(trialtype).reg{i,1}{level})>OBM1map(stats.(trialtype).reg{i,2}{level})
+                regsel(i)=true;
+            
             end
         end
 end

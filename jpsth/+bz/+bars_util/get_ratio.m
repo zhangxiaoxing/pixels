@@ -10,14 +10,20 @@ out=struct();
 
 nm_p=nnz(all(pair_type==0,2));
 if nm_p>0
-    [phat,pci]=binofit(nnz(all(sig_type==0,2)),nm_p);
-    out.nm_nm=[phat,pci];
+    sig=nnz(all(sig_type==0,2));
+    [phat,pci]=binofit(sig,nm_p);
+    out.nm_nm=[phat,pci,sig,nm_p];
+else
+    out.nm_nm=[0,0,0,0];
 end
 
 congr_p=nnz(all(ismember(pair_type,1:2),2) | all(ismember(pair_type,3:4),2));
 if congr_p>0
-    [phat,pci]=binofit(nnz(all(ismember(sig_type,1:2),2) | all(ismember(sig_type,3:4),2)),congr_p);
-    out.congr=[phat,pci];
+    sig=nnz(all(ismember(sig_type,1:2),2) | all(ismember(sig_type,3:4),2));
+    [phat,pci]=binofit(sig,congr_p);
+    out.congr=[phat,pci,sig,congr_p];
+else
+    out.congr=[0,0,0,0];
 end
 
 incon_p=nnz(...
@@ -25,10 +31,13 @@ incon_p=nnz(...
     |(ismember(pair_type(:,1),3:4) & ismember(pair_type(:,2),1:2)));
 
 if incon_p>0
-    [phat,pci]=binofit(nnz(...
+    sig=nnz(...
         (ismember(sig_type(:,1),1:2) & ismember(sig_type(:,2),3:4))...
-        |(ismember(sig_type(:,1),3:4) & ismember(sig_type(:,2),1:2))),incon_p);
-    out.incon=[phat,pci];
+        |(ismember(sig_type(:,1),3:4) & ismember(sig_type(:,2),1:2)));
+    [phat,pci]=binofit(sig,incon_p);
+    out.incon=[phat,pci,sig,incon_p];
+else
+    out.incon=[0,0,0,0];
 end
 
 if opt.nm_mem

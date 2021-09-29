@@ -1,3 +1,4 @@
+%TODO Error trial
 function com_str_=get_com_map(opt)
 arguments
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
@@ -37,16 +38,21 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         sessid=ephys.path2sessid(pc_stem);
         s1sel=find(trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0);
         s2sel=find(trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0);
+        
+        e1sel=find(trial(:,5)==4 & trial(:,8)==6 & trial(:,10)==0);
+        e2sel=find(trial(:,5)==8 & trial(:,8)==6 & trial(:,10)==0);
+        
         sess=['s',num2str(sessid)];
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed
         %     welltrained dataset
         if opt.rnd_half
-            for ff=["s1a","s2a","s1b","s2b"]
+            for ff=["s1a","s2a","s1b","s2b","s1e","s2e"]
                 com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
             end
             if opt.curve
                 for ff=["s1aheat","s2aheat","s1acurve","s2acurve",...
-                        "s1bheat","s2bheat","s1bcurve","s2bcurve"]
+                        "s1bheat","s2bheat","s1bcurve","s2bcurve",...
+                        "e1heat","e2heat","e1curve","e2curve"]
                     com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
                 end
             end
@@ -54,10 +60,14 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
             s1b=s1sel(~ismember(s1sel,s1a));
             s2a=randsample(s2sel,floor(numel(s2sel)./2));
             s2b=s2sel(~ismember(s2sel,s2a));
-            com_str=per_su_process(sess,suid,msel1,fr,s1a,s2a,com_str,'s1a',opt);
-            com_str=per_su_process(sess,suid,msel1,fr,s1b,s2b,com_str,'s1b',opt);
-            com_str=per_su_process(sess,suid,msel2,fr,s2a,s1a,com_str,'s2a',opt);
-            com_str=per_su_process(sess,suid,msel2,fr,s2b,s1b,com_str,'s2b',opt);
+            if nnz(s1a)>2 && nnz(s1b)>2 && nnz(s2a)>2 && nnz(s2b)>2 && nnz(e1sel)>2 && nnz(e2sel)>2
+                com_str=per_su_process(sess,suid,msel1,fr,s1a,s2a,com_str,'s1a',opt);
+                com_str=per_su_process(sess,suid,msel1,fr,s1b,s2b,com_str,'s1b',opt);
+                com_str=per_su_process(sess,suid,msel2,fr,s2a,s1a,com_str,'s2a',opt);
+                com_str=per_su_process(sess,suid,msel2,fr,s2b,s1b,com_str,'s2b',opt);
+                com_str=per_su_process(sess,suid,msel1,fr,e1sel,e2sel,com_str,'s1e',opt);
+                com_str=per_su_process(sess,suid,msel2,fr,e2sel,e1sel,com_str,'s2e',opt);
+            end
         else
             for ff=["s1","s2"]
                 com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
@@ -87,7 +97,9 @@ else
     stats_window=17:40;
 end
 for su=reshape(msel,1,[])
-    basemm=mean([mean(squeeze(fr(pref_sel,su,stats_window)));mean(squeeze(fr(nonpref_sel,su,stats_window)))]);
+    perfmat=squeeze(fr(pref_sel,su,stats_window));
+    npmat=squeeze(fr(nonpref_sel,su,stats_window));
+    basemm=mean([mean(perfmat,1);mean(npmat,1)]);
     if ~opt.per_sec_stats
         basemm=mean(basemm);
     end

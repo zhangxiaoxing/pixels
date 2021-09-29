@@ -2,11 +2,16 @@ function [comdiff_stats,com_pair]=fc_com_pvsst(opt)
 arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
+    opt.pvsst (1,1) logical = false % use MOB-MOp axis index since 20210928
 end
 
 [~,com_meta]=wave.per_region_COM('decision',opt.decision);
 com_map=list2map(com_meta);
-[~,~,ratiomap]=ref.get_pv_sst();
+if opt.pvsst
+    [~,~,ratiomap]=ref.get_pv_sst();
+else
+    load('OBM1map.mat','OBM1map');
+end
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
 [~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
 
@@ -24,8 +29,13 @@ for ii=1:numel(sig.sess) %iterate through all pairs
         com_meta_one{2}=com_map.(['s',num2str(sess)])(suid(2));
         [com1,com2]=deal(com_meta_one{1}{1},com_meta_one{2}{1});
         [reg1,reg2]=deal(com_meta_one{1}{6},com_meta_one{2}{6});
-        if ~ratiomap.isKey(reg1)||~ratiomap.isKey(reg2), continue;end
-        [ratio1,ratio2]=deal(ratiomap(reg1),ratiomap(reg2));
+        if opt.pvsst
+            if (~ratiomap.isKey(reg1)||~ratiomap.isKey(reg2)), continue;end
+            [ratio1,ratio2]=deal(ratiomap(reg1),ratiomap(reg2));
+        else
+            if (~OBM1map.isKey(reg1)||~OBM1map.isKey(reg2)), continue;end
+            [ratio1,ratio2]=deal(OBM1map(reg1),OBM1map(reg2));
+        end
         fc_com_pvsst_stats=[fc_com_pvsst_stats;{is_same(ii,opt.level),l2h(ii,opt.level),h2l(ii,opt.level),sess,suid(1),suid(2),com1,com2,reg1,reg2,ratio1,ratio2}];
     end
 end
@@ -64,6 +74,10 @@ errorbar(bh(2).XEndPoints,...
 legend({'Progressive','Regressive'},'Location','northoutside');
 ylabel('Proportion of all F.C. (%)');
 set(gca(),'XTick',1:3,'XTickLabel',{'Within reg.','Low to high','High to Low'},'XTickLabelRotation',30);
+
+disp([nnz(diff(comsame,1,2)>0),size(comsame)])
+disp([nnz(diff(coml2h,1,2)>0),size(coml2h)])
+disp([nnz(diff(comh2l,1,2)>0),size(comh2l)])
 keyboard()
 exportgraphics(fh,'fc_prog_regres_bars_hier.pdf')
 end

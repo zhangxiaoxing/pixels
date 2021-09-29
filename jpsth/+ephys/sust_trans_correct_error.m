@@ -5,6 +5,7 @@ arguments
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
+    opt.ctx_only (1,1) logical = false
 end
 set(groot,'defaultTextFontSize',10);
 meta=ephys.util.load_meta();
@@ -22,7 +23,11 @@ else
     types=[2,4];
 end
 for onetype=types
-    typesel=find(meta.mem_type==onetype);
+    if opt.ctx_only
+        typesel=find(meta.mem_type==onetype & strcmp(meta.reg_tree(2,:),'CTX') & ~strcmp(meta.reg_tree(5,:),''));
+    else
+        typesel=find(meta.mem_type==onetype);
+    end
     if strcmp(type,'Transient')
         if opt.lastbin
             subsel=meta.per_bin(6,typesel)~=0;
@@ -103,6 +108,7 @@ xlim([-1.5,1.5]);
 title('Correct trials')
 xlabel('Normalized FR (Z-Score)');
 ylabel('Probability')
+text(max(xlim()),max(ylim()),num2str(numel(ph.Data)),'HorizontalAlignment','right','VerticalAlignment','top');
 
 %error trial
 subplot(1,3,2);

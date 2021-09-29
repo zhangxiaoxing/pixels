@@ -10,6 +10,7 @@ arguments
     opt.rootdir (1,:) char = 'K:\neupix\SPKINFO'
     opt.overwrite (1,1) logical = false
 end
+return
 %% external lib dependency
 ephys.util.dependency
 

@@ -24,28 +24,44 @@ for level=opt.levels
     bz.hist.plot_one_stp_curve(cr,er,'Within regions',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
     %L2H
-    cr=bz.hist.get_stats_by_mem_type(correct_stats,'Low2High',level);
-    stats.l2h=cr;
+    crl2h=bz.hist.get_stats_by_mem_type(correct_stats,'Low2High',level);
+    stats.l2h=crl2h;
     if opt.plot_dual
         er=bz.hist.get_stats_by_mem_type(error_stats,'Low2High',level);
     else
         er=struct();
     end
     subplot(numel(opt.levels),3,fidx);fidx=fidx+1;
-    bz.hist.plot_one_stp_curve(cr,er,'Lower to higer',...
+    bz.hist.plot_one_stp_curve(crl2h,er,'Low to high',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
     %H2L
-    cr=bz.hist.get_stats_by_mem_type(correct_stats,'High2Low',level);
-    stats.h2l=cr;
+    crh2l=bz.hist.get_stats_by_mem_type(correct_stats,'High2Low',level);
+    stats.h2l=crh2l;
     if opt.plot_dual
         er=bz.hist.get_stats_by_mem_type(error_stats,'High2Low',level);
     else
         er=struct();
     end
     subplot(numel(opt.levels),3,fidx);fidx=fidx+1;
-    bz.hist.plot_one_stp_curve(cr,er,'Higher to lower',...
+    bz.hist.plot_one_stp_curve(crh2l,er,'High to low',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
 end
+y=[reshape(crl2h.congru(:,2:end).',[],1);reshape(crh2l.congru(:,2:end).',[],1)];
+dirg=[ones(size(crl2h.congru,1).*10,1);2*ones(size(crh2l.congru,1).*10,1)];
+bing=repmat((1:10).',size(crl2h.congru,1)+size(crh2l.congru,1),1);
+anovan(y,{dirg,bing},'model','interaction')
+
+pperbin=nan(1,10);
+for pi=2:11
+    pperbin(pi-1)=ranksum(crh2l.congru(:,pi),crl2h.congru(:,pi));
+end
+
+% y=[reshape(cr.congru(:,2:end).',[],1);reshape(crl2h.congru(:,2:end).',[],1);reshape(crh2l.congru(:,2:end).',[],1)];
+% dirg=[zeros(size(cr.congru,1).*10,1);ones(size(crl2h.congru,1).*10,1);2*ones(size(crh2l.congru,1).*10,1)];
+% bing=repmat((1:10).',size(cr.congru,1)+size(crl2h.congru,1)+size(crh2l.congru,1),1);
+% anovan(y,{dirg,bing})
+
+
 keyboard()
 exportgraphics(fh,'STF_hier.pdf');
 end

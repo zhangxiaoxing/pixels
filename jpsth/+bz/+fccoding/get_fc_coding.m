@@ -1,15 +1,16 @@
-function [metas,stats]=get_fc_coding(opt)
+function [metas,stats,fwd_rev]=get_fc_coding(opt)
 arguments
     opt.keep_trial (1,1) logical = false
 end
-persistent metas_ stats_
-if isempty(metas_) || isempty(stats_)
+persistent metas_ stats_ fwd_rev_
+if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_)
     sig=bz.load_sig_pair();
     sess=unique(sig.sess);
     fl=dir('fcdata\fc_coding_*.mat');
-    
+    % {suids(fci,:),fwd_fc,fwd_fc-mean(fwd_shift,2),fwd_shift,rev_fc,rev_fc-mean(rev_shift,2),rev_shift}
     metas=[];
     stats=[];
+    fwd_rev=[];
     for fi=1:numel(fl)
         %     disp(fi);
         fstr=load(fullfile(fl(fi).folder,fl(fi).name));
@@ -25,24 +26,30 @@ if isempty(metas_) || isempty(stats_)
         e1sel=fstr.onesess.trials(:,5)==4 & fstr.onesess.trials(:,8)==6 & fstr.onesess.trials(:,10)==0;
         e2sel=fstr.onesess.trials(:,5)==8 & fstr.onesess.trials(:,8)==6 & fstr.onesess.trials(:,10)==0;
         
-        for ci=1:size(fstr.onesess.fc,1) %fc idx
-            suid1=fstr.onesess.fc{ci,1}(1);
-            suid2=fstr.onesess.fc{ci,1}(2);
+        for fci=1:size(fstr.onesess.fc,1) %fc idx
+            suid1=fstr.onesess.fc{fci,1}(1);
+            suid2=fstr.onesess.fc{fci,1}(2);
             fcsel=ids(:,1)==suid1 & ids(:,2)==suid2;
             mem=mems(fcsel,:);
             root=roots(fcsel,:);
             reg=regs(fcsel,:);
             if any(isempty(reg)) || any(reg==0,'all') || ~all(root==567,'all'), continue;end
-            pertrl=fstr.onesess.fc{ci,2}>mean(fstr.onesess.fc{ci,4},2);
+            pertrl=fstr.onesess.fc{fci,3}>0;
             metas=[metas;sess,suid1,suid2,mem,reg];
-            stats=[stats;mean(fstr.onesess.fc{ci,3}(s1sel)),mean(fstr.onesess.fc{ci,3}(s2sel)),...
-                mean(fstr.onesess.fc{ci,3}(e1sel)),mean(fstr.onesess.fc{ci,3}(e2sel)),nnz(pertrl(s1sel))/nnz(s1sel),nnz(pertrl(s2sel))/nnz(s2sel)];
+            stats=[stats;mean(fstr.onesess.fc{fci,3}(s1sel)),mean(fstr.onesess.fc{fci,3}(s2sel)),...%1,2
+                mean(fstr.onesess.fc{fci,3}(e1sel)),mean(fstr.onesess.fc{fci,3}(e2sel)),... %3,4
+                nnz(pertrl(s1sel))/nnz(s1sel),nnz(pertrl(s2sel))/nnz(s2sel)];
+            fwd_rev=[fwd_rev;...
+                mean(fstr.onesess.fc{fci,2}(s1sel)>fstr.onesess.fc{fci,5}(s1sel)),...
+                mean(fstr.onesess.fc{fci,2}(s2sel)>fstr.onesess.fc{fci,5}(s2sel))];
         end
         disp(size(metas,1));
     end
     metas_=metas;
     stats_=stats;
+    fwd_rev_=fwd_rev;
 else
     metas=metas_;
     stats=stats_;
+    fwd_rev=fwd_rev_;
 end

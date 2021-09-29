@@ -18,7 +18,6 @@ durs=[];
 % fprintf('000000');
 while curr_pre_ptr<size(in,1)
     if rem(curr_pre_ptr,1000)==0, fprintf('%06d.',curr_pre_ptr);end
-
     cyc_post_pos=rem(in(curr_pre_ptr,2)+1,rsize);
     if cyc_post_pos==0, cyc_post_pos=rsize;end
     %matching time window, assuming 30kHz
@@ -30,10 +29,12 @@ while curr_pre_ptr<size(in,1)
 %         syn_win_ubound=syn_win_ubound+1;
 %     end
     
+    %assume max 200hz neuron FR, 2spikes × 3 su in 10ms
+    nxtstep=min(curr_pre_ptr+10,tsize);
     
-    
-    
+    syn_win_ubound=find(ts_id((curr_pre_ptr+1):nxtstep,1)>ts_id(curr_pre_ptr,1)+300,1); 
     if isempty(syn_win_ubound), break;end %TODO use max available instead
+    syn_win_lbound=find(ts_id((curr_pre_ptr+1):nxtstep,1)>ts_id(curr_pre_ptr,1)+24,1); 
     syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24,1); 
     if isempty(syn_win_lbound), break;end %matching time window, assuming 30kHz
     diff_post_ptr=find(in(curr_pre_ptr+1:end,2)==cyc_post_pos,1); %post unit
