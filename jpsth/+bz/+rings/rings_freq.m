@@ -51,9 +51,11 @@ for ring_id=rids
     ring_stats=bz.rings.relax_tag(ts_id,rsize);
     coact_count=sum(ring_stats.spk_cnt);
     %%   old criteria of 0.1Hz
-    if coact_count>ts_id(end,1)*0.1/30000
-        sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats};
+    if coact_count>(rsize+1)*10
+        sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)};
     end
 end
-save(sprintf('ring_stats_%d_%d_%d_%d.mat',rsize,sessidx,min(rids),max(rids)),'sums');
+if size(sums,1)>0
+    save(sprintf('ring_stats_%d_%d_%d_%d.mat',rsize,sessidx,min(rids),max(rids)),'sums');
+end
 end
