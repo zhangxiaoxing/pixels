@@ -1,16 +1,13 @@
-pt=load('ring_partial','out');
 load(fullfile('bzdata','rings_bz.mat'),'rings');
 cnt=0;
-for fi=1:size(pt.out,1)
-    sid=pt.out{fi,1}(1);
-    rsize=pt.out{fi,1}(2);
-    sessring=1:size(rings{sid,rsize-2},1);
-    if ~isempty(pt.out{fi,2})
-        partring=pt.out{fi,2}(1:end-1);
-        sessring=sessring(~ismember(sessring,partring));
-    end
-    for rid=reshape(sessring,1,[])
-%         system(sprintf('bash ring_stats.sh %d %d %d',sid,rsize,rid))
-        cnt=cnt+1;
+for sid=1:size(rings,1)
+    for rsize=3:5
+        if isempty(rings{sid,rsize-2}), continue;end
+        rmax=size(rings{sid,rsize-2},1);
+        n100=ceil(rmax./100);
+        for hh=0:(n100-1)
+            systemvim (sprintf('bash ring_stats.sh %d %d %d %d',sid,rsize,hh*100+1,min((hh+1)*100,rmax)))
+            cnt=cnt+1;
+        end
     end
 end

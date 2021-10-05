@@ -1,5 +1,6 @@
 if new_data
     stats=gendata();
+    save('COM_half_half.mat','stats');
 end
 
 % Showcase from s18
@@ -10,13 +11,13 @@ if isfile('COM_half_half.mat')
     ci=bootci(500,@(x) mean(x), stats);
     fh=figure('Color','w','Position',[32,32,210,60]);
     hold on
-    bar(mm,'FaceColor','w','EdgeColor','k','LineWidth',1);
-    errorbar(1:2,mm,ci(1,:)-mm,ci(2,:)-mm,'k.','CapSize',20)
+    bar(mm,0.7,'FaceColor','w','EdgeColor','k','LineWidth',1);
+    errorbar(1:3,mm,ci(1,:)-mm,ci(2,:)-mm,'ko','CapSize',20)
     ylabel('Pearson r')
-    set(gca(),'XTick',1:2,'XTickLabel',{'Real','Shuffle'});
+    set(gca(),'XTick',1:3,'XTickLabel',{'Correct','Error','Shuffle'});
+    xlim([0.5,3.5]);
     exportgraphics(fh,'COM_half_half_stats.pdf')
 end
-
 
 function stats=gendata(opt)
 arguments
@@ -36,7 +37,7 @@ else
 end
 
 localshuff=@(x) randsample(x,numel(x));
-stats=nan(rpts,2);
+stats=nan(rpts,3);
 % [data1hsum,data2hsum]=deal([]);
 parfor rpt=1:rpts
     disp(rpt)
@@ -72,6 +73,7 @@ parfor rpt=1:rpts
     end
     [rd,pd]=corr(data1hall,data2hall);
     [rs,ps]=corr(data1hall,localshuff(data2hall));
-    stats(rpt,:)=[rd,rs];
+    [re,pe]=corr(data1hall,dataeall);
+    stats(rpt,:)=[rd,re,rs];
 end
 end

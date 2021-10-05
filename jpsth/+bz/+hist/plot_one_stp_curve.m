@@ -51,7 +51,7 @@ if isfield(ref_data,'incong')
 end
 % if ~isempty(hdl),legend(hdl,lgd);end
 title(title_);
-ylabel('Post spike increase (%)')
+ylabel('Post spike gain (%)')
 ylim([-1,5]);
 xlim([0,2000])
 set(gca,'XTick',500:500:2000)

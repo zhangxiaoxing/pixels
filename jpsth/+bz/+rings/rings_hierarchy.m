@@ -118,3 +118,9 @@ ylabel('Break current loop activity (%)');
 text(1.5,1,sprintf('p=%.3f',ep),'HorizontalAlignment','center','VerticalAlignment','top');
 xlim([0.5,2.5])
 exportgraphics(fh,'loops_starts_ends_hier.pdf')
+
+
+mean([starts.HighRatio./sucount.HighRatio,starts.LowRatio./sucount.LowRatio])
+mean([ends.HighRatio./sucount.HighRatio,ends.LowRatio./sucount.LowRatio])
+ranksum(starts.HighRatio./sucount.HighRatio,starts.LowRatio./sucount.LowRatio)
+ranksum(ends.HighRatio./sucount.HighRatio,ends.LowRatio./sucount.LowRatio)

@@ -3,13 +3,14 @@ keyboard()
 
 non_stats=onestat('nonmem',5); % 4:5,PV-SST; 6:7,COM; 8:9, frac;
 congru_stats=onestat('congru',5);
-[~,~,ratiomap]=ref.get_pv_sst();
+% [~,~,ratiomap]=ref.get_pv_sst();
+load('OBM1Map.mat','OBM1map')
 congru_exp={'Source','Target','Weight','HierDir'};
 non_exp=congru_exp;
 for fi=1:size(congru_stats.meta,1)
     pre=congru_stats.reg{fi,1};
     post=congru_stats.reg{fi,2};
-    if ratiomap(pre)>ratiomap(post)
+    if OBM1map(pre)>OBM1map(post)
         uddir=['D','U'];
     else
         uddir=['U','D'];
@@ -21,11 +22,11 @@ end
 writecell(congru_exp,'Congru_asym_fc.csv')
 ureg=unique(congru_exp(2:end,1:2));
 ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
-[~,~,ratiomap]=ref.get_pv_sst();
+
 node_exp={'Id','Label','XX','YY'};
 for ni=1:numel(ureg)
     node_exp=[node_exp;...
-        ureg(ni),ureg(ni),{ratiomap(ureg{ni})},1-ffrac.collection{strcmp(ffrac.collection(:,2),ureg(ni)),1}];
+        ureg(ni),ureg(ni),{OBM1map(ureg{ni})},30-30.*ffrac.collection{strcmp(ffrac.collection(:,2),ureg(ni)),1}];
 end
 writecell(node_exp,'Congru_asym_node.csv')
 
@@ -93,7 +94,8 @@ end
 
 
 function stats=onestat(type,minconn)
-[~,~,ratiomap]=ref.get_pv_sst();
+% [~,~,ratiomap]=ref.get_pv_sst();
+load('OBM1map.mat','OBM1map');
 [sig,pair]=bz.load_sig_pair('pair',true);
 idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
 fcom=load('per_region_com_collection.mat','collection'); % /4
@@ -130,6 +132,10 @@ for ri=1:size(cross_reg,1)
     if pcnt>100 && (nfwd + nbck)>minconn
         reg1=char(idmap.ccfid2reg(cross_reg(ri,1)));
         reg2=char(idmap.ccfid2reg(cross_reg(ri,2)));
+        if ~OBM1map.isKey(reg1) || ~OBM1map.isKey(reg2)
+            continue
+        end
+        
         if ~any(strcmp(fcom.collection(:,2),reg1)) || ~any(strcmp(fcom.collection(:,2),reg2)) ...
                 || ~any(strcmp(ffrac.collection(:,2),reg1)) || ~any(strcmp(ffrac.collection(:,2),reg2))
             warning('Missing meta data :%s, %s',reg1,reg2);
@@ -142,7 +148,7 @@ for ri=1:size(cross_reg,1)
             %FRAC,COM,PV
             stats.meta=[stats.meta;...
                 nfwd,nbck,sidx,...
-                ratiomap(reg1),ratiomap(reg2),...
+                OBM1map(reg1),OBM1map(reg2),...
                 fcom.collection{strcmp(fcom.collection(:,2),reg1),1},...
                 fcom.collection{strcmp(fcom.collection(:,2),reg2),1},...
                 ffrac.collection{strcmp(ffrac.collection(:,2),reg1),1},...
@@ -153,7 +159,7 @@ for ri=1:size(cross_reg,1)
             %FRAC,COM,PV
             stats.meta=[stats.meta;...
                 nbck,nfwd,-sidx,...
-                ratiomap(reg2),ratiomap(reg1),...
+                OBM1map(reg2),OBM1map(reg1),...
                 fcom.collection{strcmp(fcom.collection(:,2),reg2),1},...
                 fcom.collection{strcmp(fcom.collection(:,2),reg1),1}...
                 ffrac.collection{strcmp(ffrac.collection(:,2),reg2),1},...

@@ -92,7 +92,7 @@ text(corr_mat_mop(:,1),corr_mat_mop(:,3),corr_reg_mop,'HorizontalAlignment','cen
 set(gca(),'XScale','log')
 xlabel('Projection density to M1');
 ylabel('PV/(PV+SST)');
-[r,p]=corr(corr_mat_mop(:,1),corr_mat_mop(:,2),'type','Spearman');
+[r,p]=corr(corr_mat_mop(:,1),corr_mat_mop(:,3),'type','Spearman');
 text(max(xlim()),max(ylim()),sprintf('r=%.2f,p=%.2f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
 subplot(1,2,2)
 scatter(corr_mat_mop(:,1),corr_mat_mop(:,4),4,'ro','MarkerFaceColor','r')
@@ -100,7 +100,7 @@ text(corr_mat_mop(:,1),corr_mat_mop(:,4),corr_reg_mop,'HorizontalAlignment','cen
 set(gca(),'XScale','log')
 xlabel('Projection density to M1');
 ylabel('Memory neuron proportion');
-[r,p]=corr(corr_mat_mop(:,1),corr_mat_mop(:,3),'type','Spearman');
+[r,p]=corr(corr_mat_mop(:,1),corr_mat_mop(:,4),'type','Spearman');
 text(max(xlim()),max(ylim()),sprintf('r=%.2f,p=%.2f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
 
 
@@ -112,7 +112,7 @@ text(rotmat(:,1),corr_mat_mop(:,3),corr_reg_mop,'HorizontalAlignment','center','
 % set(gca(),'XScale','log')
 xlabel('OB-M1 hierarchy index');
 ylabel('PV/(PV+SST)');
-[r,p]=corr(rotmat(:,1),corr_mat_mop(:,2),'type','Spearman');
+[r,p]=corr(rotmat(:,1),corr_mat_mop(:,3),'type','Spearman');
 text(max(xlim()),max(ylim()),sprintf('r=%.2f,p=%.2f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
 
 subplot(1,2,2)

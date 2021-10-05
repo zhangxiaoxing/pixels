@@ -1,7 +1,8 @@
 function sust_trans_correct_error(type,opt)
 arguments
     type (1,:) char {mustBeMember(type,{'Sustained','Transient'})}
-    opt.lastbin (1,1) logical = true
+    opt.single_bin (1,1) logical = true
+    opt.bin (1,1) double {mustBeInRange(opt.bin,1,6),mustBeInteger} = 6
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
@@ -29,11 +30,11 @@ for onetype=types
         typesel=find(meta.mem_type==onetype);
     end
     if strcmp(type,'Transient')
-        if opt.lastbin
-            subsel=meta.per_bin(6,typesel)~=0;
+        if opt.single_bin
+            subsel=meta.per_bin(opt.bin,typesel)~=0;
             typesel=typesel(subsel);
-        else
-            typesel=typesel(1:50:numel(typesel));
+%         else
+%             typesel=typesel(1:50:numel(typesel));
         end
     end
     homedir=ephys.util.getHomedir('type','raw');
@@ -45,8 +46,8 @@ for onetype=types
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         fr=h5read(fpath,'/FR_All');
-        if opt.lastbin
-            bins=6+4;
+        if opt.single_bin
+            bins=opt.bin+4;
 %             if meta.per_bin(6,ii)==0
 %                 continue
 %             end
@@ -136,7 +137,11 @@ legend([hc,he],{sprintf('Correct trials AUC=%0.3f',aucc),...
     'Location','southeast');
 xlabel('False positive rate (fpr)');
 ylabel('True positive rate (tpr)');
-sgtitle(sprintf('%s averaged cross-trial',type));
+if opt.single_bin
+    sgtitle(sprintf('%s averaged cross-trial bin %d',type,opt.bin));
+else
+    sgtitle(sprintf('%s averaged cross-trial',type));
+end
 end
 
 %Per trial
@@ -205,9 +210,9 @@ prefs2=arrayfun(@(x) auc_per_su(stats.(sprintf('type%d_pertrial',types(2)))(x,:)
 hc=plot(xq,mean([cell2mat({prefs1.yc}.');cell2mat({prefs2.yc}.')]),'-r','LineWidth',1);
 he=plot(xq,mean([cell2mat({prefs1.ye}.');cell2mat({prefs2.ye}.')]),'-k','LineWidth',1);
 legend([hc,he],{sprintf(...
-    'Correct trials AUC=%0.3f',mean([prefs1.aucc,prefs2.aucc]))...
+    'Correct trials AUC=%0.2f',mean([prefs1.aucc,prefs2.aucc]))...
     ,sprintf(...
-    'Error trials AUC=%0.3f',mean([prefs1.auce,prefs2.auce]))},...
+    'Error trials AUC=%0.2f',mean([prefs1.auce,prefs2.auce]))},...
     'Location','southeast');
 xlabel('False positive rate (fpr)');
 ylabel('True positive rate (tpr)');

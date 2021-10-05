@@ -2,7 +2,7 @@ function rings_freq(sessidx, rsize, opt)
 arguments
     sessidx (1,1) double {mustBePositive,mustBeInteger} = 1
     rsize (1,1) double {mustBeMember(rsize,3:5)} = 3
-    opt.ridx double {mustBeScalarOrEmpty} = []
+    opt.ridx (1,:) double = []
     %%@deprecated
     %     opt.partialfile (1,:) char = []
 end
@@ -15,7 +15,7 @@ sess_rings=rings{sessidx,rsize-2};
 [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessidx);
 if isempty(spkID), quit(0); end
 
-if isempty(opt.ridx) || rsize>4
+if isempty(opt.ridx)
     rids=1:size(sess_rings,1);
 else
     rids=opt.ridx;
@@ -31,47 +31,29 @@ end
 %     end
 % end
 %%
-if rsize<5
-    for ring_id=rids
-        disp(ring_id);
-%% @deprecated
-%         if ~isempty(opt.partialfile) && ismember(ring_id,out{pfidx,2}(1:end-1))
-%             break;
-%         end
-%%
-        cids=sess_rings(ring_id,:);
-        per_cid_spk_cnt=cids;
-        ts_id=[];
-        for in_ring_pos=1:rsize
-            one_ring_sel=spkID==cids(in_ring_pos);
-            per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
-            ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
-        end
-        ts_id=sortrows(ts_id,1);
-        ring_stats=bz.rings.relax_tag(ts_id,rsize);
-        coact_count=sum(ring_stats.spk_cnt);
-        %%   old criteria of 0.1Hz
-        if coact_count>ts_id(end,1)*0.1/30000
-            sums={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats};
-            save(sprintf('ring_stats_%d_%d_%d.mat',rsize,sessidx,ring_id),'sums');
-        end
+sums=cell(0);
+for ring_id=rids
+    disp(ring_id);
+    %% @deprecated
+    %         if ~isempty(opt.partialfile) && ismember(ring_id,out{pfidx,2}(1:end-1))
+    %             break;
+    %         end
+    %%
+    cids=sess_rings(ring_id,:);
+    per_cid_spk_cnt=cids;
+    ts_id=[];
+    for in_ring_pos=1:rsize
+        one_ring_sel=spkID==cids(in_ring_pos);
+        per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
+        ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
     end
-else
-    u3=unique(sess_rings(:,1:3),'rows');
-    % rely on externel slurm call for compatibility
-    if ~isempty(opt.ridx)
-        common_root=u3(opt.ridx,:);
-        common_sel=all(sess_rings(:,1:3)==common_root,2);
-        ring_stats=bz.rings.relax_tag_long(spkID,spkTS,sess_rings(common_sel,:));
-%         save
-    else
-        for ui=1:size(u3,1)
-            common_root=u3(ui,:);
-            common_sel=all(sess_rings(:,1:3)==common_root,2);
-            ring_stats=bz.rings.relax_tag_long(spkID,spkTS,sess_rings(common_sel,:));
-            %             sums={sessidx,find(common_sel),cids,per_cid_spk_cnt,ring_stats};
-            %             save(sprintf('ring_stats_%d_%d_%d.mat',rsize,sessidx,ring_id),'sums');
-        end
+    ts_id=sortrows(ts_id,1);
+    ring_stats=bz.rings.relax_tag(ts_id,rsize);
+    coact_count=sum(ring_stats.spk_cnt);
+    %%   old criteria of 0.1Hz
+    if coact_count>ts_id(end,1)*0.1/30000
+        sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats};
     end
 end
+save(sprintf('ring_stats_%d_%d_%d_%d.mat',rsize,sessidx,min(rids),max(rids)),'sums');
 end

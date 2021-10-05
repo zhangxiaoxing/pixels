@@ -1,8 +1,9 @@
 function [fcom,ffrac]=per_region_COM_frac(opt)
 arguments
     opt.frac_COM (1,1) logical = false
-    opt.frac_PVSST (1,1) logical = true
+    opt.frac_PVSST (1,1) logical = false
     opt.COM_PVSST (1,1) logical = false
+    opt.frac_sensemotor (1,1) logical = true
     opt.sust_type (1,:) char {mustBeMember(opt.sust_type,{'any','sust','trans'})} = 'any'
     opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CTX'
     opt.corr (1,:) char {mustBeMember(opt.corr,{'Pearson','Spearman'})} = 'Pearson'
@@ -146,6 +147,53 @@ if opt.frac_PVSST
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','bottom');
     if opt.export
         exportgraphics(fh,'per_region_frac_pv_sst.pdf');
+    end
+end
+%% frac vs sensory motor transfer index
+
+if opt.frac_sensemotor
+    load('OBM1Map.mat','OBM1map')
+    uregall=ffrac.collection(cell2mat(ffrac.collection(:,4))>40 & cell2mat(ffrac.collection(:,3))==5,2);
+    ureg=[];
+    for ri=1:numel(uregall)
+        if idmap.reg2tree.isKey(uregall{ri}) && any(ismember(idmap.reg2tree(uregall{ri}),{opt.extent}))
+            ureg=[ureg;uregall(ri)];
+        end
+    end
+    
+    fh=figure('Color','w','Position',[100,100,245,235]);
+    hold on;
+    coord=[];
+    regs=[];
+    for ri=1:numel(ureg)
+        fridx=find(strcmp(ffrac.collection(:,2),ureg(ri)));
+        if ~isempty(fridx) && OBM1map.isKey(ureg{ri})
+            xx=ffrac.collection{fridx,1}.*100;
+            yy=OBM1map(ureg{ri});
+            coord=[coord;xx,yy];
+            regs=[regs,ffrac.collection{fridx,2}];
+            scatter(xx,yy,9,'o','MarkerFaceColor',ephys.getRegColor(ureg{ri}),'MarkerEdgeColor','none');
+            text(xx,yy,ffrac.collection{fridx,2},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',7,'Color',ephys.getRegColor(ureg{ri}));
+        end
+    end
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    plot([0,100],([0,100]).*regres(1)+regres(2),'--k');
+    keyboard()
+    ylim([-7,7])
+    if strcmp(opt.sust_type,'sust')
+        xlim([0,4]);
+        set(gca(),'XTick',0:2:4,'YTick',0:0.2:1);
+    else
+        xlim([10,60]);
+        set(gca(),'XTick',0:20:60,'YTick',-6:3:6);
+    end
+    ylabel('Sensory-motor transfer index')
+    xlabel('Selective fraction')
+    [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','bottom');
+    if opt.export
+        exportgraphics(fh,'per_region_frac_sense_motor.pdf');
     end
 end
 end
