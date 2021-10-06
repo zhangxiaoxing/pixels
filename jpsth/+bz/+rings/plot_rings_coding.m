@@ -9,7 +9,7 @@ end
 
 mtypes=["congru","nonmem"];
 regtypes=["cross","within"];
-rsizes=3:4;
+rsizes=3:5;
 rings_conding_sums=[];
 for rsize=rsizes
     for mtype=mtypes
@@ -64,7 +64,7 @@ sel_idx=[(per_trl(:,1)-per_trl(:,2))./(per_trl(:,1)+per_trl(:,2)),...
     (per_trl(:,3)-per_trl(:,4))./(per_trl(:,3)+per_trl(:,4)),...
     (per_trl(:,5)-per_trl(:,6))./(per_trl(:,5)+per_trl(:,6))];
 
-freq_sel=max(per_trl(:,1:2),[],2)>=0.1;
+freq_sel=max(per_trl(:,1:2),[],2)>=0.5 & min(rings_conding_sums(:,[13,15,21,23]),[],2)>=5;
 
 congru_sel=rings_conding_sums(:,1)==1;
 cong_c=histcounts(sel_idx(congru_sel & freq_sel,1),-1:0.1:1,'Normalization','probability');
