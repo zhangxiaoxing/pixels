@@ -9,7 +9,7 @@ arguments
     opt.plot_dual (1,1) logical = false
     opt.hier_anova (1,1) logical = false
     opt.plot_progres_regres (1,1) logical = false
-    opt.plot_loop_noloop (1,1) logical = true
+    opt.plot_loop_noloop (1,1) logical = false
 end
 fh=figure('Color','w','Position',[100,100,750,255]);
 fidx=1;
@@ -75,6 +75,12 @@ for level=opt.levels
     bz.hist.plot_one_stp_curve(cr,er,'Within regions',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
     
+    y=[reshape(cr.congru(:,2:end).',[],1);reshape(cr.incong(:,2:end).',[],1);reshape(cr.nonmem(:,2:end).',[],1)];
+    dirg=[ones(size(cr.congru,1).*10,1);2*ones(size(cr.incong,1).*10,1);3*ones(size(cr.nonmem,1).*10,1)];
+    bing=repmat((1:10).',size(cr.congru,1)+size(cr.incong,1)+size(cr.nonmem,1),1);
+    anovan(y,{dirg,bing})
+    
+    
     %diff
     crdiff=bz.hist.get_stats_by_mem_type(correct_stats,'between',level);
     stats.same=crdiff;
@@ -86,6 +92,47 @@ for level=opt.levels
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
     bz.hist.plot_one_stp_curve(crdiff,er,'cross regions',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
+    
+    y=[reshape(crdiff.congru(:,2:end).',[],1);reshape(crdiff.incong(:,2:end).',[],1);reshape(crdiff.nonmem(:,2:end).',[],1)];
+    dirg=[ones(size(crdiff.congru,1).*10,1);2*ones(size(crdiff.incong,1).*10,1);3*ones(size(crdiff.nonmem,1).*10,1)];
+    bing=repmat((1:10).',size(crdiff.congru,1)+size(crdiff.incong,1)+size(crdiff.nonmem,1),1);
+    anovan(y,{dirg,bing})
+    keyboard()
+%     exportgraphics(fh,'STF_hier.pdf');
+    
+    %L2H vs H2L
+    crl2h=bz.hist.get_stats_by_mem_type(correct_stats,'Low2High',level);
+    crh2l=bz.hist.get_stats_by_mem_type(correct_stats,'High2Low',level);
+    
+    l2hmm=mean(fliplr(crl2h.congru(:,2:end)));
+    l2hci=bootci(500,@(x) mean(x),fliplr(crl2h.congru(:,2:end)));
+    
+    h2lmm=mean(fliplr(crh2l.congru(:,2:end)));
+    h2lci=bootci(500,@(x) mean(x),fliplr(crh2l.congru(:,2:end)));
+    
+    fh=figure('Color','w','Position',[32,32,200,200]);
+    hold on;
+    fill([200:200:2000,fliplr(200:200:2000)],[l2hci(1,:),fliplr(l2hci(2,:))],'r','EdgeColor','none','FaceAlpha',0.2);
+    fill([200:200:2000,fliplr(200:200:2000)],[h2lci(1,:),fliplr(h2lci(2,:))],'m','EdgeColor','none','FaceAlpha',0.2);
+    l2hh=plot(200:200:2000,l2hmm,'-r');
+    h2lh=plot(200:200:2000,h2lmm,'-m');
+    ylim([-0,0.05]);
+    xlim([0,1000])
+    set(gca,'XTick',500:500:2000,'YTick',0:0.02:0.05,'YTickLabel',0:2:5)
+    legend([l2hh,h2lh],{'S to M','M to S'},'Location','northoutside');
+    xlabel('Time lag (ms)')
+    ylabel('Post spike gain(%)')
+    exportgraphics(fh,'STF_h2l_l2h.pdf')
+    
+    y=[reshape(crl2h.congru(:,7:end).',[],1);reshape(crh2l.congru(:,7:end).',[],1)];
+    dirg=[ones(size(crl2h.congru,1).*5,1);2*ones(size(crh2l.congru,1).*5,1)];
+    bing=repmat((1:5).',size(crl2h.congru,1)+size(crh2l.congru,1),1);
+    anovan(y,{dirg,bing})
+    
+    pperbin=nan(1,10);
+    for pi=2:11
+        pperbin(pi-1)=ranksum(crh2l.congru(:,pi),crl2h.congru(:,pi));
+    end
     
     
     
@@ -112,17 +159,7 @@ for level=opt.levels
     %     bz.hist.plot_one_stp_curve(crh2l,er,'High to low',...
     %         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
 end
-if opt.hier_anova
-    y=[reshape(crl2h.congru(:,2:end).',[],1);reshape(crh2l.congru(:,2:end).',[],1)];
-    dirg=[ones(size(crl2h.congru,1).*10,1);2*ones(size(crh2l.congru,1).*10,1)];
-    bing=repmat((1:10).',size(crl2h.congru,1)+size(crh2l.congru,1),1);
-    anovan(y,{dirg,bing},'model','interaction')
-    
-    pperbin=nan(1,10);
-    for pi=2:11
-        pperbin(pi-1)=ranksum(crh2l.congru(:,pi),crl2h.congru(:,pi));
-    end
-end
+
 data={cr,crdiff};
 for didx=1:2
     y=[reshape(data{didx}.congru(:,2:end).',[],1);reshape(data{didx}.nonmem(:,2:end).',[],1);reshape(data{didx}.incong(:,2:end).',[],1)];

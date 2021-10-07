@@ -81,9 +81,27 @@ end
 
 switch reg
     case 'between'
-        regsel=stats.(trialtype).diff_reg(:,level);
+        regsel=false(size(stats.(trialtype).sess));
+        for i=1:numel(regsel)
+            if opt.pvsst && stats.(trialtype).diff_reg(i,level) && all(cellfun(@(x) ratiomap.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+                    && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)
+                regsel(i)=true;
+            elseif ~opt.pvsst && stats.(trialtype).diff_reg(i,level) && all(cellfun(@(x) OBM1map.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+                    && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)
+                regsel(i)=true;
+            end
+        end
     case 'within'
-        regsel=stats.(trialtype).same_reg(:,level);
+        regsel=false(size(stats.(trialtype).sess));
+        for i=1:numel(regsel)
+            if opt.pvsst && stats.(trialtype).same_reg(i,level) && all(cellfun(@(x) ratiomap.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+                    && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)
+                regsel(i)=true;
+            elseif ~opt.pvsst && stats.(trialtype).same_reg(i,level) && all(cellfun(@(x) OBM1map.isKey(x{level}),stats.(trialtype).reg(i,:)),2)...
+                    && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)
+                regsel(i)=true;
+            end
+        end
     case 'progres'
         regsel=progres;
     case 'regres'
