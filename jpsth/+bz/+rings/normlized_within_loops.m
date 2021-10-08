@@ -6,13 +6,19 @@ end
 
 keyboard()
 %% within
-plot_two(true,ring_meta.congru.within_4,...
-    ring_meta.nonmem.within_4,...
-    ring_meta.congru.within_4_shuf,...
-    ring_meta.nonmem.within_4_shuf,'ylim',[-10,65]);
-exportgraphics(gcf,'loops_within_region_norm.pdf')
-
-
+if false
+    w=join_within(ring_meta);
+    plot_two(true,w.congru.within,...
+        w.nonmem.within,...
+        w.congru.within_shuf,...
+        w.nonmem.within_shuf,'ylim',[-10,70]);
+    exportgraphics(gcf,'loops_within_region_norm.pdf')
+end
+% plot_two(true,ring_meta.congru.within_4,...
+%     ring_meta.nonmem.within_4,...
+%     ring_meta.congru.within_4_shuf,...
+%     ring_meta.nonmem.within_4_shuf,'ylim',[-10,65]);
+% exportgraphics(gcf,'loops_within_region_norm.pdf')
 
 %% cross
 plot_two(false,ring_meta.congru.cross_4,...
@@ -20,7 +26,6 @@ plot_two(false,ring_meta.congru.cross_4,...
     ring_meta.congru.cross_4_shuf,...
     ring_meta.nonmem.cross_4_shuf,'ylim',[-20,65]);
 exportgraphics(gcf,'loops_cross_region_norm.pdf')
-
 
 plot_two(false,ring_meta.congru.cross_3,...
     ring_meta.nonmem.cross_3,...
@@ -76,47 +81,47 @@ end
 
 
 
-function [ureg,normw]=plot_one(within,ddata,sshuf,spidx,opt)
-arguments
-    within
-    ddata
-    sshuf
-    spidx
-    opt.ylim (1,:) double = []
-end
-subplot(1,3,spidx)
-hold on
-if within
-    [ureg,normw]=norm_within(ddata,sshuf);
-else
-    [ureg,normw]=norm_cross(ddata,sshuf);
-end
-[~,~,ratiomap]=ref.get_pv_sst();
-ratios=cellfun(@(x) ratiomap(x),ureg);
-[ratios,sidx]=sort(ratios);
-ureg=ureg(sidx);
-normw=normw(sidx,:);
-
-bh=bar(normw(:,4),'FaceColor','w','EdgeColor','k');
-for ri=1:size(normw,1)
-    if normw(ri,4)>6
-        text(ri,5,sprintf('%.1f',normw(ri,4)),'HorizontalAlignment','center','VerticalAlignment','middle','Rotation',90);
-    end
-end
-set(gca(),'XTick',1:numel(ureg),'XTickLabel',ureg,'XTickLabelRotation',90)
-ylabel('Normalized number of within-region loops')
-if within
-    ylim([-2,20])
-    ylabel('Normalized number of within-region loops')
-else
-    ylim([-2,60])
-    ylabel('Normalized number of cross-region loops')
-end
-if ~isempty(opt.ylim)
-    ylim(opt.ylim)
-end
-title(sprintf('%d-neuron loops',spidx+2));
-end
+% function [ureg,normw]=plot_one(within,ddata,sshuf,spidx,opt)
+% arguments
+%     within
+%     ddata
+%     sshuf
+%     spidx
+%     opt.ylim (1,:) double = []
+% end
+% subplot(1,3,spidx)
+% hold on
+% if within
+%     [ureg,normw]=norm_within(ddata,sshuf);
+% else
+%     [ureg,normw]=norm_cross(ddata,sshuf);
+% end
+% [~,~,ratiomap]=ref.get_pv_sst();
+% ratios=cellfun(@(x) ratiomap(x),ureg);
+% [ratios,sidx]=sort(ratios);
+% ureg=ureg(sidx);
+% normw=normw(sidx,:);
+% 
+% bh=bar(normw(:,4),'FaceColor','w','EdgeColor','k');
+% for ri=1:size(normw,1)
+%     if normw(ri,4)>6
+%         text(ri,5,sprintf('%.1f',normw(ri,4)),'HorizontalAlignment','center','VerticalAlignment','middle','Rotation',90);
+%     end
+% end
+% set(gca(),'XTick',1:numel(ureg),'XTickLabel',ureg,'XTickLabelRotation',90)
+% ylabel('Normalized number of within-region loops')
+% if within
+%     ylim([-2,20])
+%     ylabel('Normalized number of within-region loops')
+% else
+%     ylim([-2,60])
+%     ylabel('Normalized number of cross-region loops')
+% end
+% if ~isempty(opt.ylim)
+%     ylim(opt.ylim)
+% end
+% title(sprintf('%d-neuron loops',spidx+2));
+% end
 
 
 
@@ -138,8 +143,11 @@ else
     [uregn,normwn]=norm_cross(datan,shufn);
 end
 ureg=unique([uregc;uregn]);
-[~,~,ratiomap]=ref.get_pv_sst();
-ratios=cellfun(@(x) ratiomap(x),unique(ureg));
+% [~,~,ratiomap]=ref.get_pv_sst();
+load('OBM1map.mat','OBM1map');
+msel=cellfun(@(x) OBM1map.isKey(x), ureg);
+ureg=ureg(msel);
+ratios=cellfun(@(x) OBM1map(x),ureg);
 [ratios,sidx]=sort(ratios);
 ureg=ureg(sidx);
 
@@ -158,7 +166,7 @@ end
 figure('Color','w','Position',[32,32,200,175])
 hold on
 bh=bar(bardata(:,[1,4]),1,'FaceColor','w','EdgeColor','k');
-bh(1).FaceColor='k';
+[bh(1).FaceColor,bh(2).FaceColor]=deal('r','k');
 for ri=1:size(bardata,1)
     if any(bardata(ri,1:2)>62)
         text(ri,5,sprintf('%.1f,%.1f',bardata(ri,1),bardata(ri,4)),'HorizontalAlignment','center','VerticalAlignment','middle','Rotation',90);
@@ -179,4 +187,21 @@ end
 end
 
 
+function within=join_within(ring_meta)
+within=struct();
 
+ for mtype=["congru","nonmem"]
+     reg=cell(0);
+     shuf=cell(0);
+%      meta=[];
+     for rsize=3:5
+         reg=[reg;ring_meta.(mtype).(sprintf('within_%d',rsize)).reg];
+%          meta=[meta;ring_meta.(mtype).(sprintf('within_%d',rsize)).meta,...
+%              nan(numel(ring_meta.(mtype).(sprintf('within_%d',rsize)).reg),5-rsize)];
+         shuf=[shuf;ring_meta.(mtype).(sprintf('within_%d_shuf',rsize))];
+     end
+     within.(mtype).within.reg=reg;
+     within.(mtype).within_shuf=shuf;
+%      within.(mtype).meta=meta;
+ end
+end

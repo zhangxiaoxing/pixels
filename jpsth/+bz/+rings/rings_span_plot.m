@@ -1,34 +1,47 @@
 %% TODO merge with normalized_within_loops.m
 keyboard()
 %% count number
-ring_meta=bz.rings.get_ring_meta('loadfile',true);
+if ~exist('ring_meta','var')
+    ring_meta=bz.rings.get_ring_meta('loadfile',true);
+end
+[ratio3cw,z3cw]=get_ratio(ring_meta.congru.within_3,ring_meta.congru.within_3_shuf);
+[ratio4cw,z4cw]=get_ratio(ring_meta.congru.within_4,ring_meta.congru.within_4_shuf);
+[ratio5cw,z5cw]=get_ratio(ring_meta.congru.within_5,ring_meta.congru.within_5_shuf);
 
-[ratio3c,z3c]=get_ratio(ring_meta.congru.cross_3,ring_meta.congru.within_3_shuf);
-[ratio4c,z4c]=get_ratio(ring_meta.congru.cross_4,ring_meta.congru.within_4_shuf);
-[ratio5c,z5c]=get_ratio(ring_meta.congru.cross_5,ring_meta.congru.within_5_shuf);
+[ratio3cc,z3cc]=get_ratio(ring_meta.congru.cross_3,ring_meta.congru.cross_3_shuf);
+[ratio4cc,z4cc]=get_ratio(ring_meta.congru.cross_4,ring_meta.congru.cross_4_shuf);
+[ratio5cc,z5cc]=get_ratio(ring_meta.congru.cross_5,ring_meta.congru.cross_5_shuf);
 % fn='Relative_loops_number_congru.pdf';
-[ratio3n,z3n]=get_ratio(ring_meta.nonmem.cross_3,ring_meta.nonmem.within_3_shuf);
-[ratio4n,z4n]=get_ratio(ring_meta.nonmem.cross_4,ring_meta.nonmem.within_4_shuf);
-[ratio5n,z5n]=get_ratio(ring_meta.nonmem.cross_5,ring_meta.nonmem.within_5_shuf);
+[ratio3nw,z3nw]=get_ratio(ring_meta.nonmem.within_3,ring_meta.nonmem.within_3_shuf);
+[ratio4nw,z4nw]=get_ratio(ring_meta.nonmem.within_4,ring_meta.nonmem.within_4_shuf);
+[ratio5nw,z5nw]=get_ratio(ring_meta.nonmem.within_5,ring_meta.nonmem.within_5_shuf);
+
+[ratio3nc,z3nc]=get_ratio(ring_meta.nonmem.cross_3,ring_meta.nonmem.cross_3_shuf);
+[ratio4nc,z4nc]=get_ratio(ring_meta.nonmem.cross_4,ring_meta.nonmem.cross_4_shuf);
+[ratio5nc,z5nc]=get_ratio(ring_meta.nonmem.cross_5,ring_meta.nonmem.cross_5_shuf);
 % fn='Relative_loops_number_nonmem.pdf';
 fn='Relative_loops_number.pdf';
 
 
-rdata=[ratio3c,ratio3n;ratio4c,ratio4n;ratio5c,ratio5n];
+% rdata=[ratio3c,ratio3n;ratio4c,ratio4n;ratio5c,ratio5n];
+rdata=[z3cw,z3cc,z3nw,z3nc;z4cw,z4cc,z4nw,z4nc;z5cw,z5cc,z5nw,z5nc];
+
 fh=figure('Color','w','Position',[32,32,155,235]);
 hold on
-bh=bar(rdata(:,[1,4]));
-[bh(1).FaceColor,bh(2).FaceColor]=deal('w','k');
+bh=bar(rdata(:,[1,7,4,10]));
+[bh(1).FaceColor,bh(2).FaceColor,bh(3).FaceColor,bh(4).FaceColor]=deal('r','k','r','k');
+[bh(1).FaceAlpha,bh(2).FaceAlpha]=deal(0.5);
 
-errorbar([bh(1).XEndPoints,bh(2).XEndPoints],...
-    [rdata(:,1);rdata(:,4)],...
-    [diff(rdata(:,1:2),1,2);diff(rdata(:,4:5),1,2)],...
-    [diff(rdata(:,1:2:3),1,2);diff(rdata(:,4:2:6),1,2)],'k.');
+
+errorbar([bh(1).XEndPoints,bh(2).XEndPoints,bh(3).XEndPoints,bh(4).XEndPoints],...
+    [rdata(:,1);rdata(:,7);rdata(:,4);rdata(:,10)],...
+    [diff(rdata(:,1:2),1,2);diff(rdata(:,7:8),1,2);diff(rdata(:,4:5),1,2);diff(rdata(:,10:11),1,2)],...
+    [diff(rdata(:,1:2:3),1,2);diff(rdata(:,7:2:9),1,2);diff(rdata(:,4:2:6),1,2);diff(rdata(:,10:2:12),1,2)],'k.');
 set(gca(),'XTick',1:3,'XTickLabel',{'3-Neuron','4-Neuron','5-Neuron'},'XTickLabelRotation',90)
 ylabel('Relative number of loops')
-xlim([0.5,3.5])
-ylim([0,50])
-legend([bh(1),bh(2)],{'Same-memory','Non-memory'},'Location','northoutside');
+% xlim([0.5,3.5])
+ylim([-10,50])
+legend([bh(1),bh(2),bh(3),bh(4)],{'Same-memory within','Non-memory within','Same-memory cross','Non-memory cross'},'Location','northoutside');
 exportgraphics(fh,fn)
 
 
@@ -145,13 +158,23 @@ sgtitle(strjoin({ftitle,'cross region'}));
 end
 
 function [ratio,zscore]=get_ratio(rreal,shuf)
-    shufn=cellfun(@(x) size(x.reg,1),shuf);
-    realn=size(rreal.reg,1);
+    persistent OBM1map
+    if isempty(OBM1map)
+        fstr=load('OBM1map.mat');
+        OBM1map=fstr.OBM1map;
+    end
+    if iscell(rreal.reg{1,1})
+        shufn=cellfun(@(x) nnz(all(OBM1map.isKey(cellfun(@(x) x,x.reg)),2)),shuf);
+        realn=nnz(all(OBM1map.isKey(cellfun(@(x) x,rreal.reg)),2));
+    else
+        shufn=cellfun(@(x) nnz(all(OBM1map.isKey(x.reg),2)),shuf);
+        realn=nnz(all(OBM1map.isKey(rreal.reg),2));
+    end
     shufmm=mean(shufn);
     shufstd=std(shufn);
     shufci=bootci(1000,@(x) mean(x),shufn);
     ratio=realn./([shufmm,reshape(shufci,1,[])]);
-    zscore=(realn-shufmm)./shufstd;
+    zscore=(realn-[shufmm,reshape(shufci,1,[])])./shufstd;
 end
 
 function plotonespan(rreal,shuf,field,subidx,ylbl)
