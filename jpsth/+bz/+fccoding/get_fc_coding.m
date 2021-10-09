@@ -1,10 +1,11 @@
 function [metas,stats,fwd_rev]=get_fc_coding(opt)
 arguments
     opt.keep_trial (1,1) logical = false
-    opt.no_shift (1,1) logical = false
+    opt.no_jitter (1,1) logical = false
+    opt.shuffle (1,1) logical = false
 end
-persistent metas_ stats_ fwd_rev_ no_shift
-if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_shift~=opt.no_shift
+persistent metas_ stats_ fwd_rev_ no_jitter shuffle_
+if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_jitter~=opt.no_jitter || shuffle_ || opt.shuffle
     sig=bz.load_sig_pair();
     sess=unique(sig.sess);
     fl=dir('fcdata\fc_coding_*.mat');
@@ -22,11 +23,19 @@ if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_shift~=opt.no_s
         regs=squeeze(sig.reg(sesssel,5,:));
         roots=squeeze(sig.reg(sesssel,1,:));
         
+        
         s1sel=fstr.onesess.trials(:,5)==4 & fstr.onesess.trials(:,8)==6 & all(fstr.onesess.trials(:,9:10),2);
         s2sel=fstr.onesess.trials(:,5)==8 & fstr.onesess.trials(:,8)==6 & all(fstr.onesess.trials(:,9:10),2);
+        
+        if opt.shuffle
+            pool=randsample([s1sel;s2sel],numel(s1sel)*2);
+            s1sel=pool(1:numel(s1sel));
+            s2sel=pool(numel(s1sel)+1:end);
+        end
+            
         e1sel=fstr.onesess.trials(:,5)==4 & fstr.onesess.trials(:,8)==6 & fstr.onesess.trials(:,10)==0;
         e2sel=fstr.onesess.trials(:,5)==8 & fstr.onesess.trials(:,8)==6 & fstr.onesess.trials(:,10)==0;
-        if opt.no_shift
+        if opt.no_jitter
             stat_idx=2;
         else
             stat_idx=3;
@@ -54,7 +63,8 @@ if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_shift~=opt.no_s
     metas_=metas;
     stats_=stats;
     fwd_rev_=fwd_rev;
-    no_shift=opt.no_shift;
+    no_jitter=opt.no_jitter;
+    shuffle_=opt.shuffle;
 else
     metas=metas_;
     stats=stats_;

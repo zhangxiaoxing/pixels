@@ -55,19 +55,31 @@ for di=reshape(unique(Y),1,[])
     dist_sums=[dist_sums;xx,mm,ci(1)-mm,ci(2)-mm];
 end
 
-[r,p]=corr([same_stats(:,3);dist_stats(:,3)]./100,[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100);
+% [r,p]=corr([same_stats(:,3);dist_stats(:,3)]./100,[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100);
+
+xx=[same_stats(:,3);dist_stats(:,3)].*10;
+yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
+tbl=table(xx,yy);
+modelfun=@(b,x) b(1)*(x(:,1).^b(2))+b(3);
+mdl=fitnlm(tbl,modelfun,[-0.5,0.5,2]);
+
+
 fh=figure('Color','w','Position',[32,32,135,220]);
 hold on;
-plot(dist_sums(:,1),dist_sums(:,2),'-k');
+mh=plot(dist_sums(:,1),dist_sums(:,2),'-k','LineWidth',1);
+% fplot(@(x) mdl.Coefficients.Estimate(1).*(x.^mdl.Coefficients.Estimate(2))+mdl.Coefficients.Estimate(3),[0,7],'-k')
+pltxy=sortrows([mdl.Variables.xx,mdl.Fitted]);
+fith=plot(pltxy(:,1)./1000,pltxy(:,2),'-r','LineWidth',1);
 errorbar(dist_sums(:,1),dist_sums(:,2),dist_sums(:,3),dist_sums(:,4),'k.');
 scatter(same_stats(:,3)./100,same_stats(:,4)./same_stats(:,5).*100,4,...
-    'o','MarkerFaceColor','r','MarkerFaceAlpha',0.4,'MarkerEdgeColor','none');
+    'o','MarkerFaceColor','k','MarkerFaceAlpha',0.4,'MarkerEdgeColor','none');
 scatter(dist_stats(:,3)./100,dist_stats(:,4)./dist_stats(:,5).*100,4,...
-    'o','MarkerFaceColor','r','MarkerFaceAlpha',0.4,'MarkerEdgeColor','none');
+    'o','MarkerFaceColor','k','MarkerFaceAlpha',0.4,'MarkerEdgeColor','none');
 xlabel('Region distance (mm)');
 ylabel('Coupling rate (%)');
 xlim([-0.5,7])
-ylim([0,2.7])
-text(max(xlim()),max(ylim()),sprintf('%.2f,%.2f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
+ylim([0,3])
+legend([mh,fith],{'Mean','Power law fit'},'Location','northoutside')
+text(max(xlim()),max(ylim()),sprintf('%.2f,%.2f',sqrt(mdl.Rsquared.Ordinary),0),'HorizontalAlignment','right','VerticalAlignment','top');
 
 exportgraphics(fh,'fc_rate_vs_spatial_dist.pdf')
