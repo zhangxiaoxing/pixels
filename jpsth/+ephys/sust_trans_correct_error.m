@@ -7,6 +7,7 @@ arguments
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
     opt.ctx_only (1,1) logical = false
+    opt.plot_showcase (1,1) logical = true
 end
 set(groot,'defaultTextFontSize',10);
 meta=ephys.util.load_meta();
@@ -74,6 +75,41 @@ for onetype=types
         es2=(es2-delaymm)./delaystd;
         
         %         if onetype==2 && mean(cs1)<mean(cs2),keyboard;end
+        if opt.plot_showcase
+            if min(cellfun(@(x) numel(x),{cs1,cs2,es1,es2}))<10
+                continue
+            end
+            [~,~,~,AUCC]=perfcurve([zeros(size(cs1));ones(size(cs2))],[cs1;cs2],0);
+            [~,~,~,AUCE]=perfcurve([zeros(size(es1));ones(size(es2))],[es1;es2],0);
+            
+            if abs(AUCC-0.5)>0.30 && abs(AUCE-0.5)<0.15
+                figure()
+                subplot(1,3,1)
+                hold on 
+                cs1c=squeeze(mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1,2]));
+                cs2c=squeeze(mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1 2]));
+                es1c=squeeze(mean(fr(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1 2]));
+                es2c=squeeze(mean(fr(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1 2]));
+                
+                plot(cs1c,'-r')
+                plot(cs2c,'-b')
+                plot(es1c,':r')
+                plot(es2c,':b')
+                xline(1.5,'--k')
+                
+                
+                subplot(1,3,2)
+                hold on 
+                histogram(cs1,-3:0.3:3,'FaceColor','r','FaceAlpha',0.4)
+                histogram(cs2,-3:0.3:3,'FaceColor','b','FaceAlpha',0.4)
+                subplot(1,3,3)
+                hold on 
+                histogram(es1,-3:0.3:3,'FaceColor','r','FaceAlpha',0.4)
+                histogram(es2,-3:0.3:3,'FaceColor','b','FaceAlpha',0.4)
+                sgtitle(ii);
+                keyboard()
+            end
+        end
         
         if opt.plot_scatter
             ch(fidx)=scatter(mean(cs1),mean(cs2),36,colors{fidx},'MarkerFaceColor',colors{fidx},'MarkerFaceAlpha',0.8,'MarkerEdgeColor','none');

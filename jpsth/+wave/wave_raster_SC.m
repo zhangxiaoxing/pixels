@@ -59,9 +59,9 @@ for sumcon_idx=33208%find(strict_sel).'
     
     subplot(2,1,1)
     hold on
-    psth=bz.raster(sumconn_currsess,sumcon_suids(sumcon_idx,:),rsamp);
+    psth=bz.raster(sumconn_currsess,sumcon_suids(sumcon_idx,:),rsamp,'tsel',[4,7,9]);
 %     ah=gca();
-    xlim([2,4])
+    xlim([1,3])
     subplot(2,2,4);
     hold on;
     fill([psth.time,fliplr(psth.time)],...

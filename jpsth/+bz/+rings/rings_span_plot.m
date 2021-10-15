@@ -24,7 +24,10 @@ fn='Relative_loops_number.pdf';
 
 
 % rdata=[ratio3c,ratio3n;ratio4c,ratio4n;ratio5c,ratio5n];
-rdata=[z3cw,z3cc,z3nw,z3nc;z4cw,z4cc,z4nw,z4nc;z5cw,z5cc,z5nw,z5nc];
+% rdata=[z3cw,z3cc,z3nw,z3nc;z4cw,z4cc,z4nw,z4nc;z5cw,z5cc,z5nw,z5nc];
+
+rdata=[z3nw,z4nw,z5nw;z3nc,z4nc,z5nc;z3cw,z4cw,z5cw;z3cc,z4cc,z5cc];
+
 
 fh=figure('Color','w','Position',[32,32,155,235]);
 hold on

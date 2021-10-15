@@ -1,4 +1,3 @@
-
 function plot_coding(opt)
 arguments
     opt.plot_trial_frac (1,1) logical = false
@@ -76,14 +75,13 @@ if opt.plot_coding_idx
     keyboard()
 end
 
-
-
 if opt.plot_coding_idx_shuf
     [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',true,'shuffle',false);
     out_any=plot_one('any',metas,stats,idmap,OBM1map,false);
-    keyboard() %could be very time consuming for large repeats!
+    keyboard() 
+    %% could be very time consuming for large repeats!
     %should backport from cluster.
-    for rpt=1:3
+    parfor rpt=1:500
         [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',true,'shuffle',true);
         out_shuf(rpt)=plot_one('shuffle',metas,stats,idmap,OBM1map,false);
     end
@@ -94,7 +92,7 @@ if opt.plot_coding_idx_shuf
     mm=[out_any.mm,shufmm];
     ci=[out_any.cic,out_any.cie,shufci];
     p=anovan([out_any.datac;out_any.datae;shufdatac],{[zeros(size(out_any.datac));ones(size(out_any.datae));2*ones(size(shufdatac))]})
-    
+    %% following import data
     fh=figure('Color','w','Position',[100,100,235,235]);
     hold on;
     bh=bar(mm,'FaceColor','w','EdgeColor','k');

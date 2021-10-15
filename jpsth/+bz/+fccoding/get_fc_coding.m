@@ -1,6 +1,5 @@
 function [metas,stats,fwd_rev]=get_fc_coding(opt)
 arguments
-    opt.keep_trial (1,1) logical = false
     opt.no_jitter (1,1) logical = false
     opt.shuffle (1,1) logical = false
 end
@@ -8,7 +7,7 @@ persistent metas_ stats_ fwd_rev_ no_jitter shuffle_
 if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_jitter~=opt.no_jitter || shuffle_ || opt.shuffle
     sig=bz.load_sig_pair();
     sess=unique(sig.sess);
-    fl=dir('fcdata\fc_coding_*.mat');
+    fl=dir(fullfile('fcdata','fc_coding_*.mat'));
     % {suids(fci,:),fwd_fc,fwd_fc-mean(fwd_shift,2),fwd_shift,rev_fc,rev_fc-mean(rev_shift,2),rev_shift}
     metas=[];
     stats=[];

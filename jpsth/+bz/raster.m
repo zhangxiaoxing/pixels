@@ -1,4 +1,10 @@
-function psth=raster(fidx,suids,prefsamp)
+function psth=raster(fidx,suids,prefsamp,opt)
+arguments
+    fidx (1,1) double {mustBeInteger}
+    suids
+    prefsamp
+    opt.tsel (1,3) double {mustBeInteger}
+end
 ephys.util.dependency('buz',false);
 %Fieldtrip routine
 [spkID,spkTS,trials,~,~]=ephys.getSPKID_TS(fidx);
@@ -15,13 +21,16 @@ cfg.timestampspersecond=sps;
 FT_SPIKE=ft_spike_maketrials(cfg,FT_SPIKE);
 %%%%%%%
 pref_trial_sel=find(trials(:,9)>0 & trials(:,10)>0 & trials(:,8)==6 & trials(:,5)==prefsamp);
-if numel(pref_trial_sel)>=3
-    center=ceil(numel(pref_trial_sel)/2);
-    tsel=center-1:center+1;
+if ~isfield(opt,'tsel')
+    if numel(pref_trial_sel)>=3
+        center=ceil(numel(pref_trial_sel)/2);
+        tsel=center-1:center+1;
+    else
+        tsel=1:numel(pref_trial_sel);
+    end
 else
-    tsel=1:numel(pref_trial_sel);
+    tsel=opt.tsel;
 end
-
 %%%%%%%% TODO highlight marker for fc events %%%%%%
 % spk_sel=ismember(FT_SPIKE.trial{1},pref_trial_sel(tsel));
 % G=findgroups(FT_SPIKE.trial{1}(spk_sel));
@@ -30,6 +39,10 @@ end
 % G=findgroups(FT_SPIKE.trial{2}(spk_sel));
 % plot(repmat(FT_SPIKE.time{2}(spk_sel),2,1),[G-0.3;G+0.5],'b-')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% for tidx=1:3:numel(pref_trial_sel)-2
+%     tsel=tidx:tidx+2;
+%     figure('Position',[100,100,2000,400])
+%     hold on
 yidx=1;
 evtstats=zeros(1,3);
 for onetrial=pref_trial_sel(tsel).'
@@ -42,18 +55,20 @@ for onetrial=pref_trial_sel(tsel).'
     evtstats(3)=evtstats(3)+numel(spk2);
     [evt1,evt2]=find(evts);
     if nnz(evts)>0
-        plot(repmat(spk1(evt1),2,1),[yidx-0.4;yidx],'r-')
-        plot(repmat(spk2(evt2),2,1),[yidx;yidx+0.4],'b-')
+        plot(repmat(spk1(evt1),2,1),[yidx;yidx+0.4],'r-')
+        plot(repmat(spk2(evt2),2,1),[yidx-0.4;yidx],'b-')
     end
     if numel(spk1)>nnz(evts)
-        plot(repmat(setdiff(spk1,spk1(evt1)),2,1),[yidx-0.4;yidx],'-','Color',[1,0.7,0.7])
+        plot(repmat(setdiff(spk1,spk1(evt1)),2,1),[yidx;yidx+0.4],'-','Color',[1,0.7,0.7])
     end
     if numel(spk2)>nnz(evts)
-        plot(repmat(setdiff(spk2,spk2(evt2)),2,1),[yidx;yidx+0.4],'-','Color',[0.7,0.7,1])
+        plot(repmat(setdiff(spk2,spk2(evt2)),2,1),[yidx-0.4;yidx],'-','Color',[0.7,0.7,1])
     end
     yidx=yidx+1;
 end
-
+% xlim([1,3])
+% title(tidx)
+% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

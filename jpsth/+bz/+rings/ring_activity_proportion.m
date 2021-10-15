@@ -108,15 +108,15 @@ save('loops_proportion_stats.mat','mstats')
 
 perbin=[];
 anovamat=[];
-for bin=20:20:60
-    cbinsel=mstats.congru(:,4)>bin-20 & mstats.congru(:,4)<=bin;
+for bin=40:40:120
+    cbinsel=mstats.congru(:,4)>bin-40 & mstats.congru(:,4)<=bin;
     cmm=mean(mstats.congru(cbinsel,8));
     cci=bootci(500,@(x) mean(x),mstats.congru(cbinsel,8));
     cc=mstats.congru(cbinsel,8);
     cc(:,2)=bin;
     cc(:,3)=1;
     
-    nbinsel=mstats.nonmem(:,4)>bin-20 & mstats.nonmem(:,4)<=bin;
+    nbinsel=mstats.nonmem(:,4)>bin-40 & mstats.nonmem(:,4)<=bin;
     nmm=mean(mstats.nonmem(nbinsel,8));
     nci=bootci(500,@(x) mean(x),mstats.nonmem(nbinsel,8));
     nn=mstats.nonmem(nbinsel,8);
@@ -126,13 +126,14 @@ for bin=20:20:60
     anovamat=[anovamat;cc;nn];
     perbin=[perbin;mean(cbinsel),cmm,cci(1),cci(2),mean(nbinsel),nmm,nci(1),nci(2)];
 end
+binx=40:40:120;
 fh=figure('Color','w','Position',[32,32,160,225]);
 hold on
-ch=plot(10:20:60,perbin(:,2),'-r');
-fill([10:20:60,fliplr(10:20:60)],[perbin(:,3);flip(perbin(:,4))],'r','EdgeColor','none','FaceAlpha',0.1)
+ch=plot(binx,perbin(:,2),'-r');
+fill([binx,fliplr(binx)],[perbin(:,3);flip(perbin(:,4))],'r','EdgeColor','none','FaceAlpha',0.1)
 
-nh=plot(10:20:60,perbin(:,6),'-k');
-fill([10:20:60,fliplr(10:20:60)],[perbin(:,7);flip(perbin(:,8))],'k','EdgeColor','none','FaceAlpha',0.1)
+nh=plot(binx,perbin(:,6),'-k');
+fill([binx,fliplr(binx)],[perbin(:,7);flip(perbin(:,8))],'k','EdgeColor','none','FaceAlpha',0.1)
 
 ylabel('Loops-associated spikes (%)')
 xlabel('Number of loops involved')
