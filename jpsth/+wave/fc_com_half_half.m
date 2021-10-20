@@ -30,6 +30,7 @@ parfor sess=1:116
     end
     sums(sess,:)={fc_fwd,fc_rev,non_fc};
 end
+save('fc_com_half_half.mat','sums')
 
 function plot()
 load('fc_com_half_half.mat','sums');
@@ -48,7 +49,7 @@ fh=figure('Color','w','Position',[32,32,190,190]);
 hold on
 bar(mm,'FaceColor','none','EdgeColor','k','LineWidth',1);
 errorbar(1:3,mm,[ci_fwd(1),ci_rev(1),ci_non(1)]-mm,[ci_fwd(2),ci_rev(2),ci_non(2)]-mm,'k.','CapSize',15)
-ylabel('Relative C.O.M. variance(sec2)')
+ylabel('TCOM latency variance(sec2)')
 set(gca(),'XTick',1:3,'XTickLabel',{'Prog. F.C.','Regres. F.C.','No coupling'},'XTickLabelRotation',30);
 xlim([0.4,3.6]);
 exportgraphics(fh,'FC_com_half_half.pdf');
