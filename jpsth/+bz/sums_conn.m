@@ -7,7 +7,7 @@ arguments
     opt.inhibit (1,1) logical = false
 end
 pool = gcp('nocreate');
-if isempty(pool)
+if isunix && isempty(pool)
     pool=parpool(opt.poolsize);
 end
 if strcmp(opt.type,'neupix')
@@ -30,11 +30,17 @@ else
     fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));
     sfn='aiopto_sums_conn.mat';
 end
-futures=parallel.FevalFuture.empty(numel(fl),0);
-for task_idx = 1:numel(fl)
-    futures(task_idx) = parfeval(pool,@sum_one,1,fl(task_idx)); % async significant functional coupling map->reduce
+if isunix
+    futures=parallel.FevalFuture.empty(numel(fl),0);
+    for task_idx = 1:numel(fl)
+        futures(task_idx) = parfeval(pool,@sum_one,1,fl(task_idx)); % async significant functional coupling map->reduce
+    end
+    sums_conn_str=fetchOutputs(futures);
+elseif ispc
+    for task_idx = 1:numel(fl)
+        sums_conn_str(task_idx) = sum_one(fl(task_idx)); % async significant functional coupling map->reduce
+    end
 end
-sums_conn_str=fetchOutputs(futures);
 save(sfn,'sums_conn_str')
 end
 
