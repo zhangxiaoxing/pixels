@@ -3,20 +3,21 @@ arguments
     opt.frac_COM (1,1) logical = true
     opt.frac_PVSST (1,1) logical = false
     opt.COM_PVSST (1,1) logical = true
-    opt.frac_sensemotor (1,1) logical = false
+    opt.frac_sensemotor (1,1) logical = true
     opt.COM_sensemotor (1,1) logical = true
     opt.sust_type (1,:) char {mustBeMember(opt.sust_type,{'any','sust','trans'})} = 'any'
     opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CTX'
     opt.corr (1,:) char {mustBeMember(opt.corr,{'Pearson','Spearman'})} = 'Pearson'
     opt.export (1,1) logical = true
-    opt.selidx (1,1) logical = true % calculate COM of selectivity index
+    opt.selidx (1,1) logical = false % calculate COM of selectivity index
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
 end
 
 
 %data generated from wave.per_region_COM
 %data of interest, region,branch level, count
-[fcom.collection,fcom.com_meta]=wave.per_region_COM('stats_method','mean','selidx',opt.selidx);
-ffrac.collection=ephys.per_region_fraction('memtype',opt.sust_type);
+[fcom.collection,fcom.com_meta]=wave.per_region_COM('stats_method','mean','selidx',opt.selidx,'delay',opt.delay);
+ffrac.collection=ephys.per_region_fraction('memtype',opt.sust_type,'delay',opt.delay);
 [~,~,ratiomap]=ref.get_pv_sst();
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
@@ -57,15 +58,20 @@ if opt.frac_COM
         ylim([10,60]);
         set(gca(),'YTick',0:20:60);
     end
-    xlim([2.5,3.5]);
+    if opt.delay==6
+        xlim([2.4,3.5]);
+        set(gca(),'XTick',2.5:0.5:3.5);
+    else
+        xlim([1.4,2.0]);
+        set(gca(),'XTick',1.2:0.2:2.0);
+    end
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
-    set(gca(),'XTick',2.5:0.5:3.5);
     ylabel('Fraction of delay selective neuron')
     xlabel('F.R. center of mass (s)')
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
-        exportgraphics(fh,'per_region_FC_COM_PVSST.pdf');
+        exportgraphics(fh,sprintf('per_region_TCOM_FRAC_%d.pdf',opt.delay));
     end
 
 end
@@ -93,15 +99,21 @@ if opt.COM_PVSST
     ylim([0,0.6])
     coord(:,3)=1;
     regres=coord(:,[1,3])\coord(:,2);
-    xlim([2.5,3.5]);
+    if opt.delay==6
+        xlim([2.4,3.5]);
+        set(gca(),'XTick',2.5:0.5:3.5);
+    else
+        xlim([1.4,2.0]);
+        set(gca(),'XTick',1.2:0.2:2.0);
+    end
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
-    set(gca(),'XTick',2.5:0.5:3.5);
+    
     ylabel('Hierarchy index (Low->High)')
     xlabel('F.R. center of mass (s)')
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
-        exportgraphics(fh,'per_region_COM_pv_sst.pdf');
+        exportgraphics(fh,sprintf('per_region_COM_pv_sst_%d.pdf',opt.delay));
     end
 
 
@@ -129,20 +141,25 @@ if opt.COM_sensemotor
             disp(ureg{ri})
         end
     end
-
-    set(gca(),'XTick',2.5:0.5:3.5);
+    
     ylabel('Sensory Motor Index (A.U.)')
     xlabel('F.R. center of mass (s)')
 
     coord(:,3)=1;
     regres=coord(:,[1,3])\coord(:,2);
-    xlim([2.5,3.5]);
+    if opt.delay==6
+        xlim([2.4,3.5]);
+        set(gca(),'XTick',2.5:0.5:3.5);
+    else
+        xlim([1.4,2.0]);
+        set(gca(),'XTick',1.2:0.2:2.0);
+    end
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     ylim([-7,7])
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
-        exportgraphics(fh,'per_region_COM_SMI.pdf');
+        exportgraphics(fh,sprintf('per_region_COM_SMI_%d.pdf',opt.delay));
     end
 
 
@@ -193,7 +210,7 @@ if opt.frac_PVSST
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','bottom');
     if opt.export
-        exportgraphics(fh,'per_region_frac_pv_sst.pdf');
+        exportgraphics(fh,sprintf('per_region_frac_pv_sst_%d.pdf',opt.delay));
     end
 end
 %% frac vs sensory motor transfer index
@@ -226,7 +243,6 @@ if opt.frac_sensemotor
     coord(:,3)=1;
     regres=coord(:,[1,3])\coord(:,2);
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
-    keyboard()
     ylim([-7,7])
     if strcmp(opt.sust_type,'sust')
         xlim([0,4]);
@@ -240,7 +256,7 @@ if opt.frac_sensemotor
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','bottom');
     if opt.export
-        exportgraphics(fh,'per_region_frac_sense_motor.pdf');
+        exportgraphics(fh,sprintf('per_region_frac_sense_motor_%d.pdf',opt.delay));
     end
 end
 end

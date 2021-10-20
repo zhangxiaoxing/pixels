@@ -9,6 +9,10 @@ arguments
 end
 persistent meta_str currtype criteria delay
 
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
 if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.criteria) || delay~=opt.delay
     if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
         homedir=ephys.util.getHomedir();

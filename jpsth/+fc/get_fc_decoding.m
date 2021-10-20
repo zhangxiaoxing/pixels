@@ -8,6 +8,11 @@ arguments
     opt.debug (1,1) logical = false
 end
 
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
+
 if opt.denovo
     dec=struct();
     dec.s1=[];

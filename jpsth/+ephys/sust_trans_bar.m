@@ -3,6 +3,10 @@ arguments
     opt.good_wf (1,1) logical = false;
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
 meta=ephys.util.load_meta('delay',opt.delay);
 upath=unique(meta.allpath);
 for ii=1:numel(upath)

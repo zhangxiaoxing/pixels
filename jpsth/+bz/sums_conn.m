@@ -30,6 +30,7 @@ else
     fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));
     sfn='aiopto_sums_conn.mat';
 end
+tic
 if isunix
     futures=parallel.FevalFuture.empty(numel(fl),0);
     for task_idx = 1:numel(fl)
@@ -41,6 +42,7 @@ elseif ispc
         sums_conn_str(task_idx) = sum_one(fl(task_idx)); % async significant functional coupling map->reduce
     end
 end
+toc
 save(sfn,'sums_conn_str')
 end
 

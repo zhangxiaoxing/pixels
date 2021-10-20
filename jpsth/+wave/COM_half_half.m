@@ -9,7 +9,7 @@ if false %isfile('COM_half_half.mat')
     %TODO else generate small local dataset for showcase?
     mm=mean(stats);
     ci=bootci(500,@(x) mean(x), stats);
-    fh=figure('Color','w','Position',[32,32,210,60]);
+    fh=figure('Color','w','Position',[32,32,210,100]);
     hold on
     bar(mm,0.7,'FaceColor','w','EdgeColor','k','LineWidth',1);
     errorbar(1:3,mm,ci(1,:)-mm,ci(2,:)-mm,'k.','CapSize',20,'Color',[0.5,0.5,0.5])

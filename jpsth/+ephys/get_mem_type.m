@@ -6,6 +6,10 @@ arguments
     opt.alpha (1,1) double = 0.05
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
 mem_type=nan(1,size(selec,2));
 per_bin=nan(opt.delay,size(selec,2));
 for i=1:size(selec,2)

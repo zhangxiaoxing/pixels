@@ -13,6 +13,9 @@ arguments
     opt.overwrite (1,1) logical =false
 %     opt.overwrite (1,1) logical = false
 end
+if opt.delay==6
+    warning('Delay set to default 6')
+end
 
 if strcmp(opt.criteria,'any'), suffix='';
 else, suffix=opt.criteria; end

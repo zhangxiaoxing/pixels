@@ -79,6 +79,9 @@ disp([nnz(diff(comsame,1,2)>0),size(comsame)])
 disp([nnz(diff(coml2h,1,2)>0),size(coml2h)])
 disp([nnz(diff(comh2l,1,2)>0),size(comh2l)])
 keyboard()
+% 
+% import scipy.stats as stats
+% stats.binom_test(745,1318,0.5)
 exportgraphics(fh,'fc_prog_regres_bars_hier.pdf')
 end
 

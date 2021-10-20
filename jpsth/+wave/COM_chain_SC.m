@@ -6,31 +6,31 @@ arguments
 end
 load('sums_conn.mat','sums_conn_str');
 meta_str=ephys.util.load_meta('type','neupix');
-warning('partial iteration for illustration')
+% warning('partial iteration for illustration')
 figidx=1;
 gk = fspecial('gaussian', [3 3], 1);
-for fidx=72%1:numel(sums_conn_str)
-    disp(fidx);
+for fidx=1:numel(sums_conn_str)
     if opt.strict
         ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
-        strict_sel=ccgqc(:,1)>0; %& ccg(:,4)<350 & ccg(:,4)>252 & ccg(:,6)<20 & ccg(:,5)<20 & ccg(:,6)<20 ;
-        %1:Polar 2:Time of peak 3:Noise peaks 4:FWHM
+        strict_sel=ccgqc(:,2)>=252 & ccgqc(:,4)>=2 & ccgqc(:,4)<=40 & ccgqc(:,5)>248;
+        %1:Polar 2:Time of peak 3:Noise peaks 4:FWHM 5:rising edge
+        %6:falling edge
         oneccg=sums_conn_str(fidx).ccg_sc(strict_sel,:); %ccg
         onecon=sums_conn_str(fidx).sig_con(strict_sel,:); %jitter controlled significant functional coupling
-        
+    disp([fidx,nnz(strict_sel),numel(strict_sel)]);    
     else % full input from English, Buzsaki code
         oneccg=sums_conn_str(fidx).ccg_sc;
         onecon=sums_conn_str(fidx).sig_con;
     end
     %TODO nonmem,incongruent
-    onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder); %per su center of mass, normalized FR
+    onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder,'curve',true); %per su center of mass, normalized FR
     skey=fieldnames(onecom);
     for samp=["s1","s2"]
         mapkeys=cell2mat(onecom.(skey{1}).(samp).keys); %pre-selected transient selective su
         typesel=all(ismember(int32(onecon(:,:)),mapkeys),2);
         typesigcon=onecon(typesel,:);
         con_com_diff=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(onecon(typesel,:)));
-        dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(50/250); % Assuming 250ms bin
+        dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(10/250); % Assuming 250ms bin
         dirsigcon=typesigcon(dirsel,:);
         upre=unique(dirsigcon(:,1)).';
         
@@ -132,7 +132,7 @@ for fidx=72%1:numel(sums_conn_str)
                     end
                     sgtitle(sprintf('fidx %d chain %d-%d',fidx,ii,pp));
                     if opt.screen
-%                         exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
+                        exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
                         keyboard()
                     else
                         keyboard()

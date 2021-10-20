@@ -6,13 +6,19 @@ arguments
     opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
-    opt.keep_sust (1,1) logical = false
-    opt.selidx (1,1) logical = true % calculate COM of selectivity index
+    opt.keep_sust (1,1) logical = false % use sustained coding neuron
+    opt.selidx (1,1) logical = false % calculate COM of selectivity index
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
 end
-persistent com_str onepath_
+persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
+
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
 if isempty(onepath_), onepath_='';end
-if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
-    meta_str=ephys.util.load_meta('type','neupix');
+if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || opt.selidx~=selidx_ || opt.decision~=decision_ || opt.rnd_half~=rnd_half_ || opt.curve~=curve_
+    meta_str=ephys.util.load_meta('type','neupix','delay',opt.delay);
     homedir=ephys.util.getHomedir('type','raw');
     fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
     com_str=struct();
@@ -32,17 +38,22 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
         trial=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         %TODO nonmem,incongruent
-        mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.');
+        if opt.keep_sust
+            mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.');
+            mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.');
+        else
+            mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.');
+            mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.');
+        end
         msel1=find(ismember(suid,mcid1));
-        mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.');
         msel2=find(ismember(suid,mcid2));
         if isempty(msel1) && isempty(msel2), continue; end
         sessid=ephys.path2sessid(pc_stem);
-        s1sel=find(trial(:,5)==4 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0);
-        s2sel=find(trial(:,5)==8 & trial(:,8)==6 & trial(:,9)>0 & trial(:,10)>0);
+        s1sel=find(trial(:,5)==4 & trial(:,8)==opt.delay & trial(:,9)>0 & trial(:,10)>0);
+        s2sel=find(trial(:,5)==8 & trial(:,8)==opt.delay & trial(:,9)>0 & trial(:,10)>0);
         
-        e1sel=find(trial(:,5)==4 & trial(:,8)==6 & trial(:,10)==0);
-        e2sel=find(trial(:,5)==8 & trial(:,8)==6 & trial(:,10)==0);
+        e1sel=find(trial(:,5)==4 & trial(:,8)==opt.delay & trial(:,10)==0);
+        e2sel=find(trial(:,5)==8 & trial(:,8)==opt.delay & trial(:,10)==0);
         
         sess=['s',num2str(sessid)];
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed
@@ -66,12 +77,10 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
 %             s2a=s2sel(1:2:end);
             s2b=s2sel(~ismember(s2sel,s2a));
             if nnz(s1a)>2 && nnz(s1b)>2 && nnz(s2a)>2 && nnz(s2b)>2 && nnz(e1sel)>2 && nnz(e2sel)>2
-                opt.err=false;
                 com_str=per_su_process(sess,suid,msel1,fr,s1a,s2a,com_str,'s1a',opt);
                 com_str=per_su_process(sess,suid,msel1,fr,s1b,s2b,com_str,'s1b',opt);
                 com_str=per_su_process(sess,suid,msel2,fr,s2a,s1a,com_str,'s2a',opt);
                 com_str=per_su_process(sess,suid,msel2,fr,s2b,s1b,com_str,'s2b',opt);
-                opt.err=true;
                 com_str=per_su_process(sess,suid,msel1,fr,e1sel,e2sel,com_str,'s1e',opt);
                 com_str=per_su_process(sess,suid,msel2,fr,e2sel,e1sel,com_str,'s2e',opt);
             end
@@ -94,14 +103,19 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
     end
 end
 com_str_=com_str;
+delay_ =opt.delay;
+selidx_=opt.selidx;
+decision_=opt.decision;
+rnd_half_=opt.rnd_half;
+curve_=opt.curve;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,samp,opt)
 %TODO if decision
 if opt.decision
-    stats_window=41:44;
+    stats_window=(opt.delay*4+17):44;
 else
-    stats_window=17:40;
+    stats_window=17:(opt.delay*4+16);
 end
 for su=reshape(msel,1,[])
     perfmat=squeeze(fr(pref_sel,su,stats_window));
@@ -125,10 +139,10 @@ for su=reshape(msel,1,[])
         mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
         mm_pref=mm(stats_window)-basemm;
         if max(mm_pref)<=0,continue;end
-        mm_pref=mm_pref./max(mm_pref);
         curve=mm_pref;
         mm_pref(mm_pref<0)=0;
         com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
+        mm_pref=mm_pref./max(mm_pref);
     end
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve

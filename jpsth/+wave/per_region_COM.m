@@ -6,15 +6,21 @@ arguments
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
 end
 
-persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_ stats_method
-if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_ || ~strcmp(stats_method,opt.stats_method)
+persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_ stats_method delay_
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
+
+if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_ || ~strcmp(stats_method,opt.stats_method) || opt.delay~=delay_
     
     % per region COM
-    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision,'selidx',opt.selidx);
+    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision,'selidx',opt.selidx,'delay',opt.delay);
     % COM->SU->region
-    meta=ephys.util.load_meta();
+    meta=ephys.util.load_meta('delay',opt.delay);
     meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
     sess=fieldnames(com_map);
     
@@ -65,6 +71,7 @@ if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png 
     keep_figure_=opt.keep_figure;
     decision_=opt.decision;
     stats_method=opt.stats_method;
+    delay_=opt.delay;
 else
     collection=collection_;
     com_meta=com_meta_;

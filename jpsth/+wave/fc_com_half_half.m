@@ -40,19 +40,20 @@ non_fc=cell2mat(sums(:,3));
 fc_fwd(:,7)=(fc_fwd(:,6).*0.25).^2;
 fc_rev(:,7)=(fc_rev(:,6).*0.25).^2;
 non_fc(:,7)=(non_fc(:,6).*0.25).^2;
-mm=[mean(fc_fwd(:,7)),mean(fc_rev(:,7)),mean(non_fc(:,7))];
-ci_fwd=bootci(500,@(x) mean(x),fc_fwd(:,7));
-ci_rev=bootci(500,@(x) mean(x),fc_rev(:,7));
+mm=[mean([fc_fwd(:,7);fc_rev(:,7)]),mean(non_fc(:,7))];
+ci_fc=bootci(500,@(x) mean(x),[fc_fwd(:,7);fc_rev(:,7)]);
 boots=bootstrp(500,@(x) mean(x),non_fc(:,7));
 ci_non=[prctile(boots,2.5);prctile(boots,97.5)];
 fh=figure('Color','w','Position',[32,32,190,190]);
 hold on
 bar(mm,'FaceColor','none','EdgeColor','k','LineWidth',1);
-errorbar(1:3,mm,[ci_fwd(1),ci_rev(1),ci_non(1)]-mm,[ci_fwd(2),ci_rev(2),ci_non(2)]-mm,'k.','CapSize',15)
+errorbar(1:2,mm,[ci_fc(1),ci_non(1)]-mm,[ci_fc(2),ci_non(2)]-mm,'k.','CapSize',15,'Color',[0.5,0.5,0.5])
 ylabel('TCOM latency variance(sec2)')
-set(gca(),'XTick',1:3,'XTickLabel',{'Prog. F.C.','Regres. F.C.','No coupling'},'XTickLabelRotation',30);
-xlim([0.4,3.6]);
+set(gca(),'XTick',1:2,'XTickLabel',{'F.C.','No coupling'},'XTickLabelRotation',30);
+xlim([0.4,2.6]);
 exportgraphics(fh,'FC_com_half_half.pdf');
+p=ranksum([fc_fwd(:,7);fc_rev(:,7)],non_fc(:,7))
+
 end
 
 

@@ -3,10 +3,16 @@ arguments
     opt.png (1,1) logical = false
     opt.pdf (1,1) logical = false
     opt.memtype (1,:) char {mustBeMember(opt.memtype,{'any','sust','trans'})} = 'any'
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
 end
-persistent collection_ png_ pdf_ memtype_
-if isempty(collection_) || opt.png~=png_ || opt.pdf ~= pdf_ || ~strcmp(opt.memtype,memtype_)
-    meta=ephys.util.load_meta();
+
+persistent collection_ png_ pdf_ memtype_ delay_
+if opt.delay==6
+    warning('Delay set to default 6')
+end
+
+if isempty(collection_) || opt.png~=png_ || opt.pdf ~= pdf_ || ~strcmp(opt.memtype,memtype_) || opt.delay~=delay_
+    meta=ephys.util.load_meta('delay',opt.delay);
     fh=figure('Color','w');
     cmap=colormap('jet');
     collection=recurSubregions(meta,1,ismember(meta.reg_tree(1,:),{'BS','CH'}),0,1,cmap,[],opt.memtype);
@@ -34,6 +40,7 @@ if isempty(collection_) || opt.png~=png_ || opt.pdf ~= pdf_ || ~strcmp(opt.memty
     memtype_=opt.memtype;
     png_=opt.png;
     pdf_=opt.pdf;
+    delay_=opt.delay;
 else
     collection=collection_;
 end
