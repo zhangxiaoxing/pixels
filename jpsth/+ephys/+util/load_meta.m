@@ -5,25 +5,27 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.filter_waveform (1,1)
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
-persistent meta_str currtype criteria
+persistent meta_str currtype criteria delay
 
-if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.criteria)
+if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.criteria) || delay~=opt.delay
     if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
         homedir=ephys.util.getHomedir();
-        if strcmp(opt.criteria,'WT'),fpath=fullfile(homedir,'transient_6.hdf5');
-        elseif strcmp(opt.criteria,'Learning'),fpath=fullfile(homedir,'transient_6_complete.hdf5');end
+        if strcmp(opt.criteria,'WT'),fpath=fullfile(homedir,sprintf('transient_%d.hdf5',opt.delay)); % source data from K:\code\per_sec\per_sec_stats.py
+        elseif strcmp(opt.criteria,'Learning'),fpath=fullfile(homedir,sprintf('transient_%d_complete.hdf5',opt.delay));end
         
         meta_str.trial_counts=h5read(fpath,'/trial_counts');
         meta_str.wrs_p=h5read(fpath,'/wrs_p');
         meta_str.selec=h5read(fpath,'/selectivity');
-        meta_str.allpath=deblank(h5read(fpath,'/path'));
+        meta_str.allpath=cellstr(deblank(h5read(fpath,'/path')));
         meta_str.allcid=h5read(fpath,'/cluster_id');
-        meta_str.reg_tree=deblank(h5read(fpath,'/reg_tree'));
+        meta_str.reg_tree=cellstr(deblank(h5read(fpath,'/reg_tree')));
         meta_str.good_waveform=h5read(fpath,'/wf_good');
 %         meta_str.mem_type=h5read(fpath,'/mem_type');
-        [meta_str.mem_type,meta_str.per_bin]=ephys.get_mem_type(meta_str.wrs_p,meta_str.selec);
+        [meta_str.mem_type,meta_str.per_bin]=ephys.get_mem_type(meta_str.wrs_p,meta_str.selec,'delay',opt.delay);
         currtype=opt.type;
+        delay=opt.delay;
     else
         ccftree=deblank(h5read('K:\neupix\AIOPTO\META\Selectivity_AIopto_0419.hdf5','/reg'));
         meta_str.reg_tree=ccftree(3:8,:);

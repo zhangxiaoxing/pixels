@@ -3,11 +3,12 @@ arguments
     opt.plot_trial_frac (1,1) logical = false
     opt.plot_fwd_rev (1,1) logical = false
     opt.plot_coding_idx (1,1) logical = false
-    opt.plot_coding_idx_shuf (1,1) logical = true
+    opt.plot_coding_idx_shuf (1,1) logical = false
+    opt.plot_svm (1,1) logical = true
 end
 
 % [~,~,ratiomap]=ref.get_pv_sst();
-idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+idmap=load('reg_ccfid_map.mat');
 load('OBM1Map.mat','OBM1map')
 
 % {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
@@ -74,6 +75,81 @@ if opt.plot_coding_idx
     exportgraphics(fh,'FC_coding_hier.pdf')
     keyboard()
 end
+
+if opt.plot_svm
+    if ~exist('per_trial','var')
+        [metas,stats,~,per_trial]=bz.fccoding.get_fc_coding('no_jitter',true,'per_trial',true);
+    end
+    %normalize
+    [centt,stdd]=deal(nan(size(per_trial(:,1))));
+    per_trial_norm=cell(size(per_trial(:,1:2)));
+    for ii=1:numel(centt)
+        [N,centt(ii),stdd(ii)]=normalize([per_trial{ii,1};per_trial{ii,2}]);
+        per_trial_norm{ii,1}=N(1:numel(per_trial{ii,1}));
+        per_trial_norm{ii,2}=N(numel(per_trial{ii,1})+1:end);
+        per_trial_norm{ii,3}=normalize(per_trial{ii,3},'center',centt(ii),'scale',stdd(ii));
+        per_trial_norm{ii,4}=normalize(per_trial{ii,4},'center',centt(ii),'scale',stdd(ii));
+    end
+    
+    NTRIAL=40;
+    NERR=5;
+    NRPT=50;
+    dec_result=struct();
+    for NSU=50:50:300
+        [decdata.s1,decdata.s2]=deal(nan(NSU,NTRIAL,1,NRPT));
+        [decdata.e1,decdata.e2]=deal(nan(NSU,NERR,1,NRPT));
+        mtypes={all(ismember(metas(:,4:5),1:2),2) | all(ismember(metas(:,4:5),3:4),2),...
+            any(ismember(metas(:,4:5),1:2),2) & any(ismember(metas(:,4:5),3:4),2),...
+            all(metas(:,4:5)==0,2)};
+        result=cell(1,3);
+        % congru, incong, nonmem
+        for midx=1:3
+            su_sel=find(min(cellfun(@(x) size(x,1),per_trial_norm(:,1:2)),[],2)>NTRIAL & mtypes{midx} & centt>1 & stdd>0 & min(cellfun(@(x) size(x,1),per_trial(:,3:4)),[],2)>NERR);
+            disp([midx,numel(su_sel)]);
+            for rpt=1:NRPT
+                su_perm=randsample(su_sel,NSU);
+                decdata.s1(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,1},NTRIAL),su_perm,'UniformOutput',false).').';
+                decdata.s2(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,2},NTRIAL),su_perm,'UniformOutput',false).').';
+                decdata.e1(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,3},NERR),su_perm,'UniformOutput',false).').';
+                decdata.e2(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,4},NERR),su_perm,'UniformOutput',false).').';
+            end
+            if midx==1
+                result{midx}=fc.dec.dec(decdata,'decoder','SVM','svmcost',1);
+            else
+                result{midx}=fc.dec.dec(decdata,'decoder','SVM','svmcost',1);
+            end
+        end
+        dec_result.(sprintf('SU%d',NSU))=result;
+    end
+    
+    
+    colors={'r','b','k'};
+    fh=figure('Color','w','Position',[100,100,235,235]);
+    hold on;
+    for mi=1:3
+        cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.cvcorr{1},50:50:300,'UniformOutput',false));
+        mm=mean(cvmat).*100;
+        cim=bootci(500,@(x) mean(x).*100,cvmat);
+        ph(mi)=plot(50:50:300,mm,strjoin({'-',colors{mi}},''));
+        fill([50:50:300,fliplr(50:50:300)],[cim(1,:),fliplr(cim(2,:))],colors{mi},'EdgeColor','none','FaceAlpha',0.1);
+    end
+    
+    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.errcorr{1},50:50:300,'UniformOutput',false));
+    mm=mean(cvmat).*100;
+    cim=bootci(500,@(x) mean(x).*100,cvmat);
+    ph(4)=plot(50:50:300,mm,'--r');
+    fill([50:50:300,fliplr(50:50:300)],[cim(1,:),fliplr(cim(2,:))],'r','EdgeColor','none','FaceAlpha',0.1);
+
+    ylabel('WM classification accuracy');
+    xlabel('Number of FC pairs');
+    xlim([50,300])
+    legend(ph,{'Same memory','Diff. memory','Nonmemory','(Error trial)'},Location="northoutside");
+
+    exportgraphics(fh,'FC_coding_SVM.pdf')
+    keyboard()
+end
+
+
 
 if opt.plot_coding_idx_shuf
     [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',true,'shuffle',false);
@@ -201,4 +277,9 @@ if plot_
     sgtitle(ftitle);
 end
 
+end
+
+function out=rnd_trial(incell,ntrial)
+su_perm=randperm(numel(incell{1},1));
+out=incell{su_perm(1:ntrial)};
 end

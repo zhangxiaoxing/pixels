@@ -34,21 +34,23 @@ public class GephiTK {
     public static void main(String[] args) {
 
         GephiTK gtk = new GephiTK();
-        for (String m : new String[]{"s1", "s2", "non", "any"}) {
-            double[][] congru = new double[116][];
-            for (int i = 1; i < 117; i++) {
-                String edgePath = String.format("K:\\code\\jpsth\\gephidata\\%s_edge_%03d.csv", m, i);
-                String nodePath = String.format("K:\\code\\jpsth\\gephidata\\%s_node_%03d.csv", m, i);
-                congru[i-1] = gtk.processFile(edgePath, nodePath);
-            }
-
-            try (FileWriter writer = new FileWriter(String.format("K:\\code\\jpsth\\gephidata\\%s_gephi_graph_sums.csv", m))) {
-                for (double[] onesess : congru) {
-                    writer.append(Arrays.toString(onesess).replaceAll("[\\[\\]]", ""));
-                    writer.append("\n");
+        for (String r : new String[]{"within", "cross", "all"}) {
+            for (String m : new String[]{"s1", "s2", "incong", "non", "any"}) {
+                double[][] congru = new double[116][];
+                for (int i = 1; i < 117; i++) {
+                    String edgePath = String.format("K:\\code\\jpsth\\gephidata\\%s_edge_%03d_%s.csv", m, i, r);
+                    String nodePath = String.format("K:\\code\\jpsth\\gephidata\\%s_node_%03d_%s.csv", m, i, r);
+                    congru[i - 1] = gtk.processFile(edgePath, nodePath);
                 }
-            } catch (IOException ioe) {
-                System.out.println(ioe.toString());
+
+                try (FileWriter writer = new FileWriter(String.format("K:\\code\\jpsth\\gephidata\\%s_%s_gephi_graph_sums.csv", m, r))) {
+                    for (double[] onesess : congru) {
+                        writer.append(Arrays.toString(onesess).replaceAll("[\\[\\]]", ""));
+                        writer.append("\n");
+                    }
+                } catch (IOException ioe) {
+                    System.out.println(ioe.toString());
+                }
             }
         }
     }

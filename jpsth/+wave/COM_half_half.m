@@ -3,8 +3,8 @@ if new_data
     save('COM_half_half.mat','stats');
 end
 
-% Showcase from s18
-if isfile('COM_half_half.mat')
+
+if false %isfile('COM_half_half.mat')
     load('COM_half_half.mat','stats');
     %TODO else generate small local dataset for showcase?
     mm=mean(stats);
@@ -12,10 +12,11 @@ if isfile('COM_half_half.mat')
     fh=figure('Color','w','Position',[32,32,210,60]);
     hold on
     bar(mm,0.7,'FaceColor','w','EdgeColor','k','LineWidth',1);
-    errorbar(1:3,mm,ci(1,:)-mm,ci(2,:)-mm,'ko','CapSize',20)
+    errorbar(1:3,mm,ci(1,:)-mm,ci(2,:)-mm,'k.','CapSize',20,'Color',[0.5,0.5,0.5])
     ylabel('Pearson r')
     set(gca(),'XTick',1:3,'XTickLabel',{'Correct','Error','Shuffle'});
     xlim([0.5,3.5]);
+    ylim([-0.15,0.5])
     exportgraphics(fh,'COM_half_half_stats.pdf')
 end
 
@@ -33,13 +34,13 @@ else
     %     if isempty(gcp('nocreate'))
     %         parpool(2)
     %     end
-    rpts=5;
+    rpts=3;
 end
 
 localshuff=@(x) randsample(x,numel(x));
 stats=nan(rpts,3);
 % [data1hsum,data2hsum]=deal([]);
-parfor rpt=1:rpts
+for rpt=1:rpts
     disp(rpt)
     [data1hall,data2hall,dataeall]=deal([]);
     com_map=wave.get_com_map('curve',false,'rnd_half',true);

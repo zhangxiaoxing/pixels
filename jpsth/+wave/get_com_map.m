@@ -6,6 +6,8 @@ arguments
     opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
+    opt.keep_sust (1,1) logical = false
+    opt.selidx (1,1) logical = true % calculate COM of selectivity index
 end
 persistent com_str onepath_
 if isempty(onepath_), onepath_='';end
@@ -52,19 +54,24 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_)
             if opt.curve
                 for ff=["s1aheat","s2aheat","s1acurve","s2acurve",...
                         "s1bheat","s2bheat","s1bcurve","s2bcurve",...
-                        "e1heat","e2heat","e1curve","e2curve"]
+                        "s1eheat","s2eheat","s1ecurve","s2ecurve"]
                     com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
                 end
             end
             s1a=randsample(s1sel,floor(numel(s1sel)./2));
+%             s1a=s1sel(1:2:end);
             s1b=s1sel(~ismember(s1sel,s1a));
+
             s2a=randsample(s2sel,floor(numel(s2sel)./2));
+%             s2a=s2sel(1:2:end);
             s2b=s2sel(~ismember(s2sel,s2a));
             if nnz(s1a)>2 && nnz(s1b)>2 && nnz(s2a)>2 && nnz(s2b)>2 && nnz(e1sel)>2 && nnz(e2sel)>2
+                opt.err=false;
                 com_str=per_su_process(sess,suid,msel1,fr,s1a,s2a,com_str,'s1a',opt);
                 com_str=per_su_process(sess,suid,msel1,fr,s1b,s2b,com_str,'s1b',opt);
                 com_str=per_su_process(sess,suid,msel2,fr,s2a,s1a,com_str,'s2a',opt);
                 com_str=per_su_process(sess,suid,msel2,fr,s2b,s1b,com_str,'s2b',opt);
+                opt.err=true;
                 com_str=per_su_process(sess,suid,msel1,fr,e1sel,e2sel,com_str,'s1e',opt);
                 com_str=per_su_process(sess,suid,msel2,fr,e2sel,e1sel,com_str,'s2e',opt);
             end
@@ -100,25 +107,37 @@ for su=reshape(msel,1,[])
     perfmat=squeeze(fr(pref_sel,su,stats_window));
     npmat=squeeze(fr(nonpref_sel,su,stats_window));
     basemm=mean([mean(perfmat,1);mean(npmat,1)]);
-    if ~opt.per_sec_stats
-        basemm=mean(basemm);
+    if opt.selidx
+        sel_vec=([mean(perfmat,1);mean(npmat,1)]);
+        sel_idx=(-diff(sel_vec)./sum(sel_vec));
+        curve=sel_idx;
+        sel_idx(sel_idx<0 | all(sel_vec==0))=0;
+        com=sum((1:numel(stats_window)).*sel_idx)./sum(sel_idx);
+        if ~isfinite(com)
+            fprintf('Moved sess %d su%d, infinite TCOM\n',sess,su)
+            com=numel(stats_window)+1;
+        end
+    else
+        if ~opt.per_sec_stats
+            basemm=mean(basemm);
+        end
+        %TODO check the effect of smooth
+        mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
+        mm_pref=mm(stats_window)-basemm;
+        if max(mm_pref)<=0,continue;end
+        mm_pref=mm_pref./max(mm_pref);
+        curve=mm_pref;
+        mm_pref(mm_pref<0)=0;
+        com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
     end
-    %TODO check the effect of smooth
-    mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
-    mm_pref=mm(stats_window)-basemm;
-    if max(mm_pref)<=0,continue;end
-    mm_pref=mm_pref./max(mm_pref);
-    mm_pref(mm_pref<0)=0;
-    com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
-        curve=mm_pref;
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
-        heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
-        heatnorm=heatcent./max(heatcent);
         if opt.rnd_half
-            heatnorm=mean(heatnorm);
-        else
+            heatnorm=curve;
+        else % per_su_showcase
+            heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
+            heatnorm=heatcent./max(abs(heatcent));
             heatnorm(heatnorm<0)=0;
             if size(heatnorm,1)>10
                 cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));

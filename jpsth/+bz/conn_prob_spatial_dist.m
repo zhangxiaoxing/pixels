@@ -57,7 +57,7 @@ end
 
 % [r,p]=corr([same_stats(:,3);dist_stats(:,3)]./100,[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100);
 
-xx=[same_stats(:,3);dist_stats(:,3)].*10;
+xx=[same_stats(:,3);dist_stats(:,3)].*10;% micro-meter unit
 yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
 tbl=table(xx,yy);
 modelfun=@(b,x) b(1)*(x(:,1).^b(2))+b(3);
@@ -69,7 +69,7 @@ hold on;
 mh=plot(dist_sums(:,1),dist_sums(:,2),'-k','LineWidth',1);
 % fplot(@(x) mdl.Coefficients.Estimate(1).*(x.^mdl.Coefficients.Estimate(2))+mdl.Coefficients.Estimate(3),[0,7],'-k')
 pltxy=sortrows([mdl.Variables.xx,mdl.Fitted]);
-fith=plot(pltxy(:,1)./1000,pltxy(:,2),'-r','LineWidth',1);
+fith=plot(pltxy(:,1)./1000,pltxy(:,2),'-r','LineWidth',1); %micro-meter unit
 errorbar(dist_sums(:,1),dist_sums(:,2),dist_sums(:,3),dist_sums(:,4),'k.');
 scatter(same_stats(:,3)./100,same_stats(:,4)./same_stats(:,5).*100,4,...
     'o','MarkerFaceColor','k','MarkerFaceAlpha',0.4,'MarkerEdgeColor','none');

@@ -5,13 +5,14 @@ arguments
     opt.png (1,1) logical = false
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
+    opt.selidx (1,1) logical = false % calculate COM of selectivity index
 end
 
 persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_ stats_method
 if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_ || ~strcmp(stats_method,opt.stats_method)
     
     % per region COM
-    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision);
+    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision,'selidx',opt.selidx);
     % COM->SU->region
     meta=ephys.util.load_meta();
     meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
@@ -112,7 +113,7 @@ for curr_idx=1:numel(curr_ureg)
     %     if curr_branch>3
     %         text(min(xbound([curr_branch,curr_branch+1]))+rem(curr_idx,4)*0.05,curr_accu+sub_ratio/2,1,curr_ureg(curr_idx),'HorizontalAlignment','left','VerticalAlignment','middle')
     %     else
-    text(mean(xbound([curr_branch,curr_branch+1])),curr_accu+sub_ratio/2,curr_ureg(curr_idx),1,'HorizontalAlignment','left','VerticalAlignment','middle')
+    text(mean(xbound([curr_branch,curr_branch+1])),curr_accu+sub_ratio/2,1,curr_ureg(curr_idx),'HorizontalAlignment','left','VerticalAlignment','middle')
     %     end
     if curr_branch<5
         collection=recurSubregions(curr_branch+1,curr_sel,curr_accu,sub_ratio,cmap,com_meta,collection,opt);

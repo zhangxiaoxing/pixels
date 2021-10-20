@@ -4,18 +4,19 @@ arguments
     wrs_p (14,:) double % assuming 1 sec bin
     selec (14,:) double % assuming 1 sec bin
     opt.alpha (1,1) double = 0.05
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
 mem_type=nan(1,size(selec,2));
-per_bin=nan(6,size(selec,2));
+per_bin=nan(opt.delay,size(selec,2));
 for i=1:size(selec,2)
-    sel_bin=find(wrs_p(5:10,i)<opt.alpha);
+    sel_bin=find(wrs_p(5:(opt.delay+4),i)<opt.alpha);
     if isempty(sel_bin)
         mem_type(i)=0;
         per_bin(:,i)=0;
     else
         ssign=sign(selec(sel_bin+4,i));
         if numel(unique(ssign))==1 % non-switched 
-            if numel(ssign)==6  % sustained
+            if numel(ssign)==opt.delay  % sustained
                 if ssign(1)==1
                     mem_type(i)=1;
                     per_bin(:,i)=1;

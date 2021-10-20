@@ -1,8 +1,9 @@
 function sust_trans_bar(opt)
 arguments
     opt.good_wf (1,1) logical = false;
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
-meta=ephys.util.load_meta();
+meta=ephys.util.load_meta('delay',opt.delay);
 upath=unique(meta.allpath);
 for ii=1:numel(upath)
     if opt.good_wf
@@ -35,4 +36,4 @@ else
     text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]))),'Rotation',90,'FontSize',10)
     text(max(xlim()),max(ylim()),num2str(numel(meta.mem_type)),'HorizontalAlignment','right','VerticalAlignment','top')
 end
-exportgraphics(fh,'sust_trans_fraction.pdf');
+exportgraphics(fh,sprintf('sust_trans_fraction_%d.pdf',opt.delay));

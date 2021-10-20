@@ -15,9 +15,9 @@ def _get_struct_tree(): #import from Allen CCF v3 file
     return pd.read_csv(tree_file,
                           usecols=['id','acronym','depth','structure_id_path',],
                           dtype={'id':'UInt32',
-                                 'acronym':'string',
-                                 'depth':'UInt8',
-                                 'structure_id_path':'string'},
+                                  'acronym':'string',
+                                  'depth':'UInt8',
+                                  'structure_id_path':'string'},
                           index_col='id')
 
 
