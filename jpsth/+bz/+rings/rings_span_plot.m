@@ -24,26 +24,23 @@ fn='Relative_loops_number.pdf';
 
 
 % rdata=[ratio3c,ratio3n;ratio4c,ratio4n;ratio5c,ratio5n];
-% rdata=[z3cw,z3cc,z3nw,z3nc;z4cw,z4cc,z4nw,z4nc;z5cw,z5cc,z5nw,z5nc];
-
-rdata=[z3nw,z4nw,z5nw;z3nc,z4nc,z5nc;z3cw,z4cw,z5cw;z3cc,z4cc,z5cc];
-
+rdata=[z4nw,z4nc,z4cw,z4cc,;z5nw,z5nc,z5cw,z5cc];
 
 fh=figure('Color','w','Position',[32,32,155,235]);
 hold on
-bh=bar(rdata(:,[1,7,4,10]));
-[bh(1).FaceColor,bh(2).FaceColor,bh(3).FaceColor,bh(4).FaceColor]=deal('r','k','r','k');
-[bh(1).FaceAlpha,bh(2).FaceAlpha]=deal(0.5);
+bh=bar(rdata(:,[1,4,7,10]));
+[bh(1).FaceColor,bh(2).FaceColor,bh(3).FaceColor,bh(4).FaceColor]=deal('k','k','r','r');
+[bh(1).FaceAlpha,bh(3).FaceAlpha]=deal(0.5);
 
 
 errorbar([bh(1).XEndPoints,bh(2).XEndPoints,bh(3).XEndPoints,bh(4).XEndPoints],...
-    [rdata(:,1);rdata(:,7);rdata(:,4);rdata(:,10)],...
-    [diff(rdata(:,1:2),1,2);diff(rdata(:,7:8),1,2);diff(rdata(:,4:5),1,2);diff(rdata(:,10:11),1,2)],...
-    [diff(rdata(:,1:2:3),1,2);diff(rdata(:,7:2:9),1,2);diff(rdata(:,4:2:6),1,2);diff(rdata(:,10:2:12),1,2)],'k.');
+    [rdata(:,1);rdata(:,4);rdata(:,7);rdata(:,10)],...
+    [diff(rdata(:,1:2),1,2);diff(rdata(:,4:5),1,2);diff(rdata(:,7:8),1,2);diff(rdata(:,10:11),1,2)],...
+    [diff(rdata(:,1:2:3),1,2);diff(rdata(:,4:2:6),1,2);diff(rdata(:,7:2:9),1,2);diff(rdata(:,10:2:12),1,2)],'k.');
 set(gca(),'XTick',1:3,'XTickLabel',{'3-Neuron','4-Neuron','5-Neuron'},'XTickLabelRotation',90)
 ylabel('Relative number of loops')
 % xlim([0.5,3.5])
-ylim([-10,50])
+ylim([-15,150])
 legend([bh(1),bh(2),bh(3),bh(4)],{'Same-memory within','Non-memory within','Same-memory cross','Non-memory cross'},'Location','northoutside');
 exportgraphics(fh,fn)
 
