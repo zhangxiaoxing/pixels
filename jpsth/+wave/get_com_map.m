@@ -142,13 +142,13 @@ for su=reshape(msel,1,[])
         curve=mm_pref;
         mm_pref(mm_pref<0)=0;
         com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
-        mm_pref=mm_pref./max(mm_pref);
+%         mm_pref=mm_pref./max(mm_pref);
     end
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
         if opt.rnd_half
-            heatnorm=curve;
+            heatnorm=curve./max(curve);
         else % per_su_showcase
             heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
             heatnorm=heatcent./max(abs(heatcent));

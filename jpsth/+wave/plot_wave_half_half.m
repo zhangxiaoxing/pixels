@@ -12,7 +12,7 @@ for sess=102
         r=corr([COMS1,COMS2].',...
             [cell2mat(values(com_map.(fs).s1b,num2cell(samp_key_S1))),...
             cell2mat(values(com_map.(fs).s2b,num2cell(samp_key_S2)))].');
-        if r<0.648
+        if r<0.87
             disp(r)
             continue
         end
@@ -35,11 +35,11 @@ for sess=102
             com_b=[com_b;com_map.(fs).(sprintf('s%db',sortmat(ri,1)))(sortmat(ri,2))];
         end
 
-        fh=figure('Color','w','Position',[32,32,300,350]);
+        fh=figure('Color','w','Position',[32,32,400,200]);
         plotOne(1,immata,sortmat(:,3));
-        plotOne(2,immatb,com_b);
+        plotOne(3,immatb,com_b);
         shufidx=randsample(size(immatb,1),size(immatb,1));
-        plotOne(3,immatb(shufidx,:),com_b(shufidx));
+        plotOne(2,immatb(shufidx,:),com_b(shufidx));
         sgtitle(num2str([sess,r]));
 %         exportgraphics(fh,sprintf('wave_half_half_%d.png',sess));
         keyboard()        
@@ -51,11 +51,11 @@ for sess=102
 end
 
 function plotOne(subidx,imdata,comdata)
-subplot(3,1,subidx);
+subplot(2,2,subidx);
 hold on
 colormap('jet');
 gk = fspecial('gaussian', [3 3], 1);
-imagesc(conv2(imdata,gk,'same'),[-0.6 0.6])
+imagesc(conv2(imdata,gk,'same'),[-1 1])
 scatter(comdata,1:numel(comdata),2,'o','MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
 set(gca(),'XTick',[0.5,20.5],'XTickLabel',[0,5]);
 colorbar();

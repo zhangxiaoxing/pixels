@@ -108,15 +108,16 @@ save('loops_proportion_stats.mat','mstats')
 
 perbin=[];
 anovamat=[];
-for bin=40:40:120
-    cbinsel=mstats.congru(:,4)>bin-40 & mstats.congru(:,4)<=bin;
+binedge=[0:20:60,100];
+for bin=1:(numel(binedge)-1)
+    cbinsel=mstats.congru(:,4)>=binedge(bin) & mstats.congru(:,4)<=binedge(bin)+diff(binedge(bin:bin+1),1,2)./2;
     cmm=mean(mstats.congru(cbinsel,8));
     cci=bootci(500,@(x) mean(x),mstats.congru(cbinsel,8));
     cc=mstats.congru(cbinsel,8);
     cc(:,2)=bin;
     cc(:,3)=1;
     
-    nbinsel=mstats.nonmem(:,4)>bin-40 & mstats.nonmem(:,4)<=bin;
+    nbinsel=mstats.nonmem(:,4)>=binedge(bin) & mstats.nonmem(:,4)<=binedge(bin)+diff(binedge(bin:bin+1),1,2)./2;
     nmm=mean(mstats.nonmem(nbinsel,8));
     nci=bootci(500,@(x) mean(x),mstats.nonmem(nbinsel,8));
     nn=mstats.nonmem(nbinsel,8);
@@ -126,20 +127,20 @@ for bin=40:40:120
     anovamat=[anovamat;cc;nn];
     perbin=[perbin;mean(cbinsel),cmm,cci(1),cci(2),mean(nbinsel),nmm,nci(1),nci(2)];
 end
-binx=40:40:120;
+binx=diff(binedge,1,2)./2+binedge(1:end-1);
 fh=figure('Color','w','Position',[32,32,160,225]);
 hold on
-ch=plot(binx,perbin(:,2),'-r');
+ch=plot(binx,perbin(:,2),'-r.');
 fill([binx,fliplr(binx)],[perbin(:,3);flip(perbin(:,4))],'r','EdgeColor','none','FaceAlpha',0.1)
 
-nh=plot(binx,perbin(:,6),'-k');
+nh=plot(binx,perbin(:,6),'-k.');
 fill([binx,fliplr(binx)],[perbin(:,7);flip(perbin(:,8))],'k','EdgeColor','none','FaceAlpha',0.1)
 
 ylabel('Loops-associated spikes (%)')
 xlabel('Number of loops involved')
 legend([ch,nh],{'Same-memory','Non-memory'},'Location','northoutside');
-set(gca(),'XTick',0:20:60,'YTick',0:10:max(ylim()))
-xlim([0,60])
+set(gca(),'XTick',0:50:100,'YTick',0:10:max(ylim()))
+xlim([0,100])
 exportgraphics(fh,'loops_spk_proportion.pdf');
 anovan(anovamat(:,1),{anovamat(:,2),anovamat(:,3)})
 
