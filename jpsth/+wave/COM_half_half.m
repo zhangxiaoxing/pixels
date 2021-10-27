@@ -44,8 +44,8 @@ for rpt=1:rpts
     disp(rpt)
     [data1hall,data2hall,dataeall]=deal([]);
     com_map=wave.get_com_map('curve',false,'rnd_half',true);
-    for sid=1:116
-        fs=['s',num2str(sid)];
+    for fn=reshape(fieldnames(com_map),1,[])
+        fs=fn{1};
         s1key=num2cell(intersect(cell2mat(com_map.(fs).s1a.keys),intersect(cell2mat(com_map.(fs).s1b.keys),cell2mat(com_map.(fs).s1e.keys))));
         s2key=num2cell(intersect(cell2mat(com_map.(fs).s2a.keys),intersect(cell2mat(com_map.(fs).s2b.keys),cell2mat(com_map.(fs).s2e.keys))));
         data1h=[cell2mat(com_map.(fs).s1a.values(s1key)).';cell2mat(com_map.(fs).s2a.values(s2key)).'].*0.25;

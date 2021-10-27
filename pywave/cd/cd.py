@@ -6,11 +6,18 @@ Created on Wed Jul  7 13:57:04 2021
 """
 
 import numpy as np
-from pywave import datautils as util
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from scipy.signal import find_peaks, peak_widths
 import scikits.bootstrap as bootstrap
+
+if __package__:
+    from pywave import datautils as util
+else:
+    import sys
+    import os
+    sys.path.append(os.path.dirname(__file__)+'/..')
+    import datautils as util
 
 rcParams['pdf.fonttype'] = 42
 rcParams['ps.fonttype'] = 42
@@ -239,3 +246,6 @@ def cd_FWHM(delay=6):
     ax.set_ylabel('FWHM of CD projection (s)')
     ax.set_xlim((0,2))
     ax.set_ylim((0,4))
+
+if __name__=="__main__":
+    cd_projection(6);

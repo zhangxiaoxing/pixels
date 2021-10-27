@@ -12,7 +12,7 @@ for sess=102
         r=corr([COMS1,COMS2].',...
             [cell2mat(values(com_map.(fs).s1b,num2cell(samp_key_S1))),...
             cell2mat(values(com_map.(fs).s2b,num2cell(samp_key_S2)))].');
-        if r<0.87
+        if r<0.9
             disp(r)
             continue
         end
@@ -37,9 +37,9 @@ for sess=102
 
         fh=figure('Color','w','Position',[32,32,400,200]);
         plotOne(1,immata,sortmat(:,3));
-        plotOne(3,immatb,com_b);
+        plotOne(2,immatb,com_b);
         shufidx=randsample(size(immatb,1),size(immatb,1));
-        plotOne(2,immatb(shufidx,:),com_b(shufidx));
+        plotOne(3,immatb(shufidx,:),com_b(shufidx));
         sgtitle(num2str([sess,r]));
 %         exportgraphics(fh,sprintf('wave_half_half_%d.png',sess));
         keyboard()        

@@ -43,7 +43,7 @@ if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png 
     
     fh=figure('Color','w');
     cmap=colormap('jet');
-    collection=recurSubregions(1,ismember(com_meta(:,4),{'CH','BS'}),0,1,cmap,com_meta,[],opt);
+    collection=recurSubregions(2,ismember(com_meta(:,4),{'CH','BS'}),0,1,cmap,com_meta,[],opt);
     blame=vcs.blame();
     save('per_region_com_collection.mat','collection','blame');
     colormap('jet')
@@ -91,9 +91,9 @@ function collection=recurSubregions(curr_branch,prev_sel,prev_accu,prev_ratio,cm
 %     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
 % end
     
-xbound=0:0.2:1;
+xbound=0:0.2:2;
 if curr_branch==1
-    curr_ureg={'BS','CH'};
+    curr_ureg={'CTX'};
 else
     curr_ureg=unique(com_meta(prev_sel,curr_branch+3));
 end

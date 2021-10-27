@@ -7,10 +7,14 @@ end
 persistent ratiomap idmap OBM1map
 
 if isempty(ratiomap) || isempty(idmap) || isempty(OBM1map)
-    [~,~,ratiomap]=ref.get_pv_sst();
+    if opt.pvsst
+        [~,~,ratiomap]=ref.get_pv_sst();
+    else
+        fstr=load('OBM1map.mat','OBM1map');
+        OBM1map=fstr.OBM1map;
+    end
     idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-    fstr=load('OBM1map.mat','OBM1map');
-    OBM1map=fstr.OBM1map;
+    
 end
 if opt.hierarchy
     is_diff=[];

@@ -1,9 +1,9 @@
 function [fcom,ffrac]=per_region_COM_frac(opt)
 arguments
-    opt.frac_COM (1,1) logical = true
+    opt.frac_COM (1,1) logical = false
     opt.frac_PVSST (1,1) logical = false
-    opt.COM_PVSST (1,1) logical = true
-    opt.frac_sensemotor (1,1) logical = true
+    opt.COM_PVSST (1,1) logical = false
+    opt.frac_sensemotor (1,1) logical = false
     opt.COM_sensemotor (1,1) logical = true
     opt.sust_type (1,:) char {mustBeMember(opt.sust_type,{'any','sust','trans'})} = 'any'
     opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CTX'
@@ -130,8 +130,8 @@ if opt.COM_sensemotor
     for ri=1:numel(ureg)
         if  OBM1map.isKey(ureg{ri})
             comidx=find(strcmp(fcom.collection(:,2),ureg(ri)));
-            xx=fcom.collection{comidx,1}./4;
-            yy=OBM1map(ureg{ri});
+            xx=OBM1map(ureg{ri});
+            yy=fcom.collection{comidx,1}./4;
             coord=[coord;xx,yy];
             regs=[regs,fcom.collection{comidx,2}];
             scatter(xx,yy,9,'o','MarkerFaceColor',ephys.getRegColor(ureg{ri}),'MarkerEdgeColor','none');
@@ -142,20 +142,20 @@ if opt.COM_sensemotor
         end
     end
     
-    ylabel('Sensory Motor Index (A.U.)')
-    xlabel('F.R. center of mass (s)')
+    xlabel('Sensory Motor Index (A.U.)')
+    ylabel('F.R. center of mass (s)')
 
     coord(:,3)=1;
     regres=coord(:,[1,3])\coord(:,2);
     if opt.delay==6
-        xlim([2.4,3.5]);
-        set(gca(),'XTick',2.5:0.5:3.5);
+        ylim([2.4,3.3]);
+        set(gca(),'YTick',2.5:0.5:3.5);
     else
-        xlim([1.4,2.0]);
-        set(gca(),'XTick',1.2:0.2:2.0);
+        ylim([1.4,2.0]);
+        set(gca(),'YTick',1.2:0.2:2.0);
     end
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
-    ylim([-7,7])
+    xlim([-7,7])
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export

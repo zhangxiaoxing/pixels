@@ -3,6 +3,7 @@ arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.pvsst (1,1) logical = false % use MOB-MOp axis index since 20210928
+    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong'})} = 'incong' %TCOM for NONMEM undefined
 end
 
 [~,com_meta]=wave.per_region_COM('decision',opt.decision);
@@ -20,6 +21,14 @@ for ii=1:numel(sig.sess) %iterate through all pairs
     if is_same(ii,opt.level) || h2l(ii,opt.level) || l2h(ii,opt.level)%same
         sess=sig.sess(ii);
         suid=sig.suid(ii,:);
+        mem_type=sig.mem_type(ii,:);
+        if strcmp(opt.mem_type,'congru') && ~all(ismember(mem_type,1:2)) && ~all(ismember(mem_type,3:4))
+            continue
+        end
+        if strcmp(opt.mem_type,'incong') && (~any(ismember(mem_type,1:2)) || ~any(ismember(mem_type,3:4)))
+            continue
+        end
+
         if ~all(arrayfun(@(x) com_map.(['s',num2str(sess)]).isKey(x),suid))
 %             warning('Missing keys in COM meta data, session %d, suid %d, %d',sess,suid(1) ,suid(2));
             continue
@@ -59,8 +68,8 @@ h2lci=bootci(1000, @(x) nnz(diff(x,1,2)>0)./size(x,1), comh2l).*100;
 fh=figure('Color','w','Position',[100,100,225,235]);
 hold on;
 bh=bar([mmsame,100-mmsame;mml2h,100-mml2h;mmh2l,100-mmh2l]);
-[bh(2).FaceColor,bh(1).EdgeColor,bh(2).EdgeColor]=deal('k');
-bh(1).FaceColor='w';
+[bh(1).FaceColor,bh(1).EdgeColor,bh(2).EdgeColor]=deal('k');
+bh(2).FaceColor='w';
 errorbar(bh(1).XEndPoints,...
     bh(1).YEndPoints,...
     [sameci(1)-bh(1).YEndPoints(1),l2hci(1)-bh(1).YEndPoints(2),h2lci(1)-bh(1).YEndPoints(3)],...

@@ -50,8 +50,9 @@ mem_type=int32(mem_type);
 per_bin=int32(per_bin);
 
 % TODO: parameter controlled file op
-% h5create(fullfile(opt.homedir,'transient_6.hdf5'),'/mem_type',size(mem_type),'Datatype','int32')
-% h5write(fullfile(opt.homedir,'transient_6.hdf5'), '/mem_type', mem_type);
+% homedir=ephys.util.getHomedir();
+% h5create(fullfile(homedir,'transient_6.hdf5'),'/mem_type',size(mem_type),'Datatype','int32')
+% h5write(fullfile(homedir,'transient_6.hdf5'), '/mem_type', mem_type);
 
 
 end

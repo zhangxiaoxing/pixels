@@ -39,11 +39,11 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
         suid=h5read(fpath,'/SU_id');
         %TODO nonmem,incongruent
         if opt.keep_sust
-            mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.');
-            mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.');
+            mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
+            mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
         else
-            mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.');
-            mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.');
+            mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
+            mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
         end
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));
