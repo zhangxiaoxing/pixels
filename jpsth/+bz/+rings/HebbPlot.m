@@ -2,6 +2,9 @@
 load(fullfile('bzdata','rings_bz.mat'),'rings');
 hebbPattern=cell(0,4);
 [sig,~]=bz.load_sig_pair();
+if ~exist('pstats3','var') || ~exist('pstats4','var')
+    load('loops_proportion_stats_all.mat','pstats3','pstats4','mstats3','mstats4');
+end
 
 for sess=1:size(rings,1)
     if any(cellfun(@(x) isempty(x),rings(sess,1:2)),'all'), continue; end
@@ -19,7 +22,7 @@ for sess=1:size(rings,1)
             switch sum(r3place)
                 case 4 %1 3 or 3 1
                     final_ring124=r3all(r3idx,1:3);
-                    %                                 post15=
+                    %                                 
                 case 3 % 1 2
                     final_ring124=r3all(r3idx,[2 3 1]);
                 case 5 % 2 3
