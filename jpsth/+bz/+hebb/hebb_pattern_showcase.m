@@ -49,16 +49,22 @@ for sess=18%reshape(usess,1,[])
         ring_reg=arrayfun(@(x) unique(id2reg(cell2mat(sessplist(x,:)),sess_cid,sess_reg)),1:size(sessplist,1),'UniformOutput',false);
         multi_reg_sel=cellfun(@(x) numel(x)>2, ring_reg);
         sessplist=sessplist(multi_reg_sel,:);
-
+        ring_reg=ring_reg(multi_reg_sel);
         %% sufficient loop activity
-        for ii=10%1:size(sessplist,1)
+        for ii=8%1:size(sessplist,1)
+            disp([selidx,ii,size(sessplist,1)])
             r1idx=all(ismember(activ3,sessplist{ii,1}),2);
             r2idx=all(ismember(activ4,sessplist{ii,2}),2);
             r3idx=all(ismember(activ4,sessplist{ii,3}),2);
             if any(r1idx) && any(r2idx) && any(r3idx)
                 patt_su=unique(cell2mat(sessplist(ii,1:3)));
-                all3_sel=all(ismember(activ3,patt_su),2);
-                all4_sel=all(ismember(activ4,patt_su),2);
+% for generalized patterns                
+%                 all3_sel=all(ismember(activ3,patt_su),2);
+%                 all4_sel=all(ismember(activ4,patt_su),2);
+% %% specific hebb
+                all3_sel=r1idx;
+                all4_sel=r2idx | r3idx;
+
                 bz.hebb.plotone(sess,activ3,tags3,all3_sel,activ4,tags4,all4_sel,selidx,ii);
             end
         end
