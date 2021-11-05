@@ -54,7 +54,7 @@ if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_jitter~=opt.no_
             metas=[metas;sess,suid1,suid2,mem,reg];
             stats=[stats;mean(fstr.onesess.fc{fci,stat_idx}(s1sel)),mean(fstr.onesess.fc{fci,stat_idx}(s2sel)),...%1,2
                 mean(fstr.onesess.fc{fci,stat_idx}(e1sel)),mean(fstr.onesess.fc{fci,stat_idx}(e2sel)),... %3,4
-                nnz(pertrl(s1sel))/nnz(s1sel),nnz(pertrl(s2sel))/nnz(s2sel)];
+                nnz(pertrl(s1sel))/nnz(s1sel),nnz(pertrl(s2sel))/nnz(s2sel)];%5,6
             if opt.per_trial
                 per_trial=[per_trial;{fstr.onesess.fc{fci,stat_idx}(s1sel),fstr.onesess.fc{fci,stat_idx}(s2sel),fstr.onesess.fc{fci,stat_idx}(e1sel),fstr.onesess.fc{fci,stat_idx}(e2sel)}];
             end

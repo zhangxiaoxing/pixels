@@ -1,10 +1,10 @@
 function [fcom,ffrac]=per_region_COM_frac(opt)
 arguments
-    opt.frac_COM (1,1) logical = false
+    opt.frac_COM (1,1) logical = true
     opt.frac_PVSST (1,1) logical = false
     opt.COM_PVSST (1,1) logical = false
     opt.frac_sensemotor (1,1) logical = false
-    opt.COM_sensemotor (1,1) logical = true
+    opt.COM_sensemotor (1,1) logical = false
     opt.sust_type (1,:) char {mustBeMember(opt.sust_type,{'any','sust','trans'})} = 'any'
     opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CTX'
     opt.corr (1,:) char {mustBeMember(opt.corr,{'Pearson','Spearman'})} = 'Pearson'
@@ -40,8 +40,8 @@ if opt.frac_COM
         fridx=find(strcmp(ffrac.collection(:,2),ureg(ri)));
         if ~isempty(fridx) && ffrac.collection{fridx,4}>40
             comidx=find(strcmp(fcom.collection(:,2),ureg(ri)));
-            xx=fcom.collection{comidx,1}./4;
-            yy=ffrac.collection{fridx,1}.*100;
+            yy=fcom.collection{comidx,1}./4;
+            xx=ffrac.collection{fridx,1}.*100;
             coord=[coord;xx,yy];
             regs=[regs,fcom.collection{comidx,2}];
             %Notice, FRP still miss reg-color-group
@@ -52,22 +52,22 @@ if opt.frac_COM
     coord(:,3)=1;
     regres=coord(:,[1,3])\coord(:,2);
     if strcmp(opt.sust_type,'sust')
-        ylim([0,4]);
-        set(gca(),'YTick',0:2:4);
+        xlim([0,4]);
+        set(gca(),'XTick',0:2:4);
     else
-        ylim([10,60]);
-        set(gca(),'YTick',0:20:60);
+        xlim([10,60]);
+        set(gca(),'XTick',0:20:60);
     end
     if opt.delay==6
-        xlim([2.4,3.5]);
-        set(gca(),'XTick',2.5:0.5:3.5);
+        ylim([2.4,3.5]);
+        set(gca(),'YTick',2.5:0.5:3.5);
     else
-        xlim([1.4,2.0]);
-        set(gca(),'XTick',1.2:0.2:2.0);
+        ylim([1.4,2.0]);
+        set(gca(),'YTick',1.2:0.2:2.0);
     end
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
-    ylabel('Fraction of delay selective neuron')
-    xlabel('F.R. center of mass (s)')
+    xlabel('Fraction of delay selective neuron')
+    ylabel('F.R. center of mass (s)')
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
@@ -204,7 +204,7 @@ if opt.frac_PVSST
         xlim([0,60]);
         set(gca(),'XTick',0:20:60,'YTick',0:0.2:1);
     end
-    ylabel('Hierarchy index (Low->High)')
+    ylabel('PV / (PV + SST) density')
     xlabel('Selective fraction')
     ylim([0,0.6]);
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);

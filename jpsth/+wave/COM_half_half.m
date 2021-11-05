@@ -16,7 +16,7 @@ if false %isfile('COM_half_half.mat')
     ylabel('Pearson r')
     set(gca(),'XTick',1:3,'XTickLabel',{'Correct','Error','Shuffle'});
     xlim([0.5,3.5]);
-    ylim([-0.15,0.5])
+    ylim([0,0.8])
     exportgraphics(fh,'COM_half_half_stats.pdf')
 end
 

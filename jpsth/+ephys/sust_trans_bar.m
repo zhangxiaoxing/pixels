@@ -1,7 +1,7 @@
 function sust_trans_bar(opt)
 arguments
     opt.good_wf (1,1) logical = false;
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 3
 end
 if opt.delay==6
     warning('Delay set to default 6')

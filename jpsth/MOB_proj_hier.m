@@ -57,26 +57,32 @@ subplot(1,2,1);
 hold on
 logmat=log(corr_mat_mop(:,1:2));
 logmat(:,3)=1;
-scatter(logmat(:,1),logmat(:,2),4,'ro','MarkerFaceColor','r')
-text(logmat(:,1),logmat(:,2),corr_reg_mop,'HorizontalAlignment','center','VerticalAlignment','top');
+for ii=1:size(logmat,1)
+scatter(logmat(ii,1),logmat(ii,2),9,'o','MarkerFaceColor',ephys.getRegColor(corr_reg_mop{ii}),'MarkerEdgeColor','none')
+text(logmat(ii,1),logmat(ii,2),corr_reg_mop{ii},'HorizontalAlignment','center','VerticalAlignment','top','Color',ephys.getRegColor(corr_reg_mop{ii}));
 % set(gca(),'XScale','log','YScale','log')
+end
 xlabel('Log projection density to M1');
 ylabel('Log projection density from OB');
 [r,p]=corr(logmat(:,1),logmat(:,2),'type','Spearman');
 text(max(xlim()),max(ylim()),sprintf('r=%.2f,p=%.2f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
-
 regres=logmat(:,[1,3])\logmat(:,2);
-plot(logmat(:,1),logmat(:,1).*regres(1)+regres(2),'--k');
+plot(xlim(),xlim().*regres(1)+regres(2),'--k');
 theta=atan(regres(1));
 R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
 rotmat=logmat(:,1:2)*R;
 rotmat=rotmat-mean(rotmat);
 subplot(1,2,2)
-scatter(rotmat(:,1),rotmat(:,2),4,'ro','MarkerFaceColor','r')
-text(rotmat(:,1),rotmat(:,2),corr_reg_mop,'HorizontalAlignment','center','VerticalAlignment','top');
+hold on
+for ii=1:size(rotmat,1)
+scatter(rotmat(ii,1),rotmat(ii,2),4,'o','MarkerFaceColor',ephys.getRegColor(corr_reg_mop{ii}),'MarkerEdgeColor','none');
+text(rotmat(ii,1),rotmat(ii,2),corr_reg_mop{ii},'HorizontalAlignment','center','VerticalAlignment','top','Color',ephys.getRegColor(corr_reg_mop{ii}));
+end
 yline(0,'--k');
 xlabel('OB-M1 hierarchy index');
 ylabel('Regression residual')
+xlim([-7,7])
+ylim([-7,7])
 
 OBM1map=containers.Map('KeyType','char','ValueType','double');
 for ri=1:numel(corr_reg_mop)
@@ -84,10 +90,11 @@ for ri=1:numel(corr_reg_mop)
     OBM1map(reg)=rotmat(ri,1);
 end
 save('OBM1Map.mat','OBM1map')
+exportgraphics(fh,'OBM1Map.pdf','ContentType','vector')
 
 fh=figure('Color','w','Position',[100,100,800,400]);
 subplot(1,2,1)
-scatter(corr_mat_mop(:,1),corr_mat_mop(:,3),4,'ro','MarkerFaceColor','r')
+scatter(corr_mat_mop(:,1),corr_mat_mop(:,3),9,'ro','MarkerFaceColor','r')
 text(corr_mat_mop(:,1),corr_mat_mop(:,3),corr_reg_mop,'HorizontalAlignment','center','VerticalAlignment','top');
 set(gca(),'XScale','log')
 xlabel('Projection density to M1');

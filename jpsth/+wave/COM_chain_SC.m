@@ -25,12 +25,14 @@ for fidx=1:numel(sums_conn_str)
     %TODO nonmem,incongruent
     onecom=wave.get_com_map('onepath',sums_conn_str(fidx).folder,'curve',true); %per su center of mass, normalized FR
     skey=fieldnames(onecom);
+    if isempty(skey), continue;end
     for samp=["s1","s2"]
         mapkeys=cell2mat(onecom.(skey{1}).(samp).keys); %pre-selected transient selective su
-        typesel=all(ismember(int32(onecon(:,:)),mapkeys),2);
+        typesel=all(ismember(int32(onecon),mapkeys),2);
+        if nnz(typesel)<3,continue;end
         typesigcon=onecon(typesel,:);
-        con_com_diff=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(onecon(typesel,:)));
-        dirsel=con_com_diff(:,2)-con_com_diff(:,1)>(10/250); % Assuming 250ms bin
+        con_com_prepost=arrayfun(@(x) onecom.(skey{1}).(samp)(x),int32(typesigcon));
+        dirsel=con_com_prepost(:,2)>con_com_prepost(:,1); % Assuming 250ms bin
         dirsigcon=typesigcon(dirsel,:);
         upre=unique(dirsigcon(:,1)).';
         
@@ -132,8 +134,8 @@ for fidx=1:numel(sums_conn_str)
                     end
                     sgtitle(sprintf('fidx %d chain %d-%d',fidx,ii,pp));
                     if opt.screen
-                        exportgraphics(fh,sprintf('SC\\SC%05d.png',figidx),'Resolution',300);
-                        keyboard()
+                        exportgraphics(fh,sprintf('SC\\SCB%05d.png',figidx),'Resolution',300);
+%                         keyboard()
                     else
                         keyboard()
                         exportgraphics(fh,'SC\SC_select.pdf');

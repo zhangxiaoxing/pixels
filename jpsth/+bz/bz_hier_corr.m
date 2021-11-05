@@ -15,9 +15,19 @@ for fi=1:size(congru_stats.meta,1)
     else
         uddir=['U','D'];
     end
-    congru_exp=[congru_exp;...
-        {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2)),uddir(1)};...
-        {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2)),uddir(2)}];
+    %     %relative
+    %     congru_exp=[congru_exp;...
+    %         {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2)),uddir(1)};...
+    %         {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2)),uddir(2)}];
+    % absolute
+    if congru_stats.meta(fi,1)>0
+        congru_exp=[congru_exp;...
+            {pre},{post},{log10(congru_stats.meta(fi,1)/congru_stats.meta(fi,10))+3.7,uddir(1)}];
+    end
+    if congru_stats.meta(fi,2)>0
+        congru_exp=[congru_exp;...
+            {post},{pre},{log10(congru_stats.meta(fi,2)/congru_stats.meta(fi,10))+3.7,uddir(2)}];
+    end
 end
 writecell(congru_exp,'Congru_asym_fc.csv')
 ureg=unique(congru_exp(2:end,1:2));
@@ -103,11 +113,11 @@ ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
 if strcmp(type,'congru')
     mem_sel=all(ismember(sig.mem_type,1:2),2) | all(ismember(sig.mem_type,3:4),2);
     pmem_sel=all(ismember(pair.mem_type,1:2),2) | all(ismember(pair.mem_type,3:4),2);
-%     ftitle='Congruent memory';
+    %     ftitle='Congruent memory';
 elseif strcmp(type,'nonmem')
     mem_sel=all(sig.mem_type==0,2);
     pmem_sel=all(pair.mem_type==0,2);
-%     ftitle='Non-memory';
+    %     ftitle='Non-memory';
 end
 diff_sel=(sig.reg(:,5,1)~=sig.reg(:,5,2));
 pdiff_sel=(pair.reg(:,5,1)~=pair.reg(:,5,2));
@@ -135,13 +145,13 @@ for ri=1:size(cross_reg,1)
         if ~OBM1map.isKey(reg1) || ~OBM1map.isKey(reg2)
             continue
         end
-        
+
         if ~any(strcmp(fcom.collection(:,2),reg1)) || ~any(strcmp(fcom.collection(:,2),reg2)) ...
                 || ~any(strcmp(ffrac.collection(:,2),reg1)) || ~any(strcmp(ffrac.collection(:,2),reg2))
             warning('Missing meta data :%s, %s',reg1,reg2);
             continue
         end
-            
+
         sidx=(nfwd-nbck)./(nfwd+nbck);
         if sidx>=0
             stats.reg=[stats.reg;{reg1},{reg2}];

@@ -2,9 +2,9 @@ function plot_coding(opt)
 arguments
     opt.plot_trial_frac (1,1) logical = false
     opt.plot_fwd_rev (1,1) logical = false
-    opt.plot_coding_idx (1,1) logical = false
+    opt.plot_coding_idx (1,1) logical = true
     opt.plot_coding_idx_shuf (1,1) logical = false
-    opt.plot_svm (1,1) logical = true
+    opt.plot_svm (1,1) logical = false
 end
 
 % [~,~,ratiomap]=ref.get_pv_sst();
@@ -193,23 +193,23 @@ stats=stat_in(all(w_key,2),:);
 index_value=arrayfun(@(x) index_map(char(idmap.ccfid2reg(x))),metas(:,6:7));
 switch type
     case 'same'
-        congrus1=metas(:,4)==2 & metas(:,5)==2 & all(~ismissing(stats),2) & metas(:,6)==metas(:,7) ;
-        congrus2=metas(:,4)==4 & metas(:,5)==4 & all(~ismissing(stats),2) & metas(:,6)==metas(:,7);
+        congrus1=all(ismember(metas(:,4:5),1:2),2) & all(~ismissing(stats),2) & metas(:,6)==metas(:,7) ;
+        congrus2=all(ismember(metas(:,4:5),3:4),2) & all(~ismissing(stats),2) & metas(:,6)==metas(:,7);
         ftitle='Within region';
     case 'l2h'
-        congrus1=metas(:,4)==2 & metas(:,5)==2 & all(~ismissing(stats),2) & index_value(:,1)>index_value(:,2);
-        congrus2=metas(:,4)==4 & metas(:,5)==4 & all(~ismissing(stats),2) & index_value(:,1)>index_value(:,2);
+        congrus1=all(ismember(metas(:,4:5),1:2),2) & all(~ismissing(stats),2) & index_value(:,1)>index_value(:,2);
+        congrus2=all(ismember(metas(:,4:5),3:4),2) & all(~ismissing(stats),2) & index_value(:,1)>index_value(:,2);
         ftitle='Lower to higher';
     case 'h2l'
-        congrus1=metas(:,4)==2 & metas(:,5)==2 & all(~ismissing(stats),2) & index_value(:,1)<index_value(:,2);
-        congrus2=metas(:,4)==4 & metas(:,5)==4 & all(~ismissing(stats),2) & index_value(:,1)<index_value(:,2);
+        congrus1=all(ismember(metas(:,4:5),1:2),2) & all(~ismissing(stats),2) & index_value(:,1)<index_value(:,2);
+        congrus2=all(ismember(metas(:,4:5),3:4),2) & all(~ismissing(stats),2) & index_value(:,1)<index_value(:,2);
         ftitle='Higher to lower';
     case 'any' % only region in map kept, see above
-        congrus1=metas(:,4)==2 & metas(:,5)==2 & all(~ismissing(stats),2);
-        congrus2=metas(:,4)==4 & metas(:,5)==4 & all(~ismissing(stats),2);
+        congrus1=all(ismember(metas(:,4:5),1:2),2) & all(~ismissing(stats),2);
+        congrus2=all(ismember(metas(:,4:5),3:4),2) & all(~ismissing(stats),2);
     case 'shuffle' % only region in map kept, see above
-        congrus1=metas(:,4)==2 & metas(:,5)==2 & all(~ismissing(stats),2);
-        congrus2=metas(:,4)==4 & metas(:,5)==4 & all(~ismissing(stats),2);        
+        congrus1=all(ismember(metas(:,4:5),1:2),2) & all(~ismissing(stats),2);
+        congrus2=all(ismember(metas(:,4:5),3:4),2) & all(~ismissing(stats),2);        
 end
 
 if ~strcmp(type,'shuffle')

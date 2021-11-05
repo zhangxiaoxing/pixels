@@ -47,7 +47,13 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
         end
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));
-        if isempty(msel1) && isempty(msel2), continue; end
+        if isempty(msel1) && isempty(msel2)
+            if strlength(opt.onepath)==0
+                continue
+            else
+                break
+            end
+        end
         sessid=ephys.path2sessid(pc_stem);
         s1sel=find(trial(:,5)==4 & trial(:,8)==opt.delay & trial(:,9)>0 & trial(:,10)>0);
         s2sel=find(trial(:,5)==8 & trial(:,8)==opt.delay & trial(:,9)>0 & trial(:,10)>0);
@@ -142,7 +148,20 @@ for su=reshape(msel,1,[])
         curve=mm_pref;
         mm_pref(mm_pref<0)=0;
         com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
-%         mm_pref=mm_pref./max(mm_pref);
+
+        %% for COM showcase
+%         if min(curve)>0
+% %             close all
+%             fh=figure('Color','w');
+%             bar(mm_pref,'k');
+%             ylabel('Baseline-deduced firing rate w (Hz)')
+%             set(gca,'XTick',0:4:24,'XTickLabel',0:6)
+%             xlabel('Time t (0.25 to 6 sec in step of 0.25 sec)')
+%             xline(com,'--r');
+%             keyboard()
+% %             exportgraphics(gcf(),'COM_showcase.pdf','ContentType','vector')
+%         end
+
     end
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
