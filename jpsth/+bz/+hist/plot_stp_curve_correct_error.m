@@ -72,7 +72,7 @@ for level=opt.levels
         er=struct();
     end
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
-    bz.hist.plot_one_stp_curve(cr,er,'Within regions',...
+    expsame=bz.hist.plot_one_stp_curve(cr,er,'Within regions',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
     
     y=[reshape(cr.congru(:,2:end).',[],1);reshape(cr.incong(:,2:end).',[],1);reshape(cr.nonmem(:,2:end).',[],1)];
@@ -90,13 +90,18 @@ for level=opt.levels
         er=struct();
     end
     subplot(numel(opt.levels),2,fidx);fidx=fidx+1;
-    bz.hist.plot_one_stp_curve(crdiff,er,'cross regions',...
+    expdiff=bz.hist.plot_one_stp_curve(crdiff,er,'cross regions',...
         'plot_dual',opt.plot_dual,'cmp_label','error','ref_label','correct');
     
     y=[reshape(crdiff.congru(:,2:end).',[],1);reshape(crdiff.incong(:,2:end).',[],1);reshape(crdiff.nonmem(:,2:end).',[],1)];
     dirg=[ones(size(crdiff.congru,1).*10,1);2*ones(size(crdiff.incong,1).*10,1);3*ones(size(crdiff.nonmem,1).*10,1)];
     bing=repmat((1:10).',size(crdiff.congru,1)+size(crdiff.incong,1)+size(crdiff.nonmem,1),1);
     anovan(y,{dirg,bing})
+    for mm=reshape(fieldnames(expsame),1,[])
+        disp(mm)
+        disp([expsame.(mm{1}).a*100,-1/expsame.(mm{1}).b,expdiff.(mm{1}).a*100,-1/expdiff.(mm{1}).b])
+    end
+
     keyboard()
 %     exportgraphics(fh,'STF_hier.pdf');
     
