@@ -12,10 +12,10 @@ for sess=102
         r=corr([COMS1,COMS2].',...
             [cell2mat(values(com_map.(fs).s1b,num2cell(samp_key_S1))),...
             cell2mat(values(com_map.(fs).s2b,num2cell(samp_key_S2)))].');
-        if r<0.9
-            disp(r)
-            continue
-        end
+%         if r<0.89
+%             disp(r)
+%             continue
+%         end
         sortmat=[ones(size(COMS1)),2*ones(size(COMS2));...
             double(samp_key_S1),double(samp_key_S2);...
             COMS1,COMS2].';
@@ -35,7 +35,7 @@ for sess=102
             com_b=[com_b;com_map.(fs).(sprintf('s%db',sortmat(ri,1)))(sortmat(ri,2))];
         end
 
-        fh=figure('Color','w','Position',[32,32,400,200]);
+        fh=figure('Color','w','Position',[32,32,1080,140]);
         plotOne(1,immata,sortmat(:,3));
         plotOne(2,immatb,com_b);
         shufidx=randsample(size(immatb,1),size(immatb,1));
@@ -51,9 +51,9 @@ for sess=102
 end
 
 function plotOne(subidx,imdata,comdata)
-subplot(2,2,subidx);
+subplot(1,3,subidx);
 hold on
-colormap('jet');
+colormap('turbo');
 gk = fspecial('gaussian', [3 3], 1);
 imagesc(conv2(imdata,gk,'same'),[-1 1])
 scatter(comdata,1:numel(comdata),2,'o','MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');

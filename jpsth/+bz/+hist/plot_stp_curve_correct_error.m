@@ -1,6 +1,8 @@
 function [fh,stats]=plot_stp_curve_correct_error(correct_stats,error_stats,opt)
 %bz.hist.plot_stp_curve_correct_error(correct_stats,struct())
 %[correct_stats,correct_type]=bz.hist.get_stp_stats(6000,'BZWT','trialtype','correct')
+%for fc efficacy
+%[correct_stats,correct_type]=bz.hist.get_stp_stats(6000,'BZWT','trialtype','correct','datatype','fc_out')
 %[error_stats,error_type]=bz.hist.get_stp_stats(6000,'BZWT','trialtype','error')
 arguments
     correct_stats (1,1) struct
@@ -63,7 +65,7 @@ for level=opt.levels
     
     
     
-    %same
+    %% LEF, within
     cr=bz.hist.get_stats_by_mem_type(correct_stats,'within',level);
     stats.same=cr;
     if opt.plot_dual
@@ -81,7 +83,7 @@ for level=opt.levels
     anovan(y,{dirg,bing})
     
     
-    %diff
+    %% LEF, cross
     crdiff=bz.hist.get_stats_by_mem_type(correct_stats,'between',level);
     stats.same=crdiff;
     if opt.plot_dual
@@ -97,7 +99,7 @@ for level=opt.levels
     dirg=[ones(size(crdiff.congru,1).*10,1);2*ones(size(crdiff.incong,1).*10,1);3*ones(size(crdiff.nonmem,1).*10,1)];
     bing=repmat((1:10).',size(crdiff.congru,1)+size(crdiff.incong,1)+size(crdiff.nonmem,1),1);
     anovan(y,{dirg,bing})
-    for mm=reshape(fieldnames(expsame),1,[])
+    for mm=["congru","nonmem","incong"]
         disp(mm)
         disp([expsame.(mm{1}).a*100,-1/expsame.(mm{1}).b,expdiff.(mm{1}).a*100,-1/expdiff.(mm{1}).b])
     end
@@ -174,4 +176,5 @@ for didx=1:2
 end
 keyboard()
 exportgraphics(fh,'STF_hier.pdf');
+%exportgraphics(fh,'FC_efficacy_hier.pdf');
 end

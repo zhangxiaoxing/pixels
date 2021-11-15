@@ -6,9 +6,11 @@ arguments
     opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
-    opt.keep_sust (1,1) logical = false % use sustained coding neuron
+    opt.cell_type (1,:) char {mustBeMember(opt.cell_type,{'any_s1','any_s2','any_nonmem','ctx_sel','ctx_trans'})} = 'ctx_trans' % select (sub) populations
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
+    opt.partial (1,:) char {mustBeMember(opt.partial,{'full','early3in6','late3in6'})}='full' % for TCOM correlation between 3s and 6s trials
+    opt.plot_COM_scheme (1,1) logical = false
 end
 persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 
@@ -38,12 +40,22 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
         trial=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         %TODO nonmem,incongruent
-        if opt.keep_sust
-            mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
-            mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
-        else
-            mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
-            mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
+        switch opt.cell_type
+            case 'any_s1'
+                mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.');
+                mcid2=[];
+            case 'any_s2'
+                mcid1=[];
+                mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.');
+            case 'any_nonmem'
+                mcid1=meta_str.allcid(meta_str.mem_type==0 & sesssel.');
+                mcid2=[];
+            case 'ctx_sel'
+                mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
+                mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
+            case 'ctx_trans'
+                mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
+                mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
         end
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));
@@ -95,11 +107,10 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
                 com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
             end
             if opt.curve
-                for ff=["s1heat","s2heat","s1curve","s2curve"]
+                for ff=["s1heat","s2heat","s1curve","s2curve","s1anticurve","s2anticurve"]
                     com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
                 end
             end
-            
             com_str=per_su_process(sess,suid,msel1,fr,s1sel,s2sel,com_str,'s1',opt);
             com_str=per_su_process(sess,suid,msel2,fr,s2sel,s1sel,com_str,'s2',opt);
         end
@@ -121,52 +132,71 @@ function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,s
 if opt.decision
     stats_window=(opt.delay*4+17):44;
 else
-    stats_window=17:(opt.delay*4+16);
+    if opt.delay==6 && strcmp(opt.partial,'early3in6')
+        stats_window=17:28;
+    elseif opt.delay==6 && strcmp(opt.partial,'late3in6')
+        stats_window=29:40;
+    else
+        stats_window=17:(opt.delay*4+16);
+    end
 end
 for su=reshape(msel,1,[])
-    perfmat=squeeze(fr(pref_sel,su,stats_window));
-    npmat=squeeze(fr(nonpref_sel,su,stats_window));
-    basemm=mean([mean(perfmat,1);mean(npmat,1)]);
+    perfmat=squeeze(fr(pref_sel,su,:));
+    npmat=squeeze(fr(nonpref_sel,su,:));
+    basemm=mean([mean(perfmat(:,stats_window),1);mean(npmat(:,stats_window),1)]);
     if opt.selidx
-        sel_vec=([mean(perfmat,1);mean(npmat,1)]);
+        sel_vec=[mean(perfmat,1);mean(npmat,1)];
         sel_idx=(-diff(sel_vec)./sum(sel_vec));
+        sel_idx(all(sel_vec==0))=0;
+
         curve=sel_idx;
-        sel_idx(sel_idx<0 | all(sel_vec==0))=0;
-        com=sum((1:numel(stats_window)).*sel_idx)./sum(sel_idx);
+        sel_idx(sel_idx<0)=0;
+        com=sum((1:numel(stats_window)).*sel_idx(stats_window))./sum(sel_idx(stats_window));
         if ~isfinite(com)
             fprintf('Moved sess %d su%d, infinite TCOM\n',sess,su)
-            com=numel(stats_window)+1;
+            keyboard()
         end
     else
         if ~opt.per_sec_stats
             basemm=mean(basemm);
         end
-        %TODO check the effect of smooth
-        mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
-        mm_pref=mm(stats_window)-basemm;
-        if max(mm_pref)<=0,continue;end
-        curve=mm_pref;
+        itimm=mean(fr([pref_sel;nonpref_sel],su,1:12),'all');
+        %TODO compare the effect of smooth
+        if strcmp(opt.cell_type,'any_nonmem')
+            mm=smooth(squeeze(mean(fr([pref_sel;nonpref_sel],su,:))),5).';
+            mm_pref=mm(stats_window)-itimm;
+        else
+            mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
+            mm_pref=mm(stats_window)-basemm;
+        end
+        if max(mm_pref)<=0,continue;end % work around 6s paritial
+        if contains(opt.cell_type,'any')
+            curve=squeeze(mean(fr(pref_sel,su,:))).'-itimm;
+            anticurve=squeeze(mean(fr(nonpref_sel,su,:))).'-itimm;
+        elseif opt.delay==6 % full, early or late
+            curve=squeeze(mean(fr(pref_sel,su,17:40))).'-basemm;
+        else
+            curve=mm_pref;
+        end
         mm_pref(mm_pref<0)=0;
         com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
-
-        %% for COM showcase
-%         if min(curve)>0
-% %             close all
-%             fh=figure('Color','w');
-%             bar(mm_pref,'k');
-%             ylabel('Baseline-deduced firing rate w (Hz)')
-%             set(gca,'XTick',0:4:24,'XTickLabel',0:6)
-%             xlabel('Time t (0.25 to 6 sec in step of 0.25 sec)')
-%             xline(com,'--r');
-%             keyboard()
-% %             exportgraphics(gcf(),'COM_showcase.pdf','ContentType','vector')
-%         end
-
+        if opt.delay==6 && strcmp(opt.partial,'late3in6')
+            com=com+12;
+        end
+        if opt.plot_COM_scheme
+            template=[zeros(1,6),0:0.2:1,1:-0.2:0,zeros(1,6)];
+            if corr(mm_pref.',template.','type','Pearson')>0.8
+                fc_scheme(curve,mm_pref,com)
+            end
+        end
     end
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
-        if opt.rnd_half
+        if exist('anticurve','var')
+            com_str.(sess).([samp,'anticurve'])(suid(su))=anticurve;
+        end
+        if opt.rnd_half || contains(opt.cell_type,'any') || opt.selidx || opt.early3in6
             heatnorm=curve./max(curve);
         else % per_su_showcase
             heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
@@ -182,3 +212,19 @@ for su=reshape(msel,1,[])
     end
 end
 end
+
+%% for COM scheme illustration
+function fc_scheme(curve,mm_pref,com)
+        if min(curve)>0
+            close all
+            fh=figure('Color','w', 'Position',[32,32,275,225]);
+            bar(mm_pref,'k');
+            ylabel('Baseline-deduced firing rate w (Hz)')
+            set(gca,'XTick',0:4:24,'XTickLabel',0:6)
+            xlabel('Time t (0.25 to 6 sec in step of 0.25 sec)')
+            xline(com,'--r');
+            keyboard()
+%             exportgraphics(gcf(),'COM_illustration.pdf','ContentType','vector')
+        end
+end
+

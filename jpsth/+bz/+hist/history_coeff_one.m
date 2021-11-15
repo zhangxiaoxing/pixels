@@ -170,6 +170,6 @@ end
 function [hit,miss]=getfc(pre,post)
 %TODO proper handling pre spikes
 lag=arrayfun(@(x) post-(x),pre,'UniformOutput',false);
-hit=nnz(cellfun(@(x) any(x>=24 & x<300,'all'),lag)); %assuming 30K sps,0.8ms min latency according to English 2017 code
+hit=nnz(cellfun(@(x) any(x>=24 & x<300,'all'),lag)); %assuming 30K sps,0.8ms min latency according to English Butzaki 2017 code
 miss=numel(pre)-hit;
 end

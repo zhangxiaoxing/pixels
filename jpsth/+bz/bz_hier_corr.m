@@ -20,11 +20,11 @@ for fi=1:size(congru_stats.meta,1)
     %         {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2)),uddir(1)};...
     %         {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2)),uddir(2)}];
     % absolute
-    if congru_stats.meta(fi,1)>0
+    if congru_stats.meta(fi,1)>0 && congru_stats.meta(fi,10)>500
         congru_exp=[congru_exp;...
             {pre},{post},{log10(congru_stats.meta(fi,1)/congru_stats.meta(fi,10))+3.7,uddir(1)}];
     end
-    if congru_stats.meta(fi,2)>0
+    if congru_stats.meta(fi,2)>0 && congru_stats.meta(fi,10)>500
         congru_exp=[congru_exp;...
             {post},{pre},{log10(congru_stats.meta(fi,2)/congru_stats.meta(fi,10))+3.7,uddir(2)}];
     end

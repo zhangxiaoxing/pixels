@@ -8,6 +8,7 @@ arguments
     opt.incong (1,1) logical = true
     opt.pvsst (1,1) logical = false
     opt.prog_cross_reg (1,1) logical = false
+    opt.set_insig_const_0 (1,1) logical = false
 end
 persistent ratiomap OBM1map rings
 if isempty(ratiomap) || isempty(OBM1map) || isempty('rings')
@@ -110,7 +111,7 @@ switch reg
         regsel=sameloop;
     case 'no_loop'
         regsel=noloop;
-        
+
     case 'High2Low'
         %hierachy
         regsel=false(size(stats.(trialtype).sess));
@@ -137,28 +138,59 @@ switch reg
                     && all(cellfun(@(x) strcmp(x{2},'CTX'),stats.(trialtype).reg(i,:)),2)...
                     && OBM1map(stats.(trialtype).reg{i,1}{level})>OBM1map(stats.(trialtype).reg{i,2}{level})
                 regsel(i)=true;
-                
+
             end
         end
 end
 
-if opt.congru
-    out.congru=stats.(trialtype).coeff(...
-        (all(ismember(stats.(trialtype).mem_type,1:2),2) | all(ismember(stats.(trialtype).mem_type,3:4),2))...
-        & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
-end
-if opt.nonmem
-    out.nonmem=stats.(trialtype).coeff(...
-        all(stats.(trialtype).mem_type==0,2)...
-        & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
-end
+if opt.set_insig_const_0
+    if opt.congru
+        fitted=stats.(trialtype).coeff(...
+            (all(ismember(stats.(trialtype).mem_type,1:2),2) | all(ismember(stats.(trialtype).mem_type,3:4),2))...
+            & regsel & ~stats.(trialtype).skip & stats.(trialtype).pp<0.05,:);
+        unfitted=zeros(nnz((all(ismember(stats.(trialtype).mem_type,1:2),2) | all(ismember(stats.(trialtype).mem_type,3:4),2))...
+            & regsel & (stats.(trialtype).skip | stats.(trialtype).pp>=0.05)),11);
+        out.congru=[fitted;unfitted];
+    end
+    if opt.nonmem
+        fitted=stats.(trialtype).coeff(...
+            all(stats.(trialtype).mem_type==0,2)...
+            & regsel & ~stats.(trialtype).skip & stats.(trialtype).pp<0.05,:);
+        unfitted=zeros(nnz(...
+            all(stats.(trialtype).mem_type==0,2)...
+            & regsel & (stats.(trialtype).skip | stats.(trialtype).pp>=0.05)),11);        
+        out.nonmem=[fitted;unfitted];
+    end
 
-if opt.incong
-    out.incong=stats.(trialtype).coeff(...
-        any(ismember(stats.(trialtype).mem_type,1:2),2)...
-        & any(ismember(stats.(trialtype).mem_type,3:4),2)...
-        & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
-end
+    if opt.incong
+        fitted=stats.(trialtype).coeff(...
+            any(ismember(stats.(trialtype).mem_type,1:2),2)...
+            & any(ismember(stats.(trialtype).mem_type,3:4),2)...
+            & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
+        unfitted=zeros(nnz(...
+            any(ismember(stats.(trialtype).mem_type,1:2),2)...
+            & any(ismember(stats.(trialtype).mem_type,3:4),2)...
+            & regsel & (stats.(trialtype).skip | stats.(trialtype).pp>=0.05)),11);
+        out.incong=[fitted;unfitted];
+    end
+else
+    if opt.congru
+        out.congru=stats.(trialtype).coeff(...
+            (all(ismember(stats.(trialtype).mem_type,1:2),2) | all(ismember(stats.(trialtype).mem_type,3:4),2))...
+            & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
+    end
+    if opt.nonmem
+        out.nonmem=stats.(trialtype).coeff(...
+            all(stats.(trialtype).mem_type==0,2)...
+            & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
+    end
 
+    if opt.incong
+        out.incong=stats.(trialtype).coeff(...
+            any(ismember(stats.(trialtype).mem_type,1:2),2)...
+            & any(ismember(stats.(trialtype).mem_type,3:4),2)...
+            & regsel & ~stats.(trialtype).skip & stats.(trialtype).rsq>0,:);
+    end
+end
 
 end

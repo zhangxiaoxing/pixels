@@ -1,4 +1,4 @@
-function [fh,bh]=conn_prob_spatial_dist(sig,pair,opt)
+function [fh,mdl]=conn_prob_spatial_dist(sig,pair,opt)
 arguments
     sig (1,1) struct
     pair (1,1) struct
@@ -21,7 +21,7 @@ ureg=unique(diff_reg_pair(:,1));
 same_stats=[];
 for ridx=1:numel(ureg)
     pair_count=nnz(all(pair.reg(:,opt.dist,:)==ureg(ridx),3));
-    if pair_count<500
+    if pair_count<250
         continue;
     end
     sig_count=nnz(all(sig.reg(:,opt.dist,:)==ureg(ridx),3));
@@ -32,7 +32,7 @@ reg_comb=nchoosek(ureg,2);
 dist_stats=[];
 for ridx=1:size(reg_comb,1)
     pair_count=nnz(pair.reg(:,opt.dist,1)==reg_comb(ridx,1) & pair.reg(:,opt.dist,2)==reg_comb(ridx,2));
-    if pair_count<500
+    if pair_count<250
         continue;
     end
     [avail,dist]=bz.get_spatial_dist(idmap.ccfid2reg(reg_comb(ridx,1)),idmap.ccfid2reg(reg_comb(ridx,2)));
@@ -62,7 +62,7 @@ yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
 tbl=table(xx,yy);
 modelfun=@(b,x) b(1)*(x(:,1).^b(2))+b(3);
 mdl=fitnlm(tbl,modelfun,[-0.5,0.5,2]);
-
+disp(mdl)
 
 fh=figure('Color','w','Position',[32,32,135,220]);
 hold on;

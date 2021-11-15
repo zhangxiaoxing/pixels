@@ -64,12 +64,16 @@ text(logmat(ii,1),logmat(ii,2),corr_reg_mop{ii},'HorizontalAlignment','center','
 end
 xlabel('Log projection density to M1');
 ylabel('Log projection density from OB');
-[r,p]=corr(logmat(:,1),logmat(:,2),'type','Spearman');
+[r,p]=corr(logmat(:,1),logmat(:,2),'type','Pearson');
 text(max(xlim()),max(ylim()),sprintf('r=%.2f,p=%.2f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
 regres=logmat(:,[1,3])\logmat(:,2);
 plot(xlim(),xlim().*regres(1)+regres(2),'--k');
+
 theta=atan(regres(1));
+xlim([-14,-2])
+ylim([-14,-2])
 R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
+
 rotmat=logmat(:,1:2)*R;
 rotmat=rotmat-mean(rotmat);
 subplot(1,2,2)

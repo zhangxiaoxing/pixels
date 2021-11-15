@@ -18,6 +18,11 @@ bz.util.pause(fidx,'xcorrpause');
 if isempty(spkID)
     if isunix, quit(0); else, return; end
 end
+%% temporary validation
+spkID=spkID(spkID==499 | spkID==498);
+spkTS=spkTS(spkID==499 | spkID==498);
+%%%%%%%%%%%%%%%%%%%%%%%%
+
 mono=bz.sortSpikeIDz(spkTS,spkID,'negccg',opt.negccg); % adapted from English, Buzsaki, 2017
 if opt.debug && false
     bz.util.plotCCG

@@ -220,7 +220,7 @@ for refcellID=1:max(IDindex)
         Pval(:,cell2ID,refcellID)=flipud(pvals(:));
         
         % Calculate upper and lower limits with bonferonni correction
-        % monosynaptic connection will be +/- 8 ms
+        % monosynaptic connection will be +/- 10 ms
         
         nBonf = round(.01/binSize)*2;
         hiBound=poissinv(1-alpha/nBonf,pred);
