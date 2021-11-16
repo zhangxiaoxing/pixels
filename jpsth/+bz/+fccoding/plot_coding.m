@@ -2,9 +2,9 @@ function plot_coding(opt)
 arguments
     opt.plot_trial_frac (1,1) logical = false
     opt.plot_fwd_rev (1,1) logical = false
-    opt.plot_coding_idx (1,1) logical = true
+    opt.plot_coding_idx (1,1) logical = false
     opt.plot_coding_idx_shuf (1,1) logical = false
-    opt.plot_svm (1,1) logical = false
+    opt.plot_svm (1,1) logical = true
 end
 
 % [~,~,ratiomap]=ref.get_pv_sst();

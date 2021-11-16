@@ -2,8 +2,8 @@
 function session_graph(opt)
 arguments
     opt.gen_data (1,1) logical = false
-    opt.plot_scatter (1,1) logical = false
-    opt.plot_bar (1,1) logical = true
+    opt.plot_scatter (1,1) logical = false % in x-y correlation style
+    opt.plot_bar (1,1) logical = false % per-session pair-wise connected dots
     opt.plot_shuf_bar (1,1) logical = true
     opt.exportgraph (1,1) logical = true
     opt.save_preview (1,1) logical = false
@@ -66,7 +66,7 @@ if opt.gen_data
             %% Node-matching surrogate nonmem and incong
             %             keyboard()
             %             match s1 then s2
-            for rpt=1:10
+            for rpt=1:100
                 if size(nonn,1)>size(s1n,1)
                     shufn1=nonn([1;randsample(size(nonn,1)-1,size(s1n,1)-1)+1],:);
                     edgesel1=find(all(ismember(cell2mat(nonc(2:end,:)),unique(int32(cell2mat(shufn1(2:end,:))))),2))+1;
@@ -145,7 +145,7 @@ if opt.plot_shuf_bar
         congru_S1=readmatrix(fullfile('gephidata',sprintf('s1_%s_gephi_graph_sums.csv',rtype)));
         congru_S2=readmatrix(fullfile('gephidata',sprintf('s2_%s_gephi_graph_sums.csv',rtype)));
         [shuf1,shuf2]=deal([]);
-        for rpt=1:10
+        for rpt=1:100
             shuf1=cat(3,shuf1,readmatrix(fullfile('gephidata',sprintf('shuf1_non_%s_%d_gephi_graph_sums.csv',rtype,rpt))));
             shuf2=cat(3,shuf2,readmatrix(fullfile('gephidata',sprintf('shuf2_non_%s_%d_gephi_graph_sums.csv',rtype,rpt))));
         end
@@ -195,7 +195,7 @@ for rtype=["within","cross","all"]
     congru_path=[readmatrix(fullfile('gephidata',sprintf('s1_%s_gephi_component_path.csv',rtype)));...
         readmatrix(fullfile('gephidata',sprintf('s2_%s_gephi_component_path.csv',rtype)))];
     shuf_path=[];
-    for rpt=1:10
+    for rpt=1:100
         shuf_path=cat(1,shuf_path,readmatrix(fullfile('gephidata',sprintf('shuf1_non_%s_%d_gephi_component_path.csv',rtype,rpt))));
         shuf_path=cat(1,shuf_path,readmatrix(fullfile('gephidata',sprintf('shuf2_non_%s_%d_gephi_component_path.csv',rtype,rpt))));
     end
@@ -205,7 +205,7 @@ for rtype=["within","cross","all"]
 %     scatter(shuf_path(:,1),shuf_path(:,2),4,'ko')
 %     xlim([5,100])
 
-    E=[0:5:20,30:10:50,100];
+    E=[0:5:20,30:10:50];
     congruY=discretize(congru_path(:,1),E);
     shufY=discretize(shuf_path(:,1),E);
     discreMat=[];

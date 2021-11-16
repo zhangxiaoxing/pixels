@@ -85,7 +85,7 @@ public class GephiTK {
             for (String m : new String[]{"shuf1_non", "shuf2_non"}) {
                 double[][] congru = new double[116][];
                 LinkedList<double[]> cmpPath = new LinkedList<>();
-                for (int rpt = 0; rpt < 10; rpt++) {
+                for (int rpt = 0; rpt < 100; rpt++) {
                     for (int i = 1; i < 117; i++) {
                         String edgePath = String.format("K:\\code\\jpsth\\gephidata\\%s_edge_%03d_%s_%d.csv", m, i, r, rpt + 1);
                         String nodePath = String.format("K:\\code\\jpsth\\gephidata\\%s_node_%03d_%s_%d.csv", m, i, r, rpt + 1);
@@ -131,35 +131,35 @@ public class GephiTK {
             File edgeFile = new File(edgePath);
             File nodeFile = new File(nodePath);
             nodeContainer = importController.importFile(nodeFile);
-            nodeContainer.getLoader().setEdgeDefault(EdgeDirectionDefault.DIRECTED);   //Force DIRECTED
+            nodeContainer.getLoader().setEdgeDefault(EdgeDirectionDefault.UNDIRECTED);   //Force UNDIRECTED
             nodeContainer.getLoader().setAllowAutoNode(true);  //create missing nodes
             nodeContainer.getLoader().setEdgesMergeStrategy(EdgeMergeStrategy.LAST);
             nodeContainer.getLoader().setAutoScale(true);
 
             edgeContainer = importController.importFile(edgeFile);
-            edgeContainer.getLoader().setEdgeDefault(EdgeDirectionDefault.DIRECTED);   //Force DIRECTED
+            edgeContainer.getLoader().setEdgeDefault(EdgeDirectionDefault.UNDIRECTED);   //Force UNDIRECTED
             edgeContainer.getLoader().setAllowAutoNode(true);  //create missing nodes
             edgeContainer.getLoader().setEdgesMergeStrategy(EdgeMergeStrategy.LAST);
             edgeContainer.getLoader().setAutoScale(true);
             importController.process(nodeContainer, new DefaultProcessor(), workspace);
             importController.process(edgeContainer, new AppendProcessor(), workspace);
 
-            DirectedGraph graph = graphModel.getDirectedGraph();
+            UndirectedGraph graph = graphModel.getUndirectedGraph();
             stats[0] = graph.getNodeCount();
             stats[1] = graph.getEdgeCount();
 
             ConnectedComponents cmpo = new ConnectedComponents();
-            cmpo.setDirected(true);
+            cmpo.setDirected(false);
             cmpo.execute(graphModel);
             stats[2] = cmpo.getConnectedComponentsCount();
 
             ClusteringCoefficient cc = new ClusteringCoefficient();
-            cc.setDirected(true);
+            cc.setDirected(false);
             cc.execute(graph);
             stats[3] = cc.getAverageClusteringCoefficient();
 
             GraphDensity gdens = new GraphDensity();
-            gdens.setDirected(true);
+            gdens.setDirected(false);
             stats[4] = gdens.calculateDensity(graph, true);
 
             Degree dg = new Degree();
@@ -167,7 +167,7 @@ public class GephiTK {
             stats[5] = dg.getAverageDegree();
 
             GraphDistance gdist = new GraphDistance();
-            gdist.setDirected(true);
+            gdist.setDirected(false);
             gdist.execute(graph);
             stats[6] = gdist.getPathLength();
             stats[7] = gdist.getDiameter();
@@ -197,7 +197,7 @@ public class GephiTK {
             Query query = filterController.createQuery(enf);
             GraphView view = filterController.filter(query);
             graphModel.setVisibleView(view);
-            Graph subgraph = graphModel.getDirectedGraphVisible();
+            Graph subgraph = graphModel.getUndirectedGraphVisible();
             int nc = subgraph.getNodeCount();
             if (nc > 2) {
                 GraphDistance gdist = new GraphDistance();
