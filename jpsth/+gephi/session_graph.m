@@ -169,13 +169,14 @@ if opt.plot_shuf_bar
         end
     end
 end
-for rtype=["within","cross","all"]
+% for rtype=["within","cross","all"]
+for rtype="all"
     %% raw path
     congru_path=[readmatrix(fullfile('gephidata',sprintf('s1_%s_gephi_component_path.csv',rtype)));...
         readmatrix(fullfile('gephidata',sprintf('s2_%s_gephi_component_path.csv',rtype)))];
     %         incong_path=readmatrix(fullfile('gephidata',sprintf('incong_%s_gephi_component_path.csv',rtype)));
     nonmem_path=readmatrix(fullfile('gephidata',sprintf('non_%s_gephi_component_path.csv',rtype)));
-    fh=figure();
+    fh=figure('Position',[32,32,300,300]);
     hold on;
     scatter(congru_path(:,1),congru_path(:,2),4,'ro')
     scatter(nonmem_path(:,1),nonmem_path(:,2),4,'ko')
@@ -184,11 +185,11 @@ for rtype=["within","cross","all"]
     E=[0:10:120];
     [congruY,congruE]=discretize(congru_path(:,1),E);
     [nonY,nonE]=discretize(nonmem_path(:,1),E);
-    figure()
+    fh=figure('Position',[32,32,300,300]);
     hold on;
     for i=1:max(nonY)
-        plot(i,mean(congru_path(congruY==i,2)),'ro')
-        plot(i,mean(nonmem_path(nonY==i,2)),'ko')
+        plot(i,nanmean(congru_path(congruY==i,2)),'ro')
+        plot(i,nanmean(nonmem_path(nonY==i,2)),'ko')
     end
 
     %% shuf path
@@ -205,7 +206,7 @@ for rtype=["within","cross","all"]
 %     scatter(shuf_path(:,1),shuf_path(:,2),4,'ko')
 %     xlim([5,100])
 
-    E=[0:5:20,30:10:50];
+    E=[0:5:20,30:10:50,100];
     congruY=discretize(congru_path(:,1),E);
     shufY=discretize(shuf_path(:,1),E);
     discreMat=[];
