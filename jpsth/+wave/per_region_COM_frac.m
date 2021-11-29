@@ -1,10 +1,10 @@
 function [fcom,ffrac]=per_region_COM_frac(opt)
 arguments
     opt.frac_COM (1,1) logical = false
-    opt.frac_PVSST (1,1) logical = true
+    opt.frac_PVSST (1,1) logical = false
     opt.COM_PVSST (1,1) logical = false
-    opt.frac_sensemotor (1,1) logical = false
-    opt.COM_sensemotor (1,1) logical = false
+    opt.frac_sensemotor (1,1) logical = true
+    opt.COM_sensemotor (1,1) logical = true
     opt.sust_type (1,:) char {mustBeMember(opt.sust_type,{'any','sust','trans'})} = 'any'
     opt.extent (1,:) char {mustBeMember(opt.extent,{'CH','CTX','CTXpl'})} = 'CTX'
     opt.corr (1,:) char {mustBeMember(opt.corr,{'Pearson','Spearman'})} = 'Pearson'

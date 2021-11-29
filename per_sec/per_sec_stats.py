@@ -46,5 +46,5 @@ def gen_selectivity_stats(delay, debug = False, denovo = True, complete=False):
 
 
 if __name__ == "__main__":
-    delay = 3
+    delay = 6
     error_files=gen_selectivity_stats(delay, debug=False,denovo=True, complete=False)

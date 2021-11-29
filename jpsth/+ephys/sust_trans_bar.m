@@ -1,7 +1,7 @@
 function sust_trans_bar(opt)
 arguments
     opt.good_wf (1,1) logical = false;
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 3
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
 if opt.delay==6
     warning('Delay set to default 6')
@@ -18,8 +18,9 @@ for ii=1:numel(upath)
     sustfrac(ii)=nnz(ismember(meta.mem_type(sesssel),[1,3]))./nnz(sesssel);
     transfrac(ii)=nnz(ismember(meta.mem_type(sesssel),[2,4]))./nnz(sesssel);
 end
-sustci=bootci(1000,@(x) mean(x), sustfrac).*100;
-transci=bootci(1000,@(x) mean(x), transfrac).*100;
+
+sustci=bootci(500,@(x) mean(x), sustfrac).*100;
+transci=bootci(500,@(x) mean(x), transfrac).*100;
 sustmm=mean(sustfrac.*100);
 transmm=mean(transfrac.*100);
 fh=figure('Color','w','Position',[100,100,150,235]);

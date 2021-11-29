@@ -49,7 +49,6 @@ if isempty(stats_)...
             if size(fstr.skip,2)>1
                 fstr.skip=fstr.skip(1:size(fstr.sess_suids,1)).';
             end
-            %<<<<<<<<<<<<<<<<<
             for sf=statfields, stats.(memtype).(sf)=[stats.(memtype).(sf);fstr.(sf)]; end
             stats.(memtype).sess=[stats.(memtype).sess;repmat(fstr.sess,size(fstr.sess_suids,1),1)];
         end

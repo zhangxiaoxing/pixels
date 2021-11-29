@@ -15,7 +15,7 @@ if ~exist('sums_conn_str','var')
 end
 strict_sel=sumcon_qc(:,1)>0 & sumcon_qc(:,4)<25 & sumcon_qc(:,3)<4 & sumcon_qc(:,2)<276 & sumcon_qc(:,2)>251;
 if ~exist('done','var'), done=[];end
-for sumcon_idx=33208%find(strict_sel).'
+for sumcon_idx=15840%find(strict_sel).'
 %     if ismember(sumcon_idx,done), continue;end
 %     done=[done,sumcon_idx];
     %transient, congruent, COM shift, cross region, good_wf
@@ -91,7 +91,7 @@ for sumcon_idx=33208%find(strict_sel).'
     grid on
 %     exportgraphics(fh,sprintf('SC\\wave_raster_SC_%d.png',sumcon_idx),'Resolution',300);
     if true
-        exportgraphics(fh,sprintf('SC\\wave_raster_SC_%d.pdf',sumcon_idx));
+        exportgraphics(fh,sprintf('SC\\wave_raster_SC_%d.pdf',sumcon_idx),'ContentType','vector');
     end
 %     close(fh);
 %     waitfor(fh);

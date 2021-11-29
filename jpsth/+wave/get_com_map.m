@@ -11,6 +11,7 @@ arguments
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
     opt.partial (1,:) char {mustBeMember(opt.partial,{'full','early3in6','late3in6'})}='full' % for TCOM correlation between 3s and 6s trials
     opt.plot_COM_scheme (1,1) logical = false
+    opt.one_SU_showcase (1,1) logical = false
 end
 persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 
@@ -196,9 +197,8 @@ for su=reshape(msel,1,[])
         if exist('anticurve','var')
             com_str.(sess).([samp,'anticurve'])(suid(su))=anticurve;
         end
-        if opt.rnd_half || contains(opt.cell_type,'any') || opt.selidx || opt.early3in6
-            heatnorm=curve./max(curve);
-        else % per_su_showcase
+        
+        if opt.one_SU_showcase
             heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
             heatnorm=heatcent./max(abs(heatcent));
             heatnorm(heatnorm<0)=0;
@@ -207,6 +207,8 @@ for su=reshape(msel,1,[])
                 [~,idx]=sort(cc,'descend');
                 heatnorm=heatnorm(idx(1:10),:);
             end
+        else
+            heatnorm=curve./max(curve);
         end
         com_str.(sess).([samp,'heat'])(suid(su))=heatnorm;
     end

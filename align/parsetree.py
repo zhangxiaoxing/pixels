@@ -6,19 +6,20 @@ Created on Fri Mar 12 08:55:38 2021
 """
 
 import pandas as pd
-import re
 import numpy as np
 
 
 def _get_struct_tree(): #import from Allen CCF v3 file
     tree_file = r"K:\neupix\track_meta\structure_tree_safe_2017.csv"
+    # pandas #44079 work around
     return pd.read_csv(tree_file,
                           usecols=['id','acronym','depth','structure_id_path',],
                           dtype={'id':'UInt32',
                                   'acronym':'string',
                                   'depth':'UInt8',
                                   'structure_id_path':'string'},
-                          index_col='id')
+                          ).set_index(['id',])
+
 
 
 def get_tree_path(regstr): #build up entire region tree from leaf node

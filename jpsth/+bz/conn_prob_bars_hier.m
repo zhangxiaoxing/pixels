@@ -7,6 +7,8 @@ arguments
     pair (1,1) struct
     opt.dist (1,1) double = 5
     opt.per_region_within (1,1) logical = false
+    opt.save_int_data (1,1) logical = false
+    opt.load_int_data (1,1) logical = false
 end
 
 addpath('k:\code\align\')
@@ -14,11 +16,29 @@ sess_cnt=max(sig.sess);
 same_stats=struct();
 [same_stats.nm_nm,same_stats.congr,same_stats.incon,same_stats.mem_nm,same_stats.nm_mem]...
     =deal(nan(sess_cnt,1));
-l2h_stats=same_stats;
-h2l_stats=same_stats;
-[~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
-[~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true);
+if opt.load_int_data
+    load('conn_prob_bars_hier.mat')
+else
+    l2h_stats=same_stats;
+    h2l_stats=same_stats;
+    [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
+    [~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true);
 
+    %save intermediate data
+    if opt.save_int_data
+        save('conn_prob_bars_hier.mat',...
+            'h2l_stats',...
+            'l2h_stats',...
+            'pair_h2l',...
+            'pair_l2h',...
+            'pair_same',...
+            'same_stats',...
+            'sess_cnt',...
+            'sig_h2l',...
+            'sig_l2h',...
+            'sig_same')
+    end
+end
 sess_sig_type=sig.mem_type(sig_same(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_same(:,opt.dist),:);
 same_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
@@ -35,11 +55,11 @@ if opt.per_region_within
     end
     [~,~,ratiomap]=ref.get_pv_sst();
     idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-    
+
     congru_corr=cell2mat(arrayfun(@(x) [ratiomap(char(idmap.ccfid2reg(ureg(x)))),reg_stats(x).congr(1)],(1:numel(ureg)).','UniformOutput',false));
     incong_corr=cell2mat(arrayfun(@(x) [ratiomap(char(idmap.ccfid2reg(ureg(x)))),reg_stats(x).incon(1)],(1:numel(ureg)).','UniformOutput',false));
     nmnm_corr=cell2mat(arrayfun(@(x) [ratiomap(char(idmap.ccfid2reg(ureg(x)))),reg_stats(x).nm_nm(1)],(1:numel(ureg)).','UniformOutput',false));
-    
+
     figure('Color','w')
     hold on;
     ch=scatter(congru_corr(:,1),congru_corr(:,2),100,'.','r');
@@ -65,6 +85,27 @@ assignin('base','hier_stats',hier_stats);
 
 fh=figure('Color','w','Position',[32,32,235,235]);
 hold on
+bh=bar([...
+    l2h_stats.congr(1),l2h_stats.incon(1),l2h_stats.nm_nm(1);...
+    h2l_stats.congr(1),h2l_stats.incon(1),h2l_stats.nm_nm(1)].*100);
+[ci1,ci2]=deal([]);
+for f=["congr","incon","nm_nm"]
+    ci1=[ci1,cellfun(@(x) x.(f)(2),{l2h_stats,h2l_stats})];
+    ci2=[ci2,cellfun(@(x) x.(f)(3),{l2h_stats,h2l_stats})];
+end
+errorbar([bh.XEndPoints],[bh.YEndPoints],ci1.*100-[bh.YEndPoints],ci2.*100-[bh.YEndPoints],'k.');
+
+bh(1).FaceColor='w';
+bh(2).FaceColor=[0.5,0.5,0.5];
+bh(3).FaceColor='k';
+
+legend(bh,{'Same memory','Diff. memory','Non-memory'})
+set(gca(),'XTick',1:2,'XTickLabel',{'L2H','H2L'})
+ylabel('Func. coupling probability (%)');
+exportgraphics(fh,'conn_prob_bars_hier.pdf');
+
+fh=figure('Color','w','Position',[32,32,235,235]);
+hold on
 bh=bar([same_stats.congr(1),same_stats.incon(1),same_stats.nm_nm(1);...
     l2h_stats.congr(1),l2h_stats.incon(1),l2h_stats.nm_nm(1);...
     h2l_stats.congr(1),h2l_stats.incon(1),h2l_stats.nm_nm(1)].*100);
@@ -85,33 +126,36 @@ set(gca(),'XTick',1:3,'XTickLabel',{'Within reg.','Low->High','High->Low'},'XTic
 ylabel('Func. coupling probability (%)');
 exportgraphics(fh,'conn_prob_bars_hier.pdf');
 
+
+
+
 %% chisq test
 chisq_3(hier_stats.same_stats.congr(4),hier_stats.same_stats.congr(5),...
     hier_stats.same_stats.incon(4),hier_stats.same_stats.incon(5),...
-hier_stats.same_stats.nm_nm(4),hier_stats.same_stats.nm_nm(5))
+    hier_stats.same_stats.nm_nm(4),hier_stats.same_stats.nm_nm(5))
 
 chisq_3(hier_stats.l2h_stats.congr(4),hier_stats.l2h_stats.congr(5),...
     hier_stats.l2h_stats.incon(4),hier_stats.l2h_stats.incon(5),...
-hier_stats.l2h_stats.nm_nm(4),hier_stats.l2h_stats.nm_nm(5))
+    hier_stats.l2h_stats.nm_nm(4),hier_stats.l2h_stats.nm_nm(5))
 
 chisq_3(hier_stats.h2l_stats.congr(4),hier_stats.h2l_stats.congr(5),...
     hier_stats.h2l_stats.incon(4),hier_stats.h2l_stats.incon(5),...
-hier_stats.h2l_stats.nm_nm(4),hier_stats.h2l_stats.nm_nm(5))
+    hier_stats.h2l_stats.nm_nm(4),hier_stats.h2l_stats.nm_nm(5))
 
 
 chisq_3(hier_stats.same_stats.congr(4),hier_stats.same_stats.congr(5),...
     hier_stats.l2h_stats.congr(4),hier_stats.l2h_stats.congr(5),...
-hier_stats.h2l_stats.congr(4),hier_stats.h2l_stats.congr(5))
+    hier_stats.h2l_stats.congr(4),hier_stats.h2l_stats.congr(5))
 
 
 chisq_3(hier_stats.same_stats.incon(4),hier_stats.same_stats.incon(5),...
     hier_stats.l2h_stats.incon(4),hier_stats.l2h_stats.incon(5),...
-hier_stats.h2l_stats.incon(4),hier_stats.h2l_stats.incon(5))
+    hier_stats.h2l_stats.incon(4),hier_stats.h2l_stats.incon(5))
 
 
 chisq_3(hier_stats.same_stats.nm_nm(4),hier_stats.same_stats.nm_nm(5),...
     hier_stats.l2h_stats.nm_nm(4),hier_stats.l2h_stats.nm_nm(5),...
-hier_stats.h2l_stats.nm_nm(4),hier_stats.h2l_stats.nm_nm(5))
+    hier_stats.h2l_stats.nm_nm(4),hier_stats.h2l_stats.nm_nm(5))
 
 end
 

@@ -1,8 +1,8 @@
 function plot_delay_6_3_corr(opt)
 arguments
     opt.plot_3_6early (1,1) logical = false
-    opt.plot_3_6late (1,1) logical = true
-    opt.plot_3_6full (1,1) logical = false
+    opt.plot_3_6late (1,1) logical = false
+    opt.plot_3_6full (1,1) logical = true
     opt.plot_6early_6late (1,1) logical = false
     opt.plot_6_6early (1,1) logical = false
 end
@@ -115,17 +115,17 @@ if opt.plot_3_6full
         binavg=[binavg;median(corrmat(kbin==bb,1)),median(corrmat(kbin==bb,2)),ci(1),ci(2)];
     end
 
-    fh=figure('Color','w','Position',[100,100,230,460]);
+    fh=figure('Color','w','Position',[100,100,460,230]);
     hold on
-    pha=plot(binavg(:,2)./4,binavg(:,1)./4,'-k','LineWidth',1);
-    errorbar(binavg(:,2)./4,binavg(:,1)./4,diff(binavg(:,[1 3]),1,2)./4,diff(binavg(:,[1 4]),1,2)./4,'k.','LineWidth',1)
-    scatter(corrmat(:,2)./4,corrmat(:,1)./4,4,'k','filled','o','MarkerEdgeColor','none','MarkerFaceAlpha',0.2);
+    pha=plot(binavg(:,1)./4,binavg(:,2)./4,'-k','LineWidth',1);
+    errorbar(binavg(:,1)./4,binavg(:,2)./4,diff(binavg(:,[1 3]),1,2)./4,diff(binavg(:,[1 4]),1,2)./4,'k.','LineWidth',1)
+    scatter(corrmat(:,1)./4,corrmat(:,2)./4,4,'k','filled','o','MarkerEdgeColor','none','MarkerFaceAlpha',0.2);
     phi=plot([0,3],[0,3],'--r','LineWidth',1);
-    phs=plot([0,3],[0,6],':r','LineWidth',1);
-    text(max(xlim()),max(ylim()),sprintf('r=%.3f,p=%.3f, n=%d',r36,p36,size(corrmat,1)),'HorizontalAlignment','right','VerticalAlignment','top');
-    ylabel('TCOM in 6s delay trials (s)');
-    xlabel('TCOM in 3s delay trials (s)');
-    legend([pha,phi,phs],{'data-median','identical','linear-scale'},'Location','northoutside')
+    phs=plot([0,6],[0,3],':r','LineWidth',1);
+    text(max(xlim()),max(ylim()+0.5),sprintf('r=%.3f,p=%.3f, n=%d',r36,p36,size(corrmat,1)),'HorizontalAlignment','right','VerticalAlignment','top');
+    xlabel('TCOM in 6s delay trials (s)');
+    ylabel('TCOM in 3s delay trials (s)');
+    legend([pha,phi,phs],{'data-median','y = x','y = 1/2x'},'Location','northoutside')
     keyboard()
     exportgraphics(fh,'TCOM_corr_3s_6s.pdf','ContentType','vector');
 end
