@@ -8,7 +8,7 @@ arguments
     opt.dist (1,1) double = 5
     opt.per_region_within (1,1) logical = false
     opt.save_int_data (1,1) logical = false
-    opt.load_int_data (1,1) logical = false
+    opt.load_int_data (1,1) logical = true
 end
 
 addpath('k:\code\align\')
@@ -24,6 +24,10 @@ else
     [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
     [~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true);
 
+    sig_wave_id=[ephys.get_wave_id(sig.sess,sig.suid(:,1)),ephys.get_wave_id(sig.sess,sig.suid(:,2))];
+    pair_wave_id=[ephys.get_wave_id(pair.sess,pair.suid(:,1)),ephys.get_wave_id(pair.sess,pair.suid(:,2))];
+
+
     %save intermediate data
     if opt.save_int_data
         save('conn_prob_bars_hier.mat',...
@@ -36,12 +40,15 @@ else
             'sess_cnt',...
             'sig_h2l',...
             'sig_l2h',...
-            'sig_same')
+            'sig_same','sig_wave_id','pair_wave_id')
     end
 end
 sess_sig_type=sig.mem_type(sig_same(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_same(:,opt.dist),:);
-same_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
+sig_wave=sig_wave_id(sig_same(:,opt.dist),:);
+pair_wave=pair_wave_id(pair_same(:,opt.dist),:);
+
+same_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type,sig_wave,pair_wave,"by_wave",true);
 
 %% %%%%%%%%%per region local FC%%%%%%%%%%
 if opt.per_region_within
@@ -73,12 +80,18 @@ end
 %h2l
 sess_sig_type=sig.mem_type(sig_h2l(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_h2l(:,opt.dist),:);
-h2l_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
+
+sig_wave=sig_wave_id(sig_h2l(:,opt.dist),:);
+pair_wave=pair_wave_id(pair_h2l(:,opt.dist),:);
+
+h2l_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type,sig_wave,pair_wave,"by_wave",true);
 
 %l2h
 sess_sig_type=sig.mem_type(sig_l2h(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_l2h(:,opt.dist),:);
-l2h_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
+sig_wave=sig_wave_id(sig_l2h(:,opt.dist),:);
+pair_wave=pair_wave_id(pair_l2h(:,opt.dist),:);
+l2h_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type,sig_wave,pair_wave,"by_wave",true);
 
 hier_stats=struct('same_stats',same_stats,'l2h_stats',l2h_stats,'h2l_stats',h2l_stats);
 assignin('base','hier_stats',hier_stats);
