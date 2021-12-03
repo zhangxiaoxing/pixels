@@ -1,45 +1,70 @@
-keyboard()
-%V.S. Frac, V.S. COM V.S. PV/SST
+% This script export regional connectome spread sheet for further rendering
+% in Gephi, emphasizing differential up/down weights.
 
-non_stats=onestat('nonmem',5); % 4:5,PV-SST; 6:7,COM; 8:9, frac;
+function bz_hier_corr(opt)
+arguments
+    opt.create_csv (1,1) logical = false %create file for gephi
+    opt.up_down_relative (1,1) logical = false % normalized within 2 regions
+    opt.plot_img (1,1) logical = true % plot heatmap image
+end
+% keyboard()
+%V.S. Frac, V.S. COM V.S. PV/SST
+% non_stats=onestat('nonmem',5); % 4:5,PV-SST; 6:7,COM; 8:9, frac;
 congru_stats=onestat('congru',5);
 % [~,~,ratiomap]=ref.get_pv_sst();
 load('OBM1Map.mat','OBM1map')
-congru_exp={'Source','Target','Weight','HierDir'};
-non_exp=congru_exp;
-for fi=1:size(congru_stats.meta,1)
-    pre=congru_stats.reg{fi,1};
-    post=congru_stats.reg{fi,2};
-    if OBM1map(pre)>OBM1map(post)
-        uddir=['D','U'];
-    else
-        uddir=['U','D'];
-    end
-    %     %relative
-    %     congru_exp=[congru_exp;...
-    %         {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2)),uddir(1)};...
-    %         {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2)),uddir(2)}];
-    % absolute
-    if congru_stats.meta(fi,1)>0 && congru_stats.meta(fi,10)>500
-        congru_exp=[congru_exp;...
-            {pre},{post},{log10(congru_stats.meta(fi,1)/congru_stats.meta(fi,10))+3.7,uddir(1)}];
-    end
-    if congru_stats.meta(fi,2)>0 && congru_stats.meta(fi,10)>500
-        congru_exp=[congru_exp;...
-            {post},{pre},{log10(congru_stats.meta(fi,2)/congru_stats.meta(fi,10))+3.7,uddir(2)}];
-    end
-end
-writecell(congru_exp,'Congru_asym_fc.csv')
-ureg=unique(congru_exp(2:end,1:2));
-ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
+if opt.plot_img
+    un_sorted_list=unique(congru_stats.reg(:));
+    OMI=cell2mat(OBM1map.values(un_sorted_list));
+    [~,OMIidx]=sort(OMI);
+    connmat=nan(numel(OMIidx));
 
-node_exp={'Id','Label','XX','YY'};
-for ni=1:numel(ureg)
-    node_exp=[node_exp;...
-        ureg(ni),ureg(ni),{OBM1map(ureg{ni})},30-30.*ffrac.collection{strcmp(ffrac.collection(:,2),ureg(ni)),1}];
-end
-writecell(node_exp,'Congru_asym_node.csv')
+    for i=1:size(congru_stats.reg,1)
+        
+        %TODO unfinished
+    end
 
+    keyboard
+end
+
+
+if opt.create_csv
+    congru_exp={'Source','Target','Weight','HierDir'};
+    % non_exp=congru_exp;
+    for fi=1:size(congru_stats.meta,1)
+        pre=congru_stats.reg{fi,1};
+        post=congru_stats.reg{fi,2};
+        if OBM1map(pre)>OBM1map(post)
+            uddir=['D','U'];
+        else
+            uddir=['U','D'];
+        end
+        if opt.up_down_relative
+            congru_exp=[congru_exp;...
+                {pre},{post},{congru_stats.meta(fi,1)/sum(congru_stats.meta(fi,1:2)),uddir(1)};...
+                {post},{pre},{congru_stats.meta(fi,2)/sum(congru_stats.meta(fi,1:2)),uddir(2)}];
+        else % absolute fc rate
+            if congru_stats.meta(fi,1)>0 && congru_stats.meta(fi,10)>500
+                congru_exp=[congru_exp;...
+                    {pre},{post},{log10(congru_stats.meta(fi,1)/congru_stats.meta(fi,10))+3.7,uddir(1)}];
+            end
+            if congru_stats.meta(fi,2)>0 && congru_stats.meta(fi,10)>500
+                congru_exp=[congru_exp;...
+                    {post},{pre},{log10(congru_stats.meta(fi,2)/congru_stats.meta(fi,10))+3.7,uddir(2)}];
+            end
+        end
+    end
+
+    writecell(congru_exp,'Congru_asym_fc.csv')
+    ureg=unique(congru_exp(2:end,1:2));
+    ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
+    node_exp={'Id','Label','XX','YY'};
+    for ni=1:numel(ureg)
+        node_exp=[node_exp;...
+            ureg(ni),ureg(ni),{OBM1map(ureg{ni})},30-30.*ffrac.collection{strcmp(ffrac.collection(:,2),ureg(ni)),1}];
+    end
+    writecell(node_exp,'Congru_asym_node.csv')
+end
 % corrmat=[];
 % figure('Color','w','Position',[32,32,400,800])
 % hold on;
@@ -77,6 +102,8 @@ exportgraphics(fh3,'congru_fc_corr_Frac.pdf')
 fh1n=plot_one(non_stats,4:5,'PV/(PV+SST)',100);
 fh2n=plot_one(non_stats,6:7,'Firing rate C.O.M.',0.25);
 fh3n=plot_one(non_stats,8:9,'Memory fraction',100);
+
+end
 
 function fh=plot_one(stats,idx,ylbl,k)
 arguments

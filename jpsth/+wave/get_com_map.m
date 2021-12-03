@@ -10,8 +10,9 @@ arguments
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
     opt.partial (1,:) char {mustBeMember(opt.partial,{'full','early3in6','late3in6'})}='full' % for TCOM correlation between 3s and 6s trials
-    opt.plot_COM_scheme (1,1) logical = false
-    opt.one_SU_showcase (1,1) logical = false
+    opt.plot_COM_scheme (1,1) logical = false % for TCOM illustration
+    opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
+    opt.alt_3_6 (1,1) logical = false
 end
 persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 
@@ -21,7 +22,11 @@ end
 
 if isempty(onepath_), onepath_='';end
 if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || opt.selidx~=selidx_ || opt.decision~=decision_ || opt.rnd_half~=rnd_half_ || opt.curve~=curve_
+    % TODO flexible mem_type data source
     meta_str=ephys.util.load_meta('type','neupix','delay',opt.delay);
+    if opt.alt_3_6
+        meta_str_alt=ephys.util.load_meta('type','neupix','delay',setdiff([3,6],opt.delay));
+    end
     homedir=ephys.util.getHomedir('type','raw');
     fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
     com_str=struct();
@@ -40,7 +45,6 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
         fr=h5read(fpath,'/FR_All');
         trial=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
-        %TODO nonmem,incongruent
         switch opt.cell_type
             case 'any_s1'
                 mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.');
@@ -57,6 +61,12 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
             case 'ctx_trans'
                 mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
                 mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
+                if opt.alt_3_6    
+                    mcid1alt=meta_str_alt.allcid(meta_str_alt.mem_type==2 & sesssel.' & strcmp(meta_str_alt.reg_tree(2,:),'CTX'));
+                    mcid2alt=meta_str_alt.allcid(meta_str_alt.mem_type==4 & sesssel.' & strcmp(meta_str_alt.reg_tree(2,:),'CTX'));
+                    mcid1=setdiff(mcid1alt,mcid1);
+                    mcid2=setdiff(mcid2alt,mcid2);
+                end
         end
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));
@@ -82,9 +92,9 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
                 com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
             end
             if opt.curve
-                for ff=["s1aheat","s2aheat","s1acurve","s2acurve",...
-                        "s1bheat","s2bheat","s1bcurve","s2bcurve",...
-                        "s1eheat","s2eheat","s1ecurve","s2ecurve"]
+                for ff=["s1aheat","s2aheat","s1acurve","s2acurve","s1aanticurve","s2aanticurve",...
+                        "s1bheat","s2bheat","s1bcurve","s2bcurve","s1banticurve","s2banticurve",...
+                        "s1eheat","s2eheat","s1ecurve","s2ecurve","s1eanticurve","s2eanticurve"]
                     com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
                 end
             end
@@ -145,19 +155,17 @@ for su=reshape(msel,1,[])
     perfmat=squeeze(fr(pref_sel,su,:));
     npmat=squeeze(fr(nonpref_sel,su,:));
     basemm=mean([mean(perfmat(:,stats_window),1);mean(npmat(:,stats_window),1)]);
-    if opt.selidx
-        sel_vec=[mean(perfmat,1);mean(npmat,1)];
-        sel_idx=(-diff(sel_vec)./sum(sel_vec));
-        sel_idx(all(sel_vec==0))=0;
 
-        curve=sel_idx;
-        sel_idx(sel_idx<0)=0;
-        com=sum((1:numel(stats_window)).*sel_idx(stats_window))./sum(sel_idx(stats_window));
-        if ~isfinite(com)
-            fprintf('Moved sess %d su%d, infinite TCOM\n',sess,su)
-            keyboard()
-        end
-    else
+%% Obsolete code to calculate COM of selectivity indices        
+%         sel_idx(sel_idx<0)=0;
+%         com=sum((1:numel(stats_window)).*sel_idx(stats_window))./sum(sel_idx(stats_window));
+%         if ~isfinite(com)
+%             fprintf('Moved sess %d su%d, infinite TCOM\n',sess,su)
+% %             keyboard()
+%             com=0;
+%         end
+
+    
         if ~opt.per_sec_stats
             basemm=mean(basemm);
         end
@@ -171,13 +179,20 @@ for su=reshape(msel,1,[])
             mm_pref=mm(stats_window)-basemm;
         end
         if max(mm_pref)<=0,continue;end % work around 6s paritial
-        if contains(opt.cell_type,'any')
+        if opt.selidx
+            sel_vec=[mean(perfmat,1);mean(npmat,1)];
+            sel_idx=(-diff(sel_vec)./sum(sel_vec));
+            sel_idx(all(sel_vec==0))=0;
+            curve=sel_idx(stats_window);
+        elseif contains(opt.cell_type,'any')
             curve=squeeze(mean(fr(pref_sel,su,:))).'-itimm;
             anticurve=squeeze(mean(fr(nonpref_sel,su,:))).'-itimm;
         elseif opt.delay==6 % full, early or late
             curve=squeeze(mean(fr(pref_sel,su,17:40))).'-basemm;
+            anticurve=squeeze(mean(fr(nonpref_sel,su,17:40))).'-basemm;
         else
             curve=mm_pref;
+            anticurve=squeeze(mean(fr(nonpref_sel,su,stats_window))).'-basemm;
         end
         mm_pref(mm_pref<0)=0;
         com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
@@ -190,25 +205,22 @@ for su=reshape(msel,1,[])
                 fc_scheme(curve,mm_pref,com)
             end
         end
-    end
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
         if exist('anticurve','var')
             com_str.(sess).([samp,'anticurve'])(suid(su))=anticurve;
         end
-        
-        if opt.one_SU_showcase
-            heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
-            heatnorm=heatcent./max(abs(heatcent));
-            heatnorm(heatnorm<0)=0;
-            if size(heatnorm,1)>10
-                cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
-                [~,idx]=sort(cc,'descend');
-                heatnorm=heatnorm(idx(1:10),:);
+        heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
+        heatnorm=heatcent./max(abs(heatcent));
+        heatnorm(heatnorm<0)=0;
+        if size(heatnorm,1)>10
+            if numel(curve)>numel(stats_window)
+                curve=curve(stats_window);
             end
-        else
-            heatnorm=curve./max(curve);
+            cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
+            [~,idx]=sort(cc,'descend');
+            heatnorm=heatnorm(idx(1:10),:);
         end
         com_str.(sess).([samp,'heat'])(suid(su))=heatnorm;
     end

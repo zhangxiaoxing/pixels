@@ -79,8 +79,8 @@ if opt.plot_sel_idx
     rtn=sortmat_all;
     %% actual plot
     fh=figure('Color','w','Position',[32,32,750,350]);
-    plotOne(1,sortmat_all(:,4:end),'cmap','turbo','scale',[-0.6,0.6],'pnl_num',1);
-    xlim([8.5,40.5])
+    plotOne(1,sortmat_all(:,4:end),'cmap','copper','scale',[-0.1,0.4],'pnl_num',1);
+    xlim([8.5,44.5])
     exportgraphics(fh,'ctx_trans_sel_idx_delay.pdf','ContentType','vector')
 end
 
