@@ -9,6 +9,7 @@ arguments
     opt.per_region_within (1,1) logical = false
     opt.save_int_data (1,1) logical = false
     opt.load_int_data (1,1) logical = true
+    opt.bin_edge=0:8:24;
 end
 
 addpath('k:\code\align\')
@@ -27,7 +28,6 @@ else
     sig_wave_id=[ephys.get_wave_id(sig.sess,sig.suid(:,1)),ephys.get_wave_id(sig.sess,sig.suid(:,2))];
     pair_wave_id=[ephys.get_wave_id(pair.sess,pair.suid(:,1)),ephys.get_wave_id(pair.sess,pair.suid(:,2))];
 
-
     %save intermediate data
     if opt.save_int_data
         save('conn_prob_bars_hier.mat',...
@@ -43,12 +43,27 @@ else
             'sig_same','sig_wave_id','pair_wave_id')
     end
 end
+sig_wave_bin=[ephys.get_coactive_profile(sig.sess,sig.suid(:,1),'bin_edge',opt.bin_edge),ephys.get_coactive_profile(sig.sess,sig.suid(:,2),'bin_edge',opt.bin_edge)];
+pair_wave_bin=[ephys.get_coactive_profile(pair.sess,pair.suid(:,1),'bin_edge',opt.bin_edge),ephys.get_coactive_profile(pair.sess,pair.suid(:,2),'bin_edge',opt.bin_edge)];
+
 sess_sig_type=sig.mem_type(sig_same(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_same(:,opt.dist),:);
 sig_wave=sig_wave_id(sig_same(:,opt.dist),:);
 pair_wave=pair_wave_id(pair_same(:,opt.dist),:);
 
-same_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type,sig_wave,pair_wave,"by_wave",true);
+same_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
+wavestats=bz.bars_util.get_wave_ratio(sig_wave,pair_wave);
+
+sig_bin=sig_wave_bin(sig_same(:,opt.dist),:);
+pair_bin=pair_wave_bin(pair_same(:,opt.dist),:);
+binmats=bz.bars_util.get_cross_bin_ratio(sig_bin,pair_bin);
+
+% figure();imagesc(same_binmats.binmat(:,:,1).*100,[1,4])
+% colormap('turbo');
+% colorbar()
+
+same_stats=cell2struct([struct2cell(wavestats);struct2cell(same_stats);{binmats}],...
+    [fieldnames(wavestats);fieldnames(same_stats);'per_bin_FC']);
 
 %% %%%%%%%%%per region local FC%%%%%%%%%%
 if opt.per_region_within
@@ -84,14 +99,29 @@ sess_pair_type=pair.mem_type(pair_h2l(:,opt.dist),:);
 sig_wave=sig_wave_id(sig_h2l(:,opt.dist),:);
 pair_wave=pair_wave_id(pair_h2l(:,opt.dist),:);
 
-h2l_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type,sig_wave,pair_wave,"by_wave",true);
+h2l_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
+wavestats=bz.bars_util.get_wave_ratio(sig_wave,pair_wave);
+
+sig_bin=sig_wave_bin(sig_h2l(:,opt.dist),:);
+pair_bin=pair_wave_bin(pair_h2l(:,opt.dist),:);
+binmats=bz.bars_util.get_cross_bin_ratio(sig_bin,pair_bin);
+
+h2l_stats=cell2struct([struct2cell(wavestats);struct2cell(h2l_stats);{binmats}],...
+    [fieldnames(wavestats);fieldnames(h2l_stats);'per_bin_FC']);
 
 %l2h
 sess_sig_type=sig.mem_type(sig_l2h(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_l2h(:,opt.dist),:);
 sig_wave=sig_wave_id(sig_l2h(:,opt.dist),:);
 pair_wave=pair_wave_id(pair_l2h(:,opt.dist),:);
-l2h_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type,sig_wave,pair_wave,"by_wave",true);
+l2h_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
+wavestats=bz.bars_util.get_wave_ratio(sig_wave,pair_wave);
+sig_bin=sig_wave_bin(sig_l2h(:,opt.dist),:);
+pair_bin=pair_wave_bin(pair_l2h(:,opt.dist),:);
+binmats=bz.bars_util.get_cross_bin_ratio(sig_bin,pair_bin);
+
+l2h_stats=cell2struct([struct2cell(wavestats);struct2cell(l2h_stats);{binmats}],...
+    [fieldnames(wavestats);fieldnames(l2h_stats);'per_bin_FC']);
 
 hier_stats=struct('same_stats',same_stats,'l2h_stats',l2h_stats,'h2l_stats',h2l_stats);
 assignin('base','hier_stats',hier_stats);
