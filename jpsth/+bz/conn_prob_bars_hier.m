@@ -25,9 +25,6 @@ else
     [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
     [~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true);
 
-    sig_wave_id=[ephys.get_wave_id(sig.sess,sig.suid(:,1)),ephys.get_wave_id(sig.sess,sig.suid(:,2))];
-    pair_wave_id=[ephys.get_wave_id(pair.sess,pair.suid(:,1)),ephys.get_wave_id(pair.sess,pair.suid(:,2))];
-
     %save intermediate data
     if opt.save_int_data
         save('conn_prob_bars_hier.mat',...
@@ -40,11 +37,15 @@ else
             'sess_cnt',...
             'sig_h2l',...
             'sig_l2h',...
-            'sig_same','sig_wave_id','pair_wave_id')
+            'sig_same')
     end
 end
-sig_wave_bin=[ephys.get_coactive_profile(sig.sess,sig.suid(:,1),'bin_edge',opt.bin_edge),ephys.get_coactive_profile(sig.sess,sig.suid(:,2),'bin_edge',opt.bin_edge)];
-pair_wave_bin=[ephys.get_coactive_profile(pair.sess,pair.suid(:,1),'bin_edge',opt.bin_edge),ephys.get_coactive_profile(pair.sess,pair.suid(:,2),'bin_edge',opt.bin_edge)];
+
+sig_wave_id=[ephys.get_wave_id(sig.sess,sig.suid(:,1)),ephys.get_wave_id(sig.sess,sig.suid(:,2))];
+pair_wave_id=[ephys.get_wave_id(pair.sess,pair.suid(:,1)),ephys.get_wave_id(pair.sess,pair.suid(:,2))];
+% 
+sig_wave_TCOM=[ephys.getTCOM(sig.sess,sig.suid(:,1)),ephys.getTCOM(sig.sess,sig.suid(:,2))];
+pair_wave_TCOM=[ephys.getTCOM(pair.sess,pair.suid(:,1)),ephys.getTCOM(pair.sess,pair.suid(:,2))];
 
 sess_sig_type=sig.mem_type(sig_same(:,opt.dist),:);
 sess_pair_type=pair.mem_type(pair_same(:,opt.dist),:);
@@ -53,17 +54,21 @@ pair_wave=pair_wave_id(pair_same(:,opt.dist),:);
 
 same_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
 wavestats=bz.bars_util.get_wave_ratio(sig_wave,pair_wave);
+% 
 
-sig_bin=sig_wave_bin(sig_same(:,opt.dist),:);
-pair_bin=pair_wave_bin(pair_same(:,opt.dist),:);
-binmats=bz.bars_util.get_cross_bin_ratio(sig_bin,pair_bin);
+sig_congr=all(ismember(sig.mem_type,1:2),2) | all(ismember(sig.mem_type,3:4),2);
+pair_congr=all(ismember(pair.mem_type,1:2),2) | all(ismember(pair.mem_type,3:4),2);
+
+sig_TCOM=sig_wave_TCOM(sig_same(:,opt.dist) & sig_congr,:);
+pair_TCOM=pair_wave_TCOM(pair_same(:,opt.dist) & pair_congr,:);
+TCOM_profile=bz.bars_util.get_TCOM_profile(sig_TCOM,pair_TCOM);
 
 % figure();imagesc(same_binmats.binmat(:,:,1).*100,[1,4])
 % colormap('turbo');
 % colorbar()
 
-same_stats=cell2struct([struct2cell(wavestats);struct2cell(same_stats);{binmats}],...
-    [fieldnames(wavestats);fieldnames(same_stats);'per_bin_FC']);
+same_stats=cell2struct([struct2cell(wavestats);struct2cell(same_stats);{TCOM_profile}],...
+    [fieldnames(wavestats);fieldnames(same_stats);'deltaTCOM_FC_rate']);
 
 %% %%%%%%%%%per region local FC%%%%%%%%%%
 if opt.per_region_within
@@ -102,12 +107,12 @@ pair_wave=pair_wave_id(pair_h2l(:,opt.dist),:);
 h2l_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
 wavestats=bz.bars_util.get_wave_ratio(sig_wave,pair_wave);
 
-sig_bin=sig_wave_bin(sig_h2l(:,opt.dist),:);
-pair_bin=pair_wave_bin(pair_h2l(:,opt.dist),:);
-binmats=bz.bars_util.get_cross_bin_ratio(sig_bin,pair_bin);
+sig_TCOM=sig_wave_TCOM(sig_h2l(:,opt.dist) & sig_congr,:);
+pair_TCOM=pair_wave_TCOM(pair_h2l(:,opt.dist) & pair_congr,:);
+TCOM_profile=bz.bars_util.get_TCOM_profile(sig_TCOM,pair_TCOM);
 
-h2l_stats=cell2struct([struct2cell(wavestats);struct2cell(h2l_stats);{binmats}],...
-    [fieldnames(wavestats);fieldnames(h2l_stats);'per_bin_FC']);
+h2l_stats=cell2struct([struct2cell(wavestats);struct2cell(h2l_stats);{TCOM_profile}],...
+    [fieldnames(wavestats);fieldnames(h2l_stats);'deltaTCOM_FC_rate']);
 
 %l2h
 sess_sig_type=sig.mem_type(sig_l2h(:,opt.dist),:);
@@ -116,57 +121,78 @@ sig_wave=sig_wave_id(sig_l2h(:,opt.dist),:);
 pair_wave=pair_wave_id(pair_l2h(:,opt.dist),:);
 l2h_stats=bz.bars_util.get_ratio(sess_sig_type,sess_pair_type);
 wavestats=bz.bars_util.get_wave_ratio(sig_wave,pair_wave);
-sig_bin=sig_wave_bin(sig_l2h(:,opt.dist),:);
-pair_bin=pair_wave_bin(pair_l2h(:,opt.dist),:);
-binmats=bz.bars_util.get_cross_bin_ratio(sig_bin,pair_bin);
+sig_TCOM=sig_wave_TCOM(sig_l2h(:,opt.dist) & sig_congr,:);
+pair_TCOM=pair_wave_TCOM(pair_l2h(:,opt.dist) & pair_congr,:);
+TCOM_profile=bz.bars_util.get_TCOM_profile(sig_TCOM,pair_TCOM);
 
-l2h_stats=cell2struct([struct2cell(wavestats);struct2cell(l2h_stats);{binmats}],...
-    [fieldnames(wavestats);fieldnames(l2h_stats);'per_bin_FC']);
+l2h_stats=cell2struct([struct2cell(wavestats);struct2cell(l2h_stats);{TCOM_profile}],...
+    [fieldnames(wavestats);fieldnames(l2h_stats);'deltaTCOM_FC_rate']);
 
 hier_stats=struct('same_stats',same_stats,'l2h_stats',l2h_stats,'h2l_stats',h2l_stats);
 assignin('base','hier_stats',hier_stats);
 
-fh=figure('Color','w','Position',[32,32,235,235]);
+
+%%
+fh=figure('Color','w','Position',[32,32,300,150]);
+subplot(1,3,1)
 hold on
-bh=bar([...
-    l2h_stats.congr(1),l2h_stats.incon(1),l2h_stats.nm_nm(1);...
-    h2l_stats.congr(1),h2l_stats.incon(1),h2l_stats.nm_nm(1)].*100);
+mm=[same_stats.congr(1);same_stats.incon(1);same_stats.nm_nm(1)].*100;
+for jj=1:3
+    bh(jj)=bar(jj,mm(jj));
+end
 [ci1,ci2]=deal([]);
 for f=["congr","incon","nm_nm"]
-    ci1=[ci1,cellfun(@(x) x.(f)(2),{l2h_stats,h2l_stats})];
-    ci2=[ci2,cellfun(@(x) x.(f)(3),{l2h_stats,h2l_stats})];
+    ci1=[ci1,cellfun(@(x) x.(f)(2),{same_stats})];
+    ci2=[ci2,cellfun(@(x) x.(f)(3),{same_stats})];
 end
 errorbar([bh.XEndPoints],[bh.YEndPoints],ci1.*100-[bh.YEndPoints],ci2.*100-[bh.YEndPoints],'k.');
+set(gca(),'XTick',[])
 
 bh(1).FaceColor='w';
 bh(2).FaceColor=[0.5,0.5,0.5];
 bh(3).FaceColor='k';
-
-legend(bh,{'Same memory','Diff. memory','Non-memory'})
-set(gca(),'XTick',1:2,'XTickLabel',{'L2H','H2L'})
-ylabel('Func. coupling probability (%)');
-exportgraphics(fh,'conn_prob_bars_hier.pdf');
-
-fh=figure('Color','w','Position',[32,32,235,235]);
+ylabel('FC rate (%)')
+%%
+subplot(1,3,2)
 hold on
-bh=bar([same_stats.congr(1),same_stats.incon(1),same_stats.nm_nm(1);...
-    l2h_stats.congr(1),l2h_stats.incon(1),l2h_stats.nm_nm(1);...
-    h2l_stats.congr(1),h2l_stats.incon(1),h2l_stats.nm_nm(1)].*100);
+mm=[l2h_stats.congr(1);l2h_stats.incon(1);l2h_stats.nm_nm(1)].*100;
+for jj=1:3
+    bh(jj)=bar(jj,mm(jj));
+end
 [ci1,ci2]=deal([]);
 for f=["congr","incon","nm_nm"]
-    ci1=[ci1,cellfun(@(x) x.(f)(2),{same_stats,l2h_stats,h2l_stats})];
-    ci2=[ci2,cellfun(@(x) x.(f)(3),{same_stats,l2h_stats,h2l_stats})];
+    ci1=[ci1,cellfun(@(x) x.(f)(2),{l2h_stats})];
+    ci2=[ci2,cellfun(@(x) x.(f)(3),{l2h_stats})];
 end
 errorbar([bh.XEndPoints],[bh.YEndPoints],ci1.*100-[bh.YEndPoints],ci2.*100-[bh.YEndPoints],'k.');
-
-
+set(gca(),'XTick',[])
 bh(1).FaceColor='w';
 bh(2).FaceColor=[0.5,0.5,0.5];
 bh(3).FaceColor='k';
-
-legend(bh,{'Same memory','Diff. memory','Non-memory'})
-set(gca(),'XTick',1:3,'XTickLabel',{'Within reg.','Low->High','High->Low'},'XTickLabelRotation',30)
-ylabel('Func. coupling probability (%)');
+ylabel('FC rate (%)')
+%%
+subplot(1,3,3)
+hold on
+mm=[h2l_stats.congr(1);h2l_stats.incon(1);h2l_stats.nm_nm(1)].*100;
+for jj=1:3
+    bh(jj)=bar(jj,mm(jj));
+end
+[ci1,ci2]=deal([]);
+for f=["congr","incon","nm_nm"]
+    ci1=[ci1,cellfun(@(x) x.(f)(2),{h2l_stats})];
+    ci2=[ci2,cellfun(@(x) x.(f)(3),{h2l_stats})];
+end
+errorbar([bh.XEndPoints],[bh.YEndPoints],ci1.*100-[bh.YEndPoints],ci2.*100-[bh.YEndPoints],'k.');
+set(gca(),'XTick',[])
+bh(1).FaceColor='w';
+bh(2).FaceColor=[0.5,0.5,0.5];
+bh(3).FaceColor='k';
+ylim([0,1])
+ylabel('FC rate (%)')
+% 
+% legend(bh,{'Same memory','Diff. memory','Non-memory'})
+% set(gca(),'XTick',1:3,'XTickLabel',{'Within reg.','Low->High','High->Low'},'XTickLabelRotation',30)
+% ylabel('Func. coupling probability (%)');
 exportgraphics(fh,'conn_prob_bars_hier.pdf');
 
 

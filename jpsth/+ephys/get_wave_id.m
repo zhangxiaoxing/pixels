@@ -1,4 +1,10 @@
-function out=get_wave_id(sess,cid)
+function out=get_wave_id(sess,cid,opt)
+arguments
+    sess (:,1) double
+    cid (:,1) double
+    opt.early (1,1) logical = true
+end
+
 if numel(sess)~=numel(cid)
     throw(MException('getwave:arguments','Session and id number don''t match'))
 end
@@ -19,16 +25,31 @@ if isempty(wave_id_map)
         elseif ismember(meta3.mem_type(ii),3:4) && meta6.mem_type(ii)==0
             wave_id_map(key)=2;
         elseif ismember(meta6.mem_type(ii),1:2) && meta3.mem_type(ii)==0
-            wave_id_map(key)=3;
+            if ~opt.early || (opt.early && any(meta6.per_bin(1:3,ii)==1))
+                wave_id_map(key)=3;
+            else
+                wave_id_map(key)=-2;
+            end
         elseif ismember(meta6.mem_type(ii),3:4) && meta3.mem_type(ii)==0
-            wave_id_map(key)=4;
+            if ~opt.early || (opt.early && any(meta6.per_bin(1:3,ii)==2))
+                wave_id_map(key)=4;
+            else
+                wave_id_map(key)=-2;
+            end
         elseif ismember(meta3.mem_type(ii),1:2) && ismember(meta6.mem_type(ii),1:2)
-            wave_id_map(key)=5;
+            if ~opt.early || (opt.early && any(meta6.per_bin(1:3,ii)==1))
+                wave_id_map(key)=5;
+            else
+                wave_id_map(key)=-2;
+            end
         elseif ismember(meta3.mem_type(ii),3:4) && ismember(meta6.mem_type(ii),3:4)
-            wave_id_map(key)=6;
+            if ~opt.early || (opt.early && any(meta6.per_bin(1:3,ii)==2))
+                wave_id_map(key)=6;
+            else
+                wave_id_map(key)=-2;
+            end
         else
             wave_id_map(key)=-1;
-            %         keyboard();
         end
     end
 end

@@ -73,6 +73,8 @@ if opt.plot_global
         end
 
         r=corr(com_a,com_b);
+        keyboard()
+
         currscale=max(abs([immata,immatb,immat_anti_a,immat_anti_b]),[],2);
         immata=immata./currscale;
         immatb=immatb./currscale;
@@ -195,7 +197,8 @@ arguments
     opt.plot_com (1,1) logical = false
     opt.scale (1,2) double = [-1,1]
     opt.title (1,:) char = []
-    opt.cmap = 'turbo'
+    opt.cmap (1,:) char = 'turbo'
+    
 end
 subplot(opt.sub_dim(1),opt.sub_dim(2),subidx);
 hold on
@@ -205,7 +208,6 @@ gk = fspecial('gaussian', [3 3], 1);
 %     cpos=get(axes,'Position');
 %     axes(sh,'Position',[cpos(1),cpos(2),0.5*(diff(cpos([1 3]))),cpos(4)])
 % end
-
 imagesc(conv2(imdata,gk,'same'),opt.scale)
 if opt.plot_com && exist('comdata','var') && ~isempty(comdata)
     scatter(comdata,1:numel(comdata),2,'o','MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');

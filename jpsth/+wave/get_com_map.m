@@ -36,6 +36,9 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
             fpath=fullfile(fl(ii).folder,fl(ii).name);
         else
             dpath=regexp(opt.onepath,'(?<=SPKINFO[\\/]).*$','match','once');
+            if isempty(dpath)
+                dpath=opt.onepath;
+            end
             fpath=fullfile(homedir,dpath,'FR_All_ 250.hdf5');
         end
         fpath=replace(fpath,'\',filesep());
@@ -178,7 +181,7 @@ for su=reshape(msel,1,[])
             mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
             mm_pref=mm(stats_window)-basemm;
         end
-        if max(mm_pref)<=0,continue;end % work around 6s paritial
+        if max(mm_pref)<=0,disp('NOPEAK');continue;end % work around 6s paritial
         if opt.selidx
             sel_vec=[mean(perfmat,1);mean(npmat,1)];
             sel_idx=(-diff(sel_vec)./sum(sel_vec));
