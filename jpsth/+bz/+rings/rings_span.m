@@ -1,3 +1,6 @@
+% TODO return by wave id
+
+
 function [cross,within]=rings_span(opt)
 arguments
     opt.ring_size (1,1) double {mustBeMember(opt.ring_size,3:5)}=3
@@ -5,6 +8,7 @@ arguments
     opt.memtype (1,:) char {mustBeMember(opt.memtype,{'any','congru','nonmem'})}='any'
     opt.shufid double {mustBeScalarOrEmpty} = []
 end
+
 persistent meta rings_shuf
 if isempty(meta)
     meta=ephys.util.load_meta();
@@ -46,7 +50,6 @@ for fi=1:size(rings,1)
     regs=meta.reg_tree(5,sesssel);
     reg_class=meta.reg_tree(2,sesssel);
     memtypes=meta.mem_type(sesssel);
-    %TODO within region
     for ri=1:size(rings{fi,rsidx},1)
         if strcmp(opt.memtype,'nonmem') && ~all(arrayfun(@(x) memtypes(cids==x)==0,rings{fi,rsidx}(ri,:)),'all')
             continue

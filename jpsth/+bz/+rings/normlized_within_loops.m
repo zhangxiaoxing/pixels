@@ -1,4 +1,4 @@
-%% TODO merge with ring_span_plot.m
+%% TODO merge with rings_span_plot.m
 %% TODO converge to new data structure
 if ~exist('ring_meta','var')
     ring_meta=bz.rings.get_ring_meta('loadfile',true);

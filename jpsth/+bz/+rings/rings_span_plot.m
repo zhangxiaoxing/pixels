@@ -1,21 +1,24 @@
 %% TODO merge with normalized_within_loops.m
+% TODO waveid
 keyboard()
 %% count number
 if ~exist('ring_meta','var')
     ring_meta=bz.rings.get_ring_meta('loadfile',true);
 end
+%congruent within
 [ratio3cw,z3cw]=get_ratio(ring_meta.congru.within_3,ring_meta.congru.within_3_shuf);
 [ratio4cw,z4cw]=get_ratio(ring_meta.congru.within_4,ring_meta.congru.within_4_shuf);
 [ratio5cw,z5cw]=get_ratio(ring_meta.congru.within_5,ring_meta.congru.within_5_shuf);
-
+%congruent cross
 [ratio3cc,z3cc]=get_ratio(ring_meta.congru.cross_3,ring_meta.congru.cross_3_shuf);
 [ratio4cc,z4cc]=get_ratio(ring_meta.congru.cross_4,ring_meta.congru.cross_4_shuf);
 [ratio5cc,z5cc]=get_ratio(ring_meta.congru.cross_5,ring_meta.congru.cross_5_shuf);
 % fn='Relative_loops_number_congru.pdf';
+%nonmem within
 [ratio3nw,z3nw]=get_ratio(ring_meta.nonmem.within_3,ring_meta.nonmem.within_3_shuf);
 [ratio4nw,z4nw]=get_ratio(ring_meta.nonmem.within_4,ring_meta.nonmem.within_4_shuf);
 [ratio5nw,z5nw]=get_ratio(ring_meta.nonmem.within_5,ring_meta.nonmem.within_5_shuf);
-
+%nonmem cross
 [ratio3nc,z3nc]=get_ratio(ring_meta.nonmem.cross_3,ring_meta.nonmem.cross_3_shuf);
 [ratio4nc,z4nc]=get_ratio(ring_meta.nonmem.cross_4,ring_meta.nonmem.cross_4_shuf);
 [ratio5nc,z5nc]=get_ratio(ring_meta.nonmem.cross_5,ring_meta.nonmem.cross_5_shuf);
@@ -37,7 +40,7 @@ errorbar([bh(1).XEndPoints,bh(2).XEndPoints,bh(3).XEndPoints,bh(4).XEndPoints],.
     [rdata(:,1);rdata(:,4);rdata(:,7);rdata(:,10)],...
     [diff(rdata(:,1:2),1,2);diff(rdata(:,4:5),1,2);diff(rdata(:,7:8),1,2);diff(rdata(:,10:11),1,2)],...
     [diff(rdata(:,1:2:3),1,2);diff(rdata(:,4:2:6),1,2);diff(rdata(:,7:2:9),1,2);diff(rdata(:,10:2:12),1,2)],'k.');
-set(gca(),'XTick',1:3,'XTickLabel',{'3-Neuron','4-Neuron','5-Neuron'},'XTickLabelRotation',90)
+set(gca(),'XTick',1:3,'XTickLabel',{'4-Neuron','5-Neuron'},'XTickLabelRotation',90)
 ylabel('Relative number of loops')
 % xlim([0.5,3.5])
 ylim([-15,150])
@@ -157,24 +160,28 @@ title('5-neuron loops')
 sgtitle(strjoin({ftitle,'cross region'}));
 end
 
-function [ratio,zscore]=get_ratio(rreal,shuf)
-    persistent OBM1map
-    if isempty(OBM1map)
-        fstr=load('OBM1map.mat');
-        OBM1map=fstr.OBM1map;
-    end
-    if iscell(rreal.reg{1,1})
-        shufn=cellfun(@(x) nnz(all(OBM1map.isKey(cellfun(@(x) x,x.reg)),2)),shuf);
-        realn=nnz(all(OBM1map.isKey(cellfun(@(x) x,rreal.reg)),2));
-    else
-        shufn=cellfun(@(x) nnz(all(OBM1map.isKey(x.reg),2)),shuf);
-        realn=nnz(all(OBM1map.isKey(rreal.reg),2));
-    end
-    shufmm=mean(shufn);
-    shufstd=std(shufn);
-    shufci=bootci(1000,@(x) mean(x),shufn);
-    ratio=realn./([shufmm,reshape(shufci,1,[])]);
-    zscore=(realn-[shufmm,reshape(shufci,1,[])])./shufstd;
+function [ratio,zscore]=get_ratio(mydata,shuf,opt)
+arguments
+    mydata
+    shuf
+end
+persistent OBM1map
+if isempty(OBM1map)
+    fstr=load('OBM1map.mat');
+    OBM1map=fstr.OBM1map;
+end
+if iscell(mydata.reg{1,1})
+    shufn=cellfun(@(x) nnz(all(OBM1map.isKey(cellfun(@(x) x,x.reg)),2)),shuf);
+    realn=nnz(all(OBM1map.isKey(cellfun(@(x) x,mydata.reg)),2));
+else
+    shufn=cellfun(@(x) nnz(all(OBM1map.isKey(x.reg),2)),shuf);
+    realn=nnz(all(OBM1map.isKey(mydata.reg),2));
+end
+shufmm=mean(shufn);
+shufstd=std(shufn);
+shufci=bootci(1000,@(x) mean(x),shufn);
+ratio=realn./([shufmm,reshape(shufci,1,[])]);
+zscore=(realn-[shufmm,reshape(shufci,1,[])])./shufstd;
 end
 
 function plotonespan(rreal,shuf,field,subidx,ylbl)

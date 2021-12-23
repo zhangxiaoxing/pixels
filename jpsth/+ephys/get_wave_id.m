@@ -1,15 +1,19 @@
+% 3onlyS1:1,3onlyS2:2,6onlyS1:3,6onlyS2:4,bothS1:5,bothS2:6,nonmem:0,switch,etc:-1,
+% require early and 6_late_half:-2
 function out=get_wave_id(sess,cid,opt)
 arguments
-    sess (:,1) double
-    cid (:,1) double
+    sess double
+    cid double
     opt.early (1,1) logical = true
 end
-
+if isscalar(sess)
+    sess=ones(size(cid)).*sess;
+end
 if numel(sess)~=numel(cid)
     throw(MException('getwave:arguments','Session and id number don''t match'))
 end
-persistent wave_id_map
-if isempty(wave_id_map)
+persistent wave_id_map early_
+if isempty(wave_id_map) || opt.early~=early_
     meta3=ephys.util.load_meta('delay',3);
     meta6=ephys.util.load_meta('delay',6);
     % all(meta3.sess==meta6.sess,"all")
@@ -54,5 +58,7 @@ if isempty(wave_id_map)
     end
 end
 key=uint64(sess).*100000+uint64(cid);
-out=cell2mat(wave_id_map.values(num2cell(key)));
+out=arrayfun(@(x) wave_id_map(x),key);
+early_=opt.early;
+% out=cell2mat(wave_id_map.values(num2cell(key)));
 end

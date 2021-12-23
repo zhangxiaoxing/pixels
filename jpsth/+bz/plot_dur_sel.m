@@ -1,18 +1,18 @@
+window=29:36;%5:20
 %%
+
 if ~exist('sc','var')
-    dursel=wave.delay_dur_selective('window',1:2);
-    sc=dursel(dursel(:,10)>0.7 & min(dursel(:,7:8),[],2)>2 & dursel(:,6)<0.05,:);
+    dursel=wave.delay_dur_selective('window',5:6);
+    %1:fileid,2:sessid,3:suid,4:s1p,5:s2p,6:sp,7:fr3,8:fr6,9:si,10:sie,11:auc
+    sc=dursel(dursel(:,11)>0.7 & min(dursel(:,7:8),[],2)>2 & dursel(:,6)<0.05,:);
 end
 
-for pi=89
+for pi=39%1:size(sc,1)
 
 ii=sc(pi,1);
 se=sc(pi,2);
 su=sc(pi,3);
 
-
-
-window=5:20;%17:26;
 
 [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(se);
 
@@ -64,42 +64,68 @@ s6e=(trials(:,8)==6 & trials(:,9)>0 & trials(:,10)==0);
 
 ss=1;
 
-ci3=bootci(500,@(x) squeeze(mean(x)),fr(s3c,ss,:));
-ci6=bootci(500,@(x) squeeze(mean(x)),fr(s6c,ss,:));
+% ci3=bootci(50,@(x) squeeze(mean(x)),fr(s3c,ss,:));
+% ci6=bootci(50,@(x) squeeze(mean(x)),fr(s6c,ss,:));
 
-fh=figure('Color','w','Position',[32,32,465,220]);
-subplot(1,2,1)
+mm3=squeeze(mean(fr(s3c,ss,:)));
+mm6=squeeze(mean(fr(s6c,ss,:)));
+
+sem3=squeeze(std(fr(s3c,ss,:),0,1)./sqrt(nnz(s3c)));
+sem6=squeeze(std(fr(s6c,ss,:),0,1)./sqrt(nnz(s6c)));
+
+
+fh=figure('Color','w','Position',[32,32,700,220]);
+subplot(1,3,1)
 hold on
-fill([1:56,56:-1:1],[smooth(ci3(1,:));smooth(fliplr(ci3(2,:)))],'r','FaceAlpha',0.1,'EdgeColor','none')
-fill([1:56,56:-1:1],[smooth(ci6(1,:));smooth(fliplr(ci6(2,:)))],'b','FaceAlpha',0.1,'EdgeColor','none')
+fill([1:56,56:-1:1],[smooth(mm3+sem3);smooth(flip(mm3-sem3))],'b','FaceAlpha',0.1,'EdgeColor','none')
+fill([1:56,56:-1:1],[smooth(sem6+mm6);smooth(flip(mm6-sem6))],'r','FaceAlpha',0.1,'EdgeColor','none')
 
-ph3=plot(smooth(squeeze(mean(fr(s3c,ss,:)))),'-r');
-ph6=plot(smooth(squeeze(mean(fr(s6c,ss,:)))),'-b');
+ph3=plot(smooth(mm3),'-b');
+ph6=plot(smooth(mm6),'-r');
 
 arrayfun(@(x) xline(x,':k'),[3,4,7,8,10,11]*4+12.5)
-% xlim([8.5,44.5])
-% ylim([2,25])
+xlim([19.5,56.6])
+ylim([0,20])
 % set(gca(),'XTick',16.5:20:44.5,'XTickLabel',0:5:5)
 xlabel('Time (s)')
 ylabel('FR (Hz)')
 set(gca,'XTick',(8:20:56)+0.5,'XTickLabel',-5:5:15)
 
-subplot(1,2,2)
+subplot(1,3,2)
 hold on
-plot(find(s3c),mean(fr(s3c,ss,window),3),'ro','MarkerFaceColor','r','MarkerSize',4);
-plot(find(s6c),mean(fr(s6c,ss,window),3),'bo','MarkerFaceColor','b','MarkerSize',4);
-plot(find(s3e),mean(fr(s3e,ss,window),3),'ro','MarkerSize',4);
-plot(find(s6e),mean(fr(s6e,ss,window),3),'bo','MarkerSize',4);
+mm=[mean(fr(s6c,ss,window),'all'),mean(fr(s3c,ss,window),'all'),mean(fr(s6e,ss,window),'all'),mean(fr(s3e,ss,window),'all')];
+sems=[std(mean(fr(s6c,ss,window),3)),std(mean(fr(s3c,ss,window),3)),std(mean(fr(s6e,ss,window),3)),std(mean(fr(s3e,ss,window),3))]...
+    ./sqrt([nnz(s6c),nnz(s3c),nnz(s6e),nnz(s3e)]);
+bh=bar(1:4,diag(mm),'stacked','FaceColor','r','EdgeColor','k');
+bh(2).FaceColor='b';
+bh(3).FaceColor=[1,0.5,0.5];
+bh(4).FaceColor=[0.5,0.5,1];
+errorbar(1:4,mm,sems,'k.')
+set(gca(),'XTick',1:4,'XTickLabel',{'6s correct','3s correct','6s error','3s error'})
+ylabel('FR (Hz)')
+
+pc=ranksum(reshape(fr(s6c,ss,window),1,[]),reshape(fr(s3c,ss,window),1,[]))
+pe3=ranksum(reshape(fr(s6c,ss,window),1,[]),reshape(fr(s3e,ss,window),1,[]))
+pe6=ranksum(reshape(fr(s6c,ss,window),1,[]),reshape(fr(s6e,ss,window),1,[]))
+
+subplot(1,3,3)
+hold on
+plot(find(s3c),mean(fr(s3c,ss,window),3),'bo','MarkerFaceColor','b','MarkerSize',4);
+plot(find(s6c),mean(fr(s6c,ss,window),3),'ro','MarkerFaceColor','r','MarkerSize',4);
+plot(find(s3e),mean(fr(s3e,ss,window),3),'bo','MarkerSize',4);
+plot(find(s6e),mean(fr(s6e,ss,window),3),'ro','MarkerSize',4);
 disp(meta.reg_tree(:,meta.sess==se & meta.allcid==su))
 % xlim([176.5,200.5])
 % ylim([0,25])
 % set(gca,'XTick',181:5:204,'XTickLabel',5:5:25)
 xlabel('Trial #')
 ylabel('Baseline FR (Hz)')
-set(gca,'XTick',192:10:240,'XTickLabel',0:10:60)
-sgtitle(num2str([ii,se,su]))
-
-exportgraphics(fh,'dur_sel_SC_ITI.pdf','ContentType','vector');
+% set(gca,'XTick',192:10:240,'XTickLabel',0:10:60)
+sgtitle(num2str([pi,ii,se,su]))
+keyboard()
+exportgraphics(fh,'dur_sel_SC.pdf','ContentType','vector');
 % exportgraphics(fh,fullfile('SC',sprintf('dur_sel_SC_ITI_%d.png',pi)),'ContentType','image');
-% close(fh)
+%  exportgraphics(fh,fullfile('SC',sprintf('dur_sel_SC_%d.png',pi)),'ContentType','image');
+% waitfor(fh)
+close(fh)
 end

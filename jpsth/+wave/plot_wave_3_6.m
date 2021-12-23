@@ -1,4 +1,4 @@
-function plot_wave_3_6(opt)
+function out=plot_wave_3_6(opt)
 arguments
     opt.sess (1,1) double {mustBeMember(opt.sess,1:116)} = 102
     opt.sortby (1,:) char {mustBeMember(opt.sortby,{'3s','6s'})} = '6s'
@@ -7,7 +7,11 @@ arguments
     opt.plot_session (1,1) logical = false
 end
 %% global
+out=struct();
+out.corr2=struct();
+
 persistent com_map_3_sel com_map_3_alt com_map_6_sel com_map_6_alt com_map_3_sel_si com_map_3_alt_si com_map_6_sel_si com_map_6_alt_si
+
 if opt.plot_global
 
     if isempty(com_map_3_sel)
@@ -73,11 +77,24 @@ if opt.plot_global
         end
 
         r=corr(com_a,com_b);
-        keyboard()
 
         currscale=max(abs([immata,immatb,immat_anti_a,immat_anti_b]),[],2);
         immata=immata./currscale;
         immatb=immatb./currscale;
+        
+        flat_mat=@(x) x(:);
+        scale_mat=@(x) (x(:,1:2:size(x,2))+x(:,2:2:size(x,2)))./2;
+
+        r2s=corr(flat_mat(immata),flat_mat(scale_mat(immatb)));
+        r2sci=bootci(50,@(x,y) corr(x,y),flat_mat(immata),flat_mat(scale_mat(immatb)));
+        r2e=corr(flat_mat(immata),flat_mat(immatb(:,1:12)));
+        r2eci=bootci(50,@(x,y) corr(x,y),flat_mat(immata),flat_mat(immatb(:,1:12)));
+        r2l=corr(flat_mat(immata),flat_mat(immatb(:,13:end)));
+        r2lci=bootci(50,@(x,y) corr(x,y),flat_mat(immata),flat_mat(immatb(:,13:end)));
+
+        out.corr2.(replace(fn,'.pdf',''))=[r2s,r2e,r2l];
+        out.corr2ci.(replace(fn,'.pdf',''))=[r2sci,r2eci,r2lci];
+
         immat_anti_a=immat_anti_a./currscale;
         immat_anti_b=immat_anti_b./currscale;        
         fh=figure('Color','w','Position',[32,32,1400,800]);
@@ -99,6 +116,29 @@ if opt.plot_global
     end
 end
 %     exportgraphics(fh,'wave_3s_6s_global.pdf','ContentType','vector');
+
+% plot corr2 bars
+keyboard()
+
+fh=figure('Color','w','Position',[32,32,330,150]);
+hold on
+bh=bar([out.corr2.corr_3_6_both;out.corr2.corr_3_6_only6;out.corr2.corr_3_6_only3],'FaceColor','w','EdgeColor','k');
+bh(2).FaceColor=ones(1,3)./2;
+bh(3).FaceColor='k';
+
+xmat=cell2mat({bh.XEndPoints}.');
+fn=fieldnames(out.corr2ci);
+for fidx=1:numel(fn)
+    errorbar(xmat(:,fidx),out.corr2.(fn{fidx}),...
+        out.corr2ci.(fn{fidx})(1,:)-out.corr2.(fn{fidx}),...
+        out.corr2ci.(fn{fidx})(2,:)-out.corr2.(fn{fidx}),'k.')
+end
+
+set(gca,'XTick',[])
+ylabel('FR correlation (r)')
+legend(bh,{'Scaled','Early half','Late half'},'Location','northoutside','Orientation','horizontal')
+exportgraphics(fh,'wave_3_6_FR_corr.pdf','ContentType','vector')
+
 
 
 %% session

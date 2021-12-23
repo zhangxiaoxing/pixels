@@ -1,3 +1,4 @@
+% Between duration cell and sample cell
 early_bins=true;
 %% 3s preferred, 6s preferred
 dursel=wave.delay_dur_selective('window',1:2);
@@ -34,7 +35,9 @@ wave_id_map=containers.Map(num2cell(...
     num2cell(wave_3_6));
 
 %% functional coupling
-[sig,pair]=bz.load_sig_pair('pair',true);
+[sig_raw,pair_raw]=bz.load_sig_pair('pair',true);
+
+
 
 %sig 3-3 pair 3-3; 3-6; 6-3; 6-6
 

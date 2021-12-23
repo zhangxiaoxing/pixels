@@ -50,7 +50,7 @@ for ring_id=rids
     ts_id=sortrows(ts_id,1);
     ring_stats=bz.rings.relax_tag(ts_id,rsize);
     coact_count=sum(ring_stats.spk_cnt);
-    %%   old criteria of 0.1Hz
+    
     if coact_count>(rsize+1)*10
         sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)};
     end

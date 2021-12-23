@@ -11,6 +11,7 @@ loops_sums=struct();
 for rsize=rsizes
     rstats=sums_all{rsize-2};
     rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==rsize,:);
+
     %     if rsize==4
     %         if ~exist('sums4','var')
     %             load(fullfile('bzdata','sums_ring_stats_4.mat'),'sums4');

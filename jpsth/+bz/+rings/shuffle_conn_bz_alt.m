@@ -5,7 +5,7 @@ arguments
 end
 parpool(opt.poolsize)
 shufs=cell(opt.rpt,1);
-par0for rpt=1:opt.rpt
+parfor rpt=1:opt.rpt
     shufs{rpt}=shuffle_conn_onerpt(rpt);
 end
 save('bz_ring_shufs.mat','shufs')
