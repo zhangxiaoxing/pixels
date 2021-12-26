@@ -1,4 +1,3 @@
-%TODO Error trial
 function com_str_=get_com_map(opt)
 arguments
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
@@ -14,15 +13,13 @@ arguments
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.alt_3_6 (1,1) logical = false
 end
-persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
+persistent com_str opt_
 
 if opt.delay==6
     warning('Delay set to default 6')
 end
 
-if isempty(onepath_), onepath_='';end
-if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || opt.selidx~=selidx_ || opt.decision~=decision_ || opt.rnd_half~=rnd_half_ || opt.curve~=curve_
-    % TODO flexible mem_type data source
+if true || isempty(com_str) || ~isequaln(opt,opt_)
     meta_str=ephys.util.load_meta('type','neupix','delay',opt.delay);
     if opt.alt_3_6
         meta_str_alt=ephys.util.load_meta('type','neupix','delay',setdiff([3,6],opt.delay));
@@ -134,11 +131,7 @@ if isempty(com_str) || ~strcmp(opt.onepath, onepath_) || opt.delay~=delay_ || op
     end
 end
 com_str_=com_str;
-delay_ =opt.delay;
-selidx_=opt.selidx;
-decision_=opt.decision;
-rnd_half_=opt.rnd_half;
-curve_=opt.curve;
+opt_=opt;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,samp,opt)
@@ -203,10 +196,10 @@ for su=reshape(msel,1,[])
             com=com+12;
         end
         if opt.plot_COM_scheme
-            template=[zeros(1,6),0:0.2:1,1:-0.2:0,zeros(1,6)];
-            if corr(mm_pref.',template.','type','Pearson')>0.8
+%             template=[zeros(1,2),0:0.2:1,1:-0.2:0,zeros(1,10)];
+%             if corr(mm_pref.',template.','type','Spearman')>0.2
                 fc_scheme(curve,mm_pref,com)
-            end
+%             end
         end
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
@@ -232,16 +225,16 @@ end
 
 %% for COM scheme illustration
 function fc_scheme(curve,mm_pref,com)
-        if min(curve)>0
-            close all
-            fh=figure('Color','w', 'Position',[32,32,275,225]);
-            bar(mm_pref,'k');
-            ylabel('Baseline-deduced firing rate w (Hz)')
-            set(gca,'XTick',0:4:24,'XTickLabel',0:6)
-            xlabel('Time t (0.25 to 6 sec in step of 0.25 sec)')
-            xline(com,'--r');
-            keyboard()
-%             exportgraphics(gcf(),'COM_illustration.pdf','ContentType','vector')
-        end
+curve(curve<0)=0;
+close all
+fh=figure('Color','w', 'Position',[32,32,275,225]);
+bar(mm_pref,'k');
+ylabel('Baseline-subtracted firing rate w (Hz)')
+set(gca,'XTick',0:4:24,'XTickLabel',0:6)
+xlabel('Time t (0.25 to 6 sec in step of 0.25 sec)')
+xline(com,'--r');
+keyboard()
+%             exportgraphics(gcf(),'COM_illustration_L0.pdf','ContentType','vector')
+        
 end
 

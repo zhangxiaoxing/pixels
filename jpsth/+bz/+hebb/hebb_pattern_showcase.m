@@ -43,8 +43,12 @@ for sess=18%reshape(usess,1,[])
         sess_cid=meta.allcid(ctx_congru_sel);
         sess_reg=meta.reg_tree(5,ctx_congru_sel);
         sessplist=hebbPattern(cell2mat(hebbPattern(:,1))==sess,2:4);
+
         sess_ring_sel=arrayfun(@(x) all(ismember(cell2mat(sessplist(x,:)),sess_cid),'all'),1:size(sessplist,1));
         sessplist=sessplist(sess_ring_sel,:);
+        if isempty(sessplist)
+            continue
+        end
         %% multi-region
         ring_reg=arrayfun(@(x) unique(id2reg(cell2mat(sessplist(x,:)),sess_cid,sess_reg)),1:size(sessplist,1),'UniformOutput',false);
         multi_reg_sel=cellfun(@(x) numel(x)>2, ring_reg);

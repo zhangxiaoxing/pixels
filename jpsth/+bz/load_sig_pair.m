@@ -9,15 +9,11 @@ arguments
     opt.wf_criteria (1,1) logical = false
     opt.CTX (1,1) logical = true
 end
-persistent sig pair type_ criteria_ prefix_ inhibit_ wf_ ctx_
+persistent sig pair opt_
 if isempty(sig) ...
         || (opt.pair && isempty(pair))...
-        || ~strcmp(opt.type,type_)...
-        || ~strcmp(opt.criteria,criteria_)...
-        || ~strcmp(opt.prefix,prefix_)...
-        || inhibit_~=opt.inhibit...
-        || wf_~=opt.wf_criteria ...
-        || ctx_~=opt.CTX
+        || ~isequaln(opt,opt_)
+        
     if strcmp(opt.criteria,'Learning') && strcmp(opt.type,'MY')
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_my_learning_*.mat',opt.prefix)));
     elseif strcmp(opt.type,'MY')
@@ -75,28 +71,33 @@ if isempty(sig) ...
     
 end
 if opt.CTX
+    %sig
     ctxsigsel=all(sig.reg(:,2,:)==688,3);
-    ctxpairsel=all(pair.reg(:,2,:)==688,3);
     sig_=struct();
-    pair_=struct();
     for f=reshape(fieldnames(sig),1,[])
         fs=f{1};
         if ismatrix(sig.(fs))
             sig_.(fs)=sig.(fs)(ctxsigsel,:);
-            pair_.(fs)=pair.(fs)(ctxpairsel,:);
         else
             sig_.(fs)=sig.(fs)(ctxsigsel,:,:);
-            pair_.(fs)=pair.(fs)(ctxpairsel,:,:);
+        end
+    end
+    %pair
+    if opt.pair
+        ctxpairsel=all(pair.reg(:,2,:)==688,3);
+        pair_=struct();
+        for f=reshape(fieldnames(sig),1,[])
+            fs=f{1};
+            if ismatrix(sig.(fs))
+                pair_.(fs)=pair.(fs)(ctxpairsel,:);
+            else
+                pair_.(fs)=pair.(fs)(ctxpairsel,:,:);
+            end
         end
     end
 else
     sig_=sig;
     pair_=pair;
 end
-type_=opt.type;
-prefix_=opt.prefix;
-criteria_=opt.criteria;
-inhibit_=opt.inhibit;
-wf_=opt.wf_criteria;
-ctx_=opt.CTX;
+opt_=opt;
 end

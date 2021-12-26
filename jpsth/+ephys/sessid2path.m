@@ -1,6 +1,6 @@
-function [out,homedir]=sessid2path(sessid,opt)
+function [out,homedir,map_]=sessid2path(sessid,opt)
 arguments
-    sessid (1,1) double {mustBeInteger,mustBePositive}
+    sessid (1,1) double {mustBeInteger}
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
@@ -27,7 +27,10 @@ if isempty(map) || ~strcmp(opt.type,type_) || ~strcmp(opt.criteria,criteria_)
     type_=opt.type;
     criteria_=opt.criteria;
 end
-
-out=map(sessid);
-
+if sessid>0
+    out=map(sessid);
+else
+    out=[];
+end
+map_=map;
 end
