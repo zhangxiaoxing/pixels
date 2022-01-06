@@ -1,10 +1,11 @@
 % 3onlyS1:1,3onlyS2:2,6onlyS1:3,6onlyS2:4,bothS1:5,bothS2:6,nonmem:0,switch,etc:-1,
-% require early and 6_late_half:-2
+% require early and 6_late_half:-2, not require ctx ant not ctx:-3
 function out=get_wave_id(sess,cid,opt)
 arguments
     sess double
     cid double
     opt.early (1,1) logical = true
+    opt.ctx (1,1) logical = false
 end
 if isscalar(sess)
     sess=ones(size(cid)).*sess;
@@ -12,8 +13,8 @@ end
 if numel(sess)~=numel(cid)
     throw(MException('getwave:arguments','Session and id number don''t match'))
 end
-persistent wave_id_map early_
-if isempty(wave_id_map) || opt.early~=early_
+persistent wave_id_map opt_
+if isempty(wave_id_map) || ~isequaln(opt,opt_)
     meta3=ephys.util.load_meta('delay',3);
     meta6=ephys.util.load_meta('delay',6);
     % all(meta3.sess==meta6.sess,"all")
@@ -22,6 +23,11 @@ if isempty(wave_id_map) || opt.early~=early_
     % 0, none; 1,3sec only;2,6sec only;3, both;-1,other
     for ii=1:numel(meta3.sess)
         key=uint64(meta3.sess(ii))*100000+uint64(meta3.allcid(ii));
+        if opt.ctx && ~strcmp(meta6.reg_tree(2,ii),'CTX')
+            wave_id_map(key)=-3;
+            continue
+        end
+
         if meta3.mem_type(ii)==0 && meta6.mem_type(ii)==0
             wave_id_map(key)=0;        
         elseif ismember(meta3.mem_type(ii),1:2) && meta6.mem_type(ii)==0
@@ -59,6 +65,6 @@ if isempty(wave_id_map) || opt.early~=early_
 end
 key=uint64(sess).*100000+uint64(cid);
 out=arrayfun(@(x) wave_id_map(x),key);
-early_=opt.early;
+opt_=opt;
 % out=cell2mat(wave_id_map.values(num2cell(key)));
 end

@@ -43,7 +43,7 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
         sesssel=startsWith(meta_str.allpath,pc_stem);
         if ~any(sesssel), continue;end
         fr=h5read(fpath,'/FR_All');
-        trial=h5read(fpath,'/Trials');
+        trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         switch opt.cell_type
             case 'any_s1'
@@ -78,11 +78,11 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
             end
         end
         sessid=ephys.path2sessid(pc_stem);
-        s1sel=find(trial(:,5)==4 & trial(:,8)==opt.delay & trial(:,9)>0 & trial(:,10)>0);
-        s2sel=find(trial(:,5)==8 & trial(:,8)==opt.delay & trial(:,9)>0 & trial(:,10)>0);
+        s1sel=find(trials(:,5)==4 & trials(:,8)==opt.delay & trials(:,9)>0 & trials(:,10)>0);
+        s2sel=find(trials(:,5)==8 & trials(:,8)==opt.delay & trials(:,9)>0 & trials(:,10)>0);
         
-        e1sel=find(trial(:,5)==4 & trial(:,8)==opt.delay & trial(:,10)==0);
-        e2sel=find(trial(:,5)==8 & trial(:,8)==opt.delay & trial(:,10)==0);
+        e1sel=find(trials(:,5)==4 & trials(:,8)==opt.delay & trials(:,10)==0);
+        e2sel=find(trials(:,5)==8 & trials(:,8)==opt.delay & trials(:,10)==0);
         
         sess=['s',num2str(sessid)];
         %     if sum(trial(:,9))<40,continue;end %meta data obtained from processed

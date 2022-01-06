@@ -4,6 +4,10 @@ arguments
     opt.ft (1,1) logical = true;
 end
 if ispc
+    % dPCA
+    %addpath('..\..\Lib\dPCA\matlab\')
+
+
     if opt.buz
         addpath('K:\Lib\buzcode\buzcode\io')
         addpath('K:\Lib\buzcode\buzcode\utilities\')

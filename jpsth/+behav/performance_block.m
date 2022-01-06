@@ -5,25 +5,8 @@ all_perf=[];
 for sess=reshape(sesses,1,[])
     sess_perf=nan(1,8);
     [~,~,trials]=ephys.getSPKID_TS(sess,'skip_spike',true);
-    %TODO per mice process as blocks
     
-    % find well_trained trials
-    dur_resp=trials(trials(:,9)~=0,[8,10,8]);
-    blk1end=find(diff(dur_resp(:,1))~=0,1);
-    revtag=4;
-    for i=blk1end:-1:1
-        dur_resp(i,3)=revtag;
-        revtag=revtag-1;
-    end
-    
-    for i=(blk1end+1):size(dur_resp,1)
-        if dur_resp(i,1)~=dur_resp(i-1,1)
-            fwd_tag=1;
-        else
-            fwd_tag=fwd_tag+1;
-        end
-        dur_resp(i,3)=fwd_tag;
-    end
+    dur_resp=behav.tag_block(trials);
     
     for bi=1:4
         sess_perf(bi)=mean(dur_resp(dur_resp(:,1)==3 & dur_resp(:,3)==bi,2));
