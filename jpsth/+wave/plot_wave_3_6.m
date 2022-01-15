@@ -5,6 +5,7 @@ arguments
     opt.exportgraphics (1,1) logical = false
     opt.plot_global (1,1) logical = true
     opt.plot_session (1,1) logical = false
+    opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 2
 end
 %% global
 out=struct();
@@ -25,7 +26,7 @@ if opt.plot_global
         com_map_6_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true);
         com_map_6_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true,'alt_3_6',true);
     end
-    for alt_comb=1:3
+    for alt_comb=opt.comb_set
         switch alt_comb
             case 1
                 com_map_6=com_map_6_sel;
@@ -96,7 +97,31 @@ if opt.plot_global
         out.corr2ci.(replace(fn,'.pdf',''))=[r2sci,r2eci,r2lci];
 
         immat_anti_a=immat_anti_a./currscale;
-        immat_anti_b=immat_anti_b./currscale;        
+        immat_anti_b=immat_anti_b./currscale;
+
+        %% similarity confusion matrix
+        ct=[immata,immatb,immat_anti_a,immat_anti_b];
+        confumat=nan(size(ct,2));
+        for ii=1:size(ct,2)
+            for jj=1:size(ct,2)
+                confumat(ii,jj)=corr(ct(:,ii),ct(:,jj));
+            end
+        end
+        
+        fch=figure('Color','w','Position',[32,32,850,750]);
+        imagesc(confumat,[-1,1]);
+        set(gca,'YDir','normal')
+        colormap('turbo')
+        cbh=colorbar();
+        set(gca,'XTick',[0.5,12.5,24.5,36.5,48.5,60.5,72.5],'XTickLabel',{'0','3/0','3','6/0','3/0','3','6'})
+        set(gca,'YTick',[0.5,12.5,24.5,36.5,48.5,60.5,72.5],'YTickLabel',{'0','3/0','3','6/0','3/0','3','6'})
+        xlabel('Time(s) L->R: 3s-pref; 6s-pref; 3s nonpref; 6s nonpref')
+        ylabel('Time(s) L->R: 3s-pref; 6s-pref; 3s nonpref; 6s nonpref')
+        title(tag)
+        cbh.Label.String='Pearson correlation r';
+
+
+        %% wave
         fh=figure('Color','w','Position',[32,32,1400,800]);
         if alt_comb==3
             [~,sortidx]=sort(com_a);

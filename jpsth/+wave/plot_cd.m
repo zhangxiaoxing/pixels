@@ -6,8 +6,9 @@ arguments
     opt.alt_proj (1,1) logical = false
     opt.cd_pc_proj (1,1) logical = true
     opt.plot_1st_trial (1,1) logical = false
-    opt.gen_movie (1,1) logical = true
+    opt.gen_movie (1,1) logical = false
     opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'mem','3s','6s','both'})} = '6s'
+    
 end
 % persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 
@@ -31,7 +32,7 @@ for ii=reshape(cell2mat(sessmap.keys()),1,[])
 
     wavesess=ones(size(suid))*double(ii);
     waveidsess=ephys.get_wave_id(wavesess,suid,'early',false,'ctx',true);
-
+    if opt.plot_1st_trial
     s1d3=trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0 & dur_resp(:,3)>1;
     s2d3=trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0 & dur_resp(:,3)>1;
     s1d6=trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0 & dur_resp(:,3)>1;
@@ -41,7 +42,12 @@ for ii=reshape(cell2mat(sessmap.keys()),1,[])
     s2d31=trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & dur_resp(:,3)==1;
     s1d61=trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & dur_resp(:,3)==1;
     s2d61=trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0 & dur_resp(:,3)==1;
-
+    else
+        s1d3=trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0;
+        s2d3=trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0;
+        s1d6=trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0;
+        s2d6=trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0;
+    end
     if false
         for rpt=1:opt.stats_rpt
             s1pool=find(s1d3);
@@ -75,33 +81,30 @@ for ii=reshape(cell2mat(sessmap.keys()),1,[])
     s2_FR_3=[s2_FR_3;shiftdim(mean(fr(s2d3,wavesel,1:44),1),1)];
     s1_FR_6=[s1_FR_6;shiftdim(mean(fr(s1d6,wavesel,1:44),1),1)];
     s2_FR_6=[s2_FR_6;shiftdim(mean(fr(s2d6,wavesel,1:44),1),1)];
-
-    s1_FR_3_t1=[s1_FR_3_t1;shiftdim(mean(fr(s1d31,wavesel,1:44),1),1)];
-    s2_FR_3_t1=[s2_FR_3_t1;shiftdim(mean(fr(s2d31,wavesel,1:44),1),1)];
-    s1_FR_6_t1=[s1_FR_6_t1;shiftdim(mean(fr(s1d61,wavesel,1:44),1),1)];
-    s2_FR_6_t1=[s2_FR_6_t1;shiftdim(mean(fr(s2d61,wavesel,1:44),1),1)];
-
+    if opt.plot_1st_trial
+        s1_FR_3_t1=[s1_FR_3_t1;shiftdim(mean(fr(s1d31,wavesel,1:44),1),1)];
+        s2_FR_3_t1=[s2_FR_3_t1;shiftdim(mean(fr(s2d31,wavesel,1:44),1),1)];
+        s1_FR_6_t1=[s1_FR_6_t1;shiftdim(mean(fr(s1d61,wavesel,1:44),1),1)];
+        s2_FR_6_t1=[s2_FR_6_t1;shiftdim(mean(fr(s2d61,wavesel,1:44),1),1)];
+    end
     waveids=[waveids;waveidsess(wavesel)];
 
 end
 
-normfr=normalize([s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6,s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1].','range').';
+
+if opt.plot_1st_trial
+    normfr=normalize([s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6,s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1].','range').';
+    [s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1]=deal(normfr(:,(1:44)+44*4),normfr(:,(1:44)+44*5),normfr(:,(1:44)+44*6),normfr(:,(1:44)+44*7));
+else
+    normfr=normalize([s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6].','range').';
+end
 [s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6]=deal(normfr(:,1:44),normfr(:,(1:44)+44),normfr(:,(1:44)+88),normfr(:,(1:44)+132));
-[s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1]=deal(normfr(:,(1:44)+44*4),normfr(:,(1:44)+44*5),normfr(:,(1:44)+44*6),normfr(:,(1:44)+44*7));
-s1_3only=waveids==1;
-s2_3only=waveids==2;
-
-s1_6only=waveids==3;
-s2_6only=waveids==4;
-
-s1_both=waveids==5;
-s2_both=waveids==6;
 
 % save('FR_data.mat','s1_FR_3','s2_FR_3','s1_FR_6','s2_FR_6','s1_FR_3','s2_FR_3','s1_FR_6','s2_FR_6','s1_both',"s1_3only","s1_6only",'s2_both',"s2_3only","s2_6only")
 
-[coef,score,latent]=pca(normfr.');
-
-[s1pc3,s2pc3,s1pc6,s2pc6]=deal(score(1:44,:),score((1:44)+44,:),score((1:44)+88,:),score((1:44)+132,:));
+% [coef,score,latent]=pca(normfr.');
+% 
+% [s1pc3,s2pc3,s1pc6,s2pc6]=deal(score(1:44,:),score((1:44)+44,:),score((1:44)+88,:),score((1:44)+132,:));
 
 if opt.alt_proj
     %3s vs 6s axis
@@ -109,6 +112,12 @@ else
     cdMat=[s2_FR_3,s2_FR_6]-[s1_FR_3,s1_FR_6];
     cdDelay=mean(cdMat(:,[17:28,(17:40)+44]),2);
     cdDelay=cdDelay/norm(cdDelay);
+    [qq,rr]=qr(cdDelay);
+    cdfree=normfr.'*qq(:,2:end);
+    [coef,score,latent]=pca(cdfree);
+    [s1pc3,s2pc3,s1pc6,s2pc6]=deal(score(1:44,:),score((1:44)+44,:),score((1:44)+88,:),score((1:44)+132,:));
+
+
 %     [cdDelay3,cdDelay6,cdDelayB]=deal(cdDelay);
 %     cdDelay3(~ismember(waveids,1:2))=0;
 %     cdDelay6(~ismember(waveids,3:4))=0;
@@ -230,29 +239,31 @@ if opt.plot_traj
     savefig(sprintf('cd_pc_traj_%s',opt.mem_type));
 
     % speed vs distance
-    for tt=2:span
-        dist3(tt-1)=norm([proj1X3(tt),proj1Y3(tt),proj1Z3(tt)]-[proj2X3(tt),proj2Y3(tt),proj2Z3(tt)]);
-        dist6(tt-1)=norm([proj1X6(tt),proj1Y6(tt),proj1Z6(tt)]-[proj2X6(tt),proj2Y6(tt),proj2Z6(tt)]);
-        speed31(tt-1)=norm([proj1X3(tt),proj1Y3(tt),proj1Z3(tt)]-[proj1X3(tt-1),proj1Y3(tt-1),proj1Z3(tt-1)]);
-%         speed32
-        speed61(tt-1)=norm([proj1X6(tt),proj1Y6(tt),proj1Z6(tt)]-[proj1X6(tt-1),proj1Y6(tt-1),proj1Z6(tt-1)]);
+    for tt=1:span
+        dist3(tt)=norm(s1_FR_3(:,tt)-s2_FR_3(:,tt));
+        dist6(tt)=norm(s1_FR_6(:,tt)-s2_FR_6(:,tt));
+%         speed31(tt-1)=norm([proj1X3(tt),proj1Y3(tt),proj1Z3(tt)]-[proj1X3(tt-1),proj1Y3(tt-1),proj1Z3(tt-1)]);
+% %         speed32
+%         speed61(tt-1)=norm([proj1X6(tt),proj1Y6(tt),proj1Z6(tt)]-[proj1X6(tt-1),proj1Y6(tt-1),proj1Z6(tt-1)]);
 %         speed62
     end
 
     %% dist vs speed
-    fsh=figure('Color','w','Position',[32,32,800,400]);
-    hold on
-    d3h=plot(dist3,'--r','LineWidth',1);
-    d6h=plot(dist6,'-r','LineWidth',1);
-    s3h=plot(speed31,'--b','LineWidth',1);
-    s6h=plot(speed61,'-b','LineWidth',1);
-    set(gca,'XTick',3.5:12:span,'XTickLabel',-3:3:((span-20)/4))
-    arrayfun(@(x) xline(x,':k'),[11.5,15.5,27.5,31.5,39.5,43.5])
-    xlim([1,span]);
-    xlabel('Time (s)')
-    ylabel('A.U.')
-    legend([d3h,d6h,s3h,s6h],{'S1/S2 distance, 3s Delay','S1/S2 distance, 6s Delay','S1 trajectory forefront speed, 3s Delay','S1 trajectory forefront speed, 6s Delay'},'Location','eastoutside')
-    exportgraphics(fsh,sprintf('Dist_speed_%s.pdf',opt.mem_type),'ContentType','vector')
+    if true
+        fsh=figure('Color','w','Position',[32,32,800,400]);
+        hold on
+        d3h=plot(dist3,'-b','LineWidth',1);
+        d6h=plot(dist6,'-r','LineWidth',1);
+%         s3h=plot(speed31,'--b','LineWidth',1);
+%         s6h=plot(speed61,'-b','LineWidth',1);
+        set(gca,'XTick',3.5:12:span,'XTickLabel',-3:3:((span-20)/4))
+        arrayfun(@(x) xline(x,':k'),[11.5,15.5,27.5,31.5,39.5,43.5])
+        xlim([1,span]);
+        xlabel('Time (s)')
+        ylabel('S1-S2 euclidean distance (A.U.)')
+        legend([d3h,d6h],{'S1/S2 distance, 3s Delay','S1/S2 distance, 6s Delay'},'Location','eastoutside')
+        exportgraphics(fsh,sprintf('Dist_speed_%s.pdf',opt.mem_type),'ContentType','vector')
+    end
     %%
     keyboard();
 
