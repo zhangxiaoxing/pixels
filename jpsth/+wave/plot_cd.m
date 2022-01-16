@@ -7,14 +7,12 @@ arguments
     opt.cd_pc_proj (1,1) logical = true
     opt.plot_1st_trial (1,1) logical = false
     opt.gen_movie (1,1) logical = false
-    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'mem','3s','6s','both'})} = '6s'
+    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'mem','3s','6s','both'})} = 'both'
     
 end
 % persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 
 
-% meta3=ephys.util.load_meta('type','neupix','delay',3);
-% meta6=ephys.util.load_meta('type','neupix','delay',6);
 [~,~,sessmap]=ephys.sessid2path(0);
 homedir=ephys.util.getHomedir('type','raw');
 
@@ -165,6 +163,7 @@ if opt.plot_traj
         [proj1E61,proj1M61,proj1L61]=deal(smooth(s1_FR_6_t1.'*cdDelay3),smooth(s1_FR_6_t1.'*cdDelay6),smooth(s1_FR_6_t1.'*cdDelayB));
         [proj2E61,proj2M61,proj2L61]=deal(smooth(s2_FR_6_t1.'*cdDelay3),smooth(s2_FR_6_t1.'*cdDelay6),smooth(s2_FR_6_t1.'*cdDelayB));
     end
+    keyboard()
     if opt.gen_movie
         v=VideoWriter(sprintf('cd_pc_devp_movie_%s.mp4',opt.mem_type),'MPEG-4');
         open(v);
