@@ -7,13 +7,13 @@ arguments
     opt.filter_waveform (1,1)
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
 end
-persistent meta_str currtype criteria delay
+persistent opt_ out_
 
 if opt.delay==6
     warning('Delay set to default 6')
 end
 
-if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.criteria) || delay~=opt.delay
+if isempty(out_) || ~isequaln(opt,opt_)
     if strcmp(opt.type,'neupix') || strcmp(opt.type,'MY')
         homedir=ephys.util.getHomedir();
         if strcmp(opt.criteria,'WT'),fpath=fullfile(homedir,sprintf('transient_%d.hdf5',opt.delay)); % source data from K:\code\per_sec\per_sec_stats.py
@@ -40,9 +40,12 @@ if isempty(meta_str) || ~strcmp(currtype,opt.type) || ~strcmp(criteria, opt.crit
         currtype=opt.type;
     end
     criteria=opt.criteria;
-end
 out=meta_str;
 out.sess=cellfun(@(x) ephys.path2sessid(x),out.allpath);
+opt_=opt;
+out_=out;
+end
+out=out_;
 end
 
 function memtype=hem2memtype(HEM)
