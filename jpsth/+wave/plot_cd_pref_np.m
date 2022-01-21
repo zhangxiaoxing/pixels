@@ -68,18 +68,29 @@ vecdiff6=pref_FR_6-np_FR_6;
 
 fh=figure('Color','w','Position',[32,32,250,250]);
 hold on
+% norm
 % h3=plot(arrayfun(@(x) norm(vecdiff3(:,x)-vecdiff3(:,x-1)),2:size(vecdiff3,2)),'-b');
 % h6=plot(arrayfun(@(x) norm(vecdiff6(:,x)-vecdiff6(:,x-1)),2:size(vecdiff6,2)),'-r');
 
-h3=plot(arrayfun(@(x) sum(vecdiff3(:,x)-vecdiff3(:,x-1)),2:size(vecdiff3,2)),'-b');
-h6=plot(arrayfun(@(x) sum(vecdiff6(:,x)-vecdiff6(:,x-1)),2:size(vecdiff6,2)),'-r');
+% raw sum
+% h3=plot(arrayfun(@(x) sum(vecdiff3(:,x)-vecdiff3(:,x-1)),2:size(vecdiff3,2)),'-b');
+% h6=plot(arrayfun(@(x) sum(vecdiff6(:,x)-vecdiff6(:,x-1)),2:size(vecdiff6,2)),'-r');
+
+% vector angle
+h3=plot(arrayfun(@(x) ND_angle(vecdiff3(:,x),vecdiff3(:,x-1)),2:size(vecdiff3,2)),'-b');
+h6=plot(arrayfun(@(x) ND_angle(vecdiff6(:,x),vecdiff6(:,x-1)),2:size(vecdiff6,2)),'-r');
 
 set(gca(),'XTick',[4,16,28,40]-0.5,'XTickLabel',-3:3:6)
 arrayfun(@(x) xline(x,':k'),[12,16,28,32,40,44]-0.5)
 xlabel('Time (s)')
-ylabel('Trajectory speed (dNorm.FR/dt)')
+ylabel('Vector angular speed (degree)')
 legend([h3,h6],{'In 3s delay','In 6s delay'},'Location','northoutside','Orientation','horizontal')
 sgtitle(sprintf('%s selective',opt.mem_type))
-% exportgraphics(fh,sprintf('projection_speed_%s.pdf',opt.mem_type),'ContentType','vector')
+exportgraphics(fh,sprintf('vector_angular_speed_%s.pdf',opt.mem_type),'ContentType','vector')
 
+end
+
+function deg=ND_angle(u,v)
+rad = acos((u'*v)/(norm(u)*norm(v)));
+deg = rad/pi*180;
 end

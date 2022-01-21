@@ -1,15 +1,15 @@
 function [metas,stats,fwd_rev,per_trial]=get_fc_coding(opt)
 arguments
-    opt.no_jitter (1,1) logical = false
+    opt.no_jitter (1,1) logical = true  % true for observed, false for jitter_shifted
     opt.shuffle (1,1) logical = false
     opt.fwd_rev (1,1) logical = false
     opt.per_trial (1,1) logical = false
 end
-persistent metas_ stats_ fwd_rev_ no_jitter shuffle_ per_trial_
-if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_jitter~=opt.no_jitter || shuffle_ || opt.shuffle || isempty(per_trial_)
+persistent metas_ stats_ fwd_rev_ per_trial_ opt_
+if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || isempty(per_trial_) || ~isequaln(opt_,opt)
     sig=bz.load_sig_pair();
-    sess=unique(sig.sess);
-    fl=dir(fullfile('fcdata','fc_coding_*.mat'));
+%     sess=unique(sig.sess);
+    fl=dir(fullfile('fcdata','fc_coding_*.mat')); % data source likely jpsth\+bz\+fccoding\fc_coding_one_sess.m
     % {suids(fci,:),fwd_fc,fwd_fc-mean(fwd_shift,2),fwd_shift,rev_fc,rev_fc-mean(rev_shift,2),rev_shift}
     [metas,stats,fwd_rev]=deal([]);
     per_trial=cell(0);
@@ -69,9 +69,8 @@ if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || no_jitter~=opt.no_
     metas_=metas;
     stats_=stats;
     fwd_rev_=fwd_rev;
-    no_jitter=opt.no_jitter;
-    shuffle_=opt.shuffle;
     per_trial_=per_trial;
+    opt_=opt;
 else
     metas=metas_;
     stats=stats_;

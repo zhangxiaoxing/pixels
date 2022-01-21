@@ -1,26 +1,41 @@
-function plot_cd(opt)
+function data_str=plot_cd(opt)
 arguments
     opt.plot_rpt (1,1) double {mustBePositive,mustBeInteger} =2
     opt.stats_rpt (1,1) double {mustBePositive,mustBeInteger} =5
     opt.plot_traj (1,1) logical = true
     opt.alt_proj (1,1) logical = false
-    opt.cd_pc_proj (1,1) logical = true
+    opt.cd_pc_proj (1,1) logical = false
+    opt.cd_tcom_proj (1,1) logical = true
     opt.plot_1st_trial (1,1) logical = false
     opt.gen_movie (1,1) logical = false
     opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'mem','3s','6s','both'})} = 'both'
+    opt.data_only (1,1) logical = false
     
 end
 % persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
-
+if nargout>0
+    data_str=struct();
+end
 
 [~,~,sessmap]=ephys.sessid2path(0);
 homedir=ephys.util.getHomedir('type','raw');
 
-[s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6,s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1,waveids]=deal([]);
+[s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6,s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1,waveids,comalls1,comalls2]=deal([]);
 [s1shufmat,s2shufmat]=deal(cell(1,2*opt.stats_rpt));
 
+if opt.cd_tcom_proj
+    commap=wave.get_com_map();
+end
+
 for ii=reshape(cell2mat(sessmap.keys()),1,[])
+    
+    if opt.cd_tcom_proj && ~isfield(commap,sprintf('s%d',ii))
+        continue
+    end
     disp(ii)
+    s1commap=commap.(sprintf('s%d',ii)).s1;
+    s2commap=commap.(sprintf('s%d',ii)).s2;
+
     fpath=fullfile(homedir,sessmap(ii),"FR_All_ 250.hdf5");
     fr=h5read(fpath,'/FR_All');
     trials=h5read(fpath,'/Trials');
@@ -79,6 +94,16 @@ for ii=reshape(cell2mat(sessmap.keys()),1,[])
     s2_FR_3=[s2_FR_3;shiftdim(mean(fr(s2d3,wavesel,1:44),1),1)];
     s1_FR_6=[s1_FR_6;shiftdim(mean(fr(s1d6,wavesel,1:44),1),1)];
     s2_FR_6=[s2_FR_6;shiftdim(mean(fr(s2d6,wavesel,1:44),1),1)];
+    if opt.cd_tcom_proj
+        currid=suid(wavesel);
+        coms1=zeros(nnz(wavesel),1);
+        coms2=zeros(nnz(wavesel),1);
+        coms1(s1commap.isKey(num2cell(currid)))=cell2mat(s1commap.values(num2cell(currid(isKey(s1commap,num2cell(currid))))));
+        coms2(s2commap.isKey(num2cell(currid)))=cell2mat(s2commap.values(num2cell(currid(isKey(s2commap,num2cell(currid))))));
+        comalls1=[comalls1;coms1];
+        comalls2=[comalls2;coms2];
+    end
+
     if opt.plot_1st_trial
         s1_FR_3_t1=[s1_FR_3_t1;shiftdim(mean(fr(s1d31,wavesel,1:44),1),1)];
         s2_FR_3_t1=[s2_FR_3_t1;shiftdim(mean(fr(s2d31,wavesel,1:44),1),1)];
@@ -110,11 +135,14 @@ else
     cdMat=[s2_FR_3,s2_FR_6]-[s1_FR_3,s1_FR_6];
     cdDelay=mean(cdMat(:,[17:28,(17:40)+44]),2);
     cdDelay=cdDelay/norm(cdDelay);
-    [qq,rr]=qr(cdDelay);
-    cdfree=normfr.'*qq(:,2:end);
-    [coef,score,latent]=pca(cdfree);
-    [s1pc3,s2pc3,s1pc6,s2pc6]=deal(score(1:44,:),score((1:44)+44,:),score((1:44)+88,:),score((1:44)+132,:));
-
+    if opt.cd_pc_proj
+        [qq,rr]=qr(cdDelay);
+        cdfree=normfr.'*qq(:,2:end);
+        [coef,score,latent]=pca(cdfree);
+        [s1pc3,s2pc3,s1pc6,s2pc6]=deal(score(1:44,:),score((1:44)+44,:),score((1:44)+88,:),score((1:44)+132,:));
+%     elseif opt.cd_tcom_proj
+%         [s1pc3,s2pc3,s1pc6,s2pc6]=deal(s1_FR_3.'*comall,s2_FR_3.'*comall,s1_FR_6.'*comall,s2_FR_6.'*comall);
+    end
 
 %     [cdDelay3,cdDelay6,cdDelayB]=deal(cdDelay);
 %     cdDelay3(~ismember(waveids,1:2))=0;
@@ -151,12 +179,33 @@ if opt.plot_traj
         [proj2X3,proj2Y3,proj2Z3]=deal((s2pc3(:,1)),(s2pc3(:,2)),(s2_FR_3.'*cdDelay));
         [proj1X6,proj1Y6,proj1Z6]=deal((s1pc6(:,1)),(s2pc6(:,2)),(s1_FR_6.'*cdDelay));
         [proj2X6,proj2Y6,proj2Z6]=deal((s2pc6(:,1)),(s2pc6(:,2)),(s2_FR_6.'*cdDelay));
+    elseif opt.cd_tcom_proj
+        [proj1X3,proj1Y3,proj1Z3]=deal(s1_FR_3.'*comalls1./sum(s1_FR_3).',s1_FR_3.'*comalls2./sum(s1_FR_3).',(s1_FR_3.'*cdDelay));
+        [proj2X3,proj2Y3,proj2Z3]=deal(s2_FR_3.'*comalls1./sum(s2_FR_3).',s2_FR_3.'*comalls2./sum(s2_FR_3).',(s2_FR_3.'*cdDelay));
+        [proj1X6,proj1Y6,proj1Z6]=deal(s1_FR_6.'*comalls1./sum(s1_FR_6).',s1_FR_6.'*comalls2./sum(s1_FR_6).',(s1_FR_6.'*cdDelay));
+        [proj2X6,proj2Y6,proj2Z6]=deal(s2_FR_6.'*comalls1./sum(s2_FR_6).',s2_FR_6.'*comalls2./sum(s2_FR_6).',(s2_FR_6.'*cdDelay));
     else
         [proj1X3,proj1Y3,proj1Z3]=deal(smooth(s1_FR_3.'*cdDelay3),smooth(s1_FR_3.'*cdDelay6),smooth(s1_FR_3.'*cdDelayB));
         [proj2X3,proj2Y3,proj2Z3]=deal(smooth(s2_FR_3.'*cdDelay3),smooth(s2_FR_3.'*cdDelay6),smooth(s2_FR_3.'*cdDelayB));
         [proj1X6,proj1Y6,proj1Z6]=deal(smooth(s1_FR_6.'*cdDelay3),smooth(s1_FR_6.'*cdDelay6),smooth(s1_FR_6.'*cdDelayB));
         [proj2X6,proj2Y6,proj2Z6]=deal(smooth(s2_FR_6.'*cdDelay3),smooth(s2_FR_6.'*cdDelay6),smooth(s2_FR_6.'*cdDelayB));
     end
+    if opt.data_only
+        data_str.proj1X3=proj1X3;
+        data_str.proj1Y3=proj1Y3;
+        data_str.proj1Z3=proj1Z3;
+        data_str.proj1X6=proj1X6;
+        data_str.proj1Y6=proj1Y6;
+        data_str.proj1Z6=proj1Z6;
+        data_str.proj2X3=proj2X3;
+        data_str.proj2Y3=proj2Y3;
+        data_str.proj2Z3=proj2Z3;
+        data_str.proj2X6=proj2X6;
+        data_str.proj2Y6=proj2Y6;
+        data_str.proj2Z6=proj2Z6;
+        return
+    end
+
     if opt.plot_1st_trial
         [proj1E31,proj1M31,proj1L31]=deal(smooth(s1_FR_3_t1.'*cdDelay3),smooth(s1_FR_3_t1.'*cdDelay6),smooth(s1_FR_3_t1.'*cdDelayB));
         [proj2E31,proj2M31,proj2L31]=deal(smooth(s2_FR_3_t1.'*cdDelay3),smooth(s2_FR_3_t1.'*cdDelay6),smooth(s2_FR_3_t1.'*cdDelayB));

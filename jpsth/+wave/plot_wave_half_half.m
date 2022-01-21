@@ -1,5 +1,5 @@
 close all
-for sess=1:116
+for sess=102
 %     while true
         fs=sprintf('s%d',sess);
         com_map=wave.get_com_map('onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',true);

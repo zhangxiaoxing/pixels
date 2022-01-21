@@ -15,7 +15,7 @@ load('OBM1Map.mat','OBM1map')
 % congru, incongru, nonmem
 
 if opt.plot_trial_frac
-    [metas,stats,~]=bz.fccoding.get_fc_coding();
+    [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',false);
     congrus1=ismember(metas(:,4),1:2) & ismember(metas(:,5),1:2) & all(~ismissing(stats),2);
     congrus2=ismember(metas(:,4),3:4) & ismember(metas(:,5),3:4) & all(~ismissing(stats),2);
     ci=bootci(500,@(x) mean(x),[stats(congrus1,5);stats(congrus2,6)]);
@@ -32,7 +32,7 @@ if opt.plot_trial_frac
 end
 
 if opt.plot_fwd_rev
-    [metas,stats,fwd_rev]=bz.fccoding.get_fc_coding();
+    [metas,stats,fwd_rev]=bz.fccoding.get_fc_coding('no_jitter',false);
     congrus1=ismember(metas(:,4),1:2) & ismember(metas(:,5),1:2) & all(~ismissing(stats),2);
     congrus2=ismember(metas(:,4),3:4) & ismember(metas(:,5),3:4) & all(~ismissing(stats),2);
     fridx1=[fwd_rev(congrus1,1)];

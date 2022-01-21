@@ -94,6 +94,8 @@ if opt.CTX
                 pair_.(fs)=pair.(fs)(ctxpairsel,:,:);
             end
         end
+    else
+        pair_=[];    
     end
 else
     sig_=sig;

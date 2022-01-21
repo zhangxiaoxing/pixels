@@ -1,15 +1,26 @@
-p3s=true;
+p3s=false;
+mem_type='6s';
+
 close all
-load viewport_data
+data_str=wave.plot_cd('data_only',true,'mem_type',lower(mem_type));
 fh=figure('Color','w','Position',[100,100,900,600]);
 hold on;
 
-proj1X3=proj1X3-mean([proj1X3;proj2X3]);
-proj2X3=proj2X3-mean([proj1X3;proj2X3]);
-proj1Y3=proj1Y3-mean([proj1Y3;proj2Y3]);
-proj2Y3=proj2Y3-mean([proj1Y3;proj2Y3]);
-proj1Z3=proj1Z3-mean([proj1Z3;proj2Z3]);
-proj2Z3=proj2Z3-mean([proj1Z3;proj2Z3]);
+proj1X3=data_str.proj1X3-mean([data_str.proj1X3;data_str.proj2X3]);
+proj2X3=data_str.proj2X3-mean([data_str.proj1X3;data_str.proj2X3]);
+proj1Y3=data_str.proj1Y3-mean([data_str.proj1Y3;data_str.proj2Y3]);
+proj2Y3=data_str.proj2Y3-mean([data_str.proj1Y3;data_str.proj2Y3]);
+proj1Z3=data_str.proj1Z3-mean([data_str.proj1Z3;data_str.proj2Z3]);
+proj2Z3=data_str.proj2Z3-mean([data_str.proj1Z3;data_str.proj2Z3]);
+
+proj1X6=data_str.proj1X6-mean([data_str.proj1X6;data_str.proj2X6]);
+proj2X6=data_str.proj2X6-mean([data_str.proj1X6;data_str.proj2X6]);
+proj1Y6=data_str.proj1Y6-mean([data_str.proj1Y6;data_str.proj2Y6]);
+proj2Y6=data_str.proj2Y6-mean([data_str.proj1Y6;data_str.proj2Y6]);
+proj1Z6=data_str.proj1Z6-mean([data_str.proj1Z6;data_str.proj2Z6]);
+proj2Z6=data_str.proj2Z6-mean([data_str.proj1Z6;data_str.proj2Z6]);
+
+
 
 
 timetag=1:0.03:44;
@@ -17,7 +28,6 @@ if p3s
     interpX2=pchip(1:44,proj2X3,1:0.03:44);
     interpY2=pchip(1:44,proj2Y3,1:0.03:44);
     interpZ2=pchip(1:44,proj2Z3,1:0.03:44);
-
     interpX1=pchip(1:44,proj1X3,1:0.03:44);
     interpY1=pchip(1:44,proj1Y3,1:0.03:44);
     interpZ1=pchip(1:44,proj1Z3,1:0.03:44);
@@ -25,7 +35,6 @@ else
     interpX2=pchip(1:44,proj2X6,1:0.03:44);
     interpY2=pchip(1:44,proj2Y6,1:0.03:44);
     interpZ2=pchip(1:44,proj2Z6,1:0.03:44);
-
     interpX1=pchip(1:44,proj1X6,1:0.03:44);
     interpY1=pchip(1:44,proj1Y6,1:0.03:44);
     interpZ1=pchip(1:44,proj1Z6,1:0.03:44);
@@ -33,13 +42,13 @@ end
 
 
 if p3s
-    v=VideoWriter('track_traj_3s_s2.mp4','MPEG-4');
+    v=VideoWriter(sprintf('track_traj_3s_s2_%s.mp4',mem_type),'MPEG-4');
 else
-    v=VideoWriter('track_traj_6s_s2.mp4','MPEG-4');
+    v=VideoWriter(sprintf('track_traj_6s_s2_%s.mp4',mem_type),'MPEG-4');
 end
 open(v);
 
-for tt=1:numel(interpZ)
+for tt=1:numel(interpX1)
     cla
     grid on
     if p3s
@@ -53,7 +62,7 @@ for tt=1:numel(interpZ)
         text(interpX1(tt),interpY1(tt),interpZ1(tt),'S1, 6s','Color','k','FontSize',12,'HorizontalAlignment','left','VerticalAlignment','top')
         text(interpX2(tt),interpY2(tt),interpZ2(tt),'S2, 6s','Color','r','FontSize',12,'HorizontalAlignment','left','VerticalAlignment','top')
     end
-
+    currt=timetag(tt);
 
     if currt<13
         tag='ITI';
@@ -87,22 +96,35 @@ for tt=1:numel(interpZ)
         end
     end
 
-    pdh=plot3(interpX2(tt),interpY2(tt),interpZ2(tt),'o','Color',cc,'MarkerSize',9);
-    campos([interpX2(tt),interpY2(tt),interpZ2(tt)]*2)
+    pdh=plot3(interpX1(tt),interpY1(tt),interpZ1(tt),'o','Color',cc,'MarkerSize',9);
+    campos([interpX1(tt),interpY1(tt),interpZ1(tt)]*2)
     camtarget([0,0,0])
-    currt=timetag(tt);
+    
     if p3s
-        set(gca(),'XTick',-8:4:16,'YTick',-8:4:16,'ZTick',-8:4:8)
-        xlim([-8,16])
-        ylim([-8,16])
-        zlim([-8,8])
+        switch(lower(mem_type))
+            case 'both'
+                xtickvec=-8:4:16;ytickvec=-8:4:16;ztickvec=-8:4:8;
+            case '6s'
+                xtickvec=-10:5:15;ytickvec=-10:5:10;ztickvec=-8:4:8;
+            case '3s'
+                xtickvec=-10:5:20;ytickvec=-8:4:12;ztickvec=-8:4:8;
+        end
     else
-        set(gca(),'XTick',-5:5:15,'YTick',-6:2:8,'ZTick',-6:2:6)
-        xlim([-5,15])
-        ylim([-6,8])
-        zlim([-6,6])
+        switch(lower(mem_type))
+            case 'both'
+                xtickvec=-5:5:15;ytickvec=-6:2:8;ztickvec=-8:4:8;
+            case '6s'
+                xtickvec=-2:1:2;ytickvec=-2:1:2;ztickvec=-8:4:8;
+            case '3s'
+                xtickvec=-4:5:16;ytickvec=-8:4:8;ztickvec=-8:4:8;
+        end
     end
-    title(sprintf('Both selective, %s (%d msec)',tag,int32(currt*250-4000)),'FontSize',20)
+        set(gca(),'XTick',xtickvec,'YTick',ytickvec,'ZTick',ztickvec)
+        xlim([min(xtickvec),max(xtickvec)])
+        ylim([min(ytickvec),max(ytickvec)])
+        zlim([min(ztickvec),max(ztickvec)])
+
+    title(sprintf('%s selective, %s (%d msec)',mem_type,tag,int32(currt*250-4000)),'FontSize',20)
     pause(0.03)
     writeVideo(v,getframe(fh))
 end
