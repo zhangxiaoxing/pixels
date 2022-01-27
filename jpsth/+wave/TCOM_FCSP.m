@@ -1,3 +1,5 @@
+% TODO rev_fc
+
 %% const
 if ~exist('out','var')
     out=struct();
@@ -7,7 +9,9 @@ delay=6;
 bin_size=0.25;
 [sig,~]=bz.load_sig_pair('CTX',true);
 com_map=wave.get_com_map(curve=true,rnd_half=false);
-for sess=21:116
+fwd_dir=false;
+%% iteration
+for sess=1:116
     disp(sess)
     sess_str=sprintf('s%d',sess);
     if ~isfield(com_map,sess_str)
@@ -50,25 +54,29 @@ for sess=21:116
         %TODO: possible trial number criteria
 
         fcs=sess_suids(all(ismember(sess_suids,cell2mat(tcom_suid)),2),:);
-        fwd_fc=nan(size(fcs,1),size(trials,1),delay/bin_size);
+        fc_count=nan(size(fcs,1),size(trials,1),delay/bin_size);
         for fci=1:size(fcs,1)
             disp(fci)
             for ti=1:size(trials,1)
                 susel1=strcmp(FT_SPIKE.label,num2str(fcs(fci,1)));
                 susel2=strcmp(FT_SPIKE.label,num2str(fcs(fci,2)));
-                for onset_idx=1:size(fwd_fc,3)
+                for onset_idx=1:size(fc_count,3)
                     onset=(onset_idx-1)*bin_size;
                     spk1=FT_SPIKE.time{susel1}(FT_SPIKE.trial{susel1}==ti & FT_SPIKE.time{susel1}<onset+bin_size & FT_SPIKE.time{susel1}>=onset); %FT_SPIKE.time return [0,6]
                     spk2=FT_SPIKE.time{susel2}(FT_SPIKE.trial{susel2}==ti & FT_SPIKE.time{susel2}<onset+bin_size & FT_SPIKE.time{susel2}>=onset);
                     deltaT=spk2-spk1.'; % of size (n_spk1,n_spk2)
-                    fwd_evts=deltaT>=0.0008 & deltaT<0.01; % of size (n_spk1,n_spk2)
-                    fwd_fc(fci,ti,onset_idx)=nnz(any(fwd_evts)); % counting following spks consistent with fc
+                    if fwd_dir
+                        fc_evts=deltaT>=0.0008 & deltaT<0.01; % of size (n_spk1,n_spk2)
+                    else
+                        fc_evts=deltaT<=-0.0008 & deltaT>-0.01; % of size (n_spk1,n_spk2)
+                    end
+                    fc_count(fci,ti,onset_idx)=nnz(any(fc_evts)); % counting following spks consistent with fc
                 end
             end
         end
 
         trl_sel=trials(:,5)==sampmap(samp) & trials(:,8)==delay & all(trials(:,9:10),2);
-        fc_bin=permute(mean(fwd_fc(:,trl_sel,:),2),[1,3,2]);
+        fc_bin=permute(mean(fc_count(:,trl_sel,:),2),[1,3,2]);
         fc_norm_bin=floor(normalize(fc_bin,2,'range')*255+1);
         fc_tcom=cell2mat(com_map.(sess_str).(samp).values(num2cell(fcs)));
         %% correlation movie
@@ -117,7 +125,11 @@ for sess=21:116
             corrs(ii,2)=corr(lead_curve,fcspr,type=corrtype);
             corrs(ii,3)=corr(follow_curve,fcspr,type=corrtype);
         end
-        out.(sess_str).(samp).corrs=corrs;
+        if fwd_dir
+            out.(sess_str).(samp).corrs=corrs;
+        else
+            out.(sess_str).(samp).rev_corrs=corrs;
+        end
 
         if false
             fh=figure('Color','w');
@@ -136,7 +148,11 @@ for sess=21:116
             xcorrs(ii,2,:)=xcorr(lead_curve,fcspr,maxlag);
             xcorrs(ii,3,:)=xcorr(follow_curve,fcspr,maxlag);
         end
-        out.(sess_str).(samp).xcorrs=xcorrs;
+        if fwd_dir
+            out.(sess_str).(samp).xcorrs=xcorrs;
+        else
+            out.(sess_str).(samp).rev_xcorrs=xcorrs;
+        end
         if false
             fh=figure('Color','w');
             lbls={'Lead-Follow','Lead-FCSPR','Follow-FCSPR'};
@@ -155,20 +171,23 @@ end
 % a=[t,0,0,0];
 % b=[0,0,0,t];
 % figure();plot(xcorr(b,a,6))
-
+return
 %% all corrs
-xcorrs=[];
-corrs=[];
+[xcorrs,corrs,rev_xcorrs,rev_corrs]=deal([]);
 sesses=fieldnames(out);
 for sess=1:numel(sesses)
     samps=fieldnames(out.(sesses{sess}));
     for samp=1:numel(samps)
         xcorrs=[xcorrs;out.(sesses{sess}).(samps{samp}).xcorrs];
         corrs=[corrs;out.(sesses{sess}).(samps{samp}).corrs];
+        
+        rev_xcorrs=[rev_xcorrs;out.(sesses{sess}).(samps{samp}).rev_xcorrs];
+        rev_corrs=[rev_corrs;out.(sesses{sess}).(samps{samp}).rev_corrs];
+
     end
 end
 fh=figure('Color','w');
-bar(nanmean(corrs))
+bar([nanmean(corrs),nanmean(rev_corrs)])
 set(gca(),'XTick',1:3,'XTickLabel',{'Lead-Follow','Lead-FCSPR','Follow-FCSPR'},'XTickLabelRotation',90)
 
 
