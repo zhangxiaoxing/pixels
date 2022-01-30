@@ -1,6 +1,6 @@
 %TODO brain region filter, olfaction filter.
-function out=get_ordinal_mat(opt)
-
+% function out=get_ordinal_mat(opt)
+%% gen data
 [~,~,sessmap]=ephys.sessid2path(0);
 meta=ephys.util.load_meta();
 homedir=ephys.util.getHomedir('type','raw');
@@ -21,22 +21,18 @@ for ii=reshape(cell2mat(sessmap.keys()),1,[])
     out.(sprintf('s%d',ii)).fr=fr;
     out.(sprintf('s%d',ii)).block_meta=block_meta;
 end
-
-return
-%% actual decoding effort
-
-SVMM=fitcsvm(Xkf,ykf,'KernelFunction','linear','Standardize',false,'Cost',[0,opt.svmcost;opt.svmcost,0]);
-frmap=struct()
+ordmat=out;
+frmap=struct();
 trlCount=[];
 for skey=reshape(fieldnames(ordmat),1,[])
     trls=ordmat.(skey{1}).block_meta;
     csel=trls(:,9)~=0 & trls(:,10)~=0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,11),1:4);
     sess_lbl=arrayfun(@(x) sprintf('b%dt%d',trls(x,8),trls(x,11)),find(csel),'UniformOutput',false);
     frs=mean(ordmat.(skey{1}).fr(csel,:,1:10),3); % [nTrl,nSU]
-    trlTypes=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"]
+    trlTypes=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"];
     trlSess=nan(1,8);
     for trlIdx=1:8
-        trlType=trlTypes(trlIdx)
+        trlType=trlTypes(trlIdx);
         trlSess(trlIdx)=nnz(strcmp(sess_lbl,trlType));
         if ~isfield(frmap,trlType)
             frmap.(trlType)=containers.Map('KeyType','char','ValueType','any');
@@ -45,9 +41,12 @@ for skey=reshape(fieldnames(ordmat),1,[])
             frmap.(trlType)(sprintf('%su%d',skey{1},suidx))=frs(strcmp(sess_lbl,trlType),suidx);
         end
     end
-    trlCount=[trlCount;trlSess]
+    trlCount=[trlCount;trlSess];
 end
-figure();histogram(trlCount(:),1:32)
+
+
+%% available trials for least repeated condition
+%figure();histogram(trlCount(:),1:32)
 
 
 %% circle of PCA
@@ -87,6 +86,10 @@ xlim([-30,25])
 exportgraphics(fh,'Block_trial_PC.pdf','ContentType','vector')
 
 %% SVM
+% not ready for prime time
+
+% SVMM=fitcsvm(Xkf,ykf,'KernelFunction','linear','Standardize',false,'Cost',[0,opt.svmcost;opt.svmcost,0]);
+
 rpt=10;
 sukeys=frmap.b3t1.keys();
 trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),frmap.b3t1.keys()),find(min(trlCount,[],2)>rpt));
@@ -101,3 +104,4 @@ for kf=1:cv.NumTestSets
     s1kf=s1(:,training(cv,kf),bin,rpt);
     s2kf=s2(:,training(cv,kf),bin,rpt);
 end
+%% mutual information

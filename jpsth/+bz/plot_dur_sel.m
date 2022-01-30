@@ -55,12 +55,36 @@ cfg=struct();
 cfg.binsize=0.25;
 cfg.keeptrials='yes';
 FT_PSTH=ft_spike_psth(cfg, FT_SPIKE);
-fr=FT_PSTH.trial;
 
 s3c=(trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
 s6c=(trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
 s3e=(trials(:,8)==3 & trials(:,9)>0 & trials(:,10)==0);
 s6e=(trials(:,8)==6 & trials(:,9)>0 & trials(:,10)==0);
+
+%% raster
+s3ci=find(s3c);
+s6ci=find(s6c);
+s3ci=s3ci(1:20);
+frh=figure('Color','w','Position',[32,32,225,215]);
+hold on
+for yy=1:10
+    ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==s3ci(yy));
+    plot(repmat(ts,2,1),repmat([yy-0.3;yy+0.3],1,numel(ts)),'-b');
+end
+for yy=1:10
+    ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==s6ci(yy));
+    plot(repmat(ts,2,1),repmat([yy-0.3;yy+0.3],1,numel(ts))+10,'-r');
+end
+ylim([0.5,20.5])
+xlim([-1,8])
+set(gca(),'XTick',1:3:8,'XTickLabel',0:3:6)
+xlabel('Time (s)')
+ylabel('Trial #')
+arrayfun(@(x) xline(x,'--k'),[0,1,4,5,7,8])
+exportgraphics(frh,'dur_sel_SC_raster.pdf','ContentType','vector');
+%% psth
+fr=FT_PSTH.trial;
+
 
 ss=1;
 

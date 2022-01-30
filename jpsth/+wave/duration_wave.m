@@ -52,19 +52,21 @@ selidx=(d3fr-d6fr)./(d3fr+d6fr);
 
 gk = fspecial('gaussian', [3 3], 1);
 sigsel=any(wrsp(:,1:7)<0.05,2);
+figure()
+histogram(sum(wrsp(:,1:7)<0.05,2))
 
 %% preferred non preferred
 perf3=sigsel & mean(selidx(:,1:28),2)>0;
-d3allfrn=normalize([d3fr(perf3,:),d6fr(perf3,:)],2,'range');
-d3d3frn=d3allfrn(:,1:56);
-d3d6frn=d3allfrn(:,57:end);
+d3allfrn=normalize([d3fr(perf3,1:28),d6fr(perf3,1:28)],2,'range');
+d3d3frn=d3allfrn(:,1:28);
+d3d6frn=d3allfrn(:,29:end);
 d3pos=d3d3frn;
 d3pos(d3pos<0)=0;
-COM3=(d3pos*(1:56).')./sum(d3pos,2);
+COM3=(d3pos*(1:28).')./sum(d3pos,2);
 [~,cidx3]=sort(COM3);
-figure('Color','w');
+fh3=figure('Color','w','Position',[32,32,750,250]);
 subplot(1,2,1)
-imagesc(conv2(d3d3frn(cidx3,:),gk,'same'),[0,0.8])
+imagesc(conv2(d3d3frn(cidx3,:),gk,'same'),[0,1])
 set(gca(),'YDir','normal')
 colormap('turbo')
 ylabel('Neuron #')
@@ -73,7 +75,7 @@ arrayfun(@(x) xline(x,'--k'),[12 16 28 32]+0.5);
 xlabel('Time (s)')
 title('In 3s trials')
 subplot(1,2,2)
-imagesc(conv2(d3d6frn(cidx3,:),gk,'same'),[0,0.8])
+imagesc(conv2(d3d6frn(cidx3,:),gk,'same'),[0,1])
 set(gca(),'YDir','normal')
 colormap('turbo')
 ylabel('Neuron #')
@@ -82,18 +84,19 @@ arrayfun(@(x) xline(x,'--k'),[12 16 40 44]+0.5);
 xlabel('Time (s)')
 title('In 6s trials')
 sgtitle('Prefer 3s delay')
+exportgraphics(fh3,'duration_3s.pdf','ContentType','vector')
 
 perf6=sigsel & mean(selidx(:,1:28),2)<0;
-d6allfrn=normalize([d3fr(perf6,:),d6fr(perf6,:)],2,'range');
-d6d3frn=d6allfrn(:,1:56);
-d6d6frn=d6allfrn(:,57:end);
+d6allfrn=normalize([d3fr(perf6,1:28),d6fr(perf6,1:28)],2,'range');
+d6d3frn=d6allfrn(:,1:28);
+d6d6frn=d6allfrn(:,29:end);
 d6pos=d6d6frn;
 d6pos(d6pos<0)=0;
-COM6=(d6pos*(1:56).')./sum(d6pos,2);
+COM6=(d6pos*(1:28).')./sum(d6pos,2);
 [~,cidx6]=sort(COM6);
-figure('Color','w');
+fh6=figure('Color','w','Position',[32,32,750,250]);
 subplot(1,2,1)
-imagesc(conv2(d6d6frn(cidx6,:),gk,'same'),[0,0.8])
+imagesc(conv2(d6d6frn(cidx6,:),gk,'same'),[0,1])
 set(gca(),'YDir','normal')
 colormap('turbo')
 ylabel('Neuron #')
@@ -102,7 +105,7 @@ arrayfun(@(x) xline(x,'--k'),[12 16 40 44]+0.5);
 xlabel('Time (s)')
 title('In 6s trials')
 subplot(1,2,2)
-imagesc(conv2(d6d3frn(cidx6,:),gk,'same'),[0,0.8])
+imagesc(conv2(d6d3frn(cidx6,:),gk,'same'),[0,1])
 set(gca(),'YDir','normal')
 colormap('turbo')
 set(gca(),'XTick',(4:12:40)+0.5,'XTickLabel',-3:3:6)
@@ -111,3 +114,4 @@ xlabel('Time (s)')
 ylabel('Neuron #')
 title('In 3s trials')
 sgtitle('Prefer 6s delay')
+exportgraphics(fh6,'duration_6s.pdf','ContentType','vector')
