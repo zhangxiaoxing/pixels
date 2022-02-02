@@ -24,25 +24,32 @@ if false
     end
     ordmat=out;
     frmap=struct();
-    trlCount=[];
+    [c_trlCount,e_trlCount]=deal([]);
     for skey=reshape(fieldnames(ordmat),1,[])
         trls=ordmat.(skey{1}).block_meta;
         csel=trls(:,9)~=0 & trls(:,10)~=0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,11),1:4);
-        sess_lbl=arrayfun(@(x) sprintf('b%dt%d',trls(x,8),trls(x,11)),find(csel),'UniformOutput',false);
-        frs=mean(ordmat.(skey{1}).fr(csel,:,1:10),3); % [nTrl,nSU]
+        esel=trls(:,10)==0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,11),1:4);
+        c_sess_lbl=arrayfun(@(x) sprintf('b%dt%d',trls(x,8),trls(x,11)),find(csel),'UniformOutput',false);
+        e_sess_lbl=arrayfun(@(x) sprintf('b%dt%d',trls(x,8),trls(x,11)),find(esel),'UniformOutput',false);
+        c_frs=mean(ordmat.(skey{1}).fr(csel,:,1:10),3); % [nTrl,nSU]
+        e_frs=mean(ordmat.(skey{1}).fr(esel,:,1:10),3); % [nTrl,nSU]
         trlTypes=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"];
-        trlSess=nan(1,8);
+        [c_trlSess,e_trlSess]=deal(nan(1,8));
         for trlIdx=1:8
             trlType=trlTypes(trlIdx);
-            trlSess(trlIdx)=nnz(strcmp(sess_lbl,trlType));
+            c_trlSess(trlIdx)=nnz(strcmp(c_sess_lbl,trlType));
+            e_trlSess(trlIdx)=nnz(strcmp(e_sess_lbl,trlType));
             if ~isfield(frmap,trlType)
                 frmap.(trlType)=containers.Map('KeyType','char','ValueType','any');
+                frmap.(strjoin([trlType,"_e"],''))=containers.Map('KeyType','char','ValueType','any');
             end
-            for suidx=1:size(frs,2) % TODO: proper batch init
-                frmap.(trlType)(sprintf('%su%d',skey{1},suidx))=frs(strcmp(sess_lbl,trlType),suidx);
+            for suidx=1:size(c_frs,2) % TODO: vectorized batch init
+                frmap.(trlType)(sprintf('%su%d',skey{1},suidx))=c_frs(strcmp(c_sess_lbl,trlType),suidx);
+                frmap.(strjoin([trlType,"_e"],''))(sprintf('%su%d',skey{1},suidx))=e_frs(strcmp(e_sess_lbl,trlType),suidx);
             end
         end
-        trlCount=[trlCount;trlSess];
+        c_trlCount=[c_trlCount;c_trlSess];
+        e_trlCount=[e_trlCount;e_trlSess];
     end
 
 end
@@ -51,9 +58,11 @@ end
 
 
 %% circle of PCA
-if true
+min_trl=10;
+min_e_trl=1;
+if false
     sukeys=frmap.b3t1.keys();
-    trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),frmap.b3t1.keys()),find(min(trlCount,[],2)>rpt));
+    trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),frmap.b3t1.keys()),find(min(c_trlCount,[],2)>min_trl & min(e_trlCount,[],2)>=min_e_trl));
     sukeys=sukeys(trlSel);
     pcamat=[...
         cellfun(@(x) mean(x),frmap.b3t1.values(sukeys));...
@@ -90,26 +99,28 @@ if true
     exportgraphics(fh,'Block_trial_PC.pdf','ContentType','vector')
 end
 %% SVM
-rpt=10;
+
 sukeys=frmap.b3t1.keys();
-trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),frmap.b3t1.keys()),find(min(trlCount,[],2)>rpt));
+trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),frmap.b3t1.keys()),find(min(c_trlCount,[],2)>min_trl & min(e_trlCount,[],2)>=min_e_trl));
 sukeys=sukeys(trlSel);
 
-cv=cvpartition(rpt,'KFold',10);
+cv=cvpartition(min_trl,'KFold',10);
 dmat=struct();
-for lbl=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"]
-    dmat.(lbl)=cell2mat(cellfun(@(x) randsample(frmap.(lbl)(x),rpt),sukeys,'UniformOutput',false));
+for trlType=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"]
+    dmat.(trlType)=cell2mat(cellfun(@(x) datasample(frmap.(trlType)(x),min_trl),sukeys,'UniformOutput',false));
+    dmat.(strjoin([trlType,"_e"],''))=cell2mat(cellfun(@(x) datasample(frmap.(strjoin([trlType,"_e"],''))(x),min_e_trl),sukeys,'UniformOutput',false));
 end
-[result,shuf]=deal([]);
+[result,shuf,result_e]=deal([]);
 for kf=1:cv.NumTestSets
-    [xx_train,yy_train,xx_test,yy_test]=deal([]);
-    for lbl=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"]
+    [xx_train,yy_train,xx_test,yy_test,xx_e_test,yy_e_test]=deal([]);
+    for trlType=["b3t1","b3t2","b3t3","b3t4","b6t1","b6t2","b6t3","b6t4"]
         %         keyboard();
-        xx_train=[xx_train;dmat.(lbl)(training(cv,kf),:)];
-        xx_test=[xx_test;dmat.(lbl)(test(cv,kf),:)];
-        yy_train=[yy_train;repmat(lbl,nnz(training(cv,kf)),1)];
-        yy_test=[yy_test;repmat(lbl,nnz(test(cv,kf)),1)];
-
+        xx_train=[xx_train;dmat.(trlType)(training(cv,kf),:)];
+        xx_test=[xx_test;dmat.(trlType)(test(cv,kf),:)];
+        xx_e_test=[xx_e_test;dmat.(strjoin([trlType,"_e"],''))];
+        yy_train=[yy_train;repmat(trlType,nnz(training(cv,kf)),1)];
+        yy_test=[yy_test;repmat(trlType,nnz(test(cv,kf)),1)];
+        yy_e_test=[yy_e_test;repmat(trlType,min_e_trl,1)];
     end
     norm_train=normalize(xx_train,'center',C,'scale',S);
     pc_train=norm_train*coeff;
@@ -119,4 +130,9 @@ for kf=1:cv.NumTestSets
     modelPredict=SVMM.predict(pc_test);
     result=[result;modelPredict==yy_test];
     shuf=[shuf;randsample(modelPredict,numel(modelPredict))==yy_test];
+
+    norm_e_test=normalize(xx_e_test,'center',C,'scale',S);
+    pc_e=norm_e_test*coeff;
+    e_predict=SVMM.predict(pc_e);
+    result_e=[result_e;e_predict==yy_e_test];
 end
