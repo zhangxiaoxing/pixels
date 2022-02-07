@@ -3,102 +3,106 @@ arguments
     opt.sess (1,1) double {mustBeMember(opt.sess,1:116)} = 102
     opt.sortby (1,:) char {mustBeMember(opt.sortby,{'3s','6s'})} = '6s'
     opt.exportgraphics (1,1) logical = false
-    opt.plot_global (1,1) logical = true
+    opt.plot_global (1,1) logical = false
     opt.plot_session (1,1) logical = false
-    opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 2
+    opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 1:3
+    opt.bootrpt (1,1) double {mustBeInteger,mustBePositive} = 3;
+    opt.plot_2d_corr (1,1) logical = false
+    opt.plot_corr_dist (1,1) logical = true
 end
 %% global
 out=struct();
 out.corr2=struct();
-
+out.corr_dist=struct();
 persistent com_map_3_sel com_map_3_alt com_map_6_sel com_map_6_alt com_map_3_sel_si com_map_3_alt_si com_map_6_sel_si com_map_6_alt_si
 
-if opt.plot_global
+if isempty(com_map_3_sel)
+    com_map_3_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',3);
+    com_map_3_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'alt_3_6',true);
+    com_map_6_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',6);
+    com_map_6_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'alt_3_6',true);
 
-    if isempty(com_map_3_sel)
-        com_map_3_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',3);
-        com_map_3_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'alt_3_6',true);
-        com_map_6_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',6);
-        com_map_6_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'alt_3_6',true);
-    
-        com_map_3_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true);
-        com_map_3_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true,'alt_3_6',true);
-        com_map_6_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true);
-        com_map_6_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true,'alt_3_6',true);
+    com_map_3_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true);
+    com_map_3_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true,'alt_3_6',true);
+    com_map_6_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true);
+    com_map_6_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true,'alt_3_6',true);
+end
+for alt_comb=opt.comb_set
+    switch alt_comb
+        case 1
+            com_map_6=com_map_6_sel;
+            com_map_3=com_map_3_sel;
+            com_map_6_si=com_map_6_sel_si;
+            com_map_3_si=com_map_3_sel_si;
+            tag='Selective in both 3s and 6s trials';
+            fn='corr_3_6_both.pdf';
+        case 2
+            com_map_6=com_map_6_sel;
+            com_map_3=com_map_3_alt;
+            com_map_6_si=com_map_6_sel_si;
+            com_map_3_si=com_map_3_alt_si;
+            tag='Selective only in 6s trials';
+            fn='corr_3_6_only6.pdf';
+        case 3
+            com_map_6=com_map_6_alt;
+            com_map_3=com_map_3_sel;
+            com_map_6_si=com_map_6_alt_si;
+            com_map_3_si=com_map_3_sel_si;
+            tag='Selective only in 3s trials';
+            fn='corr_3_6_only3.pdf';
     end
-    for alt_comb=opt.comb_set
-        switch alt_comb
-            case 1
-                com_map_6=com_map_6_sel;
-                com_map_3=com_map_3_sel;
-                com_map_6_si=com_map_6_sel_si;
-                com_map_3_si=com_map_3_sel_si;
-                tag='Selective in both 3s and 6s trials';
-                fn='corr_3_6_both.pdf';
-            case 2
-                com_map_6=com_map_6_sel;
-                com_map_3=com_map_3_alt;
-                com_map_6_si=com_map_6_sel_si;
-                com_map_3_si=com_map_3_alt_si;
-                tag='Selective only in 6s trials';
-                fn='corr_3_6_only6.pdf';
-            case 3
-                com_map_6=com_map_6_alt;
-                com_map_3=com_map_3_sel;
-                com_map_6_si=com_map_6_alt_si;
-                com_map_3_si=com_map_3_sel_si;
-                tag='Selective only in 3s trials';
-                fn='corr_3_6_only3.pdf';
+    fss=intersect(fieldnames(com_map_6),fieldnames(com_map_3)).';
+
+    [immata,immatb,immat_anti_a,immat_anti_b,immat_si_a,immat_si_b,com_a,com_b]=deal([]);
+    for fs1=fss
+        fs=char(fs1);
+        for pref=["s1","s2"]
+            curr_key=intersect(cell2mat(com_map_3.(fs).(pref).keys),cell2mat(com_map_6.(fs).(pref).keys));
+            heat3=cell2mat(com_map_3.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+            heat6=cell2mat(com_map_6.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+            anti3=cell2mat(com_map_3.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
+            anti6=cell2mat(com_map_6.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
+            si3=cell2mat(com_map_3_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+            si6=cell2mat(com_map_6_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+            COM3=cell2mat(values(com_map_3.(fs).(pref),num2cell(curr_key)));
+            COM6=cell2mat(values(com_map_6.(fs).(pref),num2cell(curr_key)));
+            %         keyboard()
+            immata=[immata;heat3];
+            immatb=[immatb;heat6];
+            immat_anti_a=[immat_anti_a;anti3];
+            immat_anti_b=[immat_anti_b;anti6];
+            immat_si_a=[immat_si_a;si3];
+            immat_si_b=[immat_si_b;si6];
+            com_a=[com_a;COM3.'];
+            com_b=[com_b;COM6.'];
         end
-        fss=intersect(fieldnames(com_map_6),fieldnames(com_map_3)).';
+    end
 
-        [immata,immatb,immat_anti_a,immat_anti_b,immat_si_a,immat_si_b,com_a,com_b]=deal([]);
-        for fs1=fss
-            fs=char(fs1);
-            for pref=["s1","s2"]
-                curr_key=intersect(cell2mat(com_map_3.(fs).(pref).keys),cell2mat(com_map_6.(fs).(pref).keys));
-                heat3=cell2mat(com_map_3.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
-                heat6=cell2mat(com_map_6.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
-                anti3=cell2mat(com_map_3.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
-                anti6=cell2mat(com_map_6.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
-                si3=cell2mat(com_map_3_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
-                si6=cell2mat(com_map_6_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
-                COM3=cell2mat(values(com_map_3.(fs).(pref),num2cell(curr_key)));
-                COM6=cell2mat(values(com_map_6.(fs).(pref),num2cell(curr_key)));
-                %         keyboard()
-                immata=[immata;heat3];
-                immatb=[immatb;heat6];
-                immat_anti_a=[immat_anti_a;anti3];
-                immat_anti_b=[immat_anti_b;anti6];
-                immat_si_a=[immat_si_a;si3];
-                immat_si_b=[immat_si_b;si6];
-                com_a=[com_a;COM3.'];
-                com_b=[com_b;COM6.'];
-            end
-        end
+    r=corr(com_a,com_b);
 
-        r=corr(com_a,com_b);
+    currscale=max(abs([immata,immatb,immat_anti_a,immat_anti_b]),[],2);
+    immata=immata./currscale;
+    immatb=immatb./currscale;
 
-        currscale=max(abs([immata,immatb,immat_anti_a,immat_anti_b]),[],2);
-        immata=immata./currscale;
-        immatb=immatb./currscale;
-        
-        flat_mat=@(x) x(:);
-        scale_mat=@(x) (x(:,1:2:size(x,2))+x(:,2:2:size(x,2)))./2;
+    flat_mat=@(x) x(:);
+    scale_mat=@(x) (x(:,1:2:size(x,2))+x(:,2:2:size(x,2)))./2;
 
-        r2s=corr(flat_mat(immata),flat_mat(scale_mat(immatb)));
-        r2sci=bootci(50,@(x,y) corr(x,y),flat_mat(immata),flat_mat(scale_mat(immatb)));
-        r2e=corr(flat_mat(immata),flat_mat(immatb(:,1:12)));
-        r2eci=bootci(50,@(x,y) corr(x,y),flat_mat(immata),flat_mat(immatb(:,1:12)));
-        r2l=corr(flat_mat(immata),flat_mat(immatb(:,13:end)));
-        r2lci=bootci(50,@(x,y) corr(x,y),flat_mat(immata),flat_mat(immatb(:,13:end)));
+    r2s=corr(flat_mat(immata),flat_mat(scale_mat(immatb)));
+    r2sci=bootci(opt.bootrpt,@(x,y) corr(x,y),flat_mat(immata),flat_mat(scale_mat(immatb)));
+    r2e=corr(flat_mat(immata),flat_mat(immatb(:,1:12)));
+    r2eci=bootci(opt.bootrpt,@(x,y) corr(x,y),flat_mat(immata),flat_mat(immatb(:,1:12)));
+    r2l=corr(flat_mat(immata),flat_mat(immatb(:,13:end)));
+    r2lci=bootci(opt.bootrpt,@(x,y) corr(x,y),flat_mat(immata),flat_mat(immatb(:,13:end)));
+    typestr=(replace(fn,'.pdf',''));
+    out.corr2.(typestr)=[r2s,r2e,r2l];
+    out.corr2ci.(typestr)=[r2sci,r2eci,r2lci];
 
-        out.corr2.(replace(fn,'.pdf',''))=[r2s,r2e,r2l];
-        out.corr2ci.(replace(fn,'.pdf',''))=[r2sci,r2eci,r2lci];
+    out.corr_dist.(typestr)=[arrayfun(@(x) corr(immata(x,:).',scale_mat(immatb(x,:)).'),1:size(immata,1));...
+        arrayfun(@(x) corr(immata(x,:).',immatb(x,1:12).'),1:size(immata,1))];
 
-        immat_anti_a=immat_anti_a./currscale;
-        immat_anti_b=immat_anti_b./currscale;
-
+    immat_anti_a=immat_anti_a./currscale;
+    immat_anti_b=immat_anti_b./currscale;
+    if opt.plot_global
         %% similarity confusion matrix
         ct=[immata,immatb,immat_anti_a,immat_anti_b];
         confumat=nan(size(ct,2));
@@ -107,7 +111,9 @@ if opt.plot_global
                 confumat(ii,jj)=corr(ct(:,ii),ct(:,jj));
             end
         end
-        
+
+
+
         fch=figure('Color','w','Position',[32,32,850,750]);
         imagesc(confumat,[-1,1]);
         set(gca,'YDir','normal')
@@ -134,38 +140,62 @@ if opt.plot_global
         plotOne(3,immat_anti_b(sortidx,:),com_b(sortidx),'sub_dim',[3,2],'title','FR, non-preferred, 6s','cmap','turbo');
         plotOne(6,immat_si_a(sortidx,:),com_a(sortidx),'sub_dim',[3,2],'scale',[-0.6,0.6],'title','Selectivit index, 3s','cmap','turbo');
         plotOne(5,immat_si_b(sortidx,:),com_b(sortidx),'sub_dim',[3,2],'scale',[-0.6,0.6],'title','Selectivit index, 6s','cmap','turbo');
-%         shufidx=randsample(size(immatb,1),size(immatb,1));
-%         plotOne(3,immatb(shufidx,:),com_b(shufidx));
+        %         shufidx=randsample(size(immatb,1),size(immatb,1));
+        %         plotOne(3,immatb(shufidx,:),com_b(shufidx));
         sgtitle(sprintf('%s, FRTC r=%0.3f',tag,r));
         exportgraphics(fh,fn,'ContentType','vector')
     end
 end
 %     exportgraphics(fh,'wave_3s_6s_global.pdf','ContentType','vector');
+save('wave_3_6_corr_data.mat','out');
 
-% plot corr2 bars
-keyboard()
+%% 2d corr
+if opt.plot_2d_corr
+    fh=figure('Color','w','Position',[32,32,330,150]);
+    hold on
+    bh=bar([out.corr2.corr_3_6_both;out.corr2.corr_3_6_only6;out.corr2.corr_3_6_only3],'FaceColor','w','EdgeColor','k');
+    bh(2).FaceColor=ones(1,3)./2;
+    bh(3).FaceColor='k';
 
-fh=figure('Color','w','Position',[32,32,330,150]);
-hold on
-bh=bar([out.corr2.corr_3_6_both;out.corr2.corr_3_6_only6;out.corr2.corr_3_6_only3],'FaceColor','w','EdgeColor','k');
-bh(2).FaceColor=ones(1,3)./2;
-bh(3).FaceColor='k';
+    xmat=cell2mat({bh.XEndPoints}.');
+    fn=fieldnames(out.corr2ci);
+    for fidx=1:numel(fn)
+        errorbar(xmat(:,fidx),out.corr2.(fn{fidx}),...
+            out.corr2ci.(fn{fidx})(1,:)-out.corr2.(fn{fidx}),...
+            out.corr2ci.(fn{fidx})(2,:)-out.corr2.(fn{fidx}),'k.')
+    end
 
-xmat=cell2mat({bh.XEndPoints}.');
-fn=fieldnames(out.corr2ci);
-for fidx=1:numel(fn)
-    errorbar(xmat(:,fidx),out.corr2.(fn{fidx}),...
-        out.corr2ci.(fn{fidx})(1,:)-out.corr2.(fn{fidx}),...
-        out.corr2ci.(fn{fidx})(2,:)-out.corr2.(fn{fidx}),'k.')
+    set(gca,'XTick',[])
+    ylabel('FR correlation (r)')
+    legend(bh,{'Scaled','Early half','Late half'},'Location','northoutside','Orientation','horizontal')
+    exportgraphics(fh,'wave_3_6_FR_corr.pdf','ContentType','vector')
 end
-
-set(gca,'XTick',[])
-ylabel('FR correlation (r)')
-legend(bh,{'Scaled','Early half','Late half'},'Location','northoutside','Orientation','horizontal')
-exportgraphics(fh,'wave_3_6_FR_corr.pdf','ContentType','vector')
-
-
-
+%% per su corr
+if opt.plot_corr_dist
+    fhb=figure('Color','w');
+    subplot(1,3,1)
+    scatter(out.corr_dist.corr_3_6_both(1,:),out.corr_dist.corr_3_6_both(2,:),4,'ko','filled','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.5)
+    xlabel('3s correlation to scaled 6s')
+    ylabel('3s correlation to early 6s')
+    title('Both 3 and 6s')
+    xlim([0,1])
+    ylim([0,1])
+    subplot(1,3,2)
+    scatter(out.corr_dist.corr_3_6_only3(1,:),out.corr_dist.corr_3_6_only3(2,:),4,'ko','filled','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.5)
+    xlabel('3s correlation to scaled 6s')
+    ylabel('3s correlation to early 6s')
+    title('Only 3s')
+    xlim([0,1])
+    ylim([0,1])
+    subplot(1,3,3)
+    scatter(out.corr_dist.corr_3_6_only6(1,:),out.corr_dist.corr_3_6_only6(2,:),4,'ko','filled','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.5)
+    xlabel('3s correlation to scaled 6s')
+    ylabel('3s correlation to early 6s')
+    title('Only 6s')
+    xlim([0,1])
+    ylim([0,1])
+    exportgraphics(fhb,'corr_6s_scale_vs_6s_early.pdf','ContentType','vector')
+end
 %% session
 if opt.plot_session
     for sess=opt.sess
@@ -263,7 +293,7 @@ arguments
     opt.scale (1,2) double = [-1,1]
     opt.title (1,:) char = []
     opt.cmap (1,:) char = 'turbo'
-    
+
 end
 subplot(opt.sub_dim(1),opt.sub_dim(2),subidx);
 hold on
