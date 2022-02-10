@@ -32,6 +32,9 @@ for n_unit=opt.unit_count
             case 'loops'
                 metas=arrayfun(@(x) data{x}('meta'),unit_idces,'UniformOutput',false);
                 curr_su_count=numel(unique(cell2mat(cellfun(@(x) x{4}*100000+x{5},metas.','UniformOutput',false))));
+            case 'FCSP'
+                metas=arrayfun(@(x) data{x}('meta'),unit_idces,'UniformOutput',false);
+                curr_su_count=numel(unique(cell2mat(cellfun(@(x) x{4}*100000+x{5},metas.','UniformOutput',false))));
             case 'SU'
                 curr_su_count=n_unit;
         end

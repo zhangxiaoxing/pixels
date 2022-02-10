@@ -9,7 +9,7 @@ persistent metas_ stats_ fwd_rev_ per_trial_ opt_
 if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || isempty(per_trial_) || ~isequaln(opt_,opt)
     sig=bz.load_sig_pair();
 %     sess=unique(sig.sess);
-    fl=dir(fullfile('fcdata','fc_coding_*.mat')); % data source likely jpsth\+bz\+fccoding\fc_coding_one_sess.m
+    fl=dir(fullfile('fcdata','fc_coding_*.mat')); % data source jpsth\+bz\+fccoding\fc_coding_one_sess.m
     % {suids(fci,:),fwd_fc,fwd_fc-mean(fwd_shift,2),fwd_shift,rev_fc,rev_fc-mean(rev_shift,2),rev_shift}
     [metas,stats,fwd_rev]=deal([]);
     per_trial=cell(0);
