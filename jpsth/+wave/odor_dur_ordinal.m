@@ -5,7 +5,7 @@ if denovo
     meta=ephys.util.load_meta();
     waveids=ephys.get_wave_id(meta.sess,meta.allcid,early=true,ctx=false);
     %Dursel
-    dur=wave.duration_wave(ctx=false);
+    dur=wave.duration_wave('ctx',false,'extra_ITI',true);
     %Ordinal
     ord=wave.ordinal_MI(denovo=true,ctx=false);
     save('odor_dur_ordinal.mat','dur','meta','ord','waveids');

@@ -1,7 +1,8 @@
 function out=duration_wave(opt)
 arguments
-    opt.plot (1,1) logical = true
-    opt.ctx (1,1) logical = true
+    opt.plot (1,1) logical = false
+    opt.ctx (1,1) logical = false
+    opt.align_test (1,1) logical = true
 end
 persistent out_ opt_
 if isempty(out_) || ~isequaln(opt,opt_)
@@ -11,7 +12,16 @@ if isempty(out_) || ~isequaln(opt,opt_)
     for sesskey=reshape(cell2mat(sessmap.keys()),1,[])
         disp(sesskey)
         fpath=fullfile(homedir,sessmap(sesskey),"FR_All_ 250.hdf5");
-        fr=h5read(fpath,'/FR_All');
+        if opt.align_test
+            [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sesskey,"keep_trial",true,"align_test",true);
+            cfg=struct();
+            cfg.binsize=0.25;
+            cfg.keeptrials='yes';
+            FT_PSTH=ft_spike_psth(cfg, FT_SPIKE);
+            fr=FT_PSTH.trial;
+        else
+            fr=h5read(fpath,'/FR_All');
+        end
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
 
@@ -60,6 +70,7 @@ if isempty(out_) || ~isequaln(opt,opt_)
     out_.selidx=selidx;
 end
 out=out_;
+save('duration_wave.mat','out')
 
 % COM=(selidx*(1:14).')./sum(selidx,2);
 % [~,cidx]=sort(COM);
