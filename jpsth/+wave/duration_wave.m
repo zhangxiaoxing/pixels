@@ -2,17 +2,18 @@ function out=duration_wave(opt)
 arguments
     opt.plot (1,1) logical = false
     opt.ctx (1,1) logical = false
-    opt.align_test (1,1) logical = true
+    opt.align_test (1,1) logical = false
+    opt.quick_merge (1,1) logical = false
 end
 persistent out_ opt_
-if isempty(out_) || ~isequaln(opt,opt_)
+if (isempty(out_) || ~isequaln(opt,opt_))  && ~opt.quick_merge
     meta=ephys.util.load_meta();
     [~,~,sessmap]=ephys.sessid2path(0);
     homedir=ephys.util.getHomedir('type','raw');
     for sesskey=reshape(cell2mat(sessmap.keys()),1,[])
         disp(sesskey)
         fpath=fullfile(homedir,sessmap(sesskey),"FR_All_ 250.hdf5");
-        if opt.align_test
+        if opt.align_test && ~opt.quick_merge
             [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sesskey,"keep_trial",true,"align_test",true);
             cfg=struct();
             cfg.binsize=0.25;
@@ -39,7 +40,7 @@ if isempty(out_) || ~isequaln(opt,opt_)
         data.(sprintf('s%d',sesskey)).su_meta(:,1)=sesskey;
     end
 
-    [d3fr,d6fr,wrsp,wave_meta]=deal([]);
+    [d3fr,d6fr,d3fr_bin,d6fr_bin,wrsp,wave_meta]=deal([]);
 
     for sesskey=reshape(fieldnames(data),1,[])
         disp(sesskey)
@@ -52,25 +53,43 @@ if isempty(out_) || ~isequaln(opt,opt_)
                 onebin3=mean(fr(d3sel,su,bin:bin+3),3);
                 onebin6=mean(fr(d6sel,su,bin:bin+3),3);
                 onewrsp((bin+3)./4)=ranksum(onebin3,onebin6);
-                %             onesu3((bin+3)./4)=mean(onebin3);
-                %             onesu6((bin+3)./4)=mean(onebin6);
+                onesu3((bin+3)./4)=mean(onebin3);
+                onesu6((bin+3)./4)=mean(onebin6);
             end
             d3fr=[d3fr;reshape(mean(fr(d3sel,su,:),1),1,[])];
             d6fr=[d6fr;reshape(mean(fr(d6sel,su,:),1),1,[])];
             wrsp=[wrsp;onewrsp];
+            d3fr_bin=[d3fr_bin;onesu3];
+            d6fr_bin=[d6fr_bin;onesu6];
         end
         wave_meta=[wave_meta;data.(sesskey{1}).su_meta];
     end
     %% selidx
     selidx=(d3fr-d6fr)./(d3fr+d6fr);
+    
     opt_=opt;
     out_=struct();
     out_.wrsp=wrsp;
     out_.meta=wave_meta;
     out_.selidx=selidx;
+    out_.selidx_bin=(d3fr_bin-d6fr_bin)./(d3fr_bin+d6fr_bin);
 end
 out=out_;
-save('duration_wave.mat','out')
+if opt.quick_merge
+    test_aligned_data=load('duration_wave.mat','out_test_align');
+    samp_aligned_data=load('duration_wave.mat','out_samp_align');
+    out.wrsp=[samp_aligned_data.out_samp_align.wrsp(:,1:6),test_aligned_data.out_test_align.wrsp(:,1:11)];
+    out.selidx=[samp_aligned_data.out_samp_align.selidx_bin(:,1:6),test_aligned_data.out_test_align.selidx_bin(:,1:11)];
+    save('duration_wave_merged.mat','out')
+elseif opt.align_test
+    out_test_align=out;
+    save('duration_wave.mat','out_test_align','-append')
+else
+    out_samp_align=out;
+    save('duration_wave.mat','out_samp_align','-append')
+end
+
+
 
 % COM=(selidx*(1:14).')./sum(selidx,2);
 % [~,cidx]=sort(COM);
