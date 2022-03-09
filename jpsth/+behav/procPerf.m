@@ -1,7 +1,7 @@
 function out=procPerf(facSeq, opt)
 arguments
     facSeq (:,8) double
-    opt.mode   (1,:) char {mustBeMember(opt.mode,{'correct','all','error'})} = 'correct'
+    opt.mode   (1,:) char {mustBeMember(opt.mode,{'correct','all'})} = 'correct'
 end
 
 if length(facSeq)<40 % interrupted sessions
@@ -22,6 +22,7 @@ else
         end
         i=i+1;
     end
+    facSeq=behav.tag_block(facSeq,'wt',false);
     if strcmp(opt.mode,'correct') % rtn correct trial only
         out=facSeq(all(facSeq(:,9:10),2),:);
     else % 'all'

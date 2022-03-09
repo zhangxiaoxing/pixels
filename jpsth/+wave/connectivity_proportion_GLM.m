@@ -41,26 +41,38 @@ end
 
 mdlid_rsq_AICC=sortrows(mdlid_rsq_AICC,3);
 keyboard();
+ytk=cell(0,0);
 for kk=1:20
 maxidx=mdlid_rsq_AICC(kk,1);
 if glmxmeta(comb2(maxidx,1),1)==1
     reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
-    reg1=['To_',reg1{1}];
+    reg1=['To ',reg1{1}];
 else
     reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,1),2))));
-    reg1=['From_',reg1{1}];
+    reg1=['From ',reg1{1}];
 end
 if glmxmeta(comb2(maxidx,2),1)==1
     reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
-    reg2=['To_',reg2{1}];
+    reg2=['To ',reg2{1}];
 else
     reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
-    reg2=['From_',reg2{1}];
+    reg2=['From ',reg2{1}];
 end
 disp([reg1,'-',reg2,' ',num2str(mdlid_rsq_AICC(kk,2:3))])
+ytk{end+1}=[reg1,'-',reg2];
 end
 
-maxidx=1843
+fh=figure('Color','w')
+bar(sqrt(mdlid_rsq_AICC(1:10,2)),'Horizontal','on')
+set(gca(),'YDir','reverse','YTick',1:10,'YTickLabel',ytk(1:10))
+xlabel('Person''s r')
+xlim([0,1])
+if false
+    exportgraphics(fh,'sens_mdls.pdf','ContentType','vector')
+end
+
+
+maxidx=mdlid_rsq_AICC(1,1)
 allen_A=glmxmat(comb2(maxidx,1),:).'; % from one alternating target, to idx4corr
 allen_B=glmxmat(comb2(maxidx,2),:).';
 mdl=fitglm([allen_A,allen_B],feat_prop,'interactions');
@@ -82,15 +94,23 @@ else
     reg2=['From_',reg2{1}];
 end
 
-fh=figure('Color','w','Position',[32,32,900,650]);
-scatter(mdl.Fitted.Response,feat_prop,4,'red','filled','o')
-text(mdl.Fitted.Response,feat_prop,intersect_regs,'HorizontalAlignment','center','VerticalAlignment','top');
+fh=figure('Color','w','Position',[32,32,320,320]);
+hold on
+for ll=1:numel(feat_prop)
+    c=ephys.getRegColor(intersect_regs{ll},'large_area',true);
+    scatter(mdl.Fitted.Response(ll),feat_prop(ll),4,c,'filled','o')
+    text(mdl.Fitted.Response(ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+end
 title(sprintf('Coding proportion ~ %.3f [%s] + %.3f [%s] +%.3f [%s]', ...
     mdl.Coefficients.Estimate(2),reg1,mdl.Coefficients.Estimate(3),reg2,mdl.Coefficients.Estimate(4),'interaction'), ...
     'Interpreter','none')
 xlabel(sprintf('Model %d prediction',maxidx))
 ylabel('Proportion of coding neuron')
+set(gca,'XScale','log','YScale','log')
 text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
+xlim([0.005,0.5])
+ylim([0.005,0.5])
+
 %         keyboard()
 
 

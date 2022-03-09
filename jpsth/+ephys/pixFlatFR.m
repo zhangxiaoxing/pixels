@@ -2,19 +2,17 @@ function pixFlatFR(opt)
 arguments
     opt.binsize (1,1) double = 1.0
     opt.writefile (1,1) logical = false
-    opt.rootdir (1,:) char = 'K:\neupix\SPKINFO'
     opt.overwrite (1,1) logical = false
+    opt.two_point_align (1,1) logical = false
 end
 %% external lib dependency
-if ispc, libroot='K:'; else, libroot='~'; end
-addpath(fullfile(libroot,'Lib','fieldtrip-20200320'))
-ft_defaults
-
+ephys.util.dependency("buz",false,"ft",true)
 %% constant
 sps=30000; %sample per second
 
 %% input from YCY's time-aligned spike file
-flist=dir(fullfile(opt.rootdir,'**','spike_info.hdf5'));
+rootdir=ephys.util.getHomedir('type','raw');
+flist=dir(fullfile(rootdir,'**','spike_info.hdf5'));
 for i=1:length(flist)
     fprintf('=== %d of %d ===\n',i,length(flist))
     if isfile(fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
@@ -67,7 +65,7 @@ for i=1:length(flist)
     FT_PSTH=ft_spike_psth(cfg, FT_SPIKE);
     %% export result as file
     if opt.writefile
-        FR_File=fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000));
+        FR_File=fullfile(flist(i).folder,sprintf('FR_All_%04d.hdf5',opt.binsize*1000));
         if exist(FR_File,'file')
             delete(FR_File)
         end
