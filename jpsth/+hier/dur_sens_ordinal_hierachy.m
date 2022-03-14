@@ -148,9 +148,10 @@ for type="both"%["sense","both","dur","ord"]
         xlbl(s_list(:,1)==1)=idmap.ccfid2reg.values(num2cell(sink_ccfid(s_list(s_list(:,1)==1,2))));
         xlbl(s_list(:,1)==2)=idmap.ccfid2reg.values(num2cell(src_ccfid(s_list(s_list(:,1)==2,2))));
         xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
-
-        out.(type).r_p=s_list;
-        out.(type).reg=xlbl;
+        if exist('type','var')
+            out.(type).r_p=s_list;
+            out.(type).reg=xlbl;
+        end
         fhb=figure('Color','w','Position',[32,32,1200,225]);
         hold on
         bhto=bar(find(s_list(:,1)==1),s_list(s_list(:,1)==1,3),0.6,"grouped",'white');

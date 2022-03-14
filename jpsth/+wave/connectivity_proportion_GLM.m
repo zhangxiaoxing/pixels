@@ -108,8 +108,8 @@ xlabel(sprintf('Model %d prediction',maxidx))
 ylabel('Proportion of coding neuron')
 set(gca,'XScale','log','YScale','log')
 text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
-xlim([0.005,0.5])
-ylim([0.005,0.5])
+xlim([0.15,0.5])
+ylim([0.15,0.5])
 
 %         keyboard()
 
