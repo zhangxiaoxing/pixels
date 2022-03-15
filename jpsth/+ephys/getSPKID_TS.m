@@ -60,7 +60,7 @@ if isempty(fidx_)...
             if opt.only_delay
                 cfg.trl=[trials(:,1)+sps,trials(:,1)+7*sps,zeros(size(trials,1),1),trials];
             elseif opt.align_test
-                cfg.trl=[trials(:,2)-1*sps,trials(:,2)+10*sps,zeros(size(trials,1),1)-1*sps,trials];
+                cfg.trl=[trials(:,2)-1*sps,trials(:,2)+13*sps,zeros(size(trials,1),1)-1*sps,trials];
             else
                 cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
             end
