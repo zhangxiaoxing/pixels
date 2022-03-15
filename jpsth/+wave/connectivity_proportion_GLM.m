@@ -1,9 +1,20 @@
 %% efferent_proj_dense(src) ~ feature_proportion
 
+%% CONST
+sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
+src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
+sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');
+% grey_regs assume in work space
+src_idx_map=containers.Map(src_ccfid,1:numel(src_ccfid)); %{ccfid:proj_dense_mat_idx}
+sink_idx_map=containers.Map(sink_ccfid,1:numel(sink_ccfid)); %{ccfid:proj_dense_mat_idx}
+
 allen_src_regs=cellfun(@(x) x{1},idmap.ccfid2reg.values(num2cell(src_ccfid)),'UniformOutput',false);
 intersect_regs=intersect(allen_src_regs,grey_regs);
 
 idx4corr=cell2mat(src_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
+
+%% -> feature_region_map entry point
+
 feat_prop_cell=feat_reg_map.values(intersect_regs);
 feat_prop=cellfun(@(x) x(1),feat_prop_cell);
 
@@ -40,7 +51,7 @@ for jj=1:size(comb2,1)
 end
 
 mdlid_rsq_AICC=sortrows(mdlid_rsq_AICC,3);
-keyboard();
+% keyboard();
 ytk=cell(0,0);
 for kk=1:20
 maxidx=mdlid_rsq_AICC(kk,1);
@@ -108,8 +119,8 @@ xlabel(sprintf('Model %d prediction',maxidx))
 ylabel('Proportion of coding neuron')
 set(gca,'XScale','log','YScale','log')
 text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
-xlim([0.15,0.5])
-ylim([0.15,0.5])
+% xlim([0.15,0.5])
+% ylim([0.15,0.5])
 
 %         keyboard()
 

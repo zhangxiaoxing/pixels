@@ -15,7 +15,7 @@ for epochi=1:6
         disp(sesskey)
         fpath=fullfile(homedir,sessmap(sesskey),"FR_All_ 250.hdf5");
         if strcmp(epoch,'postreward') || strcmp(epoch,'presample')
-            [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sesskey,"keep_trial",true,"align_test",true);
+            [sid,sts,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sesskey,"keep_trial",true,"align_test",true);
             cfg=struct();
             cfg.binsize=0.25;
             cfg.keeptrials='yes';
@@ -31,12 +31,13 @@ for epochi=1:6
         dur_resp=behav.tag_block(trials,'wt',false);
         block_meta=[trials,dur_resp(:,end)];
 
-        sensible_sel=(trials(:,8)==3 | trials(:,8)==6) & all(trials(:,9:10)~=0,2);
+        sensible_sel=ismember(trials(:,8),[3,6]) & ismember(trials(:,5),[4,8])  & ismember(block_meta(:,11),1:4)& all(trials(:,9:10)~=0,2);
         trials=trials(sensible_sel,:);
         fr=fr(sensible_sel,:,:);
         block_meta=block_meta(sensible_sel,:);
+        block_meta(block_meta(:,8)==6,11)=block_meta(block_meta(:,8)==6,11)+4;
 
-        anovanps=nan(size(fr,2),7); %1:Samp,2:Dur,3:Bin,4:Samp*Dur,5:Samp*Bin,6:Dur*Bin,7:Samp*Dur*Bin
+        anovanps=nan(size(fr,2),5); %1:Samp,2:Dur,3:Bin,4:Samp*Dur,5:Samp*Bin,6:Dur*Bin,7:Samp*Dur*Bin
 
         for su=1:size(fr,2)
             switch epoch
@@ -67,7 +68,14 @@ for epochi=1:6
 %             if strcmp(epoch,'presample')
 %                 anovanps(su,[2 3 6])=anovan(frvec,{durvec,seqvec},'model','full','display','off');
 %             else
-                anovanps(su,:)=anovan(frvec,{sampvec,durvec,seqvec},'model','full','display','off');
+                if mean(frvec<0.5)
+                    anovanps(su,:)=ones(1,5);
+                else
+                    anovanps(su,:)=anovan(frvec,{sampvec,durvec,seqvec},'model','full','continuous',[],'nested',[0,0,0;0,0,0;0,1,0],'display','off');
+                end
+%                 if any(isnan(anovanps(su,:)))  % all-checked as of Mar15
+%                     keyboard
+%                 end
 %             end
         end
 
@@ -90,9 +98,9 @@ for epochi=1:6
 
     %% samp v dur v seq
 
-    samp_any_sel=any(anovameta.anovap(:,[1,4,5,7])<0.05,2);
-    dur_any_sel=any(anovameta.anovap(:,[2,4,6,7])<0.05,2);
-    seq_any_sel=any(anovameta.anovap(:,[3,5,6,7])<0.05,2);
+    samp_any_sel=any(anovameta.anovap(:,[1,4,5])<0.05,2);
+    dur_any_sel=any(anovameta.anovap(:,[2,4])<0.05,2);
+    seq_any_sel=any(anovameta.anovap(:,[3,5])<0.05,2);
 
     samp_only_sel=samp_any_sel & ~dur_any_sel & ~seq_any_sel;
     dur_only_sel=dur_any_sel & ~samp_any_sel & ~seq_any_sel;
@@ -259,7 +267,7 @@ end
 % any selective, [1 3 5]; exclusive selective, [2 4 6]
 % samp:samp, dur:dur, seq:seq
 figure('Color','w','Position',[32,32,1200,800])
-for stype=["Any","Exclusive"]
+for stype=["Mixed","Exclusive"]
     rmat=cell(2,3);
     cols=1:2:5;
     if strcmp(stype,'Exclusive')
@@ -273,7 +281,7 @@ for stype=["Any","Exclusive"]
         x_mat=cell2mat(map_cells{2,cols(colidx)}.values(grey_regs).');
         y_mat=cell2mat(map_cells{3,cols(colidx)}.values(grey_regs).');
         r=corr(x_mat(:,1),y_mat(:,1));
-        if strcmp(stype,'Any')
+        if strcmp(stype,'Mixed')
             subplot(2,3,colidx);
         else
             subplot(2,3,colidx+3)
@@ -299,6 +307,8 @@ end
 sgtitle('Early- vs late-delay, mixed selective (top) or exclusively selective (bottom)')
 
 
+%% map_cells (epoch x sample-dur-pos) -> GLM
+
+
 return
 
-%%
