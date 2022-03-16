@@ -15,7 +15,7 @@ for epochi=1:6
         disp(sesskey)
         fpath=fullfile(homedir,sessmap(sesskey),"FR_All_ 250.hdf5");
         if strcmp(epoch,'postreward') || strcmp(epoch,'presample')
-            [sid,sts,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sesskey,"keep_trial",true,"align_test",true);
+            [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sesskey,"keep_trial",true,"align_test",true);
             cfg=struct();
             cfg.binsize=0.25;
             cfg.keeptrials='yes';

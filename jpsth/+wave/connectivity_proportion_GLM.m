@@ -1,6 +1,10 @@
 %% efferent_proj_dense(src) ~ feature_proportion
 
 %% CONST
+if isunix
+    load('map_cells.mat','map_cells');
+    maxNumCompThreads(16)
+end
 sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
 src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
 sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');
@@ -15,12 +19,19 @@ idx4corr=cell2mat(src_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
 
 %% -> feature_region_map entry point
 
+for fmii=1:3
+feat_reg_map=map_cells{fmjj,fmii};
+
 feat_prop_cell=feat_reg_map.values(intersect_regs);
 feat_prop=cellfun(@(x) x(1),feat_prop_cell);
 
 [glmxmat,glmxmeta]=deal([]);
 for ii=1:numel(sink_ccfid)
-    allen_density=log10(sink_src_mat(ii,idx4corr)+1e-12); % from idx4corr, to one alternating target
+    %     allen_density=log10(sink_src_mat(ii,idx4corr)+1e-12); % from idx4corr, to one alternating target
+    allen_density=sink_src_mat(ii,idx4corr);
+    if nnz(allen_density~=0)<10
+        continue
+    end
     glmxmat=[glmxmat;allen_density];
     glmxmeta=[glmxmeta;1,ii];
 end
@@ -28,7 +39,10 @@ end
 %% afferent_proj_dense(sink) ~ feature_proportion
 idx4corr=cell2mat(sink_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
 for ii=1:numel(src_ccfid)
-    allen_density=log10(sink_src_mat(idx4corr,ii)+1e-12); % from one alternating target, to idx4corr
+    allen_density=sink_src_mat(idx4corr,ii); % from one alternating target, to idx4corr
+    if nnz(allen_density~=0)<10
+        continue
+    end
     glmxmat=[glmxmat;allen_density.'];
     glmxmeta=[glmxmeta;2,ii];
 end
@@ -42,7 +56,7 @@ for jj=1:size(comb2,1)
     end
     allen_A=glmxmat(comb2(jj,1),:).'; % from one alternating target, to idx4corr
     allen_B=glmxmat(comb2(jj,2),:).';
-    mdl=fitglm([allen_A,allen_B],feat_prop,'interactions');
+    mdl=fitglm([allen_A,allen_B],feat_prop,'interactions'); % (1|2)jj => glmxmat==glmxmeta => (sink_ccfid|src_ccfid)
     mdlid_rsq_AICC=[mdlid_rsq_AICC;jj,mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc];
 %     if mdl.Rsquared.Ordinary>maxrsq
 %         maxrsq=mdl.Rsquared.Ordinary;
@@ -73,17 +87,16 @@ disp([reg1,'-',reg2,' ',num2str(mdlid_rsq_AICC(kk,2:3))])
 ytk{end+1}=[reg1,'-',reg2];
 end
 
-fh=figure('Color','w')
+fh=figure('Color','w','Position',[32,32,400,800]);
 bar(sqrt(mdlid_rsq_AICC(1:10,2)),'Horizontal','on')
 set(gca(),'YDir','reverse','YTick',1:10,'YTickLabel',ytk(1:10))
 xlabel('Person''s r')
 xlim([0,1])
-if false
-    exportgraphics(fh,'sens_mdls.pdf','ContentType','vector')
-end
+title(sprintf('selectivity %d - epoch %d',fmii,fmjj));
+exportgraphics(fh,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',fmii,fmjj),'ContentType','vector')
+close(fh)
 
-
-maxidx=mdlid_rsq_AICC(1,1)
+maxidx=mdlid_rsq_AICC(1,1);
 allen_A=glmxmat(comb2(maxidx,1),:).'; % from one alternating target, to idx4corr
 allen_B=glmxmat(comb2(maxidx,2),:).';
 mdl=fitglm([allen_A,allen_B],feat_prop,'interactions');
@@ -121,10 +134,12 @@ set(gca,'XScale','log','YScale','log')
 text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
 % xlim([0.15,0.5])
 % ylim([0.15,0.5])
-
+exportgraphics(fh,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',fmii,fmjj),'ContentType','vector')
+close(fh)
 %         keyboard()
 
 
+end
 
 return
 %%
