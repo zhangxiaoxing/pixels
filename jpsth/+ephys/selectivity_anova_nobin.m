@@ -87,7 +87,7 @@ for epochi=1:6
 
     %% scatter common
     meta=ephys.util.load_meta();
-    idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
     BSsel=strcmp(meta.reg_tree(1,:),'BS') & ~strcmp(meta.reg_tree(5,:),'');
     CHsel=strcmp(meta.reg_tree(1,:),'CH') & ~strcmp(meta.reg_tree(5,:),'');

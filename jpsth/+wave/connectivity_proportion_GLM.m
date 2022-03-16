@@ -5,6 +5,18 @@ if isunix
     load('map_cells.mat','map_cells');
     maxNumCompThreads(16)
 end
+
+meta=ephys.util.load_meta();
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+
+BSsel=strcmp(meta.reg_tree(1,:),'BS') & ~strcmp(meta.reg_tree(5,:),'');
+CHsel=strcmp(meta.reg_tree(1,:),'CH') & ~strcmp(meta.reg_tree(5,:),'');
+grey_regs=unique(meta.reg_tree(5,BSsel | CHsel));
+
+cnt=cellfun(@(x) nnz(strcmp(meta.reg_tree(5,:),x)), grey_regs);
+grey_regs=grey_regs(cnt>100);
+
+
 sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
 src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
 sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');

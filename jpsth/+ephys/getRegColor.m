@@ -5,7 +5,7 @@ arguments
 end
 persistent idmap
 if isempty(idmap)
-    idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 end
 if opt.large_area
 
