@@ -1,6 +1,9 @@
 meta3=ephys.util.load_meta('delay',3);
 meta6=ephys.util.load_meta('delay',6);
 
+load('cross_ep_anovameta.mat','cross_ep_anovameta'); % K:\code\jpsth\+ephys\selectivity_anova.m
+
+
 bothsel=any(meta3.wrs_p(5:7,:)<0.01 & meta6.wrs_p(5:7,:)<0.01);
 selidxsel=any(abs(meta3.selec(5:7,:))>0.4 & abs(meta6.selec(5:7,:))>0.4);
 regsel=strcmp(meta6.reg_tree(1,:),'CH') & cellfun(@(x) ~isempty(x)>0,meta6.reg_tree(5,:));
