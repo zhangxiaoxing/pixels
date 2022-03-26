@@ -56,15 +56,8 @@ keyboard()
 % end
 
 
-meta=ephys.util.load_meta();
 idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
-
-BSsel=strcmp(meta.reg_tree(1,:),'BS') & ~strcmp(meta.reg_tree(5,:),'');
-CHsel=strcmp(meta.reg_tree(1,:),'CH') & ~strcmp(meta.reg_tree(5,:),'');
-grey_regs=unique(meta.reg_tree(5,BSsel | CHsel));
-
-cnt=cellfun(@(x) nnz(strcmp(meta.reg_tree(5,:),x)), grey_regs);
-grey_regs=grey_regs(cnt>100);
+grey_regs=ephys.getGreyRegs();
 
 dur_indep_sel=(anovameta.anovap(:,1)<0.05 | anovameta.anovap(:,5)<0.05);
 dur_dep_sel=(anovameta.anovap(:,4)<0.05 | anovameta.anovap(:,7)<0.05) &~dur_indep_sel;

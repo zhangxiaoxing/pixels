@@ -81,46 +81,11 @@ for epochi=1:(numel(epochs))
     
     if false % plot
         %% scatter common
-        meta=ephys.util.load_meta();
         idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-
-        BSsel=strcmp(meta.reg_tree(1,:),'BS') & ~strcmp(meta.reg_tree(5,:),'');
-        CHsel=strcmp(meta.reg_tree(1,:),'CH') & ~strcmp(meta.reg_tree(5,:),'');
-        grey_regs=unique(meta.reg_tree(5,BSsel | CHsel));
-
-        cnt=cellfun(@(x) nnz(strcmp(meta.reg_tree(5,:),x)), grey_regs);
-        grey_regs=grey_regs(cnt>100);
-
+        grey_regs=ephys.getGreyRegs();
         %% samp v dur v seq
 
-        samp_any_sel=any(anovameta.anovap(:,[1,3])<0.05,2);
-        dur_any_sel=any(anovameta.anovap(:,[2,3])<0.05,2);
-
-        samp_only_sel=samp_any_sel & ~dur_any_sel;
-        dur_only_sel=dur_any_sel & ~samp_any_sel;
-
-
-        samp_any_reg_map=containers.Map();
-        samp_only_reg_map=containers.Map();
-
-        dur_any_reg_map=containers.Map();
-        dur_only_reg_map=containers.Map();
-
-
-        for r=grey_regs
-            cnt=nnz(strcmp(meta.reg_tree(5,:),r{1}));
-            samp_any_cnt=nnz(strcmp(meta.reg_tree(5,:),r{1}).' & samp_any_sel);
-            samp_only_cnt=nnz(strcmp(meta.reg_tree(5,:),r{1}).' & samp_only_sel);
-
-            dur_any_cnt=nnz(strcmp(meta.reg_tree(5,:),r{1}).' & dur_any_sel);
-            dur_only_cnt=nnz(strcmp(meta.reg_tree(5,:),r{1}).' & dur_only_sel);
-
-            samp_any_reg_map(r{1})=[samp_any_cnt/cnt,samp_any_cnt,cnt];
-            samp_only_reg_map(r{1})=[samp_only_cnt/cnt,samp_only_cnt,cnt];
-
-            dur_any_reg_map(r{1})=[dur_any_cnt/cnt,dur_any_cnt,cnt];
-            dur_only_reg_map(r{1})=[dur_only_cnt/cnt,dur_only_cnt,cnt];
-        end
+ 
 
         map_cells(epochi,:)={samp_any_reg_map,samp_only_reg_map,...
             dur_any_reg_map,dur_only_reg_map};
