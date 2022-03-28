@@ -5,17 +5,33 @@ function bz_hier_corr(opt)
 arguments
     opt.create_csv (1,1) logical = false %create file for gephi
     opt.up_down_relative (1,1) logical = false % normalized within 2 regions
-    opt.plot_img (1,1) logical = true % plot heatmap image
+    opt.plot_img (1,1) logical = false % plot heatmap image
+    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','TT'})} = 'TT'
 end
+
+persistent hiermap 
+
+if isempty(hiermap)
+    switch opt.hiermap
+        case 'pvsst'
+            [~,~,hiermap]=ref.get_pv_sst();
+        case 'OBM1'
+            fstr=load('OBM1map.mat','OBM1map');
+            hiermap=fstr.OBM1map;
+        case 'TT'
+            fstr=load('TTmap.mat','TTmap');
+            hiermap=fstr.TTmap;
+    end
+end
+
 % keyboard()
 %V.S. Frac, V.S. COM V.S. PV/SST
 % non_stats=onestat('nonmem',5); % 4:5,PV-SST; 6:7,COM; 8:9, frac;
-congru_stats=onestat('congru',5);
-% [~,~,ratiomap]=ref.get_pv_sst();
-load('OBM1Map.mat','OBM1map')
+congru_stats=onestat('congru',5,hiermap);
+
 if opt.plot_img
     un_sorted_list=unique(congru_stats.reg(:));
-    OMI=cell2mat(OBM1map.values(un_sorted_list));
+    OMI=cell2mat(hiermap.values(un_sorted_list));
     [~,OMIidx]=sort(OMI);
     connmat=nan(numel(OMIidx));
 
@@ -34,7 +50,7 @@ if opt.create_csv
     for fi=1:size(congru_stats.meta,1)
         pre=congru_stats.reg{fi,1};
         post=congru_stats.reg{fi,2};
-        if OBM1map(pre)>OBM1map(post)
+        if hiermap(pre)>hiermap(post)
             uddir=['D','U'];
         else
             uddir=['U','D'];
@@ -61,7 +77,7 @@ if opt.create_csv
     node_exp={'Id','Label','XX','YY'};
     for ni=1:numel(ureg)
         node_exp=[node_exp;...
-            ureg(ni),ureg(ni),{OBM1map(ureg{ni})},30-30.*ffrac.collection{strcmp(ffrac.collection(:,2),ureg(ni)),1}];
+            ureg(ni),ureg(ni),{hiermap(ureg{ni})},30-30.*ffrac.collection{strcmp(ffrac.collection(:,2),ureg(ni)),1}];
     end
     writecell(node_exp,'Congru_asym_node.csv')
 end
@@ -130,29 +146,29 @@ set(gca(),'XTick',1:2,'XTickLabel',{'Pre-region','Post-region'},'XTickLabelRotat
 end
 
 
-function stats=onestat(type,minconn)
+function stats=onestat(type,minconn,hiermap)
 % [~,~,ratiomap]=ref.get_pv_sst();
-load('OBM1map.mat','OBM1map');
+
 [sig,pair]=bz.load_sig_pair('pair',true);
-idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 fcom=load('per_region_com_collection.mat','collection'); % /4
-ffrac.collection=ephys.per_region_fraction('memtype','any'); % *100
+ffrac.collection=ephys.per_region_fraction('wavetype','any'); % *100
 if strcmp(type,'congru')
-    mem_sel=all(ismember(sig.mem_type,1:2),2) | all(ismember(sig.mem_type,3:4),2);
-    pmem_sel=all(ismember(pair.mem_type,1:2),2) | all(ismember(pair.mem_type,3:4),2);
+    mem_sel=all(ismember(sig.waveid,[1 3 5]),2) | all(ismember(sig.waveid,[2 4 6]),2);
+    pmem_sel=all(ismember(pair.waveid,[1 3 5]),2) | all(ismember(pair.waveid,[2 4 6]),2);
     %     ftitle='Congruent memory';
 elseif strcmp(type,'nonmem')
-    mem_sel=all(sig.mem_type==0,2);
-    pmem_sel=all(pair.mem_type==0,2);
+    mem_sel=all(sig.waveid==0,2);
+    pmem_sel=all(pair.waveid==0,2);
     %     ftitle='Non-memory';
 end
 diff_sel=(sig.reg(:,5,1)~=sig.reg(:,5,2));
 pdiff_sel=(pair.reg(:,5,1)~=pair.reg(:,5,2));
-ctx_sel=all(squeeze(sig.reg(:,2,:)==688),2) & all(squeeze(sig.reg(:,5,:)>0),2);
-pctx_sel=all(squeeze(pair.reg(:,2,:)==688),2) & all(squeeze(pair.reg(:,5,:)>0),2);
+grey_sel=all(squeeze(ismember(sig.reg(:,1,:),[567 343])),2) & all(squeeze(sig.reg(:,5,:)>0),2);
+pgrey_sel=all(squeeze(ismember(pair.reg(:,1,:),[567 343])),2) & all(squeeze(pair.reg(:,5,:)>0),2);
 
-hier_sel=diff_sel & ctx_sel & mem_sel;
-phier_sel=pdiff_sel & pctx_sel & pmem_sel;
+hier_sel=diff_sel & grey_sel & mem_sel;
+phier_sel=pdiff_sel & pgrey_sel & pmem_sel;
 
 ureg=unique(sig.reg(hier_sel,5,:));
 cross_reg=nchoosek(ureg,2);
@@ -166,10 +182,10 @@ for ri=1:size(cross_reg,1)
     nfwd=nnz(hreg(:,1)==cross_reg(ri,1) & hreg(:,2)==cross_reg(ri,2));
     nbck=nnz(hreg(:,1)==cross_reg(ri,2) & hreg(:,2)==cross_reg(ri,1));
     pcnt=nnz(preg(:,1)==cross_reg(ri,1) & preg(:,2)==cross_reg(ri,2))*2;
-    if pcnt>100 && (nfwd + nbck)>minconn
+    if pcnt>1000 && (nfwd + nbck)>minconn
         reg1=char(idmap.ccfid2reg(cross_reg(ri,1)));
         reg2=char(idmap.ccfid2reg(cross_reg(ri,2)));
-        if ~OBM1map.isKey(reg1) || ~OBM1map.isKey(reg2)
+        if ~hiermap.isKey(reg1) || ~hiermap.isKey(reg2)
             continue
         end
 
@@ -185,7 +201,7 @@ for ri=1:size(cross_reg,1)
             %FRAC,COM,PV
             stats.meta=[stats.meta;...
                 nfwd,nbck,sidx,...
-                OBM1map(reg1),OBM1map(reg2),...
+                hiermap(reg1),hiermap(reg2),...
                 fcom.collection{strcmp(fcom.collection(:,2),reg1),1},...
                 fcom.collection{strcmp(fcom.collection(:,2),reg2),1},...
                 ffrac.collection{strcmp(ffrac.collection(:,2),reg1),1},...

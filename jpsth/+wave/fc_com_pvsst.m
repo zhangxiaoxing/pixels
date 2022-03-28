@@ -2,73 +2,66 @@ function [comdiff_stats,com_pair]=fc_com_pvsst(opt)
 arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
-    opt.pvsst (1,1) logical = false % use MOB-MOp axis index since 20210928
-    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong'})} = 'incong' %TCOM for NONMEM undefined
+    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','TT'})} = 'OBM1'
+    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any'})} = 'congru' %TCOM for NONMEM undefined
+    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6'})} = 'any6' % su of wave
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
 end
 
-[~,com_meta]=wave.per_region_COM('decision',opt.decision);
-com_map=list2map(com_meta);
-if opt.pvsst
-    [~,~,ratiomap]=ref.get_pv_sst();
-else
-    load('OBM1map.mat','OBM1map');
-end
+
+% [~,com_meta]=wave.per_region_COM('decision',opt.decision,'wave',opt.wave);
+% com_map=list2map(com_meta);
+com_map_6=wave.get_com_map('wave','any6','delay',6);
+com_map_3=wave.get_com_map('wave','any3','delay',3);
+
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
-[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
+[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'mincount',0);
 
 fc_com_pvsst_stats=[];
-for ii=1:numel(sig.sess) %iterate through all pairs
-    if is_same(ii,opt.level) || h2l(ii,opt.level) || l2h(ii,opt.level)%same
-        sess=sig.sess(ii);
-        suid=sig.suid(ii,:);
-        mem_type=sig.mem_type(ii,:);
-        if strcmp(opt.mem_type,'congru') && ~all(ismember(mem_type,1:2)) && ~all(ismember(mem_type,3:4))
-            continue
-        end
-        if strcmp(opt.mem_type,'incong') && (~any(ismember(mem_type,1:2)) || ~any(ismember(mem_type,3:4)))
-            continue
-        end
-
-        if ~all(arrayfun(@(x) com_map.(['s',num2str(sess)]).isKey(x),suid))
-%             warning('Missing keys in COM meta data, session %d, suid %d, %d',sess,suid(1) ,suid(2));
-            continue
-        end
-%         keyboard()
-        com_meta_one{1}=com_map.(['s',num2str(sess)])(suid(1));
-        com_meta_one{2}=com_map.(['s',num2str(sess)])(suid(2));
-        [com1,com2]=deal(com_meta_one{1}{1},com_meta_one{2}{1});
-        [reg1,reg2]=deal(com_meta_one{1}{6},com_meta_one{2}{6});
-        if opt.pvsst
-            if (~ratiomap.isKey(reg1)||~ratiomap.isKey(reg2)), continue;end
-            [ratio1,ratio2]=deal(ratiomap(reg1),ratiomap(reg2));
-        else
-            if (~OBM1map.isKey(reg1)||~OBM1map.isKey(reg2)), continue;end
-            [ratio1,ratio2]=deal(OBM1map(reg1),OBM1map(reg2));
-        end
-        fc_com_pvsst_stats=[fc_com_pvsst_stats;{is_same(ii,opt.level),l2h(ii,opt.level),h2l(ii,opt.level),sess,suid(1),suid(2),com1,com2,reg1,reg2,ratio1,ratio2}];
+usess=unique(sig.sess);
+for sii=reshape(usess,1,[]) %iterate through sessions
+    sesssel=sig.sess==sii;
+    suid=sig.suid(sesssel,:);
+    waveid=sig.waveid(sesssel,:);
+    comsess_6=nan(size(suid));
+    if isfield(com_map_6,['s',num2str(sii)])
+        s1keys=int32(cell2mat(com_map_6.(['s',num2str(sii)]).s1.keys()));
+        s1sel=ismember(suid,s1keys);
+        comsess_6(s1sel)=cell2mat(com_map_6.(['s',num2str(sii)]).s1.values(num2cell(suid(s1sel))));
+        s2keys=int32(cell2mat(com_map_6.(['s',num2str(sii)]).s2.keys()));
+        s2sel=ismember(suid,s2keys);
+        comsess_6(s2sel)=cell2mat(com_map_6.(['s',num2str(sii)]).s2.values(num2cell(suid(s2sel))));
     end
+    comsess_3=nan(size(suid));
+    if isfield(com_map_3,['s',num2str(sii)])
+        s1keys=int32(cell2mat(com_map_3.(['s',num2str(sii)]).s1.keys()));
+        s1sel=ismember(suid,s1keys);
+        comsess_3(s1sel)=cell2mat(com_map_3.(['s',num2str(sii)]).s1.values(num2cell(suid(s1sel))));
+        s2keys=int32(cell2mat(com_map_3.(['s',num2str(sii)]).s2.keys()));
+        s2sel=ismember(suid,s2keys);
+        comsess_3(s2sel)=cell2mat(com_map_3.(['s',num2str(sii)]).s2.values(num2cell(suid(s2sel))));
+    end
+
+    regsess=squeeze(sig.reg(sesssel,5,:));
+    fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),comsess_6,comsess_3,double(regsess),double(waveid)];
 end
 save('fc_com_pvsst_stats.mat','fc_com_pvsst_stats');
 
-samesel=cell2mat(fc_com_pvsst_stats(:,1))==1;
-low2high=cell2mat(fc_com_pvsst_stats(:,2))==1;
-high2low=cell2mat(fc_com_pvsst_stats(:,3))==1;
+congrusel=all(ismember(fc_com_pvsst_stats(:,10:11),[1 3 5]),2) |all(ismember(fc_com_pvsst_stats(:,10:11),[2 4 6]),2);
 
-comsame=cell2mat(fc_com_pvsst_stats(samesel,7:8));
-coml2h=cell2mat(fc_com_pvsst_stats(low2high,7:8));
-comh2l=cell2mat(fc_com_pvsst_stats(high2low,7:8));
+% COM vs. hier
+comsame=(fc_com_pvsst_stats(is_same(:,opt.level) & congrusel,4:7));
+coml2h=(fc_com_pvsst_stats(l2h(:,opt.level)  & congrusel,4:7));
+comh2l=(fc_com_pvsst_stats(h2l(:,opt.level)  & congrusel,4:7));
 
-mmsame=mean(diff(comsame,1,2)>0).*100;
-mmh2l=mean(diff(comh2l,1,2)>0).*100;
-mml2h=mean(diff(coml2h,1,2)>0).*100;
-sameci=bootci(1000, @(x) nnz(diff(x,1,2)>0)./size(x,1), comsame).*100;
-l2hci=bootci(1000, @(x) nnz(diff(x,1,2)>0)./size(x,1), coml2h).*100;
-h2lci=bootci(1000, @(x) nnz(diff(x,1,2)>0)./size(x,1), comh2l).*100;
+[mmsame,mmci]=binofit(nnz([comsame(:,2);comsame(:,4)]>[comsame(:,1);comsame(:,3)]),nnz(all(isfinite([comsame(:,1:2);comsame(:,3:4)]),2)));
+[mml2h,l2hci]=binofit(nnz([coml2h(:,2);coml2h(:,4)]>[coml2h(:,1);coml2h(:,3)]),nnz(all(isfinite([coml2h(:,1:2);coml2h(:,3:4)]),2)));
+[mmh2l,h2lci]=binofit(nnz([comh2l(:,2);comh2l(:,4)]>[comh2l(:,1);comh2l(:,3)]),nnz(all(isfinite([comh2l(:,1:2);comh2l(:,3:4)]),2)));
 
 fh=figure('Color','w','Position',[100,100,225,235]);
 hold on;
 % bh=bar([mmsame,100-mmsame;mml2h,100-mml2h;mmh2l,100-mmh2l]);
-bh=bar([mml2h,100-mml2h;mmh2l,100-mmh2l]);
+bh=bar([mml2h,1-mml2h;mmh2l,1-mmh2l]);
 
 [bh(1).FaceColor,bh(1).EdgeColor,bh(2).EdgeColor]=deal('k');
 bh(2).FaceColor='w';
@@ -85,22 +78,23 @@ bh(2).FaceColor='w';
 
 errorbar(bh(1).XEndPoints,...
     bh(1).YEndPoints,...
-    [l2hci(1)-bh(1).YEndPoints(1),h2lci(1)-bh(1).YEndPoints(2)],...
-    [l2hci(2)-bh(1).YEndPoints(1),h2lci(2)-bh(1).YEndPoints(2)],...
+    [l2hci(1),h2lci(1)]-bh(1).YEndPoints,...
+    [l2hci(2),h2lci(2)]-bh(1).YEndPoints,...
     'k.')
 errorbar(bh(2).XEndPoints,...
     bh(2).YEndPoints,...
-    [100-l2hci(1)-bh(2).YEndPoints(1),100-h2lci(1)-bh(2).YEndPoints(2)],...
-    [100-l2hci(2)-bh(2).YEndPoints(1),100-h2lci(2)-bh(2).YEndPoints(2)],...
+    1-[l2hci(1),h2lci(1)]-bh(2).YEndPoints,...
+    1-[l2hci(2),h2lci(2)]-bh(2).YEndPoints,...
     'k.')
 
 legend({'Progressive','Regressive'},'Location','northoutside');
 ylabel('Proportion of all F.C. (%)');
 set(gca(),'XTick',1:3,'XTickLabel',{'olf2mo','mo2olf'},'XTickLabelRotation',0);
 
-disp([nnz(diff(comsame,1,2)>0),size(comsame)])
-disp([nnz(diff(coml2h,1,2)>0),size(coml2h)])
-disp([nnz(diff(comh2l,1,2)>0),size(comh2l)])
+s=([nnz([comsame(:,2);comsame(:,4)]>[comsame(:,1);comsame(:,3)]),nnz(all(isfinite([comsame(:,1:2);comsame(:,3:4)]),2))]);
+l=([nnz([coml2h(:,2);coml2h(:,4)]>[coml2h(:,1);coml2h(:,3)]),nnz(all(isfinite([coml2h(:,1:2);coml2h(:,3:4)]),2))]);
+h=([nnz([comh2l(:,2);comh2l(:,4)]>[comh2l(:,1);comh2l(:,3)]),nnz(all(isfinite([comh2l(:,1:2);comh2l(:,3:4)]),2))]);
+[tbl,chi2,p]=crosstab([zeros(s(2),1);ones(l(2),1);2*ones(h(2),1)],[(1:s(2))>s(1),(1:l(2))>l(1),(1:h(2))>h(1)].')
 keyboard()
 % 
 % import scipy.stats as stats

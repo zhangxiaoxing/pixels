@@ -3,6 +3,7 @@ arguments
     sig (1,1) struct
     pair (1,1) struct
     opt.dist (1,1) double = 5
+    opt.pair_count = 1000
 end
 
 addpath('k:\code\align\')
@@ -14,14 +15,14 @@ l2h_stats=same_stats;
 h2l_stats=same_stats;
 [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
 [~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true);
-idmap=load(fullfile('K:','code','align','reg_ccfid_map.mat'));
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
 diff_reg_pair=squeeze(pair.reg(pair_h2l(:,opt.dist) | pair_l2h(:,opt.dist),opt.dist,:));
 ureg=unique(diff_reg_pair(:,1));
 same_stats=[];
 for ridx=1:numel(ureg)
     pair_count=nnz(all(pair.reg(:,opt.dist,:)==ureg(ridx),3));
-    if pair_count<250
+    if pair_count<opt.pair_count
         continue;
     end
     sig_count=nnz(all(sig.reg(:,opt.dist,:)==ureg(ridx),3));
@@ -32,7 +33,7 @@ reg_comb=nchoosek(ureg,2);
 dist_stats=[];
 for ridx=1:size(reg_comb,1)
     pair_count=nnz(pair.reg(:,opt.dist,1)==reg_comb(ridx,1) & pair.reg(:,opt.dist,2)==reg_comb(ridx,2));
-    if pair_count<250
+    if pair_count<1000
         continue;
     end
     [avail,dist]=bz.get_spatial_dist(idmap.ccfid2reg(reg_comb(ridx,1)),idmap.ccfid2reg(reg_comb(ridx,2)));
@@ -42,24 +43,26 @@ for ridx=1:size(reg_comb,1)
     sig_count=nnz(sig.reg(:,opt.dist,1)==reg_comb(ridx,1) & sig.reg(:,opt.dist,2)==reg_comb(ridx,2));
     dist_stats=[dist_stats;double(reg_comb(ridx,1)),double(reg_comb(ridx,2)),dist,sig_count,pair_count];
 end
-
-samemm=mean(same_stats(:,4)./same_stats(:,5)).*100;
-dist_sums=[0,samemm,...
-reshape(bootci(500,@(x) mean(x),same_stats(:,4)./same_stats(:,5).*100),1,2)-samemm];
+[samemm,sameci]=binofit(sum(same_stats(:,4)),sum(same_stats(:,5)));
+dist_sums=[zeros(size(samemm)),samemm,sameci-samemm];
 Y=discretize(dist_stats(:,3)./100,0:9);
 for di=reshape(unique(Y),1,[])
+    disp(di)
     xx=di-0.5;
     dsel=Y==di;
-    mm=mean(dist_stats(dsel,4)./dist_stats(dsel,5).*100);
-    ci=bootci(500,@(x) mean(x),dist_stats(dsel,4)./dist_stats(dsel,5).*100);
-    dist_sums=[dist_sums;xx,mm,ci(1)-mm,ci(2)-mm];
+    [mm,ci]=binofit(sum(dist_stats(dsel,4)),sum(dist_stats(dsel,5)));
+    dist_sums=[dist_sums;xx*ones(size(mm)),mm,ci-mm];
 end
 
+dist_sums(:,2:end)=dist_sums(:,2:end).*100;
 % [r,p]=corr([same_stats(:,3);dist_stats(:,3)]./100,[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100);
 
 xx=[same_stats(:,3);dist_stats(:,3)].*10;% micro-meter unit
 yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
 tbl=table(xx,yy);
+save('fcrate_distance.mat','tbl')
+
+% [fxy,gof] = fit(tbl.xx,tbl.yy,'exp1');
 modelfun=@(b,x) b(1)*(x(:,1).^b(2))+b(3);
 mdl=fitnlm(tbl,modelfun,[-0.5,0.5,2]);
 disp(mdl)
@@ -81,5 +84,5 @@ xlim([-0.5,7])
 ylim([0,3])
 legend([mh,fith],{'Mean','Power law fit'},'Location','northoutside')
 text(max(xlim()),max(ylim()),sprintf('%.2f,%.2f',sqrt(mdl.Rsquared.Ordinary),0),'HorizontalAlignment','right','VerticalAlignment','top');
-
+keyboard()
 exportgraphics(fh,'fc_rate_vs_spatial_dist.pdf')

@@ -2,20 +2,21 @@ function collection=per_region_fraction(opt)
 arguments
     opt.png (1,1) logical = false
     opt.pdf (1,1) logical = false
-    opt.memtype (1,:) char {mustBeMember(opt.memtype,{'any','sust','trans'})} = 'any'
+    opt.wavetype (1,:) char {mustBeMember(opt.wavetype,{'any','both','either'})} = 'any'
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
 end
 
-persistent collection_ png_ pdf_ memtype_ delay_
+persistent collection_ opt_
 if opt.delay==6
     warning('Delay set to default 6')
 end
 
-if isempty(collection_) || opt.png~=png_ || opt.pdf ~= pdf_ || ~strcmp(opt.memtype,memtype_) || opt.delay~=delay_
-    meta=ephys.util.load_meta('delay',opt.delay);
+if isempty(collection_) || ~isequaln(opt_,opt)
+    meta=ephys.util.load_meta();
+    meta.waveid=ephys.get_wave_id(meta.sess,meta.allcid);
     fh=figure('Color','w');
     cmap=colormap('jet');
-    collection=recurSubregions(meta,1,ismember(meta.reg_tree(1,:),{'BS','CH'}),0,1,cmap,[],opt.memtype);
+    collection=recurSubregions(meta,1,ismember(meta.reg_tree(1,:),{'BS','CH'}),0,1,cmap,[],opt.wavetype);
     blame=vcs.blame();
     save('per_region_fraction_collection.mat','collection','blame');
     colormap('jet')
@@ -37,14 +38,12 @@ if isempty(collection_) || opt.png~=png_ || opt.pdf ~= pdf_ || ~strcmp(opt.memty
         print(gcf, 'per_region_fraction.pdf', '-dpdf', '-r300' );   %save file as PDF w/ 300dpi
     end
     collection_=collection;
-    memtype_=opt.memtype;
-    png_=opt.png;
-    pdf_=opt.pdf;
-    delay_=opt.delay;
+    opt_=opt;
 else
     collection=collection_;
 end
     function collection=recurSubregions(meta,curr_branch,prev_sel,prev_accu,prev_ratio,cmap,collection,memtype)
+        
         xbound=0:0.2:1;
         if curr_branch==1
             curr_ureg={'BS','CH'};
@@ -53,19 +52,19 @@ end
         end
         switch memtype
             case 'any'
-                memset=1:4;
-            case 'sust'
-                memset=[1,3];
-            case 'trans'
-                memset=[2,4];
+                waveset=1:6;
+            case 'both'
+                waveset=[5 6];
+            case 'either'
+                waveset=1:4;
         end
-        curr_ratio=cellfun(@(x) nnz(ismember(meta.mem_type(strcmp(meta.reg_tree(curr_branch,:),x)),memset))./...
-            nnz(meta.mem_type(strcmp(meta.reg_tree(curr_branch,:),x))>-1),curr_ureg);
+        curr_ratio=cellfun(@(x) nnz(ismember(meta.waveid(strcmp(meta.reg_tree(curr_branch,:),x)),waveset))./...
+            nnz(meta.waveid(strcmp(meta.reg_tree(curr_branch,:),x))>-1),curr_ureg);
             
 
         [curr_ratio,sidx]=sort(curr_ratio);
         curr_ureg=curr_ureg(sidx);
-        curr_count=cellfun(@(x) nnz(meta.mem_type(strcmp(meta.reg_tree(curr_branch,:),x))>-1),curr_ureg);
+        curr_count=cellfun(@(x) nnz(meta.waveid(strcmp(meta.reg_tree(curr_branch,:),x))>-1),curr_ureg);
         collection=[collection;...
             [num2cell(reshape(curr_ratio,[],1)),...
             reshape(curr_ureg,[],1),...

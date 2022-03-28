@@ -1,3 +1,4 @@
+% TODO: ???
 function [collection,com_meta]=per_region_COM(opt)
 arguments
     opt.keep_figure (1,1) logical = false
@@ -6,21 +7,22 @@ arguments
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % COM in trials of delay
+    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6'})}  % su of wave
 end
 
-persistent com_meta_ collection_ pdf_ png_ keep_figure_ decision_ stats_method delay_
+persistent com_meta_ collection_ opt_
 if opt.delay==6
     warning('Delay set to default 6')
 end
 
 
-if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png || keep_figure_~=opt.keep_figure || opt.decision ~= decision_ || ~strcmp(stats_method,opt.stats_method) || opt.delay~=delay_
+if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_)
     
     % per region COM
-    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision,'selidx',opt.selidx,'delay',opt.delay);
+    com_map=wave.get_com_map('per_sec_stats',false,'decision',opt.decision,'selidx',opt.selidx,'delay',opt.delay,'wave',opt.wave);
     % COM->SU->region
-    meta=ephys.util.load_meta('delay',opt.delay);
+    meta=ephys.util.load_meta();
     meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
     sess=fieldnames(com_map);
     
@@ -29,24 +31,29 @@ if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png 
         sid=str2double(replace(sess{si},'s',''));
         allcid=meta.allcid(meta.sessid==sid);
         allreg=meta.reg_tree(:,meta.sessid==sid);
-        for ci=1:numel(allcid)
-            cid=allcid(ci);
-            if com_map.(sess{si}).s1.isKey(cid)
-                com_meta=[com_meta;{sid,cid,com_map.(sess{si}).s1(cid)},allreg(:,ci).'];
-            end
-            if com_map.(sess{si}).s2.isKey(cid)
-                com_meta=[com_meta;{sid,cid,com_map.(sess{si}).s2(cid)},allreg(:,ci).'];
-            end
-        end
+
+        s1id=cell2mat(com_map.(sess{si}).s1.keys()).';
+        s1com=cell2mat(com_map.(sess{si}).s1.values()).';
+        s2id=cell2mat(com_map.(sess{si}).s2.keys()).';
+        s2com=cell2mat(com_map.(sess{si}).s2.values()).';
+        
+        [~,locs1]=ismember(uint16(s1id),allcid);
+        [~,locs2]=ismember(uint16(s2id),allcid);
+
+        com_meta=[com_meta;num2cell([sid*ones(size(s1id)),s1id,s1com]),allreg(:,locs1).'];
+        com_meta=[com_meta;num2cell([sid*ones(size(s2id)),s2id,s2com]),allreg(:,locs2).'];
     end
     
     
     fh=figure('Color','w');
-    cmap=colormap('jet');
-    collection=recurSubregions(2,ismember(com_meta(:,4),{'CH','BS'}),0,1,cmap,com_meta,[],opt);
+    cmap=colormap('turbo');
+    CHratio=nnz(strcmp(com_meta(:,4),'CH'))./size(com_meta,1);
+    collectionCH=recurSubregions('CH',strcmp(com_meta(:,4),'CH'),0,CHratio,cmap,com_meta,[],opt);
+    collection=recurSubregions('BS',strcmp(com_meta(:,4),'BS'),CHratio,1-CHratio,cmap,com_meta,collectionCH,opt);
+    
     blame=vcs.blame();
     save('per_region_com_collection.mat','collection','blame');
-    colormap('jet')
+    colormap('turbo')
     ch=colorbar('Ticks',0:0.25:1,'TickLabels',1:5);
     ch.Label.String='Mean F.R. COM';
     sum1=nnz(ismember(com_meta(:,4),{'CH','BS'}));
@@ -66,12 +73,7 @@ if isempty(com_meta_) || isempty(collection_) || pdf_~=opt.pdf || png_~=opt.png 
     end
     collection_=collection;
     com_meta_=com_meta;
-    pdf_=opt.pdf;
-    png_=opt.png;
-    keep_figure_=opt.keep_figure;
-    decision_=opt.decision;
-    stats_method=opt.stats_method;
-    delay_=opt.delay;
+    opt_=opt;
 else
     collection=collection_;
     com_meta=com_meta_;
@@ -92,8 +94,9 @@ function collection=recurSubregions(curr_branch,prev_sel,prev_accu,prev_ratio,cm
 % end
     
 xbound=0:0.2:2;
-if curr_branch==1
-    curr_ureg={'CTX'};
+if ~isnumeric(curr_branch) && ismember(curr_branch,{'CH','BS'})
+    curr_ureg={curr_branch};
+    curr_branch=1;
 else
     curr_ureg=unique(com_meta(prev_sel,curr_branch+3));
 end
