@@ -3,11 +3,11 @@ arguments
     opt.sess (1,1) double {mustBeMember(opt.sess,1:116)} = 102
     opt.sortby (1,:) char {mustBeMember(opt.sortby,{'3s','6s'})} = '6s'
     opt.exportgraphics (1,1) logical = false
-    opt.plot_global (1,1) logical = false
+    opt.plot_global (1,1) logical = true
     opt.plot_session (1,1) logical = false
     opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 1:3
     opt.bootrpt (1,1) double {mustBeInteger,mustBePositive} = 3;
-    opt.plot_2d_corr (1,1) logical = false
+    opt.plot_2d_corr (1,1) logical = true
     opt.plot_corr_dist (1,1) logical = true
 end
 %% global

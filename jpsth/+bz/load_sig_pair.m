@@ -7,7 +7,7 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.inhibit (1,1) logical = false
     opt.wf_criteria (1,1) logical = false
-    opt.CTX (1,1) logical = true
+    opt.CTX (1,1) logical = false
 end
 persistent sig pair opt_
 if isempty(sig) ...

@@ -1,6 +1,6 @@
 function COM_half_half(opt)
 arguments
-    opt.new_data (1,1) logical =false
+    opt.new_data (1,1) logical =true
     opt.plot (1,1) logical = true
     opt.corr_curve (1,1) logical = false
 end
@@ -53,7 +53,7 @@ else
     %     if isempty(gcp('nocreate'))
     %         parpool(2)
     %     end
-    rpts=3;
+    rpts=10;
 end
 
 localshuff=@(x) randsample(x,numel(x));

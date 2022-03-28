@@ -11,31 +11,34 @@ for sess=102
         samp_key_S2=intersect(cell2mat(com_map.(fs).s2a.keys),cell2mat(com_map.(fs).s2b.keys));
         COMS1=cell2mat(values(com_map.(fs).s1a,num2cell(samp_key_S1)));
         COMS2=cell2mat(values(com_map.(fs).s2a,num2cell(samp_key_S2)));
-        if numel([samp_key_S1,samp_key_S2])<200
+        if numel([samp_key_S1,samp_key_S2])<100
             disp([sess,numel([samp_key_S1,samp_key_S2]),0])
             continue
         end
         r=corr([COMS1,COMS2].',...
             [cell2mat(values(com_map.(fs).s1b,num2cell(samp_key_S1))),...
             cell2mat(values(com_map.(fs).s2b,num2cell(samp_key_S2)))].');
-        if r<0.6
+        if r<0.85
             disp([sess,numel([samp_key_S1,samp_key_S2]),r])
             continue
         end
         %% s1
-        immata=cell2mat(com_map.(fs).s1acurve.values(num2cell(samp_key_S1.')));
-        immatb=cell2mat(com_map.(fs).s1bcurve.values(num2cell(samp_key_S1.')));
-        immat_anti=cell2mat(com_map.(fs).s1aanticurve.values(num2cell(samp_key_S1.')));
-        TCOMb=cell2mat(com_map.(fs).s1b.values(num2cell(samp_key_S1.')));
-        fh1=plot_multi(immata,immatb,immat_anti,COMS1,TCOMb);
-        sgtitle(num2str([sess,r,1]));       
+        immata1=cell2mat(com_map.(fs).s1acurve.values(num2cell(samp_key_S1.')));
+        immatb1=cell2mat(com_map.(fs).s1bcurve.values(num2cell(samp_key_S1.')));
+        immat_anti1=cell2mat(com_map.(fs).s1aanticurve.values(num2cell(samp_key_S1.')));
+        TCOMb1=cell2mat(com_map.(fs).s1b.values(num2cell(samp_key_S1.')));
+%         fh1=plot_multi(immata1,immatb1,immat_anti1,COMS1,TCOMb1);
+%         sgtitle(num2str([sess,r,1]));       
         %% s2
-        immata=cell2mat(com_map.(fs).s2acurve.values(num2cell(samp_key_S2.')));
-        immatb=cell2mat(com_map.(fs).s2bcurve.values(num2cell(samp_key_S2.')));
-        immat_anti=cell2mat(com_map.(fs).s2aanticurve.values(num2cell(samp_key_S2.')));
-        TCOMb=cell2mat(com_map.(fs).s2b.values(num2cell(samp_key_S2.')));
-        fh2=plot_multi(immata,immatb,immat_anti,COMS2,TCOMb);
-        sgtitle(num2str([sess,r,2]));       
+        immata2=cell2mat(com_map.(fs).s2acurve.values(num2cell(samp_key_S2.')));
+        immatb2=cell2mat(com_map.(fs).s2bcurve.values(num2cell(samp_key_S2.')));
+        immat_anti2=cell2mat(com_map.(fs).s2aanticurve.values(num2cell(samp_key_S2.')));
+        TCOMb2=cell2mat(com_map.(fs).s2b.values(num2cell(samp_key_S2.')));
+%         fh2=plot_multi(immata2,immatb2,immat_anti2,COMS2,TCOMb2);
+%         sgtitle(num2str([sess,r,2]));       
+        
+        fh2=plot_multi([immata1;immata2],[immatb1;immatb2],[immat_anti1;immat_anti2],[COMS1,COMS2],[TCOMb1;TCOMb2]);
+        sgtitle(num2str([sess,r,2]));   
         
         keyboard()        
         exportgraphics(fh1,sprintf('wave_half_half_%d_S1.pdf',sess));
