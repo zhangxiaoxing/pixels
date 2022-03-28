@@ -4,13 +4,10 @@ arguments
     stat (:,:) double % assuming 1 sec bin
     selec (14,:) double % assuming 1 sec bin
     opt.alpha (1,1) double = 0.05
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])}
     opt.fdr (1,1) logical = false
 end
 assert(ismember(size(stat,1),[14,5,8]))
-if opt.delay==6
-    warning('Delay set to default 6')
-end
 
 mem_type=nan(1,size(selec,2));
 per_bin=nan(opt.delay,size(selec,2));

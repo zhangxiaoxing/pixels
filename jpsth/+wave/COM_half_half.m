@@ -53,7 +53,7 @@ else
     %     if isempty(gcp('nocreate'))
     %         parpool(2)
     %     end
-    rpts=10;
+    rpts=5;
 end
 
 localshuff=@(x) randsample(x,numel(x));
@@ -62,7 +62,7 @@ stats=[];
 for rpt=1:rpts
     disp(rpt)
     [data1hall,data2hall,dataeall]=deal([]);
-    com_map=wave.get_com_map('curve',true,'rnd_half',true);
+    com_map=wave.get_com_map('curve',true,'rnd_half',true,'wave','any6','delay',6);
     for fn=reshape(fieldnames(com_map),1,[])
         fs=fn{1};
         s1key=num2cell(intersect(cell2mat(com_map.(fs).s1a.keys),intersect(cell2mat(com_map.(fs).s1b.keys),cell2mat(com_map.(fs).s1e.keys))));

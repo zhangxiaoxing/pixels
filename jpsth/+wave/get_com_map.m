@@ -5,9 +5,10 @@ arguments
     opt.per_sec_stats (1,1) logical = false % calculate COM using per-second mean as basis for normalized firing rate, default is coss-delay mean
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
-    opt.cell_type (1,:) char {mustBeMember(opt.cell_type,{'any_s1','any_s2','any_nonmem','ctx_sel','ctx_trans'})} = 'ctx_trans' % select (sub) populations
+    opt.cell_type (1,:) char {mustBeMember(opt.cell_type,{'any_s1','any_s2','any_nonmem','grey_sel'})} = 'grey_sel' % select (sub) populations
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
+    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6'})}  % su of wave
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} % DPA delay duration
     opt.partial (1,:) char {mustBeMember(opt.partial,{'full','early3in6','late3in6'})}='full' % for TCOM correlation between 3s and 6s trials
     opt.plot_COM_scheme (1,1) logical = false % for TCOM illustration
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
@@ -15,15 +16,31 @@ arguments
 end
 persistent com_str opt_
 
-if opt.delay==6
-    warning('Delay set to default 6')
-end
-
 if true || isempty(com_str) || ~isequaln(opt,opt_)
-    meta_str=ephys.util.load_meta('type','neupix','delay',opt.delay);
-    if opt.alt_3_6
-        meta_str_alt=ephys.util.load_meta('type','neupix','delay',setdiff([3,6],opt.delay));
+    meta=ephys.util.load_meta();
+    waveid=ephys.get_wave_id(meta.sess,meta.allcid);
+%     mtype=sprintf('mem_type_%d',opt.delay);
+%     alt_mtype=sprintf('mem_type_%d',setdiff([3 6],opt.delay));
+
+% 3onlyS1:1,3onlyS2:2,6onlyS1:3,6onlyS2:4,bothS1:5,bothS2:6,nonmem:0,switch,etc:-1,
+    switch opt.wave
+        case 'both'
+            s1ids=5;
+            s2ids=6;
+        case 'only3'
+            s1ids=1;
+            s2ids=2;
+        case 'only6'
+            s1ids=3;
+            s2ids=4;
+        case 'any3'
+            s1ids=[1 5];
+            s2ids=[2 6];
+        case 'any6'
+            s1ids=[3 5];
+            s2ids=[4 6];
     end
+
     homedir=ephys.util.getHomedir('type','raw');
     fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
     com_str=struct();
@@ -40,33 +57,34 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
         end
         fpath=replace(fpath,'\',filesep());
         pc_stem=replace(dpath,'/','\');
-        sesssel=startsWith(meta_str.allpath,pc_stem);
+        sesssel=startsWith(meta.allpath,pc_stem);
         if ~any(sesssel), continue;end
         fr=h5read(fpath,'/FR_All');
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         switch opt.cell_type
             case 'any_s1'
-                mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.');
+                mcid1=meta.allcid(ismember(waveid,s1ids) & sesssel);
                 mcid2=[];
             case 'any_s2'
                 mcid1=[];
-                mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.');
+                mcid2=meta.allcid(ismember(waveid,s2ids) & sesssel);
             case 'any_nonmem'
-                mcid1=meta_str.allcid(meta_str.mem_type==0 & sesssel.');
+                mcid1=meta.allcid(waveid==0 & sesssel);
                 mcid2=[];
-            case 'ctx_sel'
-                mcid1=meta_str.allcid(ismember(meta_str.mem_type,1:2) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
-                mcid2=meta_str.allcid(ismember(meta_str.mem_type,3:4) & sesssel.'& strcmp(meta_str.reg_tree(2,:),'CTX'));
-            case 'ctx_trans'
-                mcid1=meta_str.allcid(meta_str.mem_type==2 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
-                mcid2=meta_str.allcid(meta_str.mem_type==4 & sesssel.' & strcmp(meta_str.reg_tree(2,:),'CTX'));
-                if opt.alt_3_6    
-                    mcid1alt=meta_str_alt.allcid(meta_str_alt.mem_type==2 & sesssel.' & strcmp(meta_str_alt.reg_tree(2,:),'CTX'));
-                    mcid2alt=meta_str_alt.allcid(meta_str_alt.mem_type==4 & sesssel.' & strcmp(meta_str_alt.reg_tree(2,:),'CTX'));
-                    mcid1=setdiff(mcid1alt,mcid1);
-                    mcid2=setdiff(mcid2alt,mcid2);
-                end
+            case 'grey_sel'
+                mcid1=meta.allcid(ismember(waveid,s1ids) & sesssel & ismember(meta.reg_tree(1,:),{'CH','BS'}).');
+                mcid2=meta.allcid(ismember(waveid,s2ids) & sesssel & ismember(meta.reg_tree(1,:),{'CH','BS'}).');
+
+%             case 'grey_trans'
+%                 mcid1=meta.allcid(meta.(mtype)==2 & sesssel.' & ismember(meta.reg_tree(1,:),{'CH','BS'}));
+%                 mcid2=meta.allcid(meta.(mtype)==4 & sesssel.' & ismember(meta.reg_tree(1,:),{'CH','BS'}));
+%                 if opt.alt_3_6    
+%                     mcid1alt=meta.allcid(meta.(alt_mtype)==2 & sesssel.' & ismember(meta.reg_tree(1,:),{'CH','BS'}));
+%                     mcid2alt=meta.allcid(meta.(alt_mtype)==4 & sesssel.' & ismember(meta.reg_tree(1,:),{'CH','BS'}));
+%                     mcid1=setdiff(mcid1alt,mcid1);
+%                     mcid2=setdiff(mcid2alt,mcid2);
+%                 end
         end
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));

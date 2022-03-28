@@ -1,11 +1,11 @@
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-meta6=ephys.util.load_meta('delay',6);
-waveid=ephys.get_wave_id(meta6.sess,meta6.allcid);
+meta=ephys.util.load_meta();
+waveid=ephys.get_wave_id(meta.sess,meta.allcid);
 % ureg=unique(meta6.reg_tree(5,strcmp(meta6.reg_tree(1,:),'CH')));
 ureg=ephys.getGreyRegs();
 sums=[];
 for reg=reshape(ureg,1,[])
-    regsel=strcmp(meta6.reg_tree(5,:),reg).';
+    regsel=strcmp(meta.reg_tree(5,:),reg).';
     cnt=nnz(regsel);
     bothcnt=nnz(regsel & waveid>4);
     eithercnt=nnz(regsel &waveid>0 & waveid<5);

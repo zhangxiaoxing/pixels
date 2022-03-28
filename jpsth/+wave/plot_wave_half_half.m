@@ -2,7 +2,7 @@ close all
 for sess=102
 %     while true
         fs=sprintf('s%d',sess);
-        com_map=wave.get_com_map('onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',true);
+        com_map=wave.get_com_map('onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',true,'delay',6,'wave','any6');
         if ~isfield(com_map,fs)
             disp([sess,0,0])
             continue
@@ -37,12 +37,14 @@ for sess=102
 %         fh2=plot_multi(immata2,immatb2,immat_anti2,COMS2,TCOMb2);
 %         sgtitle(num2str([sess,r,2]));       
         
-        fh2=plot_multi([immata1;immata2],[immatb1;immatb2],[immat_anti1;immat_anti2],[COMS1,COMS2],[TCOMb1;TCOMb2]);
+        fhp=plot_multi([immata1;immata2],[immatb1;immatb2],[immat_anti1;immat_anti2],[COMS1,COMS2],[TCOMb1;TCOMb2]);
         sgtitle(num2str([sess,r,2]));   
         
         keyboard()        
-        exportgraphics(fh1,sprintf('wave_half_half_%d_S1.pdf',sess));
-        exportgraphics(fh2,sprintf('wave_half_half_%d_S2.pdf',sess));
+%         exportgraphics(fh1,sprintf('wave_half_half_%d_S1.pdf',sess));
+%         exportgraphics(fh2,sprintf('wave_half_half_%d_S2.pdf',sess));
+        exportgraphics(fhp,sprintf('wave_half_half_%d_prefered.pdf',sess));
+        
 %         close all
 %         waitfor(fh)
         

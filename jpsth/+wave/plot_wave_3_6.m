@@ -17,37 +17,36 @@ out.corr_dist=struct();
 persistent com_map_3_sel com_map_3_alt com_map_6_sel com_map_6_alt com_map_3_sel_si com_map_3_alt_si com_map_6_sel_si com_map_6_alt_si
 
 if isempty(com_map_3_sel)
-    com_map_3_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',3);
-    com_map_3_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'alt_3_6',true);
-    com_map_6_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',6);
-    com_map_6_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'alt_3_6',true);
+%     com_map_3_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',3);
+%     com_map_3_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'alt_3_6',true);
+%     com_map_6_sel=wave.get_com_map('curve',true,'rnd_half',false,'delay',6);
+%     com_map_6_alt=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'alt_3_6',true);
 
-    com_map_3_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true);
-    com_map_3_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true,'alt_3_6',true);
-    com_map_6_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true);
-    com_map_6_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true,'alt_3_6',true);
+%     com_map_3_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true);
+%     com_map_3_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'selidx',true,'alt_3_6',true);
+%     com_map_6_sel_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true);
+%     com_map_6_alt_si=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'selidx',true,'alt_3_6',true);
 end
 for alt_comb=opt.comb_set
     switch alt_comb
         case 1
-            com_map_6=com_map_6_sel;
-            com_map_3=com_map_3_sel;
-            com_map_6_si=com_map_6_sel_si;
-            com_map_3_si=com_map_3_sel_si;
+            com_map_3=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'wave','both');
+            com_map_6=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'wave','both');
+%             com_map_6_si=com_map_6_sel_si;
+%             com_map_3_si=com_map_3_sel_si;
             tag='Selective in both 3s and 6s trials';
             fn='corr_3_6_both.pdf';
         case 2
-            com_map_6=com_map_6_sel;
-            com_map_3=com_map_3_alt;
-            com_map_6_si=com_map_6_sel_si;
-            com_map_3_si=com_map_3_alt_si;
+            com_map_3=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'wave','only6');
+            com_map_6=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'wave','only6');%             com_map_6_si=com_map_6_sel_si;
+%             com_map_3_si=com_map_3_alt_si;
             tag='Selective only in 6s trials';
             fn='corr_3_6_only6.pdf';
         case 3
-            com_map_6=com_map_6_alt;
-            com_map_3=com_map_3_sel;
-            com_map_6_si=com_map_6_alt_si;
-            com_map_3_si=com_map_3_sel_si;
+            com_map_3=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'wave','only3');
+            com_map_6=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'wave','only3');
+%             com_map_6_si=com_map_6_alt_si;
+%             com_map_3_si=com_map_3_sel_si;
             tag='Selective only in 3s trials';
             fn='corr_3_6_only3.pdf';
     end
@@ -62,8 +61,8 @@ for alt_comb=opt.comb_set
             heat6=cell2mat(com_map_6.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
             anti3=cell2mat(com_map_3.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
             anti6=cell2mat(com_map_6.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
-            si3=cell2mat(com_map_3_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
-            si6=cell2mat(com_map_6_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+%             si3=cell2mat(com_map_3_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+%             si6=cell2mat(com_map_6_si.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
             COM3=cell2mat(values(com_map_3.(fs).(pref),num2cell(curr_key)));
             COM6=cell2mat(values(com_map_6.(fs).(pref),num2cell(curr_key)));
             %         keyboard()
@@ -71,8 +70,8 @@ for alt_comb=opt.comb_set
             immatb=[immatb;heat6];
             immat_anti_a=[immat_anti_a;anti3];
             immat_anti_b=[immat_anti_b;anti6];
-            immat_si_a=[immat_si_a;si3];
-            immat_si_b=[immat_si_b;si6];
+%             immat_si_a=[immat_si_a;si3];
+%             immat_si_b=[immat_si_b;si6];
             com_a=[com_a;COM3.'];
             com_b=[com_b;COM6.'];
         end
@@ -138,8 +137,8 @@ for alt_comb=opt.comb_set
         plotOne(1,immatb(sortidx,:),com_b(sortidx),'sub_dim',[3,2],'title','FR, preferred, 6s','cmap','turbo');
         plotOne(4,immat_anti_a(sortidx,:),com_a(sortidx),'sub_dim',[3,2],'title','FR, non-preferred, 3s','cmap','turbo');
         plotOne(3,immat_anti_b(sortidx,:),com_b(sortidx),'sub_dim',[3,2],'title','FR, non-preferred, 6s','cmap','turbo');
-        plotOne(6,immat_si_a(sortidx,:),com_a(sortidx),'sub_dim',[3,2],'scale',[-0.6,0.6],'title','Selectivit index, 3s','cmap','turbo');
-        plotOne(5,immat_si_b(sortidx,:),com_b(sortidx),'sub_dim',[3,2],'scale',[-0.6,0.6],'title','Selectivit index, 6s','cmap','turbo');
+%         plotOne(6,immat_si_a(sortidx,:),com_a(sortidx),'sub_dim',[3,2],'scale',[-0.6,0.6],'title','Selectivit index, 3s','cmap','turbo');
+%         plotOne(5,immat_si_b(sortidx,:),com_b(sortidx),'sub_dim',[3,2],'scale',[-0.6,0.6],'title','Selectivit index, 6s','cmap','turbo');
         %         shufidx=randsample(size(immatb,1),size(immatb,1));
         %         plotOne(3,immatb(shufidx,:),com_b(shufidx));
         sgtitle(sprintf('%s, FRTC r=%0.3f',tag,r));
