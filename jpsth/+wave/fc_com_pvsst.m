@@ -2,21 +2,19 @@ function [comdiff_stats,com_pair]=fc_com_pvsst(opt)
 arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
-    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','TT'})} = 'OBM1'
+    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON','LAT'})} = 'AON'
     opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any'})} = 'congru' %TCOM for NONMEM undefined
-    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6'})} = 'any6' % su of wave
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
 end
 
 
 % [~,com_meta]=wave.per_region_COM('decision',opt.decision,'wave',opt.wave);
 % com_map=list2map(com_meta);
-com_map_6=wave.get_com_map('wave','any6','delay',6);
-com_map_3=wave.get_com_map('wave','any3','delay',3);
+com_map_6=wave.get_com_map('wave','any','delay',6);
+com_map_3=wave.get_com_map('wave','any','delay',3);
 
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
-[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'mincount',0);
-
+[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',0);
+disp(nnz(is_same | l2h | h2l))
 fc_com_pvsst_stats=[];
 usess=unique(sig.sess);
 for sii=reshape(usess,1,[]) %iterate through sessions
@@ -46,50 +44,43 @@ for sii=reshape(usess,1,[]) %iterate through sessions
     fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),comsess_6,comsess_3,double(regsess),double(waveid)];
 end
 save('fc_com_pvsst_stats.mat','fc_com_pvsst_stats');
-
-congrusel=all(ismember(fc_com_pvsst_stats(:,10:11),[1 3 5]),2) |all(ismember(fc_com_pvsst_stats(:,10:11),[2 4 6]),2);
+switch opt.mem_type
+    case 'congru'
+        congrusel=all(ismember(fc_com_pvsst_stats(:,10:11),[1 3 5]),2) |all(ismember(fc_com_pvsst_stats(:,10:11),[2 4 6]),2);
+    case 'incong'
+        congrusel=any(ismember(fc_com_pvsst_stats(:,10:11),[1 3 5]),2) & any(ismember(fc_com_pvsst_stats(:,10:11),[2 4 6]),2);
+end
 
 % COM vs. hier
 comsame=(fc_com_pvsst_stats(is_same(:,opt.level) & congrusel,4:7));
 coml2h=(fc_com_pvsst_stats(l2h(:,opt.level)  & congrusel,4:7));
 comh2l=(fc_com_pvsst_stats(h2l(:,opt.level)  & congrusel,4:7));
 
-[mmsame,mmci]=binofit(nnz([comsame(:,2);comsame(:,4)]>[comsame(:,1);comsame(:,3)]),nnz(all(isfinite([comsame(:,1:2);comsame(:,3:4)]),2)));
+[mmsame,sameci]=binofit(nnz([comsame(:,2);comsame(:,4)]>[comsame(:,1);comsame(:,3)]),nnz(all(isfinite([comsame(:,1:2);comsame(:,3:4)]),2)));
 [mml2h,l2hci]=binofit(nnz([coml2h(:,2);coml2h(:,4)]>[coml2h(:,1);coml2h(:,3)]),nnz(all(isfinite([coml2h(:,1:2);coml2h(:,3:4)]),2)));
 [mmh2l,h2lci]=binofit(nnz([comh2l(:,2);comh2l(:,4)]>[comh2l(:,1);comh2l(:,3)]),nnz(all(isfinite([comh2l(:,1:2);comh2l(:,3:4)]),2)));
 
 fh=figure('Color','w','Position',[100,100,225,235]);
 hold on;
-% bh=bar([mmsame,100-mmsame;mml2h,100-mml2h;mmh2l,100-mmh2l]);
-bh=bar([mml2h,1-mml2h;mmh2l,1-mmh2l]);
+bh=bar([mmsame,1-mmsame;mml2h,1-mml2h;mmh2l,1-mmh2l]);
+% bh=bar([mml2h,1-mml2h;mmh2l,1-mmh2l]);
 
 [bh(1).FaceColor,bh(1).EdgeColor,bh(2).EdgeColor]=deal('k');
 bh(2).FaceColor='w';
-% errorbar(bh(1).XEndPoints,...
-%     bh(1).YEndPoints,...
-%     [sameci(1)-bh(1).YEndPoints(1),l2hci(1)-bh(1).YEndPoints(2),h2lci(1)-bh(1).YEndPoints(3)],...
-%     [sameci(2)-bh(1).YEndPoints(1),l2hci(2)-bh(1).YEndPoints(2),h2lci(2)-bh(1).YEndPoints(3)],...
-%     'k.')
-% errorbar(bh(2).XEndPoints,...
-%     bh(2).YEndPoints,...
-%     [100-sameci(1)-bh(2).YEndPoints(1),100-l2hci(1)-bh(2).YEndPoints(2),100-h2lci(1)-bh(2).YEndPoints(3)],...
-%     [100-sameci(2)-bh(2).YEndPoints(1),100-l2hci(2)-bh(2).YEndPoints(2),100-h2lci(2)-bh(2).YEndPoints(3)],...
-%     'k.')
-
 errorbar(bh(1).XEndPoints,...
     bh(1).YEndPoints,...
-    [l2hci(1),h2lci(1)]-bh(1).YEndPoints,...
-    [l2hci(2),h2lci(2)]-bh(1).YEndPoints,...
+    [sameci(1),l2hci(1),h2lci(1)]-bh(1).YEndPoints,...
+    [sameci(2),l2hci(2),h2lci(2)]-bh(1).YEndPoints,...
     'k.')
 errorbar(bh(2).XEndPoints,...
     bh(2).YEndPoints,...
-    1-[l2hci(1),h2lci(1)]-bh(2).YEndPoints,...
-    1-[l2hci(2),h2lci(2)]-bh(2).YEndPoints,...
+    1-[sameci(1),l2hci(1),h2lci(1)]-bh(2).YEndPoints,...
+    1-[sameci(2),l2hci(2),h2lci(2)]-bh(2).YEndPoints,...
     'k.')
 
 legend({'Progressive','Regressive'},'Location','northoutside');
 ylabel('Proportion of all F.C. (%)');
-set(gca(),'XTick',1:3,'XTickLabel',{'olf2mo','mo2olf'},'XTickLabelRotation',0);
+set(gca(),'XTick',1:3,'XTickLabel',{'same','olf2mo','mo2olf'},'XTickLabelRotation',0);
 
 s=([nnz([comsame(:,2);comsame(:,4)]>[comsame(:,1);comsame(:,3)]),nnz(all(isfinite([comsame(:,1:2);comsame(:,3:4)]),2))]);
 l=([nnz([coml2h(:,2);coml2h(:,4)]>[coml2h(:,1);coml2h(:,3)]),nnz(all(isfinite([coml2h(:,1:2);coml2h(:,3:4)]),2))]);

@@ -6,6 +6,7 @@ corr2=false;
 plot2=false;
 
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
+% For duration, from: K:\code\jpsth\+ephys\duration_reg_bars.m
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 grey_regs=ephys.getGreyRegs();
@@ -59,7 +60,7 @@ for featii=1:2 % both, either
     %% one region corr, bar plot
     if corr1
         for regii=1:size(glmxmat,1)
-            [r,p]=corr(glmxmat(regii,:).',feat_prop);
+            [r,p]=corr(glmxmat(regii,:).',feat_prop,'type','Spearman');
             one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
             %====================================^^^1^^^^^^2^^^^^^3^^^^^^^^^^^4,5,6^^^^^^^^^^^^^7^8^^
         end

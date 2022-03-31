@@ -9,19 +9,15 @@ arguments
     opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','TT'})} = 'TT'
 end
 
-persistent hiermap 
-
-if isempty(hiermap)
-    switch opt.hiermap
-        case 'pvsst'
-            [~,~,hiermap]=ref.get_pv_sst();
-        case 'OBM1'
-            fstr=load('OBM1map.mat','OBM1map');
-            hiermap=fstr.OBM1map;
-        case 'TT'
-            fstr=load('TTmap.mat','TTmap');
-            hiermap=fstr.TTmap;
-    end
+switch opt.hiermap
+    case 'pvsst'
+        [~,~,hiermap]=ref.get_pv_sst();
+    case 'OBM1'
+        fstr=load('OBM1map.mat','OBM1map');
+        hiermap=fstr.OBM1map;
+    case 'TT'
+        fstr=load('TTmap.mat','TTmap');
+        hiermap=fstr.TTmap;
 end
 
 % keyboard()

@@ -1,8 +1,8 @@
 %TODO brain region filter, olfaction filter.
 function out=get_duration_decoding(opt)
 arguments
-    opt.new_data (1,1) logical=false
-    opt.plot_PCA (1,1) logical=false
+    opt.new_data (1,1) logical=true
+%     opt.plot_PCA (1,1) logical=false
     opt.calc_dec (1,1) logical=true
     opt.plot_dec (1,1) logical=true
 end
@@ -26,8 +26,8 @@ if opt.new_data
         fr=fr(:,regsel,:);
 
         fr_t_align=nan(size(fr,1),size(fr,2)); %trial, su, pre-test bin-averaged
-        fr_t_align(trials(:,8)==3,:)=mean(fr(trials(:,8)==3,:,23:28),3); % late delay
-        fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,35:40),3); % late delay
+        fr_t_align(trials(:,8)==3,:)=mean(fr(trials(:,8)==3,:,17:28),3); % early/late delay
+        fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,17:28),3); % early/late delay
         
 
         dur_mat.(sprintf('s%d',ii)).fr_t=fr_t_align;
@@ -80,7 +80,7 @@ sukeys_all=sukeys_all(trlSel);
 
 if opt.calc_dec
     out=struct();
-    for n_su=[10,20,50,100,200,500]
+    for n_su=[50,100,500,1000]
         [result,shuf,result_e]=deal([]);
         for resamp_rpt=1:50%15
             sukeys=datasample(sukeys_all,n_su);
@@ -129,9 +129,9 @@ if opt.calc_dec
         out.(sprintf('shuf_%dsu',n_su))=shuf;
         out.(sprintf('etrial_%dsu',n_su))=result_e;
     end
-    save('ordinal_decoding.mat','out');
+    save('duration_decoding.mat','out');
 elseif opt.plot_dec
-    load('ordinal_decoding.mat','out');
+    load('duration_decoding.mat','out');
 end
 
 if opt.plot_dec
@@ -140,7 +140,7 @@ if opt.plot_dec
     hold on;
     for ptype=["result","shuf","etrial"]
         %     datamat=cell2mat(arrayfun(@(x) out.(sprintf('%s_%dsu',ptype,x)),[50,100,200,500,1000],'UniformOutput',false));
-        n_su=[10,20,50,100,200,500];
+        n_su=[50,100,500,1000];
         phat=nan(1,numel(n_su));
         pci=nan(2,numel(n_su));
         for nidx=1:numel(n_su)
@@ -155,5 +155,5 @@ if opt.plot_dec
     ylim([0,1])
     set(gca(),'YTick',0:0.1:1,'YTickLabel',0:10:100)
     xlim([0,max(n_su)])
-    exportgraphics(fh,'ordinal_decoding.pdf','ContentType','vector');
+    exportgraphics(fh,'duration_decoding.pdf','ContentType','vector');
 end

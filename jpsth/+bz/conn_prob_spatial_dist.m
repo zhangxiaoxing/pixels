@@ -13,8 +13,7 @@ same_stats=struct();
     =deal(nan(sess_cnt,1));
 l2h_stats=same_stats;
 h2l_stats=same_stats;
-[~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true);
-[~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true);
+ [sig_same, sig_h2l, sig_l2h,pair_same, pair_h2l, pair_l2h]=hier.get_reg_hier_relation();
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
 diff_reg_pair=squeeze(pair.reg(pair_h2l(:,opt.dist) | pair_l2h(:,opt.dist),opt.dist,:));
@@ -33,7 +32,7 @@ reg_comb=nchoosek(ureg,2);
 dist_stats=[];
 for ridx=1:size(reg_comb,1)
     pair_count=nnz(pair.reg(:,opt.dist,1)==reg_comb(ridx,1) & pair.reg(:,opt.dist,2)==reg_comb(ridx,2));
-    if pair_count<1000
+    if pair_count<opt.pair_count
         continue;
     end
     [avail,dist]=bz.get_spatial_dist(idmap.ccfid2reg(reg_comb(ridx,1)),idmap.ccfid2reg(reg_comb(ridx,2)));

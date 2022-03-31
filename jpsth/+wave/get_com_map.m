@@ -7,7 +7,7 @@ arguments
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
     opt.cell_type (1,:) char {mustBeMember(opt.cell_type,{'any_s1','any_s2','any_nonmem','grey_sel'})} = 'grey_sel' % select (sub) populations
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
-    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6'})}  % su of wave
+    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6','any'})}  % su of wave
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} % DPA delay duration
     opt.partial (1,:) char {mustBeMember(opt.partial,{'full','early3in6','late3in6'})}='full' % for TCOM correlation between 3s and 6s trials
     opt.plot_COM_scheme (1,1) logical = false % for TCOM illustration
@@ -39,6 +39,9 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
         case 'any6'
             s1ids=[3 5];
             s2ids=[4 6];
+        case 'any'
+            s1ids=[1 3 5];
+            s2ids=[2 4 6];
     end
 
     homedir=ephys.util.getHomedir('type','raw');

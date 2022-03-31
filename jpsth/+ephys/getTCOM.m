@@ -9,7 +9,7 @@ if numel(sess)~=numel(cid)
 end
 persistent TCOM_map
 if isempty(TCOM_map)
-    com_map=wave.get_com_map('curve',false,'cell_type','ctx_sel');
+    com_map=wave.get_com_map('curve',false,'wave','any','delay',6);
     TCOM_map=containers.Map('KeyType','uint64','ValueType','double');
 
     % 0, none; 1,3sec only;2,6sec only;3, both;-1,other
