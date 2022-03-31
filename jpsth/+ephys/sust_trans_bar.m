@@ -1,44 +1,30 @@
-function sust_trans_bar(opt)
-arguments
-    opt.good_wf (1,1) logical = false;
-    opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6
-end
-if opt.delay==6
-    warning('Delay set to default 6')
-end
 
-meta=ephys.util.load_meta('delay',opt.delay);
-upath=unique(meta.allpath);
-for ii=1:numel(upath)
-    if opt.good_wf
-        sesssel=strcmp(meta.allpath,upath{ii}) & meta.good_waveform;
-    else
-        sesssel=strcmp(meta.allpath,upath{ii});
-    end
-    sustfrac(ii)=nnz(ismember(meta.mem_type(sesssel),[1,3]))./nnz(sesssel);
-    transfrac(ii)=nnz(ismember(meta.mem_type(sesssel),[2,4]))./nnz(sesssel);
-end
+any6=nnz(any(meta.fdr_6(2:7,:)<0.05));
+persist6=nnz(all(meta.fdr_6(2:7,:)<0.05));
+persist3=nnz(all(meta.fdr_3(2:4,:)<0.05));
+any3=nnz(any(meta.fdr_3(2:4,:)<0.05));
+tot=numel(meta.sess);
 
-sustci=bootci(500,@(x) mean(x), sustfrac).*100;
-transci=bootci(500,@(x) mean(x), transfrac).*100;
-sustmm=mean(sustfrac.*100);
-transmm=mean(transfrac.*100);
-fh=figure('Color','w','Position',[100,100,150,235]);
+[p3hat,p3ci]=binofit(persist3,tot);
+[p6hat,p6ci]=binofit(persist6,tot);
+
+
+[t3hat,t3ci]=binofit(any3-persist3,tot);
+[t6hat,t6ci]=binofit(any6-persist6,tot);
+
+fh=figure('Color','w');
 hold on
+bh=bar([p3hat,t3hat;p6hat,t6hat],1,'grouped');
+bh(1).FaceColor='k';
+bh(2).FaceColor='w';
 
-bar(1,sustmm,'FaceColor','w','EdgeColor','k');
-bar(2,transmm,'FaceColor','w','EdgeColor','k');
-errorbar(1,sustmm,sustci(1)-sustmm,sustci(2)-sustmm,'k.');
-errorbar(2,transmm,transci(1)-transmm,transci(2)-transmm,'k.');
+errorbar(bh(1).XEndPoints,bh(1).YEndPoints,[p3ci(1),p6ci(1)]-[p3hat,p6hat],[p3ci(2),p6ci(2)]-[p3hat,p6hat],'k.');
+errorbar(bh(2).XEndPoints,bh(2).YEndPoints,[t3ci(1),t6ci(1)]-[t3hat,t6hat],[t3ci(2),t6ci(2)]-[t3hat,t6hat],'k.');
 ylabel('Fraction of all neurons (%)')
-set(gca(),'XTick',1:2,'XTickLabel',{'Sustained','Transient'},'XTickLabelRotation',90,'FontSize',10)
-if opt.good_wf
-    text(1,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[1 3]) & meta.good_waveform.')),'Rotation',90,'FontSize',10)
-    text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]) & meta.good_waveform.')),'Rotation',90,'FontSize',10)
-    text(max(xlim()),max(ylim()),num2str(nnz(meta.good_waveform)),'HorizontalAlignment','right','VerticalAlignment','top')
-else
-    text(1,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[1 3]))),'Rotation',90,'FontSize',10)
-    text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]))),'Rotation',90,'FontSize',10)
-    text(max(xlim()),max(ylim()),num2str(numel(meta.mem_type)),'HorizontalAlignment','right','VerticalAlignment','top')
-end
-exportgraphics(fh,sprintf('sust_trans_fraction_%d.pdf',opt.delay));
+set(gca(),'XTick',1:2,'XTickLabel',{'3s','6s'},'FontSize',10,'YTickLabel',get(gca(),'YTick').*100)
+
+% text(1,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[1 3]))),'Rotation',90,'FontSize',10)
+% text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]))),'Rotation',90,'FontSize',10)
+% text(max(xlim()),max(ylim()),num2str(numel(meta.mem_type)),'HorizontalAlignment','right','VerticalAlignment','top')
+
+exportgraphics(fh,'sust_trans_fraction.pdf');

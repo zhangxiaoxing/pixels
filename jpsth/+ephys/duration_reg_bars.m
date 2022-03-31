@@ -50,13 +50,13 @@ ylabel('Odor selective either duration')
 
 fh=figure('Color','w')
 hold on
-bh=bar(bardata(:,[6,9]),1,'grouped');
-errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,6:7),1,2),diff(bardata(:,[6,8]),1,2),'k.');
-errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,9:10),1,2),diff(bardata(:,[9,11]),1,2),'k.');
+bh=bar(bardata(:,[9,6]),1,'grouped');
+errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,6:7),1,2),diff(bardata(:,[6,8]),1,2),'k.');
+errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,9:10),1,2),diff(bardata(:,[9,11]),1,2),'k.');
 bh(1).FaceColor='k';
 bh(2).FaceColor='w';
-set(gca(),'YScale','linear')
-ylim([0.005,0.5])
-set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
-exportgraphics(fh,'Both_either_proportion_bars.pdf','ContentType','vector');
+set(gca(),'YScale','log')
+ylim([0.02,0.5])
+set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90,'YTick',[0.02,0.1,0.2],'YTickLabel',[0.02,0.1,0.2]*100)
+exportgraphics(fh,'Dur_proportion_bars.pdf','ContentType','vector');
 cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false)

@@ -9,8 +9,12 @@ end
 
 % [~,com_meta]=wave.per_region_COM('decision',opt.decision,'wave',opt.wave);
 % com_map=list2map(com_meta);
-com_map_6=wave.get_com_map('wave','any','delay',6);
-com_map_3=wave.get_com_map('wave','any','delay',3);
+if strcmp(opt.hiermap,'AON')
+    com_map_6=wave.get_com_map('wave','any','delay',6);
+    com_map_3=wave.get_com_map('wave','any','delay',3);
+else
+    %TODO: LAT
+end
 
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
 [~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',0);
