@@ -35,7 +35,7 @@ regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
 mixed_map=containers.Map(regstr,num2cell(bardata(:,[6,4,3]),2));
 exclu_map=containers.Map(regstr,num2cell(bardata(:,[9,5,3]),2));
 map_cells={mixed_map,exclu_map};
-keyboard(); % egress point for alternative data processing
+keyboard(); % branching point for alternative data processing
 
 figure('Color','w');
 scatter(bardata(:,6),bardata(:,9))

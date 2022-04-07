@@ -11,9 +11,9 @@ if opt.new_data
     [~,~,sessmap]=ephys.sessid2path(0);
     meta=ephys.util.load_meta();
     homedir=ephys.util.getHomedir('type','raw');
-    for ii=[9 60 72 99]%reshape(cell2mat(sessmap.keys()),1,[])
+    for ii=54%reshape(cell2mat(sessmap.keys()),1,[])
         disp(ii)
-        fpath=fullfile(homedir,sessmap(ii),"FR_All_ 250.hdf5");
+        fpath=fullfile(homedir,sessmap(ii),"FR_All_1000.hdf5");
         fr=h5read(fpath,'/FR_All');
         trials=h5read(fpath,'/Trials');
 %         suid=h5read(fpath,'/SU_id');
@@ -26,10 +26,10 @@ if opt.new_data
         fr=fr(:,regsel,:);
 
         fr_t_align=nan(size(fr,1),size(fr,2)); %trial, su, pre-test bin-averaged
-        fr_t_align(trials(:,8)==3,:)=mean(fr(trials(:,8)==3,:,23:28),3); % late delay
-        fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,35:40),3); % late delay
-%         fr_t_align(trials(:,8)==3,:)=mean(fr(trials(:,8)==3,:,12:16),3); % late delay
-%         fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,12:16),3); % late delay
+%         fr_t_align(trials(:,8)==3,:)=mean(fr(trials(:,8)==3,:,23:28),3); % late delay
+%         fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,35:40),3); % late delay
+        fr_t_align(trials(:,8)==3,:)=mean(fr(trials(:,8)==3,:,5:7),3); % late delay
+        fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,5:7),3); % late delay
         fr_t_align=normalize(fr_t_align,1,'range');
         c6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6 & ismember(trials(:,5),[4 8]);
         c3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3 & ismember(trials(:,5),[4 8]);
@@ -91,6 +91,7 @@ if opt.new_data
         ylabel('Sensory projection (a.u.)');
         set(gca(),'XTick',1:4,'XTickLabel',{'S1','S2','S1','S2'});
         sgtitle(ii);
-%         waitfor(fh);
+        exportgraphics(fh,'sens_dur_cd_proj_sess_sc.pdf','ContentType','vector');
+        waitfor(fh);
     end
 end

@@ -6,30 +6,31 @@ arguments
     opt.mincount (1,1) double = 100
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
 end
-assert(opt.hierarchy)
-idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
-src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
-sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');
 
-switch opt.hiermap
-    case 'pvsst'
-        [~,~,hiermap]=ref.get_pv_sst();
-    case 'OBM1'
-        fstr=load('OBM1map.mat','OBM1map');
-        hiermap=fstr.OBM1map;
-    case 'AON'
-        anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid('AON'));
-        hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
-            anov);
-    case 'LAT'
-        anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid('LAT'));
-        hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
-            anov);
-end
-
-idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 if opt.hierarchy
+    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+    sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
+    src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
+    sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');
+
+    switch opt.hiermap
+        case 'pvsst'
+            [~,~,hiermap]=ref.get_pv_sst();
+        case 'OBM1'
+            fstr=load('OBM1map.mat','OBM1map');
+            hiermap=fstr.OBM1map;
+        case 'AON'
+            anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid('AON'));
+            hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
+                anov);
+        case 'LAT'
+            anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid('LAT'));
+            hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
+                anov);
+    end
+
+    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+
     is_diff=[];
     is_same=false(size(reg,1),6);
     h2l=false(size(reg,1),6);
@@ -48,10 +49,17 @@ else
     is_same=false(size(reg,1),6);
     h2l=[];
     l2h=[];
-    greysel=all(reg(:,1,:)==567 | reg(:,1,:)==343,3);
+    switch opt.range
+        case 'grey'
+            greysel=all(reg(:,1,:)==567 | reg(:,1,:)==343,3);
+        case 'CTX'
+            greysel=all(reg(:,2,:)==688,3);
+        case 'CH'
+            greysel=all(reg(:,1,:)==567,3);
+    end
     for dep=1:6
-        is_diff(:,dep)=greysel & reg(:,dep,1)~=reg(:,dep,2);
-        is_same(:,dep)=greysel & reg(:,dep,1)==reg(:,dep,2);
+        is_diff(:,dep)=greysel & reg(:,dep,1)~=reg(:,dep,2) & all(reg(:,dep,:)>0,3);
+        is_same(:,dep)=greysel & reg(:,dep,1)==reg(:,dep,2) & all(reg(:,dep,:)>0,3);
     end
 end
 end

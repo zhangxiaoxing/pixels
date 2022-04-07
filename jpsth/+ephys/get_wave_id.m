@@ -4,7 +4,7 @@ function out=get_wave_id(sess,cid,opt)
 arguments
     sess double
     cid double
-    opt.early (1,1) logical = false
+    opt.split_6 (1,1) logical = false
 end
 if isscalar(sess)
     sess=ones(size(cid)).*sess;
@@ -28,29 +28,13 @@ if isempty(wave_id_map) || ~isequaln(opt,opt_)
         elseif ismember(meta.mem_type_3(ii),3:4) && meta.mem_type_6(ii)==0
             wave_id_map(key)=2;
         elseif ismember(meta.mem_type_6(ii),1:2) && meta.mem_type_3(ii)==0
-            if ~opt.early || (opt.early && any(meta.per_bin_6(1:3,ii)==1))
-                wave_id_map(key)=3;
-            else
-                wave_id_map(key)=-2;
-            end
+            wave_id_map(key)=3;
         elseif ismember(meta.mem_type_6(ii),3:4) && meta.mem_type_3(ii)==0
-            if ~opt.early || (opt.early && any(meta.per_bin_6(1:3,ii)==2))
-                wave_id_map(key)=4;
-            else
-                wave_id_map(key)=-2;
-            end
+            wave_id_map(key)=4;
         elseif ismember(meta.mem_type_3(ii),1:2) && ismember(meta.mem_type_6(ii),1:2)
-            if ~opt.early || (opt.early && any(meta.per_bin_6(1:3,ii)==1))
-                wave_id_map(key)=5;
-            else
-                wave_id_map(key)=-2;
-            end
+            wave_id_map(key)=5;
         elseif ismember(meta.mem_type_3(ii),3:4) && ismember(meta.mem_type_6(ii),3:4)
-            if ~opt.early || (opt.early && any(meta.per_bin_6(1:3,ii)==2))
-                wave_id_map(key)=6;
-            else
-                wave_id_map(key)=-2;
-            end
+            wave_id_map(key)=6;
         else
             wave_id_map(key)=-1;
         end

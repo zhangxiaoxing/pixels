@@ -2,7 +2,7 @@ function [comdiff_stats,com_pair]=fc_com_pvsst(opt)
 arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
-    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON'})} = 'AON'
+    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'AON','LAT'})} = 'AON'
     opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any'})} = 'congru' %TCOM for NONMEM undefined
 end
 
@@ -16,7 +16,7 @@ else
     %TODO: LAT
 end
 
-sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',true);
+sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT');
 [~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',0);
 disp(nnz(is_same | l2h | h2l))
 fc_com_pvsst_stats=[];
@@ -82,17 +82,14 @@ errorbar(bh(2).XEndPoints,...
     1-[sameci(2),l2hci(2),h2lci(2)]-bh(2).YEndPoints,...
     'k.')
 
-legend({'Consistent','Inconsistent'},'Location','northoutside');
+legend({'Progressive','Regressive'},'Location','northoutside');
 ylabel('Proportion of all F.C. (%)');
-set(gca(),'XTick',1:3,'XTickLabel',{'Same','From-OLF','To-OLF'},'XTickLabelRotation',0);
+set(gca(),'XTick',1:3,'XTickLabel',{'same','olf2mo','mo2olf'},'XTickLabelRotation',0);
 
 s=([nnz([comsame(:,2);comsame(:,4)]>[comsame(:,1);comsame(:,3)]),nnz(all(isfinite([comsame(:,1:2);comsame(:,3:4)]),2))]);
 l=([nnz([coml2h(:,2);coml2h(:,4)]>[coml2h(:,1);coml2h(:,3)]),nnz(all(isfinite([coml2h(:,1:2);coml2h(:,3:4)]),2))]);
 h=([nnz([comh2l(:,2);comh2l(:,4)]>[comh2l(:,1);comh2l(:,3)]),nnz(all(isfinite([comh2l(:,1:2);comh2l(:,3:4)]),2))]);
-
 [tbl,chi2,p]=crosstab([zeros(s(2),1);ones(l(2),1);2*ones(h(2),1)],[(1:s(2))>s(1),(1:l(2))>l(1),(1:h(2))>h(1)].')
-disp([2*binocdf(min(tbl(1,:)),sum(tbl(1,:)),0.5),2*binocdf(min(tbl(2,:)),sum(tbl(2,:)),0.5),2*binocdf(min(tbl(3,:)),sum(tbl(3,:)),0.5),]);
-
 keyboard()
 % 
 % import scipy.stats as stats

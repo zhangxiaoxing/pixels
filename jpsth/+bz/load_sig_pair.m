@@ -8,12 +8,13 @@ arguments
     opt.inhibit (1,1) logical = false
     opt.wf_criteria (1,1) logical = false
     opt.CTX (1,1) logical = false
+    opt.load_waveid (1,1) logical = false
 end
 persistent sig pair opt_
 if isempty(sig) ...
         || (opt.pair && isempty(pair))...
         || ~isequaln(opt,opt_)
-        
+
     if strcmp(opt.criteria,'Learning') && strcmp(opt.type,'MY')
         fl=dir(fullfile('mydata',sprintf('%s_conn_w_reg_my_learning_*.mat',opt.prefix)));
     elseif strcmp(opt.type,'MY')
@@ -27,23 +28,25 @@ if isempty(sig) ...
             fl=fl(~inhibitsel);
         end
     end
-    
+
     fprintf('Total sessions %d\n',size(fl,1));
-%     if size(fl,1)<9, warning('Files not found');return; end
+    %     if size(fl,1)<9, warning('Files not found');return; end
     sig=struct(); % for significant connect
     sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#
     sig.reg=cell(0); % brain region tree
     %     sig.wrsp=cell(0); % Wilcoxon rank summation p value
     %     sig.selec=cell(0); % selectivity index
     sig.sess=cell(0);
-%     sig.mem_type=cell(0); % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched, see epys.get_mem_type
+    %     sig.mem_type=cell(0); % 0=NM,1=S1 sust, 2=S1 trans, 3=S2 sust, 4=S2 trans,-1=switched, see epys.get_mem_type
     sig.wf_good=cell(0);
-    sig.waveid=cell(0);
-    
+    if opt.load_waveid
+        sig.waveid=cell(0);
+        fields={'suid','reg','wf_good','waveid'};
+    else
+        fields={'suid','reg','wf_good'};
+    end
     if opt.pair, pair=sig; end% for all pairs
-    
-    %     fields={'suid','reg','wrsp','selec','mem_type'};
-    fields={'suid','reg','wf_good','waveid'};
+
     for fidx=1:size(fl,1)
         disp(fidx);
         fstr=load(fullfile(fl(fidx).folder,fl(fidx).name));
@@ -54,7 +57,7 @@ if isempty(sig) ...
             end
             sig.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem,'type',opt.type,'criteria',opt.criteria),nnz(all(fstr.sig_meta.wf_good,2)),1);
             if opt.pair, pair.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem),nnz(all(fstr.sig_meta.wf_good,2)),1); end
-            
+
         else
             for fi=fields
                 sig.(fi{1}){fidx}=fstr.sig_meta.(fi{1});
@@ -64,12 +67,12 @@ if isempty(sig) ...
             if opt.pair, pair.sess{fidx}=repmat(ephys.path2sessid(fstr.pc_stem),size(fstr.pair_meta.suid,1),1); end
         end
     end
-    
+
     for fi=[fields,{'sess'}]
         sig.(fi{1})=cell2mat(sig.(fi{1})');
         if opt.pair, pair.(fi{1})=cell2mat(pair.(fi{1})'); end
     end
-    
+
 end
 if opt.CTX
     %sig
@@ -96,7 +99,7 @@ if opt.CTX
             end
         end
     else
-        pair_=[];    
+        pair_=[];
     end
 else
     sig_=sig;

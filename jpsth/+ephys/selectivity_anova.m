@@ -39,7 +39,7 @@ if isempty(anovameta)
 
             d=mean(sum(fr(trials(:,8)==3,:,4:7),3))-mean(sum(fr(trials(:,8)==6,:,4:7),3));
             s=mean(sum(fr(trials(:,8)==3,:,4:7),3))+mean(sum(fr(trials(:,8)==6,:,4:7),3));
-            s(s==0)=-1;
+             s(s==0)=-1;
             anovameta.dur_selidx=[anovameta.dur_selidx;(d./s).'];
             anovameta.sess=[anovameta.sess;repmat(sesskey,size(fr,2),1)];
             anovameta.allcid=[anovameta.allcid;suid];
