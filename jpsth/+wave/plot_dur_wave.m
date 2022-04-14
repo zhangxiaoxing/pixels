@@ -1,4 +1,4 @@
-function out=plot_wave_3_6(opt)
+function out=plot_dur_wave(opt)
 arguments
     opt.sess (1,1) double {mustBeMember(opt.sess,1:116)} = 102
     opt.sortby (1,:) char {mustBeMember(opt.sortby,{'3s','6s'})} = '6s'
@@ -19,7 +19,10 @@ com_map=wave.get_dur_com_map('curve',true);
 % tag='Selective in both 3s and 6s trials';
 fn='dur_wave.pdf';
 
-[immat,immat_anti,com]=deal([]);
+immat=struct();
+immat_anti=struct();
+com=struct();
+[immat.d3,immat_anti.d3,com.d3,immat.d6,immat_anti.d6,com.d6]=deal([]);
 for fsess=reshape(fieldnames(com_map),1,[])
     fs=char(fsess);
     for pref=["d3","d6"]
@@ -28,24 +31,28 @@ for fsess=reshape(fieldnames(com_map),1,[])
         anti=cell2mat(com_map.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
         COM=cell2mat(values(com_map.(fs).(pref),num2cell(curr_key)));
         %         keyboard()
-        immat=[immat;heat];
-        immat_anti=[immat_anti;anti];
-        com=[com;COM.'];
+        immat.(pref)=[immat.(pref);heat];
+        immat_anti.(pref)=[immat_anti.(pref);anti];
+        com.(pref)=[com.(pref);COM.'];
     end
 end
 
-currscale=max(abs([immat,immat_anti]),[],2);
-immat=immat./currscale;
+currscale=max(abs([immat.d3,immat_anti.d3;immat.d6,immat_anti.d6]),[],2);
+[immat.d3,immat.d6,immat_anti.d3,immat_anti.d6]...
+    =deal(immat.d3./currscale(1:size(immat.d3,1)),immat.d6./currscale(size(immat.d3,1)+1:end),...
+    immat_anti.d3./currscale(1:size(immat.d3,1)),immat_anti.d6./currscale(size(immat.d3,1)+1:end));
 
-immat_anti=immat_anti./currscale;
 
 if opt.plot_global
     %% wave
     fh=figure('Color','w','Position',[32,32,1400,800]);
-    [~,sortidx]=sort(com);
-    plotOne(1,immat(sortidx,:),com(sortidx),'sub_dim',[1,2],'title','FR, preferred','cmap','turbo');
-    plotOne(2,immat_anti(sortidx,:),com(sortidx),'sub_dim',[1,2],'title','FR, non-preferred','cmap','turbo');
-%     exportgraphics(fh,fn,'ContentType','vector')
+    [~,sortidx]=sort(com.d3);
+    plotOne(1,immat.d3(sortidx,:),com.d3(sortidx),'sub_dim',[2,2],'title','FR, preferred','cmap','turbo');
+    plotOne(2,immat_anti.d3(sortidx,:),com.d3(sortidx),'sub_dim',[2,2],'title','FR, non-preferred','cmap','turbo');
+    [~,sortidx]=sort(com.d6);
+    plotOne(3,immat.d6(sortidx,:),com.d6(sortidx),'sub_dim',[2,2],'title','FR, preferred','cmap','turbo');
+    plotOne(4,immat_anti.d6(sortidx,:),com.d6(sortidx),'sub_dim',[2,2],'title','FR, non-preferred','cmap','turbo');    
+    exportgraphics(gcf(),'dur_wave.pdf','ContentType','vector')
 end
 end
 

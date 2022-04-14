@@ -80,7 +80,9 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
                     com_str.(['s',num2str(sessid)]).(ff)=containers.Map('KeyType','int32','ValueType','any');
                 end
             end
+            opt.delay=3;
             com_str=per_su_process(sess,suid,msel1,fr,d3sel,d6sel,com_str,'d3',opt);
+            opt.delay=6;
             com_str=per_su_process(sess,suid,msel2,fr,d6sel,d3sel,com_str,'d6',opt);
         end
         if ~strlength(opt.onepath)==0
@@ -93,29 +95,33 @@ opt_=opt;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,samp,opt)
-stats_window=17:28;
+if opt.delay==6
+    stats_window=17:40;
+    anti_window=17:28;
+else
+    stats_window=17:28;
+    anti_window=17:40;
+end
 for su=reshape(msel,1,[])
     perfmat=squeeze(fr(pref_sel,su,:));
     npmat=squeeze(fr(nonpref_sel,su,:));
-    basemm=mean([mean(perfmat(:,stats_window),1);mean(npmat(:,stats_window),1)]);
-
+    basemm=mean([mean(perfmat(:,17:28),1);mean(npmat(:,17:28),1)]);
     basemm=mean(basemm);
-    
+   
     %TODO compare the effect of smooth
     mm=smooth(squeeze(mean(fr(pref_sel,su,:))),5).';
     mm_pref=mm(stats_window)-basemm;
 
     if max(mm_pref)<=0,disp('NOPEAK');continue;end % work around 6s paritial
     curve=mm_pref;
-    anticurve=squeeze(mean(fr(nonpref_sel,su,stats_window))).'-basemm;
+    anticurve=squeeze(mean(fr(nonpref_sel,su,anti_window))).'-basemm;
     mm_pref(mm_pref<0)=0;
     com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
     com_str.(sess).(samp)(suid(su))=com;
     if opt.curve
         com_str.(sess).([samp,'curve'])(suid(su))=curve;
-        if exist('anticurve','var')
-            com_str.(sess).([samp,'anticurve'])(suid(su))=anticurve;
-        end
+        com_str.(sess).([samp,'anticurve'])(suid(su))=anticurve;
+
         heatcent=squeeze(fr(pref_sel,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
         heatnorm=heatcent./max(abs(heatcent));
         heatnorm(heatnorm<0)=0;

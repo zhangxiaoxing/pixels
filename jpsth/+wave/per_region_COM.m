@@ -3,12 +3,12 @@ function [collection,com_meta]=per_region_COM(opt)
 arguments
     opt.keep_figure (1,1) logical = false
     opt.pdf (1,1) logical = false
-    opt.png (1,1) logical = false
+    opt.png (1,1) logical = true
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % COM in trials of delay
-    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6'})}  % su of wave
+    opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6','any'})}  % su of wave
 end
 
 persistent com_meta_ collection_ opt_
@@ -40,8 +40,8 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_)
         [~,locs1]=ismember(uint16(s1id),allcid);
         [~,locs2]=ismember(uint16(s2id),allcid);
 
-        com_meta=[com_meta;num2cell([sid*ones(size(s1id)),s1id,s1com]),allreg(:,locs1).'];
-        com_meta=[com_meta;num2cell([sid*ones(size(s2id)),s2id,s2com]),allreg(:,locs2).'];
+        com_meta=[com_meta;num2cell([sid*ones(size(s1id)),double(s1id),s1com]),allreg(:,locs1).'];
+        com_meta=[com_meta;num2cell([sid*ones(size(s2id)),double(s2id),s2com]),allreg(:,locs2).'];
     end
     
     
