@@ -1,10 +1,4 @@
-idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-meta=ephys.util.load_meta();
-load('anovameta.mat','anovameta');%K:\code\jpsth\+ephys\selectivity_anova.m
-%1:Samp,2:Dur,3:Bin,4:Samp*Dur,5:Samp*Bin,6:Dur*Bin,7:Samp*Dur*Bin
-dur_sel_mix=any(anovameta.anovap(:,[2 4 6 7])<0.05,2);
-sens_sel_mix=any(anovameta.anovap(:,[1 4 5 7])<0.05,2);
-dur_sel_exclu=dur_sel_mix & ~sens_sel_mix;
+
 ureg=ephys.getGreyRegs();
 sums=[];
 for reg=reshape(ureg,1,[])

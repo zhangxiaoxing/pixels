@@ -3,17 +3,34 @@ arguments
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
+    opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'any','dur_only'})} = 'any'
+    opt.reg_type (1,:) char {mustBeMember(opt.reg_type,{'grey','CH','CTX','CNU','BS'})} = 'grey'
 end
 persistent com_str opt_
 
 if true || isempty(com_str) || ~isequaln(opt,opt_)
     meta=ephys.util.load_meta();
     anovameta=wave.get_dur_waveid();
-
     homedir=ephys.util.getHomedir('type','raw');
 
     com_str=struct();
     usess=unique(anovameta.sess);
+
+    
+    switch opt.reg_type
+        case 'grey'
+            regsel=ismember(meta.reg_tree(1,:),{'CH','BS'}).';
+    end
+
+
+    switch opt.sel_type
+        case 'any'
+            d3sel=anovameta.dur_waveid==3;
+            d6sel=anovameta.dur_waveid==6;
+        case 'dur_only'
+            
+    end
+    
     for sessid=reshape(usess,1,[])
         sesssel=anovameta.sess==sessid;
         if ~any(sesssel), continue;end
@@ -32,8 +49,11 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
 
-        mcid1=anovameta.allcid(anovameta.dur_waveid==3 & sesssel & ismember(meta.reg_tree(1,:),{'CH','BS'}).');
-        mcid2=anovameta.allcid(anovameta.dur_waveid==6 & sesssel & ismember(meta.reg_tree(1,:),{'CH','BS'}).');
+
+
+        mcid1=anovameta.allcid( & sesssel & regsel);
+        mcid2=anovameta.allcid(anovameta.dur_waveid==6 & sesssel & regsel);
+        
 
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));
