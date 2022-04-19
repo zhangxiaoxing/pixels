@@ -5,6 +5,7 @@ arguments
     %     opt.plot_PCA (1,1) logical=false
     opt.calc_dec (1,1) logical=true
     opt.plot_dec (1,1) logical=true
+    opt.ranksum_stats (1,1) logical =false
 
 end
 %% gen data
@@ -15,11 +16,7 @@ if opt.new_data
     meta=ephys.util.load_meta();
     homedir=ephys.util.getHomedir('type','raw');
 
-    waveid=ephys.get_wave_id(meta.sess,meta.allcid);
-    anovameta=wave.get_dur_waveid();
-    %sel for wave id 7&8
-    waveid(waveid==0 & anovameta.dur_waveid==3)=7;
-    waveid(waveid==0 & anovameta.dur_waveid==6)=8;
+    [dur_sense_mix,dur_exclu,~,sens_exclu]=ephys.get_dul_sel('ranksum_stats',opt.ranksum_stats);
 
     regsel=ismember(meta.reg_tree(1,:),{'CH','BS'}).';
 
@@ -36,9 +33,9 @@ if opt.new_data
         %         fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,17:28),3); % early/late delay
 
         decode_mat.(sprintf('s%d',ii)).trials=trials;
-        decode_mat.(sprintf('s%d',ii)).fr_dur=fr_t_align(:,regsel(sesssel) & waveid(sesssel)>6);
-        decode_mat.(sprintf('s%d',ii)).fr_sens_dur=fr_t_align(:,regsel(sesssel) & ismember(waveid(sesssel),1:4));
-        decode_mat.(sprintf('s%d',ii)).fr_sens=fr_t_align(:,regsel(sesssel) & ismember(waveid(sesssel),5:6));
+        decode_mat.(sprintf('s%d',ii)).fr_dur=fr_t_align(:,regsel(sesssel) & dur_exclu(sesssel));
+        decode_mat.(sprintf('s%d',ii)).fr_sens_dur=fr_t_align(:,regsel(sesssel) & dur_sense_mix(sesssel));
+        decode_mat.(sprintf('s%d',ii)).fr_sens=fr_t_align(:,regsel(sesssel) & sens_exclu(sesssel));
     end
 
     frmap=struct();

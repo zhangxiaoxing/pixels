@@ -1,15 +1,13 @@
-[bhat,bci]=binofit(both(1),both(2));keyboard();
+% [bhat,bci]=binofit(both(1),both(2));keyboard();
 [sig,pair]=bz.load_sig_pair('pair',true);
 % fh=figure('Color','w','Position',[32,32,400,225]);
 meta=ephys.util.load_meta();
 waveid=ephys.get_wave_id(meta.sess,meta.allcid);
-anovameta=wave.get_dur_waveid();
-%sel for wave id 7&8
-waveid(waveid==0 & anovameta.dur_waveid==3)=7;
-waveid(waveid==0 & anovameta.dur_waveid==6)=8;
+anovameta=ephys.selectivity_anova();
+[dur_sense_mix,dur_exclu,~,sens_exclu]=ephys.get_dul_sel();
+
 
 for usess=reshape(anovameta.sess,1,[])
-    %wave id 7&8
     asel=anovameta.sess==usess;
     ssel=sig.sess==usess;
     [~,loc]=ismember(sig.suid(ssel,:),anovameta.allcid(asel));

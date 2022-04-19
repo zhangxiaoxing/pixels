@@ -1,5 +1,7 @@
-
+[dur_sel_mix,dur_sel_exclu]=ephys.get_dul_sel('ranksum_stats',false);
 ureg=ephys.getGreyRegs();
+meta=ephys.util.load_meta();
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 sums=[];
 for reg=reshape(ureg,1,[])
     regsel=strcmp(meta.reg_tree(5,:),reg).';
@@ -30,7 +32,9 @@ mixed_map=containers.Map(regstr,num2cell(bardata(:,[6,4,3]),2));
 exclu_map=containers.Map(regstr,num2cell(bardata(:,[9,5,3]),2));
 map_cells={mixed_map,exclu_map};
 keyboard(); % branching point for alternative data processing
-
+%% =======GLM============
+wave.connectivity_proportion_GLM();
+%%
 figure('Color','w');
 scatter(bardata(:,6),bardata(:,9))
 [r,p]=corr(bardata(:,6),bardata(:,9));
@@ -42,7 +46,7 @@ ylim([0.01,0.5])
 xlabel('Odor selective both duration')
 ylabel('Odor selective either duration')
 
-fh=figure('Color','w')
+fh=figure('Color','w');
 hold on
 bh=bar(bardata(:,[9,6]),1,'grouped');
 errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,6:7),1,2),diff(bardata(:,[6,8]),1,2),'k.');

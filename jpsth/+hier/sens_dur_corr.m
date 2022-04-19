@@ -19,8 +19,14 @@ xlabel('Sensory neuron proportion (%)');
 ylabel('Duration neuron proportion (%)');
 set(gca,'XScale','log','YScale','log')
 title(sprintf(' r = %.3f, p = %.3f',r,p));
-xlim([0.003,0.5])
-ylim([0.02,0.2])
-set(gca(),'YTick',[0.02,0.1,0.2],'YTickLabel',[0.02,0.1,0.2].*100,'XTick',[0.02,0.1,0.2],'XTickLabel',[0.02,0.1,0.2].*100)
+xlim([0.003,0.4])
+if max(ylim())>0.3
+    ylim([0.1,0.35])
+    set(gca(),'YTick',[0.1,0.2,0.3],'YTickLabel',[0.1,0.2,0.3].*100,'XTick',[0.02,0.1,0.2],'XTickLabel',[0.02,0.1,0.2].*100)
+else
+    ylim([0.02,0.2])
+    set(gca(),'YTick',[0.02,0.1,0.2],'YTickLabel',[0.02,0.1,0.2].*100,'XTick',[0.02,0.1,0.2],'XTickLabel',[0.02,0.1,0.2].*100)
+end
+
 exportgraphics(fh,'sens_dur_corr.pdf','ContentType','vector')
 %             close(fh)
