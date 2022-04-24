@@ -2,75 +2,186 @@
 [sig,pair]=bz.load_sig_pair('pair',true);
 % fh=figure('Color','w','Position',[32,32,400,225]);
 meta=ephys.util.load_meta();
-waveid=ephys.get_wave_id(meta.sess,meta.allcid);
-anovameta=ephys.selectivity_anova();
+% waveid=ephys.get_wave_id(meta.sess,meta.allcid);
+% anovameta=ephys.selectivity_anova();
 [dur_sense_mix,dur_exclu,~,sens_exclu]=ephys.get_dul_sel();
+waveid=zeros(size(dur_sense_mix))+4.*dur_sense_mix+2.*dur_exclu+sens_exclu;
 
 
-for usess=reshape(anovameta.sess,1,[])
-    asel=anovameta.sess==usess;
+
+for usess=reshape(unique(meta.sess),1,[])
+    asel=meta.sess==usess;
     ssel=sig.sess==usess;
-    [~,loc]=ismember(sig.suid(ssel,:),anovameta.allcid(asel));
+    %TODO: update wave component id with dur_sel routine
+    [~,loc]=ismember(sig.suid(ssel,:),int32(meta.allcid(asel)));
     sig.wave_id(ssel,:)=subsref(waveid(asel),struct(type='()',subs={{loc}}));
 
     psel=pair.sess==usess;
-    [~,loc]=ismember(pair.suid(psel,:),anovameta.allcid(asel));
+    [~,loc]=ismember(pair.suid(psel,:),int32(meta.allcid(asel)));
     pair.wave_id(psel,:)=subsref(waveid(asel),struct(type='()',subs={{loc}}));
 end
 
-[is_diff,is_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
-sigrsel=[is_diff(:,5),is_same(:,5),is_diff(:,5)|is_same(:,5)];
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+CTX_sel_sig=squeeze(sig.reg(:,2,:)==idmap.reg2ccfid('CTX'));
+CNU_sel_sig=squeeze(sig.reg(:,2,:)==idmap.reg2ccfid('CNU'));
+BSt_sel_sig=squeeze(sig.reg(:,1,:)==idmap.reg2ccfid('BS'));
 
-[is_diff,is_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
-pairrsel=[is_diff(:,5),is_same(:,5),is_diff(:,5)|is_same(:,5)];
+CTX_sel_pair=squeeze(pair.reg(:,2,:)==idmap.reg2ccfid('CTX'));
+CNU_sel_pair=squeeze(pair.reg(:,2,:)==idmap.reg2ccfid('CNU'));
+BSt_sel_pair=squeeze(pair.reg(:,1,:)==idmap.reg2ccfid('BS'));
 
-ttl={'Different region','Same region','Overall'};
+
+reg_cell={CTX_sel_sig,CTX_sel_pair;CNU_sel_sig,CNU_sel_pair;BSt_sel_sig,BSt_sel_pair};
+% ttl={'Different region','Same region','Overall'};
 %%
-for rselidx=1:3
-    both=[nnz(sigrsel(:,rselidx) & (all(sig.wave_id==5,2) | all(sig.wave_id==6,2))),...
-        nnz(pairrsel(:,rselidx) & (all(pair.wave_id==5,2) | all(pair.wave_id==6,2)))];
-    durOppoSens=[nnz(sigrsel(:,rselidx) & ((all(ismember(sig.wave_id,[1 2 5 6 7]),2) | all(ismember(sig.wave_id,[3 4 5 6 8]),2)) & ~(all(ismember(sig.wave_id,[1 3 5]),2) | all(ismember(sig.wave_id,[2 4 6]),2)))),...
-        nnz(pairrsel(:,rselidx) &((all(ismember(pair.wave_id,[1 2 5 6 7]),2) | all(ismember(pair.wave_id,[3 4 5 6 8]),2)) & ~(all(ismember(pair.wave_id,[1 3 5]),2) | all(ismember(pair.wave_id,[2 4 6]),2))))];
-    sensOppoDur=[nnz(sigrsel(:,rselidx) & ((all(ismember(sig.wave_id,[1 3 5]),2) | all(ismember(sig.wave_id,[2 4 6]),2)) & ~(all(ismember(sig.wave_id,[1 2 5 6 7]),2) | all(ismember(sig.wave_id,[3 4 5 6 8]),2)))),...
-        nnz(pairrsel(:,rselidx) &((all(ismember(pair.wave_id,[1 3 5]),2) | all(ismember(pair.wave_id,[2 4 6]),2)) & ~(all(ismember(pair.wave_id,[1 2 5 6 7]),2) | all(ismember(pair.wave_id,[3 4 5 6 8]),2))))];
-    oppoSensOppoDur=[nnz(sigrsel(:,rselidx) & (~(all(ismember(sig.wave_id,[1 2 5 6 7]),2) | all(ismember(sig.wave_id,[3 4 5 6 8]),2) | all(ismember(sig.wave_id,[1 3 5]),2) | all(ismember(sig.wave_id,[2 4 6]),2) | any(sig.wave_id==0,2)))),...
-        nnz(pairrsel(:,rselidx) &(~(all(ismember(pair.wave_id,[1 2 5 6 7]),2) | all(ismember(pair.wave_id,[3 4 5 6 8]),2) | all(ismember(pair.wave_id,[1 3 5]),2) | all(ismember(pair.wave_id,[2 4 6]),2) | any(pair.wave_id==0,2))))];
-    nonmem=[nnz(sigrsel(:,rselidx) & (all(sig.wave_id==0,2))),...
-        nnz(pairrsel(:,rselidx) & (all(pair.wave_id==0,2)))];
+[cnt_both,cnt_dur_only,cnt_sens_only,cnt_nonmem,cnt_ovall,ci_both,ci_dur_only,ci_sens_only,ci_nonmem,ci_ovall]=deal(nan(3,3,2));
+[mm_both,mm_dur_only,mm_sens_only,mm_nonmem,mm_ovall]=deal(nan(3,3));
+for from_idx=1:3
+    for to_idx=1:3
+        cnt_both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==4,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==4,2)))];
+        cnt_dur_only(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==2,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==2,2)))];
+        cnt_sens_only(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==1,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==1,2)))];
+        cnt_nonmem(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==0,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==0,2)))];
+        cnt_ovall(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2)),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2))];
 
-    [bhat,bci]=binofit(both(1),both(2));
-    [dhat,dci]=binofit(durOppoSens(1),durOppoSens(2));
-    [shat,sci]=binofit(sensOppoDur(1),sensOppoDur(2));
-    [xhat,xci]=binofit(oppoSensOppoDur(1),oppoSensOppoDur(2));
-    [nhat,nci]=binofit(nonmem(1),nonmem(2));
-
-    fh=figure('Color','w');
-    hold on
-    bh=bar([bhat,shat,dhat,nhat],'FaceColor','w');
-    errorbar(bh.XEndPoints,bh.YEndPoints,...
-        subsref([bci;sci;dci;nci],struct(type='()',subs={{':',1}})).'-bh.YEndPoints,...
-        subsref([bci;sci;dci;nci],struct(type='()',subs={{':',2}})).'-bh.YEndPoints,...
-        'k.');
-
-    text(1,mean(ylim()),sprintf('%d / %d',both(1),both(2)),'Rotation',90,'HorizontalAlignment','center','VerticalAlignment','middle')
-    text(3, max(ylim()),sprintf('%d / %d',durOppoSens(1),durOppoSens(2)),'Rotation',90,'HorizontalAlignment','right','VerticalAlignment','middle')
-    text(2,max(ylim()),sprintf('%d / %d',sensOppoDur(1),sensOppoDur(2)),'Rotation',90,'HorizontalAlignment','right','VerticalAlignment','middle')
-    %     text(4,mean(ylim()),sprintf('%d / %d',oppoSensOppoDur(1),oppoSensOppoDur(2)),'Rotation',90,'HorizontalAlignment','center','VerticalAlignment','middle')
-    text(4,mean(ylim()),sprintf('%d / %d',nonmem(1),nonmem(2)),'Rotation',90,'HorizontalAlignment','center','VerticalAlignment','middle')
-
-    title(ttl{rselidx});
-    set(gca(),'XTick',1:4,'XTickLabel',{'Same sensory-Same duration','Same sensory-Opposite duration','Same duration-Opposite sensory','Nonmemory'})
-
-    [~,~,p]=crosstab([1*ones(both(2),1);2*ones(sensOppoDur(2),1);3*ones(durOppoSens(2),1);4*ones(nonmem(2),1)],...
-        [(1:both(2))>both(1),(1:sensOppoDur(2))>sensOppoDur(1),(1:durOppoSens(2))>durOppoSens(1),(1:nonmem(2))>nonmem(1)]);
-    [~,~,p1]=crosstab([1*ones(both(2),1);4*ones(nonmem(2),1)],...
-        [(1:both(2))>both(1),(1:nonmem(2))>nonmem(1)]);
-    [~,~,p2]=crosstab([2*ones(sensOppoDur(2),1);4*ones(nonmem(2),1)],...
-        [(1:sensOppoDur(2))>sensOppoDur(1),(1:nonmem(2))>nonmem(1)]);
-    [~,~,p3]=crosstab([3*ones(durOppoSens(2),1);4*ones(nonmem(2),1)],...
-        [(1:durOppoSens(2))>durOppoSens(1),(1:nonmem(2))>nonmem(1)]);
-
-    disp(ttl{rselidx})
-    disp([p,p1,p2,p3])
-    ylabel('Functional coupling rate');
+        [mm_both(from_idx,to_idx),ci_both(from_idx,to_idx,:)]=binofit(cnt_both(from_idx,to_idx,1),cnt_both(from_idx,to_idx,2));
+        [mm_dur_only(from_idx,to_idx),ci_dur_only(from_idx,to_idx,:)]=binofit(cnt_dur_only(from_idx,to_idx,1),cnt_dur_only(from_idx,to_idx,2));
+        [mm_sens_only(from_idx,to_idx),ci_sens_only(from_idx,to_idx,:)]=binofit(cnt_sens_only(from_idx,to_idx,1),cnt_sens_only(from_idx,to_idx,2));
+        [mm_nonmem(from_idx,to_idx),ci_nonmem(from_idx,to_idx,:)]=binofit(cnt_nonmem(from_idx,to_idx,1),cnt_nonmem(from_idx,to_idx,2));
+        [mm_ovall(from_idx,to_idx),ci_ovall(from_idx,to_idx,:)]=binofit(cnt_ovall(from_idx,to_idx,1),cnt_ovall(from_idx,to_idx,2));
+    end
 end
+
+%% stats
+% sel vs nonmem
+ds={cnt_sens_only,cnt_dur_only,cnt_both};
+
+for cnt_idx=1:3
+    for from_idx=1:3
+        for to_idx=1:3
+            nm_d=cnt_nonmem(from_idx,to_idx,:);
+            sel_d=ds{cnt_idx}(from_idx,to_idx,:);
+            [~,~,p]=crosstab([zeros(1,nm_d(2)),ones(1,sel_d(2))],[1:nm_d(2)>nm_d(1),1:sel_d(2)>sel_d(1)]);
+            disp([from_idx,to_idx,p]);
+        end
+    end
+end
+
+keyboard()
+%%
+
+
+mms={mm_nonmem,mm_sens_only,mm_dur_only,mm_both};
+cis={ci_nonmem,ci_sens_only,ci_dur_only,ci_both};
+fns={'nonmem','sens','dur','both'};
+fh=figure('Color','w','Position',[100,100,1000,205]);
+for ii=1:4
+    mm_curr=mms{ii};
+    ci_curr=cis{ii};
+    subplot(1,4,ii);
+    hold on
+    bh=bar(mm_curr,'grouped');
+    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
+    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,ci_curr(:,2,1).'-bh(2).YEndPoints,ci_curr(:,2,2).'-bh(2).YEndPoints,'k.');
+    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,ci_curr(:,3,1).'-bh(3).YEndPoints,ci_curr(:,3,2).'-bh(3).YEndPoints,'k.');
+    bh(1).FaceColor='w';
+    bh(2).FaceColor='r';
+    bh(3).FaceColor='b';
+    ylim([0,0.015])
+    set(gca(),'YTick',[0,0.005,0.01,0.015],'YTickLabel',[0,0.5,1,1.5],'XTick',[])
+    ylabel('Fucntional coupling rate (%)')
+    title(fns{ii});
+end
+exportgraphics(fh,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+fh=figure('Color','w','Position',[100,100,1000,205]);
+for ii=1:4
+    mm_curr=mms{ii}./mm_nonmem;
+    ci_curr=cis{ii}./ci_nonmem;
+    subplot(1,4,ii);
+    hold on
+    bh=bar(mm_curr,'grouped');
+    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
+    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,ci_curr(:,2,1).'-bh(2).YEndPoints,ci_curr(:,2,2).'-bh(2).YEndPoints,'k.');
+    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,ci_curr(:,3,1).'-bh(3).YEndPoints,ci_curr(:,3,2).'-bh(3).YEndPoints,'k.');
+    bh(1).FaceColor='w';
+    bh(2).FaceColor='r';
+    bh(3).FaceColor='b';
+    yline(1,'k--')
+    ylim([0,2.52])
+    set(gca(),'XTick',[])
+    ylabel('FC rate relative to non-mem')
+    title(fns{ii});
+end
+exportgraphics(fh,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+%single modality <-> mixed modality
+%%
+[cnt_dur2both,cnt_both2dur,cnt_sens2both,cnt_both2sens,ci_dur2both,ci_both2dur,ci_sens2both,ci_both2sens]=deal(nan(3,3,2));
+[mm_dur2both,mm_both2dur,mm_sens2both,mm_both2sens]=deal(nan(3,3));
+for from_idx=1:3
+    for to_idx=1:3
+        cnt_dur2both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==2 & sig.wave_id(:,2)==4),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==2 & pair.wave_id(:,2)==4)];
+        cnt_both2dur(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==4 & sig.wave_id(:,2)==2),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==4 & pair.wave_id(:,2)==2)];
+        cnt_sens2both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==1 & sig.wave_id(:,2)==4),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==1 & pair.wave_id(:,2)==4)];
+        cnt_both2sens(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==4 & sig.wave_id(:,2)==1),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==4 & pair.wave_id(:,2)==1)];
+
+        [mm_dur2both(from_idx,to_idx),ci_dur2both(from_idx,to_idx,:)]=binofit(cnt_dur2both(from_idx,to_idx,1),cnt_dur2both(from_idx,to_idx,2));
+        [mm_both2dur(from_idx,to_idx),ci_both2dur(from_idx,to_idx,:)]=binofit(cnt_both2dur(from_idx,to_idx,1),cnt_both2dur(from_idx,to_idx,2));
+        [mm_sens2both(from_idx,to_idx),ci_sens2both(from_idx,to_idx,:)]=binofit(cnt_sens2both(from_idx,to_idx,1),cnt_sens2both(from_idx,to_idx,2));
+        [mm_both2sens(from_idx,to_idx),ci_both2sens(from_idx,to_idx,:)]=binofit(cnt_both2sens(from_idx,to_idx,1),cnt_both2sens(from_idx,to_idx,2));
+    end
+end
+
+mms={mm_dur2both,mm_both2dur,mm_sens2both,mm_both2sens};
+cis={ci_dur2both,ci_both2dur,ci_sens2both,ci_both2sens};
+fns={'dur2both','both2dur','sens2both','both2sens'};
+fh=figure('Color','w','Position',[100,100,1000,205]);
+for ii=1:4
+    mm_curr=mms{ii};
+    ci_curr=cis{ii};
+    subplot(1,4,ii);
+    hold on
+    bh=bar(mm_curr,'grouped');
+    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
+    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,ci_curr(:,2,1).'-bh(2).YEndPoints,ci_curr(:,2,2).'-bh(2).YEndPoints,'k.');
+    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,ci_curr(:,3,1).'-bh(3).YEndPoints,ci_curr(:,3,2).'-bh(3).YEndPoints,'k.');
+    bh(1).FaceColor='w';
+    bh(2).FaceColor='r';
+    bh(3).FaceColor='b';
+    ylim([0,0.015])
+    set(gca(),'YTick',[0,0.005,0.01,0.015],'YTickLabel',[0,0.5,1,1.5],'XTick',[])
+    ylabel('Fucntional coupling rate (%)')
+    title(fns{ii});
+end
+exportgraphics(fh,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+
+fh=figure('Color','w','Position',[100,100,1000,205]);
+for ii=1:4
+    mm_curr=mms{ii}./mm_nonmem;
+    ci_curr=cis{ii}./ci_nonmem;
+    subplot(1,4,ii);
+    hold on
+    bh=bar(mm_curr,'grouped');
+    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
+    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,ci_curr(:,2,1).'-bh(2).YEndPoints,ci_curr(:,2,2).'-bh(2).YEndPoints,'k.');
+    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,ci_curr(:,3,1).'-bh(3).YEndPoints,ci_curr(:,3,2).'-bh(3).YEndPoints,'k.');
+    bh(1).FaceColor='w';
+    bh(2).FaceColor='r';
+    bh(3).FaceColor='b';
+    yline(1,'k--')
+    ylim([0,2.52])
+    set(gca(),'XTick',[])
+    ylabel('FC rate relative to non-mem')
+    title(fns{ii});
+end
+exportgraphics(fh,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+
+

@@ -26,6 +26,7 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
             [dur_mix,dur_exclu,dur_waveid]=ephys.get_dul_sel();
             d3_su_sel=dur_waveid==3;
             d6_su_sel=dur_waveid==6;
+            
     end
     
     for sessid=reshape(usess,1,[])
