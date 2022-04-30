@@ -2,7 +2,10 @@
 if exist('collections.pdf','file')
     delete('collections.pdf')
 end
-[sens_map_cells,sens_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','ANOVA2','skip_plot',false);
+
+close all
+anovameta=ephys.selectivity_anova('merge_time_bin',true);
+[sens_map_cells,sens_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','ANOVA2','skip_plot',false,'meta',anovameta);
 sens_GLM_fh=wave.connectivity_proportion_GLM(sens_map_cells);
 
 [dur_map_cells,dur_reg_bar_fh]=ephys.duration_reg_bars('stats_model','ANOVA2','skip_plot',false);
@@ -13,9 +16,11 @@ dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{1},sens_map_cells{1});
 inter_wave_fh=bz.inter_wave_ext_bars(anovameta);
 
 
-figure('Color','w')
-str='Stats:ANOVA2'
-annotation('textbox',[0.2,0.2,0.6,0.6],'String',str,'FitBoxToText','on');
+th=figure('Color','w','Position',[32,32,1600,900]);
+blame=vcs.blame();
+str=strjoin({'Stats:ANOVA2',blame.datetime,blame.git_hash,blame.git_status},'=====\n');
+annotation('textbox',[0.05,0.05,0.9,0.9],'String',str,'FitBoxToText','on');
+exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
 handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh,dur_sens_corr_fh,inter_wave_fh};
 
@@ -49,6 +54,14 @@ end
 % wave.per_region_COM_frac
 
 %% RANKSUM1
+close all
+
+th=figure('Color','w','Position',[32,32,1600,900]);
+blame=vcs.blame();
+str=strjoin({'Stats:RANKSUM1',blame.datetime,blame.git_hash,blame.git_status},'=====\n');
+annotation('textbox',[0.05,0.05,0.9,0.9],'String',str,'FitBoxToText','on');
+exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
+
 meta=ephys.util.load_meta();
 sens_waveid=ephys.get_wave_id(meta.sess,meta.allcid);
 [sens_map_cells,sens_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','RANKSUM','skip_plot',false,'waveid',sens_waveid);
@@ -60,7 +73,40 @@ dur_GLM_fh=wave.connectivity_proportion_GLM(dur_map_cells);
 
 dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{1},sens_map_cells{1});
 
+handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh,dur_sens_corr_fh};
+
+for hc=handles
+    hh=hc{1};
+    if isa(hh,'matlab.ui.Figure')
+        disp('hh')
+        exportgraphics(hh,'collections.pdf','ContentType','vector','Append',true)
+    elseif isa(hh,"struct")
+        fn=fieldnames(hh);
+        disp(fn)
+        for fh=reshape(fn,1,[])
+            exportgraphics(hh.(fh{1}),'collections.pdf','ContentType','vector','Append',true)
+        end
+    end
+    
+end
+
+
+
+
+
+
+
+
+
 %% RANKSUM2
+close all
+
+th=figure('Color','w','Position',[32,32,1600,900]);
+blame=vcs.blame();
+str=strjoin({'Stats:RANKSUM2',blame.datetime,blame.git_hash,blame.git_status},'=====\n');
+annotation('textbox',[0.05,0.05,0.9,0.9],'String',str,'FitBoxToText','on');
+exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
+
 meta=ephys.util.load_meta();
 dur_meta=ephys.get_dur_meta();
 
@@ -81,8 +127,28 @@ waveid(sens_waveid>0 & dur_waveid>0)=2;
 dur_GLM_fh=wave.connectivity_proportion_GLM(dur_map_cells);
 
 dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{1},sens_map_cells{1});
+
 wrsmeta.sens_only=sens_waveid>0 & dur_waveid==0;
 wrsmeta.dur_only=sens_waveid==0 & dur_waveid>0;
 wrsmeta.mixed=sens_waveid>0 & dur_waveid>0;
 inter_wave_fh=bz.inter_wave_ext_bars(wrsmeta);
+
+handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh,dur_sens_corr_fh,inter_wave_fh};
+
+for hc=handles
+    hh=hc{1};
+    if isa(hh,'matlab.ui.Figure')
+        disp('hh')
+        exportgraphics(hh,'collections.pdf','ContentType','vector','Append',true)
+    elseif isa(hh,"struct")
+        fn=fieldnames(hh);
+        disp(fn)
+        for fh=reshape(fn,1,[])
+            exportgraphics(hh.(fh{1}),'collections.pdf','ContentType','vector','Append',true)
+        end
+    end
+    
+end
+
+
 

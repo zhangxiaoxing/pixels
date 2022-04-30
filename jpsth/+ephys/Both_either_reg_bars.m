@@ -38,6 +38,7 @@ for reg=reshape(ureg,1,[])
             mixed_cnt=nnz(regsel & waveid==2);
 
         case 'ANOVA2'
+            anovameta=opt.meta;
             mixed_cnt=nnz(regsel & anovameta.mixed);
             sens_only_cnt=nnz(regsel & anovameta.sens_only);
     end
