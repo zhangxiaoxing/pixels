@@ -1,9 +1,14 @@
-
-%% CONST
-corr1=true;
-plot1=true;
-corr2=false;
-plot2=false;
+function fh=connectivity_proportion_GLM(map_cells,opt)
+arguments
+    map_cells (1,2) cell
+    opt.skip_efferent (1,1) logical = true
+    opt.corr1 (1,1) logical =true;
+    opt.plot1 (1,1) logical =true;
+    opt.corr2 (1,1) logical =false;
+    opt.plot2 (1,1) logical =false;
+    opt.corr3 (1,1) logical =false;
+    opt.plot3 (1,1) logical =false;
+end
 
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
 % For duration, from: K:\code\jpsth\+ephys\duration_reg_bars.m
@@ -58,7 +63,7 @@ for featii=1:2 % both, either
     end
 
     %% one region corr, bar plot
-    if corr1
+    if opt.corr1
         for regii=1:size(glmxmat,1)
             [r,p]=corr(glmxmat(regii,:).',feat_prop,'type','Spearman');
             one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
@@ -67,14 +72,18 @@ for featii=1:2 % both, either
         save('one_reg_corr_list.mat','one_reg_corr_list')
 
         %
-        if plot1 % plot one-region: coding proportion correlation bars
+        if opt.plot1 % plot one-region: coding proportion correlation bars
             s_list=sortrows(one_reg_corr_list(one_reg_corr_list(:,1)==featii & one_reg_corr_list(:,2)==epochii,:),7,'descend');
             %                 s_list=s_list(isfinite(s_list(:,7)),:);
+            if opt.skip_efferent
+                s_list=s_list(s_list(:,4)==2,:);
+            end
+            
             s_list=s_list([1:5,end-4:end],:);
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
             xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
 
-            fhb=figure('Color','w','Position',[32,32,215,225]);
+            fh.(sprintf('bar1_feat%d',featii))=figure('Color','w','Position',[32,32,215,225]);
             hold on
             %                 bhto=bar(find(s_list(:,4)==1),s_list(s_list(:,4)==1,7),0.6,'white');
             %                 bhfrom=bar(find(s_list(:,4)==2),s_list(s_list(:,4)==2,7),0.6,'black');
@@ -86,9 +95,9 @@ for featii=1:2 % both, either
             title(sprintf('epoch%d-feat%d',epochii,featii))
             xlim([-1,1]);
             %                 legend([bhto,bhfrom],{'Connectivity to this region','Connectivity from this region'})
-            exportgraphics(gcf,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
+%             exportgraphics(fh.bar1,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
 
-            fh=figure('Color','w','Position',[32,32,320,320]);
+            fh.(sprintf('corr1_feat%d',featii))=figure('Color','w','Position',[32,32,320,320]);
             hold on
             glmidx=find(glmxmeta(:,1)==s_list(1,4) & glmxmeta(:,2)==s_list(1,5));
             for ll=1:numel(feat_prop)
@@ -102,12 +111,12 @@ for featii=1:2 % both, either
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
             % xlim([0.15,0.5])
             % ylim([0.15,0.5])
-            exportgraphics(fh,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
-%             close(fh)
+%             exportgraphics(fh.corr1,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
+            %             close(fh)
         end
     end
     %% two region glm interaction
-    if corr2
+    if opt.corr2
         comb2=nchoosek(1:size(glmxmat,1),2);
         mdlid_rsq_AICC=[];
         for jj=1:size(comb2,1)
@@ -126,7 +135,7 @@ for featii=1:2 % both, either
             %         maxidx=jj;
             %     end
         end
-        if plot2
+        if opt.plot2
             mdlid_rsq_AICC=sortrows(mdlid_rsq_AICC,3);
             % keyboard();
             ytk=cell(0,0);
@@ -204,62 +213,61 @@ for featii=1:2 % both, either
         end
         save('two_reg_corr_list.mat','two_reg_corr_list')
     end
+    %%
+    if opt.corr3
+        comb3=nchoosek(1:size(glmxmat,1),3);
+        max3rsqp=0;
+        max3idxp=-1;
+        for jj=127706%1:size(comb3,1)
+            if rem(jj,1000)==0
+                disp(jj)
+            end
+            allen_A=glmxmat(comb3(jj,1),:).'; % from one alternating target, to idx4corr
+            allen_B=glmxmat(comb3(jj,2),:).';
+            allen_C=glmxmat(comb3(jj,3),:).';
+            mdl=fitglm([allen_A,allen_B,allen_C],feat_prop,'poly111');
+            if mdl.Rsquared.Ordinary>max3rsqp
+                max3rsqp=mdl.Rsquared.Ordinary;
+                max3idxp=jj;
+            end
+
+            if mdl.Rsquared.Ordinary>0.64
+                disp(jj)
+                disp(sqrt(mdl.Rsquared.Ordinary));
+                if glmxmeta(comb3(jj,1),1)==1
+                    reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,1),2)));
+                    reg1=['To_',reg1{1}];
+                else
+                    reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,1),2))));
+                    reg1=['From_',reg1{1}];
+                end
+                if glmxmeta(comb3(jj,2),1)==1
+                    reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,2),2)));
+                    reg2=['To_',reg2{1}];
+                else
+                    reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,2),2)));
+                    reg2=['From_',reg2{1}];
+                end
+
+                if glmxmeta(comb3(jj,3),1)==1
+                    reg3=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,3),2)));
+                    reg3=['To_',reg3{1}];
+                else
+                    reg3=idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,3),2)));
+                    reg3=['From_',reg3{1}];
+                end
+                if opt.plot3
+                    fh=figure('Color','w','Position',[32,32,900,650]);
+                    scatter(mdl.Fitted.Response,feat_prop,4,'red','filled','o')
+                    text(mdl.Fitted.Response,feat_prop,intersect_regs,'HorizontalAlignment','center','VerticalAlignment','top');
+                    title(sprintf('Coding proportion ~ %.3f [%s] + %.3f [%s] +%.3f [%s]', ...
+                        mdl.Coefficients.Estimate(2),reg1,mdl.Coefficients.Estimate(3),reg2,mdl.Coefficients.Estimate(4),reg3), ...
+                        'Interpreter','none')
+                    xlabel(sprintf('Model %d prediction',jj))
+                    ylabel('Proportion of coding neuron')
+                    text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
+                end    %         keyboard()
+            end
+        end
+    end
 end
-
-return
-%%
-comb3=nchoosek(1:size(glmxmat,1),3);
-max3rsqp=0;
-max3idxp=-1;
-for jj=127706%1:size(comb3,1)
-    if rem(jj,1000)==0
-        disp(jj)
-    end
-    allen_A=glmxmat(comb3(jj,1),:).'; % from one alternating target, to idx4corr
-    allen_B=glmxmat(comb3(jj,2),:).';
-    allen_C=glmxmat(comb3(jj,3),:).';
-    mdl=fitglm([allen_A,allen_B,allen_C],feat_prop,'poly111');
-    if mdl.Rsquared.Ordinary>max3rsqp
-        max3rsqp=mdl.Rsquared.Ordinary;
-        max3idxp=jj;
-    end
-
-    if mdl.Rsquared.Ordinary>0.64
-        disp(jj)
-        disp(sqrt(mdl.Rsquared.Ordinary));
-        if glmxmeta(comb3(jj,1),1)==1
-            reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,1),2)));
-            reg1=['To_',reg1{1}];
-        else
-            reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,1),2))));
-            reg1=['From_',reg1{1}];
-        end
-        if glmxmeta(comb3(jj,2),1)==1
-            reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,2),2)));
-            reg2=['To_',reg2{1}];
-        else
-            reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,2),2)));
-            reg2=['From_',reg2{1}];
-        end
-
-        if glmxmeta(comb3(jj,3),1)==1
-            reg3=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,3),2)));
-            reg3=['To_',reg3{1}];
-        else
-            reg3=idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,3),2)));
-            reg3=['From_',reg3{1}];
-        end
-
-        fh=figure('Color','w','Position',[32,32,900,650]);
-        scatter(mdl.Fitted.Response,feat_prop,4,'red','filled','o')
-        text(mdl.Fitted.Response,feat_prop,intersect_regs,'HorizontalAlignment','center','VerticalAlignment','top');
-        title(sprintf('Coding proportion ~ %.3f [%s] + %.3f [%s] +%.3f [%s]', ...
-            mdl.Coefficients.Estimate(2),reg1,mdl.Coefficients.Estimate(3),reg2,mdl.Coefficients.Estimate(4),reg3), ...
-            'Interpreter','none')
-        xlabel(sprintf('Model %d prediction',jj))
-        ylabel('Proportion of coding neuron')
-        text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
-        %         keyboard()
-    end
-end
-

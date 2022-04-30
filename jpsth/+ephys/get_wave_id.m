@@ -4,6 +4,7 @@ function out=get_wave_id(sess,cid,opt)
 arguments
     sess double
     cid double
+    opt.meta
     opt.split_6 (1,1) logical = false
 end
 if isscalar(sess)
@@ -22,7 +23,7 @@ if isempty(wave_id_map) || ~isequaln(opt,opt_)
         key=uint64(meta.sess(ii))*100000+uint64(meta.allcid(ii));
 
         if meta.mem_type_3(ii)==0 && meta.mem_type_6(ii)==0
-            wave_id_map(key)=0;        
+            wave_id_map(key)=0;
         elseif ismember(meta.mem_type_3(ii),1:2) && meta.mem_type_6(ii)==0
             wave_id_map(key)=1;
         elseif ismember(meta.mem_type_3(ii),3:4) && meta.mem_type_6(ii)==0

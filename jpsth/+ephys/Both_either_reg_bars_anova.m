@@ -1,3 +1,4 @@
+% pending remove? 
 keyboard()
 load('cross_ep_anovameta.mat','cross_ep_anovameta'); % K:\code\jpsth\+ephys\selectivity_anova.m
 fn=fieldnames(cross_ep_anovameta);

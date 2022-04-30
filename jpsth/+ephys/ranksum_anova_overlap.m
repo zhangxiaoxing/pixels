@@ -13,5 +13,12 @@ overlap_rate=nnz(asel & (d3sel | d6sel))/nnz((d3sel|d6sel))
 grey_overlap_rate=nnz(asel & (d3sel | d6sel) & greysel)./nnz((d3sel|d6sel) & greysel)
 
 
+waveid=ephys.get_wave_id(meta.sess,meta.allcid);
+anovameta=ephys.selectivity_anova();
+% dur_waveid_=zeros(size(anovameta.sess));
+dur_all=any(anovameta.anovap(:,[2 4 6 7])<0.05,2);
 
+nnz(waveid>0 & waveid<5)
+nnz(dur_all)
 
+nnz(waveid>0 & waveid<5 & dur_all)
