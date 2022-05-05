@@ -2,7 +2,7 @@ function psth=raster(fidx,suids,prefsamp,opt)
 arguments
     fidx (1,1) double {mustBeInteger}
     suids
-    prefsamp
+    prefsamp (1,1) double {mustBeMember(prefsamp,[4 8])}
     opt.tsel (1,3) double {mustBeInteger}
 end
 ephys.util.dependency('buz',false);

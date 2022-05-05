@@ -93,10 +93,19 @@ end
 
 
 
+dur_waveid=dur_meta.wave_id;
+nnz(ismember(sens_waveid,1:4))
+nnz(ismember(dur_waveid,1:4))
+nnz(ismember(sens_waveid,1:4) & ismember(dur_waveid,1:4))
 
+nnz(ismember(sens_waveid,5:6) & ismember(dur_waveid,5:6))
 
+nnz(ismember(sens_waveid,1:4) & ismember(dur_waveid,5:6))
 
+nnz(ismember(sens_waveid,5:6) & ismember(dur_waveid,1:4))
 
+histogram(dur_waveid(ismember(sens_waveid,1:4)),-0.5:6.5)
+histogram(sens_waveid(ismember(dur_waveid,1:4)),-0.5:6.5)
 
 %% RANKSUM2
 close all
@@ -152,3 +161,4 @@ end
 
 
 
+            exportgraphics(gcf(),'collections.pdf','ContentType','vector','Append',true)

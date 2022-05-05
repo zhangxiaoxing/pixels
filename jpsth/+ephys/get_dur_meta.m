@@ -71,23 +71,18 @@ for i=1:size(selec,1)
     else
         ssign=sign(selec(i,sel_bin+1));
         if all(ssign>=0) || all(ssign<=0) % non-switched
-            if nnz(ssign)==3  % sustained
-                if ssign(1)==1
-                    mem_type(i)=1;
-                    per_bin(i,:)=1;
-                else
-                    mem_type(i)=3;
-                    per_bin(i,:)=2;
-                end
-            else % transient
-                per_bin(i,:)=0;
-                if any(ssign==1)
-                    mem_type(i)=2;
-                    per_bin(i,sel_bin)=1;
-                else
-                    mem_type(i)=4;
-                    per_bin(i,sel_bin)=2;
-                end
+            per_bin(i,:)=0;
+            if any(ssign==0,'all')  % transient
+                m_types=[2,4];
+            else % sustained
+                m_types=[1,3];
+            end
+            if any(ssign>0) %favor d6, sust=1,transient=2
+                mem_type(i)=m_types(1);
+                per_bin(i,sel_bin)=1;
+            else    %favor d3, sust=3, transient=4
+                mem_type(i)=mem_type(2);
+                per_bin(i,sel_bin)=2;
             end
         else %switched
             mem_type(i)=-1;
@@ -100,10 +95,10 @@ end
 function wave_id=get_wave_id(mem_type_s1,mem_type_s2)
 wave_id=zeros(size(mem_type_s1))-1;
 wave_id(mem_type_s1==0 & mem_type_s2==0)=0;
-wave_id(ismember(mem_type_s1,1:2) & mem_type_s2==0)=1;
-wave_id(ismember(mem_type_s1,3:4) & mem_type_s2==0)=2;
-wave_id(ismember(mem_type_s2,1:2) & mem_type_s1==0)=3;
-wave_id(ismember(mem_type_s2,3:4) & mem_type_s1==0)=4;
-wave_id(ismember(mem_type_s1,1:2) & ismember(mem_type_s2,1:2))=5;
-wave_id(ismember(mem_type_s1,3:4) & ismember(mem_type_s2,3:4))=6;
+wave_id(ismember(mem_type_s1,1:2) & mem_type_s2==0)=1; %s1d6 s2/
+wave_id(ismember(mem_type_s1,3:4) & mem_type_s2==0)=2; %s1d3 s2/
+wave_id(ismember(mem_type_s2,1:2) & mem_type_s1==0)=3; %s2d6 s1/
+wave_id(ismember(mem_type_s2,3:4) & mem_type_s1==0)=4; %s2d3 s1/
+wave_id(ismember(mem_type_s1,1:2) & ismember(mem_type_s2,1:2))=5; %s1s2 d6
+wave_id(ismember(mem_type_s1,3:4) & ismember(mem_type_s2,3:4))=6; %s1s2 d3
 end

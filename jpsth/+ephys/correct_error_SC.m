@@ -1,7 +1,7 @@
 type ='Transient';
 set(groot,'defaultTextFontSize',10);
 meta=ephys.util.load_meta();
-cadidate=find(meta.per_bin(6,:)==1 & cellfun(@(x) ~isempty(x),meta.reg_tree(5,:)) & strcmp(meta.reg_tree(2,:),'CTX') & ismember(meta.mem_type,2:2:4) & meta.good_waveform.' & abs(meta.selec(10,:))>0.2 & meta.wrs_p(10,:)<0.01);
+% cadidate=find(meta.per_bin_6(6,:)==1 & cellfun(@(x) ~isempty(x),meta.reg_tree(5,:)) & strcmp(meta.reg_tree(2,:),'CTX') & ismember(meta.mem_type_6,2:2:4) & meta.good_waveform.' & abs(meta.selec(10,:))>0.2 & meta.wrs_p(10,:)<0.01);
 homedir=ephys.util.getHomedir('type','raw');
 for ii=26328%[3993,16071,16763,26328]%18030,14337,26179
     fpath=fullfile(homedir,meta.allpath{ii},'FR_All_ 250.hdf5');

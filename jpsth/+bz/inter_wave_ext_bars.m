@@ -72,9 +72,11 @@ for cnt_idx=1:3
         end
     end
 end
-
+fh.tbl_witin_grp=uifigure('Color','w','Position',[32,32,600,900]);
+uitable(fh.tbl_witin_grp,'Data',table(pratio.sens_sel_v_nm),'Position',[16,616,480,200],'ColumnName',{'sens'})
+uitable(fh.tbl_witin_grp,'Data',table(pratio.dur_sel_v_nm),'Position',[16,316,480,200],'ColumnName',{'dur'})
+uitable(fh.tbl_witin_grp,'Data',table(pratio.mix_sel_v_nm),'Position',[16,16,480,200],'ColumnName',{'mix'})
 %%
-
 
 mms={mm_nonmem,mm_sens_only,mm_dur_only,mm_both};
 cis={ci_nonmem,ci_sens_only,ci_dur_only,ci_both};

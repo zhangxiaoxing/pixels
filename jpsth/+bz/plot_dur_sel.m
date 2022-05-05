@@ -147,7 +147,7 @@ ylabel('Baseline FR (Hz)')
 % set(gca,'XTick',192:10:240,'XTickLabel',0:10:60)
 sgtitle(num2str([pi,ii,se,su]))
 keyboard()
-exportgraphics(fh,'dur_sel_SC.pdf','ContentType','vector');
+% exportgraphics(fh,'dur_sel_SC.pdf','ContentType','vector');
 % exportgraphics(fh,fullfile('SC',sprintf('dur_sel_SC_ITI_%d.png',pi)),'ContentType','image');
 %  exportgraphics(fh,fullfile('SC',sprintf('dur_sel_SC_%d.png',pi)),'ContentType','image');
 % waitfor(fh)
