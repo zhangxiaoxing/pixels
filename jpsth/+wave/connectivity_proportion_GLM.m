@@ -8,13 +8,15 @@ arguments
     opt.plot2 (1,1) logical =false;
     opt.corr3 (1,1) logical =false;
     opt.plot3 (1,1) logical =false;
+    opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
+
 end
 
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
 % For duration, from: K:\code\jpsth\+ephys\duration_reg_bars.m
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-grey_regs=ephys.getGreyRegs();
+grey_regs=ephys.getGreyRegs('range',opt.range);
 
 sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
 src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');

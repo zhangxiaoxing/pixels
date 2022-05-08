@@ -1,9 +1,11 @@
 function [map_cells,fh]=Both_either_reg_bars(opt)
 arguments
     opt.skip_plot (1,1) logical = false % return map_cell data for GLM etc.
-    opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'ANOVA2','ANOVA3','RANKSUM','RANKSUM2'})} = 'ANOVA2'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
+    opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'ANOVA2','ANOVA3','RANKSUM','RANKSUM2','SINGLE_MIX'})} = 'ANOVA2'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
     opt.waveid
     opt.meta
+    opt.single_field (1,:) char {mustBeMember(opt.single_field,{'sens','dur','time_bin'})}='sens'
+
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -19,7 +21,8 @@ sums=[];
 
 match_ranksum=(contains(opt.stats_model,'RANKSUM') && isfield(opt,'waveid') && ~isempty(opt.waveid));
 match_ANOVA2=(strcmp(opt.stats_model,'ANOVA2') && isfield(opt,'meta') && ~isempty(opt.meta));
-assert(match_ranksum || match_ANOVA2, 'Unmatch stats and data');
+match_singlemix=(strcmp(opt.stats_model,'SINGLE_MIX') && isfield(opt,'meta') && ~isempty(opt.meta));
+assert(match_ranksum || match_ANOVA2 || match_singlemix, 'Unmatch stats and data');
 
 
 for reg=reshape(ureg,1,[])
@@ -29,21 +32,28 @@ for reg=reshape(ureg,1,[])
     switch opt.stats_model
         case 'RANKSUM'
             waveid=opt.waveid;
-            context_independent_cnt=nnz(regsel & waveid>4);
-            context_depdent_cnt=nnz(regsel &waveid>0 & waveid<5);
-
+            ctxt_indi_maineffect_single_cnt=nnz(regsel & waveid>4);
+            ctxt_depd_interact_mix_cnt=nnz(regsel &waveid>0 & waveid<5);
+            legends={'Context indepedent','Context dependent'};
         case 'RANKSUM2'
             waveid=opt.waveid;
-            context_independent_cnt=nnz(regsel & waveid==1);
-            context_depdent_cnt=nnz(regsel & waveid==2);
-
+            ctxt_indi_maineffect_single_cnt=nnz(regsel & waveid==1);
+            ctxt_depd_interact_mix_cnt=nnz(regsel & waveid==2);
+            legends={'Context indepedent','Context dependent'};
         case 'ANOVA2'
             anovameta=opt.meta;
-            context_depdent_cnt=nnz(regsel & anovameta.mixed);
-            context_independent_cnt=nnz(regsel & anovameta.sens_only);
+            ctxt_indi_maineffect_single_cnt=nnz(regsel & anovameta.(opt.single_field));
+            ctxt_depd_interact_mix_cnt=nnz(regsel & anovameta.interact);
+            legends={'Maineffect','Interaction'};
+        case 'SINGLE_MIX'
+            singlemix_meta=opt.meta;
+            ctxt_indi_maineffect_single_cnt=nnz(regsel & (singlemix_meta.single1 | singlemix_meta.single2) & ~(singlemix_meta.single1 & singlemix_meta.single2));
+            ctxt_depd_interact_mix_cnt=nnz(regsel & (singlemix_meta.single1 & singlemix_meta.single2));
+            legends={'Single modality','mixed modality'};
+            
     end
     grp=idmap.reg2tree(reg{1});
-    sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,context_independent_cnt,context_depdent_cnt];
+    sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,ctxt_indi_maineffect_single_cnt,ctxt_depd_interact_mix_cnt];
     %====================1=========================2============3=========4=======================5========
 end
 
@@ -84,8 +94,8 @@ for ll=1:size(bardata,1)
     scatter(bardata(ll,6),bardata(ll,9),4,c,'filled','o')
     text(bardata(ll,6),bardata(ll,9),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
 end
-xlabel('Cross context')
-ylabel('Within context')
+xlabel(legends{1})
+ylabel(legends{2})
 set(gca,'XScale','log','YScale','log')
 [r,p]=corr(bardata(:,6),bardata(:,9));
 title(sprintf(' r = %.3f, p = %.3f',r,p));
@@ -105,5 +115,6 @@ set(gca(),'YScale','Log')
 ylim([0.005,0.5])
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
 exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
+legend(bh,legends,'Location','northoutside','Orientation','horizontal');
 cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false)
 end

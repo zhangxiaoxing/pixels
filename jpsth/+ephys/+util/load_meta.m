@@ -4,6 +4,7 @@ function out=load_meta(opt)
 arguments
 %     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.n_bin (1,1) double {mustBeInteger,mustBePositive} = 3
 end
 persistent opt_ out_
 

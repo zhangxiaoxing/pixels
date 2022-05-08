@@ -1,11 +1,11 @@
-function fh=inter_wave_ext_bars(anovameta)
+function fh=inter_wave_ext_bars(meta_input)
 
 [sig,pair]=bz.load_sig_pair('pair',true);
 
 meta=ephys.util.load_meta();
 % [dur_sense_mix,dur_exclu,~,sens_exclu]=ephys.get_dul_sel();
 % waveid=zeros(size(dur_sense_mix))+4.*dur_sense_mix+2.*dur_exclu+sens_exclu;
-waveid=zeros(size(anovameta.sens_only))+4.*anovameta.sens_only+2.*anovameta.dur_only+anovameta.mixed;
+waveid=zeros(size(meta_input.sens_only))+4.*meta_input.sens_only+2.*meta_input.dur_only+meta_input.mixed;
 
 for usess=reshape(unique(meta.sess),1,[])
     asel=meta.sess==usess;
@@ -72,10 +72,10 @@ for cnt_idx=1:3
         end
     end
 end
-fh.tbl_witin_grp=uifigure('Color','w','Position',[32,32,600,900]);
-uitable(fh.tbl_witin_grp,'Data',table(pratio.sens_sel_v_nm),'Position',[16,616,480,200],'ColumnName',{'sens'})
-uitable(fh.tbl_witin_grp,'Data',table(pratio.dur_sel_v_nm),'Position',[16,316,480,200],'ColumnName',{'dur'})
-uitable(fh.tbl_witin_grp,'Data',table(pratio.mix_sel_v_nm),'Position',[16,16,480,200],'ColumnName',{'mix'})
+fh.tbl_witin_grp=uifigure('Color','w','Position',[32,32,250,300]);
+uitable(fh.tbl_witin_grp,'Data',table(pratio.sens_sel_v_nm),'Position',[1,201,248,98],'ColumnName',{'sens'})
+uitable(fh.tbl_witin_grp,'Data',table(pratio.dur_sel_v_nm),'Position',[1,101,248,98],'ColumnName',{'dur'})
+uitable(fh.tbl_witin_grp,'Data',table(pratio.mix_sel_v_nm),'Position',[1,1,248,98],'ColumnName',{'mix'})
 %%
 
 mms={mm_nonmem,mm_sens_only,mm_dur_only,mm_both};
@@ -185,5 +185,31 @@ for ii=1:4
     title(fns{ii});
 end
 exportgraphics(fh.single_mix_ratio,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+
+%% stats
+% sel vs nonmem
+ds={cnt_dur2both,cnt_both2dur,cnt_sens2both,cnt_both2sens};
+[pratio.dur2both,pratio.both2dur,pratio.sens2both,pration.both2sens]=deal(nan(3,3));
+ps={'dur2both','both2dur','sens2both','both2sens'};
+
+for cnt_idx=1:4
+    for from_idx=1:3
+        for to_idx=1:3
+            nm_d=cnt_nonmem(from_idx,to_idx,:);
+            sel_d=ds{cnt_idx}(from_idx,to_idx,:);
+            [~,~,p]=crosstab([zeros(1,nm_d(2)),ones(1,sel_d(2))],[1:nm_d(2)>nm_d(1),1:sel_d(2)>sel_d(1)]);
+%             disp([from_idx,to_idx,p]);
+            pratio.(ps{cnt_idx})(from_idx,to_idx)=p;
+        end
+    end
+end
+fh.tbl_single_mix=uifigure('Color','w','Position',[32,32,250,400]);
+uitable(fh.tbl_single_mix,'Data',table(pratio.sens_sel_v_nm),'Position',[1,301,248,98],'ColumnName',{'dur2both'})
+uitable(fh.tbl_single_mix,'Data',table(pratio.sens_sel_v_nm),'Position',[1,201,248,98],'ColumnName',{'both2dur'})
+uitable(fh.tbl_single_mix,'Data',table(pratio.dur_sel_v_nm),'Position',[1,101,248,98],'ColumnName',{'sens2both'})
+uitable(fh.tbl_single_mix,'Data',table(pratio.mix_sel_v_nm),'Position',[1,1,248,98],'ColumnName',{'both2sens'})
+%%
+exportgraphics(fh.tbl_single_mix,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+
 end
 

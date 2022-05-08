@@ -8,10 +8,14 @@ if isempty(out)
         out.mem_type_s1,out.per_bin_s1,out.mem_type_s2,out.per_bin_s2,out.wave_id]=deal([]);
     for sessid=sesskeys
         disp(sessid);
+        if false
+            fpath=fullfile(homedir,sessmap(sessid),"FR_All_ 250.hdf5");
+            fr25=h5read(fpath,'/FR_All');
+        end
         fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
         fr=h5read(fpath,'/FR_All');
         trials=h5read(fpath,'/Trials');
-        %     suid=h5read(fpath,'/SU_id');
+        suid=h5read(fpath,'/SU_id');
         c6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
         c3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
 
@@ -20,8 +24,17 @@ if isempty(out)
 
         [wrs_p_s1,wrs_p_s2,fdr_s1,fdr_s2,selec_s1,selec_s2]=deal(nan(size(fr,2),4));
         for suidx=1:size(fr,2)
-            wrs_p_s1(suidx,:)=arrayfun(@(x) ranksum(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
-            wrs_p_s2(suidx,:)=arrayfun(@(x) ranksum(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+%             if false
+%                 disp(arrayfun(@(x) ranksum(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7));
+%                 [mean(fr(cS2sel & c3sel,suidx,7)),mean(fr(cS2sel & c6sel,suidx,7))]
+%                 [squeeze(mean(fr25(cS2sel & c3sel,suidx,25:28))),squeeze(mean(fr25(cS2sel & c6sel,suidx,25:28)))]
+%             end
+%             wrs_p_s1(suidx,:)=arrayfun(@(x) ranksum(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
+%             wrs_p_s2(suidx,:)=arrayfun(@(x) ranksum(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+
+            wrs_p_s1(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x),100),4:7);
+            wrs_p_s2(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x),100),4:7);
+
             fdr_s1(suidx,:)=mafdr(wrs_p_s1(suidx,:),'BHFDR',true);
             fdr_s2(suidx,:)=mafdr(wrs_p_s2(suidx,:),'BHFDR',true);
             selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
@@ -72,16 +85,16 @@ for i=1:size(selec,1)
         ssign=sign(selec(i,sel_bin+1));
         if all(ssign>=0) || all(ssign<=0) % non-switched
             per_bin(i,:)=0;
-            if any(ssign==0,'all')  % transient
-                m_types=[2,4];
-            else % sustained
+            if numel(sel_bin)==3  %sust, TODO replace magic number 
                 m_types=[1,3];
+            else % transient
+                m_types=[2,4];
             end
             if any(ssign>0) %favor d6, sust=1,transient=2
                 mem_type(i)=m_types(1);
                 per_bin(i,sel_bin)=1;
             else    %favor d3, sust=3, transient=4
-                mem_type(i)=mem_type(2);
+                mem_type(i)=m_types(2);
                 per_bin(i,sel_bin)=2;
             end
         else %switched
