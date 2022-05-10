@@ -9,6 +9,8 @@ arguments
     opt.corr3 (1,1) logical =false;
     opt.plot3 (1,1) logical =false;
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
+    opt.stats_type (1,:) char
+    opt.data_type (1,:) char
 
 end
 
@@ -85,7 +87,9 @@ for featii=1:2 % both, either
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
             xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
 
-            fh.(sprintf('bar1_feat%d',featii))=figure('Color','w','Position',[32,32,215,225]);
+            fh.(sprintf('feat%d',featii))=figure('Color','w','Position',[32,32,650,320]);
+            tiledlayout(1,6);
+            nexttile(4,[1,2])
             hold on
             %                 bhto=bar(find(s_list(:,4)==1),s_list(s_list(:,4)==1,7),0.6,'white');
             %                 bhfrom=bar(find(s_list(:,4)==2),s_list(s_list(:,4)==2,7),0.6,'black');
@@ -99,7 +103,7 @@ for featii=1:2 % both, either
             %                 legend([bhto,bhfrom],{'Connectivity to this region','Connectivity from this region'})
 %             exportgraphics(fh.bar1,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
 
-            fh.(sprintf('corr1_feat%d',featii))=figure('Color','w','Position',[32,32,320,320]);
+            nexttile(1,[1,3])
             hold on
             glmidx=find(glmxmeta(:,1)==s_list(1,4) & glmxmeta(:,2)==s_list(1,5));
             for ll=1:numel(feat_prop)
@@ -111,6 +115,17 @@ for featii=1:2 % both, either
             ylabel('Proportion of encoding neuron')
             set(gca,'XScale','log','YScale','log')
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
+            th=nexttile(6);
+            tbl=cell(0);
+            if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
+                tbl=[tbl;'Stats';opt.stats_type];
+            end
+            if isfield(opt,'data_type') && ~isempty(opt.data_type)
+                tbl=[tbl;'Data';opt.data_type];
+            end
+            tbl=[tbl;'Range';opt.range];
+            ephys.util.figtable(gcf(),th,tbl)
+%             title('x')
             % xlim([0.15,0.5])
             % ylim([0.15,0.5])
 %             exportgraphics(fh.corr1,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')

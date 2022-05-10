@@ -5,12 +5,15 @@ arguments
     opt.waveid
     opt.meta
     opt.single_field (1,:) char {mustBeMember(opt.single_field,{'sens','dur','time_bin'})}='sens'
+    opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
+    opt.stats_type (1,:) char;
+    opt.data_type (1,:) char;
 
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 meta=ephys.util.load_meta();
-ureg=ephys.getGreyRegs();
+ureg=ephys.getGreyRegs('range',opt.range);
 sums=[];
 % switch opt.stats_model
 %     case 'RANKSUM'
@@ -86,7 +89,9 @@ if opt.skip_plot
 end
 
 %===============================================================
-fh.corr=figure('Color','w','Position',[32,32,320,320]);
+fh=figure('Color','w','Position',[32,32,1280,320]);
+th=tiledlayout(1,4);
+nexttile(1);
 hold on
 
 for ll=1:size(bardata,1)
@@ -104,7 +109,7 @@ title(sprintf(' r = %.3f, p = %.3f',r,p));
 %======================
 
 
-fh.reg_bar=figure('Color','w');
+nexttile(2,[1,2]);
 hold on
 bh=bar(bardata(:,[6,9]),1,'grouped');
 errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,6:7),1,2),diff(bardata(:,[6,8]),1,2),'k.');
@@ -112,9 +117,19 @@ errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,9:10),1,2),diff(bardat
 bh(1).FaceColor='k';% independent
 bh(2).FaceColor='w';% dependent
 set(gca(),'YScale','Log')
-ylim([0.005,0.5])
+% ylim([0.005,0.5])
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
-exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
+% exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
 legend(bh,legends,'Location','northoutside','Orientation','horizontal');
 cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false)
+%%
+th=nexttile(4);
+tbl=cell(0);
+if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
+    tbl=[tbl;'Stats';opt.stats_type];
 end
+if isfield(opt,'data_type') && ~isempty(opt.data_type)
+    tbl=[tbl;'Data';opt.data_type];
+end
+tbl=[tbl;'Range';opt.range];
+ephys.util.figtable(fh,th,tbl)
