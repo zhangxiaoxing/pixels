@@ -1,4 +1,4 @@
-function [map_cells,fh]=Both_either_reg_bars(opt)
+function [map_cells,fh]=Both_either_reg_bars(opt) %TODO refactoring function name
 arguments
     opt.skip_plot (1,1) logical = false % return map_cell data for GLM etc.
     opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'ANOVA2','ANOVA3','RANKSUM','RANKSUM2','SINGLE_MIX'})} = 'ANOVA2'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
@@ -77,7 +77,13 @@ regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
 
 context_indi_map=containers.Map(regstr,num2cell(bardata(:,[6,4,3]),2));
 context_dep_map=containers.Map(regstr,num2cell(bardata(:,[9,5,3]),2));
-map_cells={context_indi_map,context_dep_map};
+
+summat=[bardata(:,3),bardata(:,4)+bardata(:,5),bardata(:,[3,3,3])];
+for ii=1:size(summat,1)
+    [summat(ii,1),summat(ii,4:5)]=binofit(summat(ii,2),summat(ii,3));
+end
+sum_map=containers.Map(regstr,num2cell(summat(:,1:3),2));
+map_cells={context_indi_map,context_dep_map,sum_map};
 if false % one-time export for 3d heatmap in brainrender
     for ii=1:numel(regstr)
         fprintf('[''%s'',%.3f,%.3f],\n',regstr{ii},bardata(ii,6),bardata(ii,9))
@@ -89,8 +95,8 @@ if opt.skip_plot
 end
 
 %===============================================================
-fh=figure('Color','w','Position',[32,32,1280,320]);
-th=tiledlayout(1,4);
+fh=figure('Color','w','Position',[32,32,1280,640]);
+th=tiledlayout(2,4);
 nexttile(1);
 hold on
 
@@ -121,8 +127,18 @@ set(gca(),'YScale','Log')
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
 % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
 legend(bh,legends,'Location','northoutside','Orientation','horizontal');
-cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false)
-%%
+% cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false);
+%%------------------------
+nexttile(6,[1,2]);
+hold on
+[~,sidx]=sort(summat(:,1),'descend');
+bh=bar(summat(sidx,1),'FaceColor',ones(1,3)/2);
+errorbar(bh.XEndPoints,bh.YEndPoints,diff(summat(sidx,[1,4]),1,2),diff(summat(sidx,[1,5]),1,2),'k.');
+set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90)
+legend(bh,{'Total'},'Location','northeast','Orientation','horizontal');
+
+
+%%======================
 th=nexttile(4);
 tbl=cell(0);
 if isfield(opt,'stats_type') && ~isempty(opt.stats_type)

@@ -224,7 +224,7 @@ dur_GLM_fhctx=wave.connectivity_proportion_GLM(dur_map_cells,'range','CTX','data
 
 % dur_reg_bar_fh.reg_bar.Children(2).YLim=[0.0001,0.5];
 
-dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{2},sens_map_cells{1});
+dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{3},sens_map_cells{3});
 
 single_mix_meta.single1=sens_meta.wave_id>0;
 single_mix_meta.single2=dur_meta.wave_id>0;

@@ -1,6 +1,12 @@
-function fh=sens_dur_corr(dur_only_map,sens_only_map)
+function fh=sens_dur_corr(dur_only_map,sens_only_map,opt)
+arguments
+    dur_only_map
+    sens_only_map
+    opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
+end
+grey_regs=ephys.getGreyRegs('range',opt.range);
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-ureg=intersect(dur_only_map.keys(),sens_only_map.keys());
+ureg=intersect(intersect(dur_only_map.keys(),sens_only_map.keys()),grey_regs);
 
 % dur_only_map K:\code\jpsth\+ephys\duration_reg_bars.m
 % sens_only_map K:\code\jpsth\+ephys\Both_either_reg_bars.m

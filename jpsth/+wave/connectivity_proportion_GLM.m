@@ -1,6 +1,6 @@
 function fh=connectivity_proportion_GLM(map_cells,opt)
 arguments
-    map_cells (1,2) cell
+    map_cells (1,:) cell
     opt.skip_efferent (1,1) logical = true
     opt.corr1 (1,1) logical =true;
     opt.plot1 (1,1) logical =true;
@@ -32,10 +32,10 @@ intersect_regs=intersect(allen_src_regs,grey_regs);
 
 
 %% -> feature_region_map entry point
-one_reg_corr_list=[];
-two_reg_corr_list=[];
 epochii=1;
-for featii=1:2 % both, either
+for featii=1:3 % both, either, summed
+    one_reg_corr_list=[];
+    two_reg_corr_list=[];
     idx4corr=cell2mat(src_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
     feat_reg_map=map_cells{epochii,featii}; %
 
