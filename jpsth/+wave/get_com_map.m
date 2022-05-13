@@ -1,20 +1,22 @@
-function com_str_=get_com_map(sel_meta,opt)
+function com_str_=get_com_map(opt)
 arguments
-    sel_meta  (1,1) struct
+    opt.sel_meta  (1,1) struct
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
-    opt.cell_type (1,:) char {mustBeMember(opt.cell_type,{'any_s1','any_s2','any_nonmem','grey_sel'})} = 'grey_sel' % select (sub) populations
+    opt.cell_type (1,:) char {mustBeMember(opt.cell_type,{'any_s1','any_s2','grey_sel'})} = 'grey_sel' % select (sub) populations
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.wave (1,:) char {mustBeMember(opt.wave,{'both','only3','only6','any3','any6','any'})}  % su of wave
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} % DPA delay duration
     opt.plot_COM_scheme (1,1) logical = false % for TCOM illustration
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
-    opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'ANOVA2','ANOVA3','RANKSUM','RANKSUM2'})} = 'ANOVA2'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
+    opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'ANOVA2','ANOVA3','RANKSUM','RANKSUM2'})} = 'RANKSUM'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
 
 end
 persistent com_str opt_
+wrs_stats=strcmp(opt.stats_model,'RANKSUM') & isfield(opt,'sel_meta') & isfield(opt.sel_meta,'wave_id');
+assert(wrs_stats);
 
 if true || isempty(com_str) || ~isequaln(opt,opt_)
     meta=ephys.util.load_meta();
@@ -25,7 +27,7 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
 
     %% RANKSUM
     if strcmp(opt.stats_model,'RANKSUM')
-        waveid=ephys.get_wave_id(meta.sess,meta.allcid);
+        waveid=opt.sel_meta.wave_id;
         % 3onlyS1:1,3onlyS2:2,6onlyS1:3,6onlyS2:4,bothS1:5,bothS2:6,nonmem:0,switch,etc:-1,
         switch opt.wave
             case 'both' %both 3 and 6s
@@ -87,9 +89,6 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
                 case 'any_s2'
                     mcid1=[];
                     mcid2=meta.allcid(ismember(waveid,s2ids) & sesssel);
-                case 'any_nonmem'
-                    mcid1=meta.allcid(waveid==0 & sesssel);
-                    mcid2=[];
                 case 'grey_sel'
                     mcid1=meta.allcid(ismember(waveid,s1ids) & sesssel & ismember(meta.reg_tree(1,:),{'CH','BS'}).');
                     mcid2=meta.allcid(ismember(waveid,s2ids) & sesssel & ismember(meta.reg_tree(1,:),{'CH','BS'}).');
@@ -109,6 +108,7 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
             end
         end
         sessid=ephys.path2sessid(pc_stem);
+        %% TODO Needs to handle duration groups
         s1sel=find(trials(:,5)==4 & trials(:,8)==opt.delay & trials(:,9)>0 & trials(:,10)>0);
         s2sel=find(trials(:,5)==8 & trials(:,8)==opt.delay & trials(:,9)>0 & trials(:,10)>0);
 

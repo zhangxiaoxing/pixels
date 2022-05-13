@@ -1,9 +1,10 @@
-function com_str_=get_dur_com_map(opt)
+function com_str_=get_dur_com_map(dur_meta,opt)
 arguments
+    dur_meta
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
-    opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'any','dur_only'})} = 'dur_only'
+    opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'any','dur_only','dur'})} = 'dur'
     opt.reg_type (1,:) char {mustBeMember(opt.reg_type,{'grey','CH','CTX','CNU','BS'})} = 'grey'
 end
 persistent com_str opt_
@@ -11,10 +12,9 @@ persistent com_str opt_
 if true || isempty(com_str) || ~isequaln(opt,opt_)
 
     homedir=ephys.util.getHomedir('type','raw');
-    anovameta=ephys.selectivity_anova();
-    meta=ephys.util.load_meta();
+    meta=ephys.util.load_meta('skip_stats',true);
     com_str=struct();
-    usess=unique(anovameta.sess);
+    usess=unique(meta.sess);
 
     switch opt.reg_type
         case 'grey'
@@ -22,17 +22,14 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
     end
 
     switch opt.sel_type
-        case 'dur_only'
-            [dur_mix,dur_exclu,dur_waveid]=ephys.get_dul_sel();
-            d3_su_sel=dur_waveid==3;
-            d6_su_sel=dur_waveid==6;
-            
+        case 'dur'
+            d3_su_sel=ismember(dur_meta.wave_id,[1 3 5]);
+            d6_su_sel=ismember(dur_meta.wave_id,[2 4 6]);
     end
     
     for sessid=reshape(usess,1,[])
-        sesssel=anovameta.sess==sessid;
+        sesssel=meta.sess==sessid;
         if ~any(sesssel), continue;end
-
         if strlength(opt.onepath)==0
             fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
         else
@@ -47,8 +44,8 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
 
-        mcid1=anovameta.allcid(d3_su_sel & sesssel & regsel);
-        mcid2=anovameta.allcid(d6_su_sel & sesssel & regsel);
+        mcid1=meta.allcid(d3_su_sel & sesssel & regsel);
+        mcid2=meta.allcid(d6_su_sel & sesssel & regsel);
 
         msel1=find(ismember(suid,mcid1));
         msel2=find(ismember(suid,mcid2));

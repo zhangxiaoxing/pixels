@@ -1,16 +1,12 @@
 function fh=inter_wave_ext_bars(meta_input)
-
 [sig,pair]=bz.load_sig_pair('pair',true);
 
 meta=ephys.util.load_meta();
-% [dur_sense_mix,dur_exclu,~,sens_exclu]=ephys.get_dul_sel();
-% waveid=zeros(size(dur_sense_mix))+4.*dur_sense_mix+2.*dur_exclu+sens_exclu;
-waveid=zeros(size(meta_input.sens_only))+4.*meta_input.sens_only+2.*meta_input.dur_only+meta_input.mixed;
+waveid=zeros(size(meta_input.sens_only))+meta_input.sens_only+2.*meta_input.dur_only+4*meta_input.mixed;
 
 for usess=reshape(unique(meta.sess),1,[])
     asel=meta.sess==usess;
     ssel=sig.sess==usess;
-    %TODO: update wave component id with dur_sel routine
     [~,loc]=ismember(sig.suid(ssel,:),int32(meta.allcid(asel)));
     sig.wave_id(ssel,:)=subsref(waveid(asel),struct(type='()',subs={{loc}}));
 
@@ -30,18 +26,17 @@ BSt_sel_pair=squeeze(pair.reg(:,1,:)==idmap.reg2ccfid('BS'));
 
 
 reg_cell={CTX_sel_sig,CTX_sel_pair;CNU_sel_sig,CNU_sel_pair;BSt_sel_sig,BSt_sel_pair};
-% ttl={'Different region','Same region','Overall'};
 %%
 [cnt_both,cnt_dur_only,cnt_sens_only,cnt_nonmem,cnt_ovall,ci_both,ci_dur_only,ci_sens_only,ci_nonmem,ci_ovall]=deal(nan(3,3,2));
 [mm_both,mm_dur_only,mm_sens_only,mm_nonmem,mm_ovall]=deal(nan(3,3));
 for from_idx=1:3
     for to_idx=1:3
-        cnt_both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==4,2))),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==4,2)))];
-        cnt_dur_only(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==2,2))),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==2,2)))];
-        cnt_sens_only(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==1,2))),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==1,2)))];
+        cnt_both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==4 | sig.wave_id==7,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==4 | pair.wave_id==7,2)))];
+        cnt_dur_only(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==2 | sig.wave_id==7,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==2 | pair.wave_id==7,2)))];
+        cnt_sens_only(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==1 | sig.wave_id==7,2))),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==1 | pair.wave_id==7,2)))];
         cnt_nonmem(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & (all(sig.wave_id==0,2))),...
             nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & (all(pair.wave_id==0,2)))];
         cnt_ovall(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2)),...
@@ -72,20 +67,26 @@ for cnt_idx=1:3
         end
     end
 end
-fh.tbl_witin_grp=uifigure('Color','w','Position',[32,32,250,300]);
-uitable(fh.tbl_witin_grp,'Data',table(pratio.sens_sel_v_nm),'Position',[1,201,248,98],'ColumnName',{'sens'})
-uitable(fh.tbl_witin_grp,'Data',table(pratio.dur_sel_v_nm),'Position',[1,101,248,98],'ColumnName',{'dur'})
-uitable(fh.tbl_witin_grp,'Data',table(pratio.mix_sel_v_nm),'Position',[1,1,248,98],'ColumnName',{'mix'})
 %%
-
 mms={mm_nonmem,mm_sens_only,mm_dur_only,mm_both};
 cis={ci_nonmem,ci_sens_only,ci_dur_only,ci_both};
 fns={'nonmem','sens','dur','both'};
-fh.congru_FC_rate_raw=figure('Color','w','Position',[100,100,1000,205]);
+
+fh.congru_FC=figure('Color','w','Position',[100,100,1280,500]);
+tiledlayout(2,5)
+%% stats table
+thall=nexttile(5,[2,1]);thall.Visible='off';
+th1.Position=thall.Position;th1.Units=thall.Units;th1.Position(4)=thall.Position(4)/3.1;
+th2=th1;th2.Position(2)=thall.Position(2)+thall.Position(4)*0.33;
+th3=th1;th3.Position(2)=thall.Position(2)+thall.Position(4)*0.67;
+ephys.util.figtable(fh.congru_FC,th1,pratio.mix_sel_v_nm,'title','Mixed')
+ephys.util.figtable(fh.congru_FC,th2,pratio.dur_sel_v_nm,'title','Duration')
+ephys.util.figtable(fh.congru_FC,th3,pratio.sens_sel_v_nm,'title','Sensory')
+%%
 for ii=1:4
     mm_curr=mms{ii};
     ci_curr=cis{ii};
-    subplot(1,4,ii);
+    nexttile(ii);
     hold on
     bh=bar(mm_curr,'grouped');
     errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
@@ -99,12 +100,11 @@ for ii=1:4
     ylabel('Fucntional coupling rate (%)')
     title(fns{ii});
 end
-exportgraphics(fh.congru_FC_rate_raw,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
-fh.congru_FC_ratio=figure('Color','w','Position',[100,100,1000,205]);
+
 for ii=1:4
     mm_curr=mms{ii}./mm_nonmem;
     ci_curr=cis{ii}./ci_nonmem;
-    subplot(1,4,ii);
+    nexttile(5+ii);
     hold on
     bh=bar(mm_curr,'grouped');
     errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
@@ -119,21 +119,21 @@ for ii=1:4
     ylabel('FC rate relative to non-mem')
     title(fns{ii});
 end
-exportgraphics(fh.congru_FC_ratio,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+
 %single modality <-> mixed modality
 %%
 [cnt_dur2both,cnt_both2dur,cnt_sens2both,cnt_both2sens,ci_dur2both,ci_both2dur,ci_sens2both,ci_both2sens]=deal(nan(3,3,2));
 [mm_dur2both,mm_both2dur,mm_sens2both,mm_both2sens]=deal(nan(3,3));
 for from_idx=1:3
     for to_idx=1:3
-        cnt_dur2both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==2 & sig.wave_id(:,2)==4),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==2 & pair.wave_id(:,2)==4)];
-        cnt_both2dur(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==4 & sig.wave_id(:,2)==2),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==4 & pair.wave_id(:,2)==2)];
-        cnt_sens2both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==1 & sig.wave_id(:,2)==4),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==1 & pair.wave_id(:,2)==4)];
-        cnt_both2sens(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==4 & sig.wave_id(:,2)==1),...
-            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==4 & pair.wave_id(:,2)==1)];
+        cnt_dur2both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==2 & sig.wave_id(:,2)==7),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==2 & pair.wave_id(:,2)==7)];
+        cnt_both2dur(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==7 & sig.wave_id(:,2)==2),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==7 & pair.wave_id(:,2)==2)];
+        cnt_sens2both(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==1 & sig.wave_id(:,2)==7),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==1 & pair.wave_id(:,2)==7)];
+        cnt_both2sens(from_idx,to_idx,:)=[nnz(reg_cell{from_idx,1}(:,1) & reg_cell{to_idx,1}(:,2) & sig.wave_id(:,1)==7 & sig.wave_id(:,2)==1),...
+            nnz(reg_cell{from_idx,2}(:,1) & reg_cell{to_idx,2}(:,2) & pair.wave_id(:,1)==7 & pair.wave_id(:,2)==1)];
 
         [mm_dur2both(from_idx,to_idx),ci_dur2both(from_idx,to_idx,:)]=binofit(cnt_dur2both(from_idx,to_idx,1),cnt_dur2both(from_idx,to_idx,2));
         [mm_both2dur(from_idx,to_idx),ci_both2dur(from_idx,to_idx,:)]=binofit(cnt_both2dur(from_idx,to_idx,1),cnt_both2dur(from_idx,to_idx,2));
@@ -145,11 +145,12 @@ end
 mms={mm_dur2both,mm_both2dur,mm_sens2both,mm_both2sens};
 cis={ci_dur2both,ci_both2dur,ci_sens2both,ci_both2sens};
 fns={'dur2both','both2dur','sens2both','both2sens'};
-fh.single_mix_raw=figure('Color','w','Position',[100,100,1000,205]);
+fh.single_mix=figure('Color','w','Position',[100,100,1280,500]);
+tiledlayout(2,5)
 for ii=1:4
     mm_curr=mms{ii};
     ci_curr=cis{ii};
-    subplot(1,4,ii);
+    nexttile(ii);
     hold on
     bh=bar(mm_curr,'grouped');
     errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
@@ -163,13 +164,11 @@ for ii=1:4
     ylabel('Fucntional coupling rate (%)')
     title(fns{ii});
 end
-exportgraphics(fh.single_mix_raw,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
-
-fh.single_mix_ratio=figure('Color','w','Position',[100,100,1000,205]);
+%% ratio
 for ii=1:4
     mm_curr=mms{ii}./mm_nonmem;
     ci_curr=cis{ii}./ci_nonmem;
-    subplot(1,4,ii);
+    nexttile(ii+5);
     hold on
     bh=bar(mm_curr,'grouped');
     errorbar(bh(1).XEndPoints,bh(1).YEndPoints,ci_curr(:,1,1).'-bh(1).YEndPoints,ci_curr(:,1,2).'-bh(1).YEndPoints,'k.');
@@ -184,7 +183,6 @@ for ii=1:4
     ylabel('FC rate relative to non-mem')
     title(fns{ii});
 end
-exportgraphics(fh.single_mix_ratio,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
 
 %% stats
 % sel vs nonmem
@@ -203,13 +201,17 @@ for cnt_idx=1:4
         end
     end
 end
-fh.tbl_single_mix=uifigure('Color','w','Position',[32,32,250,400]);
-uitable(fh.tbl_single_mix,'Data',table(pratio.sens_sel_v_nm),'Position',[1,301,248,98],'ColumnName',{'dur2both'})
-uitable(fh.tbl_single_mix,'Data',table(pratio.sens_sel_v_nm),'Position',[1,201,248,98],'ColumnName',{'both2dur'})
-uitable(fh.tbl_single_mix,'Data',table(pratio.dur_sel_v_nm),'Position',[1,101,248,98],'ColumnName',{'sens2both'})
-uitable(fh.tbl_single_mix,'Data',table(pratio.mix_sel_v_nm),'Position',[1,1,248,98],'ColumnName',{'both2sens'})
-%%
-exportgraphics(fh.tbl_single_mix,'FC_CTX_CNU_BS_raw.pdf','ContentType','vector','Append',true)
+
+%% stats table
+thall=nexttile(5,[2,1]);thall.Visible='off';
+th1.Position=thall.Position;th1.Units=thall.Units;th1.Position(4)=thall.Position(4)/4.1;
+th2=th1;th2.Position(2)=thall.Position(2)+thall.Position(4)*0.25;
+th3=th1;th3.Position(2)=thall.Position(2)+thall.Position(4)*0.5;
+th4=th1;th4.Position(2)=thall.Position(2)+thall.Position(4)*0.75;
+ephys.util.figtable(fh.single_mix,th1,pratio.both2dur,'title','Mix2Dur')
+ephys.util.figtable(fh.single_mix,th2,pratio.dur2both,'title','Dur2Mix')
+ephys.util.figtable(fh.single_mix,th3,pratio.both2sens,'title','Mix2Sens')
+ephys.util.figtable(fh.single_mix,th4,pratio.sens2both,'title','Sens2Mix')
 
 end
 

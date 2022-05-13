@@ -1,4 +1,4 @@
-function fh=connectivity_proportion_GLM(map_cells,opt)
+function [fh,hiermap]=connectivity_proportion_GLM(map_cells,opt)
 arguments
     map_cells (1,:) cell
     opt.skip_efferent (1,1) logical = true
@@ -28,16 +28,18 @@ src_idx_map=containers.Map(src_ccfid,1:numel(src_ccfid)); %{ccfid:proj_dense_mat
 sink_idx_map=containers.Map(sink_ccfid,1:numel(sink_ccfid)); %{ccfid:proj_dense_mat_idx}
 
 allen_src_regs=cellfun(@(x) x{1},idmap.ccfid2reg.values(num2cell(src_ccfid)),'UniformOutput',false);
-intersect_regs=intersect(allen_src_regs,grey_regs);
+map_regs=intersect(allen_src_regs,grey_regs);
+
 
 
 %% -> feature_region_map entry point
 epochii=1;
-for featii=1:3 % both, either, summed
+for featii=1:numel(map_cells) % both, either, summed
     one_reg_corr_list=[];
     two_reg_corr_list=[];
+    feat_reg_map=map_cells{epochii,featii};
+    intersect_regs=intersect(map_regs,feat_reg_map.keys());
     idx4corr=cell2mat(src_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
-    feat_reg_map=map_cells{epochii,featii}; %
 
     feat_prop_cell=feat_reg_map.values(intersect_regs);
     feat_prop=cellfun(@(x) x(1),feat_prop_cell);

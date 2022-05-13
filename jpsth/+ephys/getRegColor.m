@@ -8,7 +8,6 @@ if isempty(idmap)
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 end
 if opt.large_area
-
     if any(strcmp(idmap.reg2tree(reg),'PAL'))
        c=[255,0,255]./255;
     elseif any(strcmp(idmap.reg2tree(reg),'MB'))
