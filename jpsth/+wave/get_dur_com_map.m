@@ -5,7 +5,7 @@ arguments
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
     opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'any','dur_only','dur'})} = 'dur'
-    opt.reg_type (1,:) char {mustBeMember(opt.reg_type,{'grey','CH','CTX','CNU','BS'})} = 'grey'
+    opt.range (1,:) char {mustBeMember(opt.range,{'CH','CTX','grey'})} = 'grey'
 end
 persistent com_str opt_
 
@@ -16,7 +16,7 @@ if true || isempty(com_str) || ~isequaln(opt,opt_)
     com_str=struct();
     usess=unique(meta.sess);
 
-    switch opt.reg_type
+    switch opt.range
         case 'grey'
             regsel=ismember(meta.reg_tree(1,:),{'CH','BS'}).';
     end

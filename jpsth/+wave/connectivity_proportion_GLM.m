@@ -89,8 +89,8 @@ for featii=1:numel(map_cells) % both, either, summed
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
             xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
 
-            fh.(sprintf('feat%d',featii))=figure('Color','w','Position',[32,32,650,320]);
-            tiledlayout(1,6);
+            fh.(sprintf('feat%d',featii))=figure('Color','w','Position',[32,32,650,700]);
+            tiledlayout(2,5);
             nexttile(4,[1,2])
             hold on
             %                 bhto=bar(find(s_list(:,4)==1),s_list(s_list(:,4)==1,7),0.6,'white');
@@ -113,11 +113,25 @@ for featii=1:numel(map_cells) % both, either, summed
                 scatter(glmxmat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
                 text(glmxmat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
             end
-            xlabel('Allen connectivity projection density');
-            ylabel('Proportion of encoding neuron')
+            xlabel('Projection density (px/px)');
+            ylabel('Regional averaged feature index')
             set(gca,'XScale','log','YScale','log')
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
-            th=nexttile(6);
+
+            nexttile(6,[1,3])
+            hold on
+            glmidx=find(glmxmeta(:,1)==s_list(end,4) & glmxmeta(:,2)==s_list(end,5));
+            for ll=1:numel(feat_prop)
+                c=ephys.getRegColor(intersect_regs{ll},'large_area',true);
+                scatter(glmxmat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
+                text(glmxmat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+            end
+            xlabel('Projection density (px/px)');
+            ylabel('Regional averaged feature index')
+            set(gca,'XScale','log','YScale','log')
+            title(sprintf(' r = %.3f, p = %.3f',s_list(end,7),s_list(end,8)));
+
+            th=nexttile(9,[1,2]);
             tbl=cell(0);
             if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
                 tbl=[tbl;'Stats';opt.stats_type];
@@ -127,11 +141,9 @@ for featii=1:numel(map_cells) % both, either, summed
             end
             tbl=[tbl;'Range';opt.range];
             ephys.util.figtable(gcf(),th,tbl)
-%             title('x')
-            % xlim([0.15,0.5])
-            % ylim([0.15,0.5])
+
 %             exportgraphics(fh.corr1,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
-            %             close(fh)
+
         end
     end
     %% two region glm interaction

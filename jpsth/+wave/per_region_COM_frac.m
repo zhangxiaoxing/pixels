@@ -1,4 +1,4 @@
-function fh=per_region_COM_frac(fcom,ffrac,opt)
+function [fh,t]=per_region_COM_frac(fcom,ffrac,opt)
 arguments
     fcom
     ffrac
@@ -18,6 +18,9 @@ end
 %data generated from wave.per_region_COM
 %data of interest, region,branch level, count
 
+fh=figure('Color','w','Position',[100,100,600,600]);
+t=tiledlayout('flow');
+
 %% hiermap
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
@@ -32,7 +35,8 @@ hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid
 
 %% com vs frac
 if opt.frac_COM
-    fh.frac_COM=figure('Color','w','Position',[100,100,245,235]);
+%     fh.frac_COM=figure('Color','w','Position',[100,100,245,235]);
+    nexttile
     hold on;
     coord=[];
     regs=[];
@@ -65,7 +69,8 @@ if opt.frac_COM
 end
 %% com vs pv/sst
 if opt.COM_PVSST
-    fh.COM_PVSST=figure('Color','w','Position',[100,100,245,235]);
+%     fh.COM_PVSST=figure('Color','w','Position',[100,100,245,235]);
+    nexttile
     hold on;
     coord=[];
     regs=[];
@@ -110,7 +115,8 @@ end
 %% com vs SMI
 if opt.COM_connidx
 %     load('OBM1Map.mat','OBM1map')
-    fh.COM_connidx=figure('Color','w','Position',[100,100,245,235]);
+%     fh.COM_connidx=figure('Color','w','Position',[100,100,245,235]);
+    nexttile
     hold on;
     coord=[];
     regs=[];
@@ -162,7 +168,8 @@ end
 if opt.frac_PVSST
     ureg=intersect(fcom.collection(:,2),ffrac.collection(:,2));
     
-    fh.frac_PVSST=figure('Color','w','Position',[100,100,245,235]);
+%     fh.frac_PVSST=figure('Color','w','Position',[100,100,245,235]);
+    nexttile
     hold on;
     coord=[];
     regs=[];
