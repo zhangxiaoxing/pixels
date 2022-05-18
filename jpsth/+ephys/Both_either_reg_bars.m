@@ -86,7 +86,7 @@ sum_map=containers.Map(regstr,num2cell(summat(:,1:3),2));
 map_cells={context_indi_map,context_dep_map,sum_map};
 if false % one-time export for 3d heatmap in brainrender
     for ii=1:numel(regstr)
-        fprintf('[''%s'',%.3f,%.3f],\n',regstr{ii},bardata(ii,6),bardata(ii,9))
+        fprintf('[''%s'',%.3f,%.3f,%.3f],\n',regstr{ii},bardata(ii,6),bardata(ii,9),summat(ii,1))
     end
 end
 

@@ -1,3 +1,5 @@
+warning('gather all plots from top')
+keyboard()
 %% ANOVA2
 if exist('collections.pdf','file')
     delete('collections.pdf')
@@ -39,9 +41,9 @@ str=strjoin({'Stats:ANOVA2',blame.datetime,blame.git_hash,blame.git_status},'===
 annotation('textbox',[0.05,0.05,0.9,0.9],'String',str,'FitBoxToText','on','Interpreter','none');
 exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
-handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh_grey,dur_GLM_fh_CH,dur_GLM_fh_CTX,dur_sens_corr_fh,singlemix_reg_bar_fh,singlemix_GLM_fh_grey,singlemix_GLM_fh_CH,singlemix_GLM_fh_CTX,inter_wave_fh};
+fhandles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh_grey,dur_GLM_fh_CH,dur_GLM_fh_CTX,dur_sens_corr_fh,singlemix_reg_bar_fh,singlemix_GLM_fh_grey,singlemix_GLM_fh_CH,singlemix_GLM_fh_CTX,inter_wave_fh};
 
-for hc=handles
+for hc=fhandles
     hh=hc{1};
     if isa(hh,'matlab.ui.Figure')
         disp('hh')
@@ -110,9 +112,9 @@ if false
 
 
 
-    handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh_grey,dur_GLM_fh_CH,dur_GLM_fh_CTX,dur_sens_corr_fh,singlemix_reg_bar_fh,singlemix_GLM_fh_grey,singlemix_GLM_fh_CH,singlemix_GLM_fh_CTX,inter_wave_fh};
+    fhandles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh_grey,dur_GLM_fh_CH,dur_GLM_fh_CTX,dur_sens_corr_fh,singlemix_reg_bar_fh,singlemix_GLM_fh_grey,singlemix_GLM_fh_CH,singlemix_GLM_fh_CTX,inter_wave_fh};
 
-    for hc=handles
+    for hc=fhandles
         hh=hc{1};
         if isa(hh,'matlab.ui.Figure')
             disp('hh')
@@ -164,9 +166,9 @@ if false
     annotation('textbox',[0.05,0.05,0.9,0.9],'String',str,'FitBoxToText','on','Interpreter','none');
     exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
-    handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh,dur_sens_corr_fh,inter_wave_fh};
+    fhandles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh,dur_sens_corr_fh,inter_wave_fh};
 
-    for hc=handles
+    for hc=fhandles
         hh=hc{1};
         if isa(hh,'matlab.ui.Figure')
             disp('hh')
@@ -236,6 +238,20 @@ dur_GLM_fhgrey=wave.connectivity_proportion_GLM(dur_map_cells,'range','grey','da
 dur_GLM_fhch=wave.connectivity_proportion_GLM(dur_map_cells,'range','CH','data_type','duration','stats_type',    stats_type);
 dur_GLM_fhctx=wave.connectivity_proportion_GLM(dur_map_cells,'range','CTX','data_type','duration','stats_type',  stats_type);
 
+
+% plot duration SC
+if false
+    dur_wo_sens=find(ismember(dur_meta.wave_id,5:6));
+    meta=ephys.util.load_meta('skip_stats',true);
+    for ii=1:numel(dur_wo_sens)
+        fh=ephys.sens_dur_SC(dur_wo_sens(ii),meta,sens_meta,dur_meta,'skip_raster',true);
+        %     fh=ephys.sens_dur_SC(9071,meta,sens_meta,dur_meta,'skip_raster',false);%
+        %     881,9071
+        waitfor(fh);
+    end
+end
+
+
 % dur_reg_bar_fh.reg_bar.Children(2).YLim=[0.0001,0.5];
 
 dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{3},sens_map_cells{3});
@@ -258,21 +274,19 @@ for currdelay=[6,3]
     sens_com=wave.get_com_map('sel_meta',sens_meta, ...
         'wave',['any',num2str(currdelay)], ... %indep+dep
         'delay',currdelay);
-    [fcom.collection,fcom.com_meta]=wave.per_region_COM(sens_com,...
+    [fcom.(['d',num2str(currdelay)]).collection,fcom.(['d',num2str(currdelay)]).com_meta]=wave.per_region_COM(sens_com,...
         'stats_method','mean');
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom.collection(...
-        cell2mat(fcom.collection(:,4))>20,...
-        2));
-    ffrac.collection=[num2cell(cellfun(@(x) x(1),sens_map_cells{3}.values(ureg))),...
+        fcom.(['d',num2str(currdelay)]).collection(:,2));
+    ffrac.(['d',num2str(currdelay)]).collection=[num2cell(cellfun(@(x) x(1),sens_map_cells{1}.values(ureg))),...
         ureg,...
         num2cell(ones(numel(ureg),1)*5),...
-        num2cell(cellfun(@(x) x(3),sens_map_cells{3}.values(ureg)))];
+        num2cell(cellfun(@(x) x(3),sens_map_cells{1}.values(ureg)))];
     
-    [sens_tcom_fh.(['d',num2str(currdelay)]),t]=wave.per_region_COM_frac(fcom,ffrac,'hier_reg','AON');
+    [sens_tcom_fh.(['d',num2str(currdelay)]),t]=wave.per_region_COM_frac(fcom.(['d',num2str(currdelay)]),ffrac.(['d',num2str(currdelay)]),'hier_reg','AON');
     t.Title.String=['Sense wave, delay=',num2str(currdelay)];
-    [~,tcidx]=ismember(ureg,fcom.collection(:,2));
-    tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.collection(tcidx,1))));
+    [~,tcidx]=ismember(ureg,fcom.(['d',num2str(currdelay)]).collection(:,2));
+    tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
 end
 sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,'range','grey','data_type','3s_6s_sensory_TCOM','stats_type',stats_type);
 
@@ -280,48 +294,35 @@ sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,'range','grey','d
 fh=cell(0);
 dur_com=wave.get_dur_com_map(dur_meta);
 
-[fcom.collection,fcom.com_meta]=wave.per_region_COM(dur_com,...
+[fcom.dur.collection,fcom.dur.com_meta]=wave.per_region_COM(dur_com,...
     'stats_method','mean');
 ureg=intersect(ephys.getGreyRegs('range','grey'),...
-    fcom.collection(...
-    cell2mat(fcom.collection(:,4))>20,...
-    2));
+    fcom.dur.collection(:,2));
+
 %total number of duration neuron (indep+dep)
-ffrac.collection=[num2cell(cellfun(@(x) x(1),dur_map_cells{3}.values(ureg))),...
+ffrac.dur.collection=[num2cell(cellfun(@(x) x(1),dur_map_cells{3}.values(ureg))),...
     ureg,...
     num2cell(ones(numel(ureg),1)*5),...
     num2cell(cellfun(@(x) x(3),dur_map_cells{3}.values(ureg)))];
 
-[dur_tcom_fh,t]=wave.per_region_COM_frac(fcom,ffrac,'hier_reg','COA','range','grey');
+[dur_tcom_fh,t]=wave.per_region_COM_frac(fcom.dur,ffrac.dur,'hier_reg','COA','range','grey');
 t.Title.String='Duration wave';
 
 
-[~,tcidx]=ismember(ureg,fcom.collection(:,2));
-dur_com_maps{1}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.collection(tcidx,1))));
+[~,tcidx]=ismember(ureg,fcom.dur.collection(:,2));
+dur_com_maps{1}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.dur.collection(tcidx,1))));
 duration_TCOM_GLM_fh=wave.connectivity_proportion_GLM(dur_com_maps,'range','grey','data_type','duration_TCOM','stats_type',stats_type);
 duration_TCOM_GLM_fh=wave.connectivity_proportion_GLM(dur_com_maps,'range','CH','data_type','duration_TCOM','stats_type',stats_type);
 duration_TCOM_GLM_fh=wave.connectivity_proportion_GLM(dur_com_maps,'range','CTX','data_type','duration_TCOM','stats_type',stats_type);
 
+sens_dur_TCOM_corr_fh=wave.sens_dur_TCOM_corr(fcom);
 
-handles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fhgrey,dur_GLM_fhch,dur_GLM_fhctx,dur_sens_corr_fh,singlemix_reg_bar_fh,inter_wave_fh,sens_tcom_fh,sensory_TCOM_GLM_fh,dur_tcom_fh,duration_TCOM_GLM_fh};
+fhandles=get(groot(),'Children');
 
-for hc=handles
-    hh=hc{1};
-    if isa(hh,'matlab.ui.Figure')
-        %         disp('hh')
-        exportgraphics(hh,'collections.pdf','ContentType','vector','Append',true)
-    elseif isa(hh,"struct")
-        fn=fieldnames(hh);
-        %         disp(fn)
-        for fh=reshape(fn,1,[])
-            exportgraphics(hh.(fh{1}),'collections.pdf','ContentType','vector','Append',true)
-        end
-    end
-
+for hc=reshape(fhandles,1,[])
+    exportgraphics(hc,'collections.pdf','ContentType','vector','Append',true)
 end
-
-exportgraphics(dur_tcom_fh,'collections.pdf','ContentType','vector','Append',true)
-savefig(get(groot(),'Children'),'Ranksum1.fig');
+savefig(fhandles,'Ranksum1.fig');
 
 
 %% RANKSUM with merged bins

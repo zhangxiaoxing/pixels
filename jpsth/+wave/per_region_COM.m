@@ -8,6 +8,11 @@ arguments
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
+    opt.min_su (1,1) double = 20
+end
+
+if opt.min_su==20
+    warning('Using default minimal SU number of 20')
 end
 
 persistent com_meta_ collection_ opt_ com_map_
@@ -83,10 +88,10 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     com_meta_=com_meta;
     opt_=opt;
     com_map_=com_map;
-else
-    collection=collection_;
-    com_meta=com_meta_;
 end
+collection=collection_(cell2mat(collection_(:,4))>opt.min_su,:);
+com_meta=com_meta_;
+
 end
 
 
@@ -116,7 +121,7 @@ else
 end
 [curr_com_all,sidx]=sort(curr_com_all);
 curr_ureg=curr_ureg(sidx);
-curr_count=cellfun(@(x) nnz(strcmp(com_meta(:,curr_branch+3),x)),curr_ureg);
+curr_count=cellfun(@(x) nnz(strcmp(com_meta(:,curr_branch+3),x)),curr_ureg); % number of selective-SUs
 collection=[collection;...
     [num2cell(reshape(curr_com_all,[],1)),...
     reshape(curr_ureg,[],1),...

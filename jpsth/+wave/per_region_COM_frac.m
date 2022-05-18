@@ -43,7 +43,7 @@ if opt.frac_COM
     inter_reg=fcom.collection(:,2); %TODO improve call stack
     for ri=1:numel(inter_reg)
         fridx=find(strcmp(ffrac.collection(:,2),inter_reg(ri)));
-        if ~isempty(fridx) && ffrac.collection{fridx,4}>40
+        if ~isempty(fridx)
             comidx=find(strcmp(fcom.collection(:,2),inter_reg(ri)));
             yy=fcom.collection{comidx,1}./4;
             xx=ffrac.collection{fridx,1};
