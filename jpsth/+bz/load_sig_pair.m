@@ -42,6 +42,9 @@ if isempty(sig) ...
     if opt.load_waveid
         sig.waveid=cell(0);
         fields={'suid','reg','wf_good','waveid'};
+
+        % waveid pipeline before update:
+        % .mat <- reg_conn_bz -> bz.util.get_meta -> ephys.get_wave_id(meta->memtype)
     else
         fields={'suid','reg','wf_good'};
     end

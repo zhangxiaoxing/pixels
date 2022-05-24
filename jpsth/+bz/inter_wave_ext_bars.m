@@ -95,8 +95,12 @@ for ii=1:4
     bh(1).FaceColor='w';
     bh(2).FaceColor='r';
     bh(3).FaceColor='b';
-%     ylim([0,0.015])
-    set(gca(),'YTick',[0,0.005,0.01,0.015],'YTickLabel',[0,0.5,1,1.5],'XTick',[])
+    if ii<4
+        ylim([0,0.015])
+        set(gca(),'YTick',[0,0.005,0.01,0.015],'YTickLabel',[0,0.5,1,1.5],'XTick',[])
+    else
+        set(gca(),'YTickLabel',get(gca(),'YTick').*100,'XTick',[])
+    end
     ylabel('Fucntional coupling rate (%)')
     title(fns{ii});
 end
@@ -114,7 +118,9 @@ for ii=1:4
     bh(2).FaceColor='r';
     bh(3).FaceColor='b';
     yline(1,'k--')
-%     ylim([0,3])
+    if ii<4
+        ylim([0,4])
+    end
     set(gca(),'XTick',[])
     ylabel('FC rate relative to non-mem')
     title(fns{ii});
@@ -159,8 +165,8 @@ for ii=1:4
     bh(1).FaceColor='w';
     bh(2).FaceColor='r';
     bh(3).FaceColor='b';
-%     ylim([0,0.015])
-    set(gca(),'YTick',[0,0.005,0.01,0.015],'YTickLabel',[0,0.5,1,1.5],'XTick',[])
+    ylim([0,0.03])
+    set(gca(),'YTick',0:0.01:0.03,'YTickLabel',0:3,'XTick',[])
     ylabel('Fucntional coupling rate (%)')
     title(fns{ii});
 end
@@ -178,7 +184,7 @@ for ii=1:4
     bh(2).FaceColor='r';
     bh(3).FaceColor='b';
     yline(1,'k--')
-%     ylim([0,3])
+    ylim([0,6])
     set(gca(),'XTick',[])
     ylabel('FC rate relative to non-mem')
     title(fns{ii});

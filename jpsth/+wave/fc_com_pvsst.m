@@ -1,5 +1,8 @@
-function [comdiff_stats,com_pair]=fc_com_pvsst(opt)
+function [fc_com_pvsst_stats,fh]=fc_com_pvsst(com_map_3,com_map_6,selmeta,opt)
 arguments
+    com_map_3
+    com_map_6
+    selmeta
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON'})} = 'AON'
@@ -7,16 +10,8 @@ arguments
 end
 
 
-% [~,com_meta]=wave.per_region_COM('decision',opt.decision,'wave',opt.wave);
-% com_map=list2map(com_meta);
-if strcmp(opt.hiermap,'AON')
-    com_map_6=wave.get_com_map('wave','any','delay',6);
-    com_map_3=wave.get_com_map('wave','any','delay',3);
-else
-    %TODO: LAT
-end
-
-sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',true);
+sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
+sig=bz.join_fc_waveid(sig,selmeta.wave_id);
 [~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',0);
 disp(nnz(is_same | l2h | h2l))
 fc_com_pvsst_stats=[];
@@ -24,6 +19,7 @@ usess=unique(sig.sess);
 for sii=reshape(usess,1,[]) %iterate through sessions
     sesssel=sig.sess==sii;
     suid=sig.suid(sesssel,:);
+
     waveid=sig.waveid(sesssel,:);
     comsess_6=nan(size(suid));
     if isfield(com_map_6,['s',num2str(sii)])
@@ -46,6 +42,7 @@ for sii=reshape(usess,1,[]) %iterate through sessions
 
     regsess=squeeze(sig.reg(sesssel,5,:));
     fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),comsess_6,comsess_3,double(regsess),double(waveid)];
+    %==================================================sess=====================suid=======COM_6s=====COM_3s=====ccfid===========waveid?======
 end
 save('fc_com_pvsst_stats.mat','fc_com_pvsst_stats');
 switch opt.mem_type
@@ -93,11 +90,12 @@ h=([nnz([comh2l(:,2);comh2l(:,4)]>[comh2l(:,1);comh2l(:,3)]),nnz(all(isfinite([c
 [tbl,chi2,p]=crosstab([zeros(s(2),1);ones(l(2),1);2*ones(h(2),1)],[(1:s(2))>s(1),(1:l(2))>l(1),(1:h(2))>h(1)].')
 disp([2*binocdf(min(tbl(1,:)),sum(tbl(1,:)),0.5),2*binocdf(min(tbl(2,:)),sum(tbl(2,:)),0.5),2*binocdf(min(tbl(3,:)),sum(tbl(3,:)),0.5),]);
 
-keyboard()
+disp(2*binocdf(min(sum(tbl)),sum(tbl,'all'),0.5))
+
 % 
 % import scipy.stats as stats
-% stats.binom_test(745,1318,0.5)
-exportgraphics(fh,'fc_prog_regres_bars_hier.pdf')
+% stats.binom_test(745,1318,0.5) %binocdf
+% exportgraphics(fh,'fc_prog_regres_bars_hier.pdf')
 end
 
 function com_map=list2map(com_meta)

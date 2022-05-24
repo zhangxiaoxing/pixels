@@ -57,16 +57,16 @@ for reg=reshape(ureg,1,[])
     end
     grp=idmap.reg2tree(reg{1});
     sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,ctxt_indi_maineffect_single_cnt,ctxt_depd_interact_mix_cnt];
-    %====================1=========================2============3=========4=======================5========
+    %====================1=========================2============3=========4==================================5========
 end
 
 sums(:,6:11)=0;
 
 for ii=1:size(sums,1)
-    [phat_indi,pci_indi]=binofit(sums(ii,4),sums(ii,3));
-    [phat_dep,pci_dep]=binofit(sums(ii,5),sums(ii,3));
-    sums(ii,6:11)=[phat_indi,pci_indi,phat_dep,pci_dep];
-    %=================6=========7|8======9======10|11====
+    [phat_indi_single,pci_indi]=binofit(sums(ii,4),sums(ii,3));
+    [phat_dep_mix,pci_dep]=binofit(sums(ii,5),sums(ii,3));
+    sums(ii,6:11)=[phat_indi_single,pci_indi,phat_dep_mix,pci_dep];
+    %=================6=============7|8======9==============10|11====
 end
 
 %map_cells
@@ -75,15 +75,15 @@ flatten=@(y) cellfun(@(x) x,y);
 bardata=sortrows(sums,6,'descend');
 regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
 
-context_indi_map=containers.Map(regstr,num2cell(bardata(:,[6,4,3]),2));
-context_dep_map=containers.Map(regstr,num2cell(bardata(:,[9,5,3]),2));
+context_indi_single_map=containers.Map(regstr,num2cell(bardata(:,[6,4,3]),2));
+context_dep_mix_map=containers.Map(regstr,num2cell(bardata(:,[9,5,3]),2));
 
 summat=[bardata(:,3),bardata(:,4)+bardata(:,5),bardata(:,[3,3,3])];
 for ii=1:size(summat,1)
     [summat(ii,1),summat(ii,4:5)]=binofit(summat(ii,2),summat(ii,3));
 end
 sum_map=containers.Map(regstr,num2cell(summat(:,1:3),2));
-map_cells={context_indi_map,context_dep_map,sum_map};
+map_cells={context_indi_single_map,context_dep_mix_map,sum_map};
 if false % one-time export for 3d heatmap in brainrender
     for ii=1:numel(regstr)
         fprintf('[''%s'',%.3f,%.3f,%.3f],\n',regstr{ii},bardata(ii,6),bardata(ii,9),summat(ii,1))

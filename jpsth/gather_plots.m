@@ -67,10 +67,6 @@ end
 
 %TODO Heatmap population
 
-% TODO TCOM-density
-% TODO:get_com_map
-% TODO:get_region_COM
-% wave.per_region_COM_frac
 
 
 %% ANOVA per bin + FDR
@@ -217,6 +213,8 @@ exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 % sens_waveid=ephys.get_wave_id(meta);
 stats_type='RANKSUM_per_bin';
 load perm_sens.mat
+
+% regulated by regional SU number > 100 in getGreRegs
 [sens_map_cells,sens_reg_bar_fh]=ephys.Both_either_reg_bars( ...
     'stats_model','RANKSUM', ...
     'skip_plot',false, ...
@@ -259,7 +257,10 @@ dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{3},sens_map_cells{3});
 single_mix_meta.single1=sens_meta.wave_id>0;
 single_mix_meta.single2=dur_meta.wave_id>0;
 [singlemix_map_cells,singlemix_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','SINGLE_MIX','skip_plot',false,'meta',single_mix_meta,'range','grey','data_type','single_mix','stats_type',stats_type);
+% {indep, dep, I or D}
 singlemix_GLM_fh=wave.connectivity_proportion_GLM(singlemix_map_cells,'range','grey','data_type','single_mix','stats_type',stats_type);
+% TODO mix density vs. sens density | dur density
+% TODO mix TCOM vs. sens TCOM | dur TCOM
 
 perm_meta.sens_only=sens_meta.wave_id>0;
 perm_meta.dur_only=dur_meta.wave_id>0;
@@ -271,14 +272,16 @@ inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);
 sens_tcom_fh=struct();
 tcom_maps=cell(1,2);
 for currdelay=[6,3]
-    sens_com=wave.get_com_map('sel_meta',sens_meta, ...
+    sens_com.(['d',num2str(currdelay)])=wave.get_com_map('sel_meta',sens_meta, ...
         'wave',['any',num2str(currdelay)], ... %indep+dep
         'delay',currdelay);
-    [fcom.(['d',num2str(currdelay)]).collection,fcom.(['d',num2str(currdelay)]).com_meta]=wave.per_region_COM(sens_com,...
-        'stats_method','mean');
+    [fcom.(['d',num2str(currdelay)]).collection,...
+        fcom.(['d',num2str(currdelay)]).com_meta]=wave.per_region_COM(...
+        sens_com.(['d',num2str(currdelay)]),'stats_method','mean');
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
         fcom.(['d',num2str(currdelay)]).collection(:,2));
-    ffrac.(['d',num2str(currdelay)]).collection=[num2cell(cellfun(@(x) x(1),sens_map_cells{1}.values(ureg))),...
+    ffrac.(['d',num2str(currdelay)]).collection=...
+        [num2cell(cellfun(@(x) x(1),sens_map_cells{1}.values(ureg))),...
         ureg,...
         num2cell(ones(numel(ureg),1)*5),...
         num2cell(cellfun(@(x) x(3),sens_map_cells{1}.values(ureg)))];
@@ -289,7 +292,6 @@ for currdelay=[6,3]
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
 end
 sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,'range','grey','data_type','3s_6s_sensory_TCOM','stats_type',stats_type);
-
 
 fh=cell(0);
 dur_com=wave.get_dur_com_map(dur_meta);
@@ -317,8 +319,16 @@ duration_TCOM_GLM_fh=wave.connectivity_proportion_GLM(dur_com_maps,'range','CTX'
 
 sens_dur_TCOM_corr_fh=wave.sens_dur_TCOM_corr(fcom);
 
-fhandles=get(groot(),'Children');
+tcom_corr_bar_fh=wave.sens_dur_wave_bar(sens_map_cells,dur_map_cells,fcom);
 
+
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta);
+
+
+
+
+
+fhandles=get(groot(),'Children');
 for hc=reshape(fhandles,1,[])
     exportgraphics(hc,'collections.pdf','ContentType','vector','Append',true)
 end
