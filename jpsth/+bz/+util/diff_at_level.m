@@ -2,7 +2,7 @@ function [is_diff,is_same,h2l,l2h,hierv]=diff_at_level(reg,opt)
 arguments
     reg
     opt.hierarchy (1,1)  logical = false
-    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON','LAT'})} = 'AON'
+    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON','CP'})} = 'AON'
     opt.mincount (1,1) double = 100
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
 end
@@ -19,14 +19,11 @@ if opt.hierarchy
         case 'OBM1'
             fstr=load('OBM1map.mat','OBM1map');
             hiermap=fstr.OBM1map;
-        case 'AON'
-            anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid('AON'));
+        otherwise
+            anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid(opt.hiermap));
             hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
                 anov);
-        case 'LAT'
-            anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid('LAT'));
-            hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
-                anov);
+
     end
 
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));

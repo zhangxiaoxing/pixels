@@ -272,8 +272,8 @@ inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);
 sens_tcom_fh=struct();
 tcom_maps=cell(1,2);
 for currdelay=[6,3]
-    sens_com.(['d',num2str(currdelay)])=wave.get_com_map('sel_meta',sens_meta, ...
-        'wave',['any',num2str(currdelay)], ... %indep+dep
+    sens_com.(['d',num2str(currdelay)])=wave.get_com_map(sens_meta, ...
+        'wave',['anyContext',num2str(currdelay/3)], ... %indep+dep
         'delay',currdelay);
     [fcom.(['d',num2str(currdelay)]).collection,...
         fcom.(['d',num2str(currdelay)]).com_meta]=wave.per_region_COM(...
@@ -291,13 +291,40 @@ for currdelay=[6,3]
     [~,tcidx]=ismember(ureg,fcom.(['d',num2str(currdelay)]).collection(:,2));
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
 end
+
 sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,'range','grey','data_type','3s_6s_sensory_TCOM','stats_type',stats_type);
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta);
+
+
+for currcue=[4,8]
+    dur_com.(['s',num2str(currcue)])=wave.get_com_map(dur_meta, ...
+        'wave',['anyContext',num2str(currcue/4)], ... %indep+dep
+        'sens_cue',currcue);
+    [fcom.(['s',num2str(currcue)]).collection,...
+        fcom.(['s',num2str(currcue)]).com_meta]=wave.per_region_COM(...
+        dur_com.(['s',num2str(currcue)]),'stats_method','mean');
+    ureg=intersect(ephys.getGreyRegs('range','grey'),...
+        fcom.(['s',num2str(currcue)]).collection(:,2));
+    ffrac.(['s',num2str(currcue)]).collection=...
+        [num2cell(cellfun(@(x) x(1),dur_map_cells{3}.values(ureg))),...
+        ureg,...
+        num2cell(ones(numel(ureg),1)*5),...
+        num2cell(cellfun(@(x) x(3),dur_map_cells{3}.values(ureg)))];
+    
+     [dur_tcom_fh.(['s',num2str(currcue)]),t]=wave.per_region_COM_frac(fcom.(['s',num2str(currcue)]),ffrac.(['s',num2str(currcue)]),'hier_reg','COA');
+     t.Title.String=['Duration wave, odor=',num2str(currcue)];
+     [~,tcidx]=ismember(ureg,fcom.(['s',num2str(currcue)]).collection(:,2));
+     tcom_maps{currcue/4}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['s',num2str(currcue)]).collection(tcidx,1))));
+end
+
+dur_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,'range','grey','data_type','s4_s8_duration_TCOM','stats_type',stats_type);
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(dur_com.s4,dur_com.s8,dur_meta,'hiermap','CP');
+
 
 fh=cell(0);
-dur_com=wave.get_dur_com_map(dur_meta);
+% dur_com=wave.get_dur_com_map(dur_meta);
 
-[fcom.dur.collection,fcom.dur.com_meta]=wave.per_region_COM(dur_com,...
-    'stats_method','mean');
+
 ureg=intersect(ephys.getGreyRegs('range','grey'),...
     fcom.dur.collection(:,2));
 
@@ -320,11 +347,6 @@ duration_TCOM_GLM_fh=wave.connectivity_proportion_GLM(dur_com_maps,'range','CTX'
 sens_dur_TCOM_corr_fh=wave.sens_dur_TCOM_corr(fcom);
 
 tcom_corr_bar_fh=wave.sens_dur_wave_bar(sens_map_cells,dur_map_cells,fcom);
-
-
-[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta);
-
-
 
 
 

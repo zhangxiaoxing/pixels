@@ -1,4 +1,4 @@
-% TODO: ???
+% still useful after all, keep in the pipeline, 05/23/22
 function [collection,com_meta]=per_region_COM(com_map,opt)
 arguments
     com_map
@@ -31,30 +31,30 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
         sid=str2double(replace(sess{si},'s',''));
         allcid=meta.allcid(meta.sessid==sid);
         allreg=meta.reg_tree(:,meta.sessid==sid);
-        if isfield(com_map.(sess{si}),'s1')
-            s1id=cell2mat(com_map.(sess{si}).s1.keys()).';
-            s1com=cell2mat(com_map.(sess{si}).s1.values()).';
-            s2id=cell2mat(com_map.(sess{si}).s2.keys()).';
-            s2com=cell2mat(com_map.(sess{si}).s2.values()).';
+%         if isfield(com_map.(sess{si}),'s1')
+            s1id=cell2mat(com_map.(sess{si}).c1.keys()).';
+            s1com=cell2mat(com_map.(sess{si}).c1.values()).';
+            s2id=cell2mat(com_map.(sess{si}).c2.keys()).';
+            s2com=cell2mat(com_map.(sess{si}).c2.values()).';
 
             [~,locs1]=ismember(uint16(s1id),allcid);
             [~,locs2]=ismember(uint16(s2id),allcid);
 
             com_meta=[com_meta;num2cell([sid*ones(size(s1id)),double(s1id),s1com]),allreg(:,locs1).'];
             com_meta=[com_meta;num2cell([sid*ones(size(s2id)),double(s2id),s2com]),allreg(:,locs2).'];
-        else
-            d3id=cell2mat(com_map.(sess{si}).d3.keys()).';
-            d3com=cell2mat(com_map.(sess{si}).d3.values()).';
-            d6id=cell2mat(com_map.(sess{si}).d6.keys()).';
-            d6com=cell2mat(com_map.(sess{si}).d6.values()).';
-
-            [~,locd3]=ismember(uint16(d3id),allcid);
-            [~,locd6]=ismember(uint16(d6id),allcid);
-
-            com_meta=[com_meta;num2cell([sid*ones(size(d3id)),double(d3id),d3com]),allreg(:,locd3).'];
-            com_meta=[com_meta;num2cell([sid*ones(size(d6id)),double(d6id),d6com]),allreg(:,locd6).'];
-
-        end
+%         else
+%             d3id=cell2mat(com_map.(sess{si}).d3.keys()).';
+%             d3com=cell2mat(com_map.(sess{si}).d3.values()).';
+%             d6id=cell2mat(com_map.(sess{si}).d6.keys()).';
+%             d6com=cell2mat(com_map.(sess{si}).d6.values()).';
+% 
+%             [~,locd3]=ismember(uint16(d3id),allcid);
+%             [~,locd6]=ismember(uint16(d6id),allcid);
+% 
+%             com_meta=[com_meta;num2cell([sid*ones(size(d3id)),double(d3id),d3com]),allreg(:,locd3).'];
+%             com_meta=[com_meta;num2cell([sid*ones(size(d6id)),double(d6id),d6com]),allreg(:,locd6).'];
+% 
+%         end
     end
 
 

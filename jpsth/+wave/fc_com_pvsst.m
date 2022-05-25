@@ -5,17 +5,19 @@ arguments
     selmeta
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
-    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON'})} = 'AON'
+    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON','CP'})} = 'AON'
     opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any'})} = 'congru' %TCOM for NONMEM undefined
+    opt.reg_min_su (1,1) double = 100
 end
 
 
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
 sig=bz.join_fc_waveid(sig,selmeta.wave_id);
-[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',0);
+[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su);
 disp(nnz(is_same | l2h | h2l))
 fc_com_pvsst_stats=[];
 usess=unique(sig.sess);
+
 for sii=reshape(usess,1,[]) %iterate through sessions
     sesssel=sig.sess==sii;
     suid=sig.suid(sesssel,:);
@@ -23,21 +25,21 @@ for sii=reshape(usess,1,[]) %iterate through sessions
     waveid=sig.waveid(sesssel,:);
     comsess_6=nan(size(suid));
     if isfield(com_map_6,['s',num2str(sii)])
-        s1keys=int32(cell2mat(com_map_6.(['s',num2str(sii)]).s1.keys()));
-        s1sel=ismember(suid,s1keys);
-        comsess_6(s1sel)=cell2mat(com_map_6.(['s',num2str(sii)]).s1.values(num2cell(suid(s1sel))));
-        s2keys=int32(cell2mat(com_map_6.(['s',num2str(sii)]).s2.keys()));
+        s1keys=int32(cell2mat(com_map_6.(['s',num2str(sii)]).c1.keys())); % s1 prefered SUid
+        s1sel=ismember(suid,s1keys);% same dim as suid
+        comsess_6(s1sel)=cell2mat(com_map_6.(['s',num2str(sii)]).c1.values(num2cell(suid(s1sel)))); % out put is nx2 in dim
+        s2keys=int32(cell2mat(com_map_6.(['s',num2str(sii)]).c2.keys())); % differernt SUs, e.g. prefer S2
         s2sel=ismember(suid,s2keys);
-        comsess_6(s2sel)=cell2mat(com_map_6.(['s',num2str(sii)]).s2.values(num2cell(suid(s2sel))));
+        comsess_6(s2sel)=cell2mat(com_map_6.(['s',num2str(sii)]).c2.values(num2cell(suid(s2sel))));
     end
     comsess_3=nan(size(suid));
     if isfield(com_map_3,['s',num2str(sii)])
-        s1keys=int32(cell2mat(com_map_3.(['s',num2str(sii)]).s1.keys()));
+        s1keys=int32(cell2mat(com_map_3.(['s',num2str(sii)]).c1.keys()));
         s1sel=ismember(suid,s1keys);
-        comsess_3(s1sel)=cell2mat(com_map_3.(['s',num2str(sii)]).s1.values(num2cell(suid(s1sel))));
-        s2keys=int32(cell2mat(com_map_3.(['s',num2str(sii)]).s2.keys()));
+        comsess_3(s1sel)=cell2mat(com_map_3.(['s',num2str(sii)]).c1.values(num2cell(suid(s1sel))));
+        s2keys=int32(cell2mat(com_map_3.(['s',num2str(sii)]).c2.keys()));
         s2sel=ismember(suid,s2keys);
-        comsess_3(s2sel)=cell2mat(com_map_3.(['s',num2str(sii)]).s2.values(num2cell(suid(s2sel))));
+        comsess_3(s2sel)=cell2mat(com_map_3.(['s',num2str(sii)]).c2.values(num2cell(suid(s2sel))));
     end
 
     regsess=squeeze(sig.reg(sesssel,5,:));
