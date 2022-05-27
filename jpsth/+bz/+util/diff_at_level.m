@@ -2,16 +2,20 @@ function [is_diff,is_same,h2l,l2h,hierv]=diff_at_level(reg,opt)
 arguments
     reg
     opt.hierarchy (1,1)  logical = false
-    opt.hiermap (1,:) char {mustBeMember(opt.hiermap,{'pvsst','OBM1','AON','CP'})} = 'AON'
+    opt.hiermap (1,:) char
     opt.mincount (1,1) double = 100
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
 end
+
 
 if opt.hierarchy
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
     sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
     src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
     sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');
+    src_reg=cellfun(@(x) x, idmap.ccfid2reg.values(num2cell(src_ccfid)));
+    assert(ismember(opt.hiermap,[src_reg;{'pvsst'};{'OBM1'}]),'Unknown hierachical mapping');
+
 
     switch opt.hiermap
         case 'pvsst'

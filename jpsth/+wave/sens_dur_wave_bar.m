@@ -31,34 +31,40 @@ end
 [~,idces]=sort(abs(cell2mat(diffs(:,5))),'descend');
 diffs=diffs(idces,:);
 
-fh=figure('Color','w','Position',[2,180,900,300]);
-tiledlayout(1,3)
-
+fh=figure('Color','w','Position',[2,180,600,900]);
+tiledlayout(3,2)
+nexttile(1);
+hold on
 [rd,pd]=map_match(dur_density_map,sens_density_map);
-
+bhd=bar(1,rd,'FaceColor',[0.5,0.5,0.5]);
+set(gca(),'XTick',1,'XTickLabel',{'sens_dur'},'XTickLabelRotation',90)
+ylim([-1,1]);
+ylabel('Correlation (Spearman''s r)');
+nexttile(2);
 for ii=1:5
     r(ii*2-1)=diffs{ii,3};
     r(ii*2)=diffs{ii,4};
 end
+
 
 % for ii=1:5
 %     r(ii*2+9)=diffs{end-ii+1,3};
 %     r(ii*2+10)=diffs{end-ii+1,4};
 % end
 
-nexttile();
-hold on
-bhd=bar(1,rd,'FaceColor',[0.5,0.5,0.5]);
 rs=reshape(r,2,[]).';
-bh=bar(2:6,rs,'grouped');
+bh=bar(1:5,rs,'grouped');
 bh(1).FaceColor='w';
 bh(2).FaceColor='k';
 legend(bh,{'Sensory','Duration'},'Location','northoutside','Orientation','horizontal');
 % set(gca(),'XTick',1:10,'XTickLabel',[diffs(1:5,2).',diffs(end-4:end,2).'],'XTickLabelRotation',90)
-set(gca(),'XTick',1:6,'XTickLabel',['sens_dur',diffs(1:5,2).'],'XTickLabelRotation',90)
+set(gca(),'XTick',1:5,'XTickLabel',diffs(1:5,2).','XTickLabelRotation',90)
 ylabel('Correlation (Spearman''s r)');
 ylim([-1,1]);
 title("density")
+
+
+
 
 
 for tcom_delay=["d3","d6"]
@@ -103,12 +109,19 @@ for tcom_delay=["d3","d6"]
 %     end
     nexttile();
     rs=reshape(r,2,[]).';
-    bh=bar(rs,'grouped');
+    bh=bar(rs(1:2,:),'grouped');
+    bh(1).FaceColor='w';
+    bh(2).FaceColor='k';
+    set(gca(),'XTick',1:2,'XTickLabel',{'Sensory density','Duration density'},'XTickLabelRotation',90)
+    ylim([-1,1]);
+    ylabel('Correlation (Spearman''s r)');
+    nexttile()
+    bh=bar(rs(3:end,:),'grouped');
     bh(1).FaceColor='w';
     bh(2).FaceColor='k';
     legend(bh,{'Sensory','Duration'},'Location','northoutside','Orientation','horizontal');
 %     set(gca(),'XTick',1:12,'XTickLabel',[{'Sensory density','Duration density'},diffs(1:5,2).',diffs(end-4:end,2).'],'XTickLabelRotation',90)
-    set(gca(),'XTick',1:7,'XTickLabel',[{'Sensory density','Duration density'},diffs(1:5,2).'],'XTickLabelRotation',90)
+    set(gca(),'XTick',1:5,'XTickLabel',diffs(1:5,2).','XTickLabelRotation',90)
     ylabel('Correlation (Spearman''s r)');
     title(['TCOM ',char(tcom_delay)])
     ylim([-1,1]);

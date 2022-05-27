@@ -1,8 +1,8 @@
 function figtable(fh,th,tbl,opt)
 arguments
-    fh
-    th
-    tbl
+    fh % figure handle
+    th % tile handle
+    tbl % content
     opt.title (1,:) char =[]
 end
 th.Visible='off';

@@ -22,39 +22,27 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     % per region COM
 
     % COM->SU->region
-    meta=ephys.util.load_meta();
-    meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
+    meta=ephys.util.load_meta('skip_stats',true);
+%     meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
     sess=fieldnames(com_map);
 
     com_meta=cell(0,9);
     for si=1:numel(sess)
         sid=str2double(replace(sess{si},'s',''));
-        allcid=meta.allcid(meta.sessid==sid);
-        allreg=meta.reg_tree(:,meta.sessid==sid);
-%         if isfield(com_map.(sess{si}),'s1')
+        allcid=meta.allcid(meta.sess==sid);
+        allreg=meta.reg_tree(:,meta.sess==sid);
+        if isfield(com_map.(sess{si}),'c1')
             s1id=cell2mat(com_map.(sess{si}).c1.keys()).';
             s1com=cell2mat(com_map.(sess{si}).c1.values()).';
+            [~,locs1]=ismember(uint16(rem(s1id,100000)),allcid);
+            com_meta=[com_meta;num2cell([sid*ones(size(s1id)),double(s1id),s1com]),allreg(:,locs1).'];
+        end
+        if isfield(com_map.(sess{si}),'c2')
             s2id=cell2mat(com_map.(sess{si}).c2.keys()).';
             s2com=cell2mat(com_map.(sess{si}).c2.values()).';
-
-            [~,locs1]=ismember(uint16(s1id),allcid);
-            [~,locs2]=ismember(uint16(s2id),allcid);
-
-            com_meta=[com_meta;num2cell([sid*ones(size(s1id)),double(s1id),s1com]),allreg(:,locs1).'];
+            [~,locs2]=ismember(uint16(rem(s2id,100000)),allcid);
             com_meta=[com_meta;num2cell([sid*ones(size(s2id)),double(s2id),s2com]),allreg(:,locs2).'];
-%         else
-%             d3id=cell2mat(com_map.(sess{si}).d3.keys()).';
-%             d3com=cell2mat(com_map.(sess{si}).d3.values()).';
-%             d6id=cell2mat(com_map.(sess{si}).d6.keys()).';
-%             d6com=cell2mat(com_map.(sess{si}).d6.values()).';
-% 
-%             [~,locd3]=ismember(uint16(d3id),allcid);
-%             [~,locd6]=ismember(uint16(d6id),allcid);
-% 
-%             com_meta=[com_meta;num2cell([sid*ones(size(d3id)),double(d3id),d3com]),allreg(:,locd3).'];
-%             com_meta=[com_meta;num2cell([sid*ones(size(d6id)),double(d6id),d6com]),allreg(:,locd6).'];
-% 
-%         end
+        end
     end
 
 
@@ -64,8 +52,8 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     collectionCH=recurSubregions('CH',strcmp(com_meta(:,4),'CH'),0,CHratio,cmap,com_meta,[],opt);
     collection=recurSubregions('BS',strcmp(com_meta(:,4),'BS'),CHratio,1-CHratio,cmap,com_meta,collectionCH,opt);
 
-    blame=vcs.blame();
-    save('per_region_com_collection.mat','collection','blame');
+%     blame=vcs.blame();
+%     save('per_region_com_collection.mat','collection','blame');
     colormap('turbo')
     ch=colorbar('Ticks',0:0.25:1,'TickLabels',1:5);
     ch.Label.String='Mean F.R. COM';

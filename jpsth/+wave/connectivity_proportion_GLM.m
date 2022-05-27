@@ -11,7 +11,11 @@ arguments
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
     opt.stats_type (1,:) char
     opt.data_type (1,:) char
+    opt.feat_tag
+end
 
+if ~isfield(opt,'feat_tag') || isempty(opt.feat_tag)
+    warning('Missing data tag');
 end
 
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
@@ -75,7 +79,7 @@ for featii=1:numel(map_cells) % both, either, summed
             one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
             %====================================^^^1^^^^^^2^^^^^^3^^^^^^^^^^^4,5,6^^^^^^^^^^^^^7^8^^
         end
-        save('one_reg_corr_list.mat','one_reg_corr_list')
+%         save('one_reg_corr_list.mat','one_reg_corr_list')
 
         %
         if opt.plot1 % plot one-region: coding proportion correlation bars
@@ -100,7 +104,11 @@ for featii=1:numel(map_cells) % both, either, summed
             bh.CData(s_list(:,4)==2,:)=repmat([0,0,0],nnz(s_list(:,4)==2),1);
             xlabel('Connectivity-coding proportion correlation (Pearson''s r)')
             set(gca(),'YTick',1:size(s_list,1),'YTickLabel',xlbl,'YDir','reverse');
-            title(sprintf('epoch%d-feat%d',epochii,featii))
+            if isfield(opt,'feat_tag') && ~isempty(opt.feat_tag)
+                title(opt.feat_tag(featii));
+            else
+                title(sprintf('epoch%d-feature%d',epochii,featii))
+            end
             xlim([-1,1]);
             %                 legend([bhto,bhfrom],{'Connectivity to this region','Connectivity from this region'})
 %             exportgraphics(fh.bar1,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
