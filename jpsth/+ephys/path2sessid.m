@@ -1,4 +1,4 @@
-function out=path2sessid(path,opt)
+function [out,map_]=path2sessid(path,opt)
 arguments
     path (1,:) char
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
@@ -14,7 +14,7 @@ if isempty(map) || ~strcmp(opt.type,type) || ~strcmp(opt.criteria,criteria)
         else
             allpath=deblank(h5read(fullfile(homedir,'transient_6_complete.hdf5'),'/path'));
         end
-    else
+        else
         fullpath=deblank(h5read(fullfile(homedir,'Selectivity_AIopto_0419.hdf5'),'/path'));
         allpath=regexp(fullpath,'.*(?=\\.*)','match','once');
     end
@@ -28,6 +28,8 @@ if isempty(map) || ~strcmp(opt.type,type) || ~strcmp(opt.criteria,criteria)
     criteria=opt.criteria;
     
 end
-out=map(path);
-
+p=replace(path,'/home/zx/neupix/SPKINFO/','');
+p=replace(p,'/','\');
+out=map(p);
+map_=map;
 end

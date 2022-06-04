@@ -35,28 +35,28 @@ for reg=reshape(ureg,1,[])
     switch opt.stats_model
         case 'RANKSUM'
             waveid=opt.waveid;
-            ctxt_indi_maineffect_single_cnt=nnz(regsel & waveid>4);
-            ctxt_depd_interact_mix_cnt=nnz(regsel &waveid>0 & waveid<5);
+            ctxt_indi_maineffect_mix_cnt=nnz(regsel & waveid>4);
+            ctxt_depd_interact_single_cnt=nnz(regsel &waveid>0 & waveid<5);
             legends={'Context indepedent','Context dependent'};
         case 'RANKSUM2'
             waveid=opt.waveid;
-            ctxt_indi_maineffect_single_cnt=nnz(regsel & waveid==1);
-            ctxt_depd_interact_mix_cnt=nnz(regsel & waveid==2);
+            ctxt_indi_maineffect_mix_cnt=nnz(regsel & waveid==1);
+            ctxt_depd_interact_single_cnt=nnz(regsel & waveid==2);
             legends={'Context indepedent','Context dependent'};
         case 'ANOVA2'
             anovameta=opt.meta;
-            ctxt_indi_maineffect_single_cnt=nnz(regsel & anovameta.(opt.single_field));
-            ctxt_depd_interact_mix_cnt=nnz(regsel & anovameta.interact);
+            ctxt_indi_maineffect_mix_cnt=nnz(regsel & anovameta.(opt.single_field));
+            ctxt_depd_interact_single_cnt=nnz(regsel & anovameta.interact);
             legends={'Maineffect','Interaction'};
         case 'SINGLE_MIX'
             singlemix_meta=opt.meta;
-            ctxt_indi_maineffect_single_cnt=nnz(regsel & (singlemix_meta.single1 | singlemix_meta.single2) & ~(singlemix_meta.single1 & singlemix_meta.single2));
-            ctxt_depd_interact_mix_cnt=nnz(regsel & (singlemix_meta.single1 & singlemix_meta.single2));
-            legends={'Single modality','mixed modality'};
+            ctxt_indi_maineffect_mix_cnt=nnz(regsel & (singlemix_meta.single1 & singlemix_meta.single2) );
+            ctxt_depd_interact_single_cnt=nnz(regsel & (singlemix_meta.single1 | singlemix_meta.single2) & ~(singlemix_meta.single1 & singlemix_meta.single2));
+            legends={'Mixed modality','Single modality'};
             
     end
     grp=idmap.reg2tree(reg{1});
-    sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,ctxt_indi_maineffect_single_cnt,ctxt_depd_interact_mix_cnt];
+    sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,ctxt_indi_maineffect_mix_cnt,ctxt_depd_interact_single_cnt];
     %====================1=========================2============3=========4==================================5========
 end
 

@@ -22,9 +22,34 @@ if isempty(opt.data)
 else
     sums_conn_str=opt.data;
 end
+
+%%
+    sig=struct(); % for significant connect
+    sig.suid=cell(0); % cluster id assigned by kilosort, 2nd+ probe prefixed by probe#
+    sig.reg=cell(0); % brain region tree
+    sig.sess=cell(0);
+    sig.wf_good=cell(0);
+    if opt.load_waveid
+        sig.waveid=cell(0);
+        fields={'suid','reg','wf_good','waveid'};
+
+        % waveid pipeline before update:
+        % .mat <- reg_conn_bz -> bz.util.get_meta -> ephys.get_wave_id(meta->memtype)
+    else
+        fields={'suid','reg','wf_good'};
+    end
+    if opt.pair, pair=sig; end% for all pairs
+%%
+
+
+
+
+
+
+
 fprintf('Total sessions %d\n',length(sums_conn_str));
 for fidx=1:length(sums_conn_str)
-    tic
+%     tic
     disp(fidx);
     fpath=sums_conn_str(fidx).folder; %session data folder
 
@@ -54,15 +79,15 @@ for fidx=1:length(sums_conn_str)
         pair_meta.(fi{1})=cat(1,pair_meta.(fi{1}),flip(pair_meta.(fi{1}),ndims(pair_meta.(fi{1}))));%uni-dir to bi-dir
 %         pair.(fi{1})=cat(1,pair.(fi{1}),pair_meta.(fi{1}));
     end
-    if opt.inhibit
-        save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d_inhibitory.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
-    else
-        save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
-%         structWriteHDF5('fpath',fullfile('bzdata',sprintf('%s_conn_w_reg_%d.hdf5',opt.prefix,fidx)),...
-%             'datasets',struct('sig_meta',sig_meta,'pair_meta',pair_meta),...
-%             'pc_stem',pc_stem)
-    end
-    toc
+%     if opt.inhibit
+%         save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d_inhibitory.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+%     else
+%         save(fullfile('bzdata',sprintf('%s_conn_w_reg_%d.mat',opt.prefix,fidx)),'sig_meta','pair_meta','pc_stem','-v7','-nocompression')
+% %         structWriteHDF5('fpath',fullfile('bzdata',sprintf('%s_conn_w_reg_%d.hdf5',opt.prefix,fidx)),...
+% %             'datasets',struct('sig_meta',sig_meta,'pair_meta',pair_meta),...
+% %             'pc_stem',pc_stem)
+%     end
+%     toc
 end
 end
 

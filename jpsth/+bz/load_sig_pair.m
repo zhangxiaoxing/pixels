@@ -10,6 +10,7 @@ arguments
     opt.CTX (1,1) logical = false
     opt.load_waveid (1,1) logical = false
 end
+% error('Obsolete method');
 persistent sig pair opt_
 if isempty(sig) ...
         || (opt.pair && isempty(pair))...

@@ -10,7 +10,7 @@ arguments
     opt.reg_min_su (1,1) double = 100
     opt.tbl_title (1,:) char = []
 end
-
+% [sig,~]=bz.load_sig_sums_conn_file();
 sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
 sig=bz.join_fc_waveid(sig,selmeta.wave_id);
 [~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su);

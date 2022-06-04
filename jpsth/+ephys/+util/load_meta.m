@@ -6,6 +6,7 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.n_bin (1,1) double {mustBeInteger,mustBePositive} = 3
     opt.skip_stats (1,1) logical = true
+    opt.adjust_whit_matter (1,1) logical = false
 end
 persistent opt_ out_
 
@@ -14,7 +15,11 @@ if isempty(out_) || ~isequaln(opt,opt_)
     fpath_6=fullfile(homedir,'transient_6.hdf5'); % source data from K:\code\per_sec\per_sec_stats.py
     out_.allpath=cellstr(deblank(h5read(fpath_6,'/path')));
     out_.allcid=h5read(fpath_6,'/cluster_id');
-    out_.reg_tree=cellstr(deblank(h5read(fpath_6,'/reg_tree')));
+    if ~opt.adjust_whit_matter
+        out_.reg_tree=cellstr(deblank(h5read(fpath_6,'/reg_tree')));
+    else
+        out_.reg_tree=ephys.get_adjusted_reg_tree();
+    end
     out_.good_waveform=h5read(fpath_6,'/wf_good');
     if ~opt.skip_stats
         fpath_3=fullfile(homedir,'transient_3.hdf5');
@@ -33,6 +38,8 @@ if isempty(out_) || ~isequaln(opt,opt_)
     end
     out_.sess=cellfun(@(x) ephys.path2sessid(x),out_.allpath);
     opt_=opt;
+    
 end
 out=out_;
 end
+
