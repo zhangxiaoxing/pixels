@@ -1,6 +1,6 @@
 function fh=inter_wave_ext_bars(meta_input)
-[sig,pair]=bz.load_sig_pair('pair',true);
-% [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+% [sig,pair]=bz.load_sig_pair('pair',true);
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 
 meta=ephys.util.load_meta();
 waveid=zeros(size(meta_input.sens_only))+meta_input.sens_only+2.*meta_input.dur_only+4*meta_input.mixed;

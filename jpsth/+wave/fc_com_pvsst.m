@@ -10,16 +10,22 @@ arguments
     opt.reg_min_su (1,1) double = 100
     opt.tbl_title (1,:) char = []
 end
-% [sig,~]=bz.load_sig_sums_conn_file();
-sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
+[sig,~]=bz.load_sig_sums_conn_file();
+% sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
 sig=bz.join_fc_waveid(sig,selmeta.wave_id);
-[~,is_same,h2l,l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su);
-disp(nnz(is_same | l2h | h2l))
+% same sort as file-list, not same to sessionid
+[~,is_same_unsort,h2l_unsort,l2h_unsort]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su);
+disp(nnz(is_same_unsort | l2h_unsort | h2l_unsort))
 fc_com_pvsst_stats=[];
 usess=unique(sig.sess);
+[is_same,h2l,l2h]=deal([]);
 
 for sii=reshape(usess,1,[]) %iterate through sessions
     sesssel=sig.sess==sii;
+    is_same=[is_same;is_same_unsort(sesssel,:)];
+    h2l=[h2l;h2l_unsort(sesssel,:)];
+    l2h=[l2h;l2h_unsort(sesssel,:)];
+
     suid=sig.suid(sesssel,:);
 
     waveid=sig.waveid(sesssel,:);
@@ -47,6 +53,7 @@ for sii=reshape(usess,1,[]) %iterate through sessions
     %==================================================sess=====================suid=======COM_context1=====COM_context2=====ccfid===========waveid======
 end
 % save('fc_com_pvsst_stats.mat','fc_com_pvsst_stats');
+
 switch opt.mem_type
     case 'congru'
         congrusel=all(ismember(fc_com_pvsst_stats(:,10:11),[1 5]),2) ...
