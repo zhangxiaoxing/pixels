@@ -5,7 +5,7 @@ arguments
     opt.frac_COM (1,1) logical = true
     opt.frac_PVSST (1,1) logical = true
     opt.COM_PVSST (1,1) logical = true
-    opt.COM_connidx (1,1) logical = true
+    opt.COM_hieridx (1,1) logical = true
     opt.range (1,:) char {mustBeMember(opt.range,{'CH','CTX','grey'})} = 'grey'
     opt.corr (1,:) char {mustBeMember(opt.corr,{'Pearson','Spearman'})} = 'Spearman'
     opt.export (1,1) logical = false
@@ -59,7 +59,12 @@ if opt.frac_COM
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     xlabel('Regional proportion of sensory neuron')
     ylabel('Center of FR modulation (s)')
-    [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    if strcmp(opt.corr,'Pearson')
+        vsel=coord(:,1)>0;
+        [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type',opt.corr);
+    else
+        [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    end
     set(gca(),'XScale','log');
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
@@ -113,9 +118,9 @@ if opt.COM_PVSST
 end
 
 %% com vs SMI
-if opt.COM_connidx
+if opt.COM_hieridx
 %     load('OBM1Map.mat','OBM1map')
-%     fh.COM_connidx=figure('Color','w','Position',[100,100,245,235]);
+%     fh.COM_hieridx=figure('Color','w','Position',[100,100,245,235]);
     nexttile
     hold on;
     coord=[];
@@ -153,7 +158,12 @@ if opt.COM_connidx
 
     set(gca(),'XScale','log')
 %     xlim([-7,7])
-    [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    if strcmp(opt.corr,'Pearson')
+        vsel=coord(:,1)>0;
+        [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type',opt.corr);
+    else
+        [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    end
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
         exportgraphics(fh,sprintf('per_region_COM_SMI_%d.pdf',opt.delay));
@@ -194,10 +204,16 @@ if opt.frac_PVSST
 %         ylim([10,60]);
 %         set(gca(),'YTick',0:20:60,'XTick',0:0.2:1);
 %     end
+    set(gca(),'YScale','log');
     xlabel('PV / (PV + SST) density')
     ylabel('Regional proportion of sensory neuron')
 %     xlim([0,0.6]);
-    [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    if strcmp(opt.corr,'Pearson')
+        vsel=coord(:,2)>0;
+        [r,p]=corr(coord(vsel,1),log10(coord(vsel,2)),'type',opt.corr);
+    else
+        [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+    end
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','bottom');
     if opt.export
         keyboard()

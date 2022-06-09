@@ -21,11 +21,14 @@ for reg=reshape(ureg,1,[])
     text(sens(1),dur(1),reg{1},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
     corrmat=[corrmat;idmap.reg2ccfid(reg{1}),sens(1),dur(1)];
 end
-[r,p]=corr(corrmat(:,2),corrmat(:,3),'type','Spearman');
+[rs,ps]=corr(corrmat(:,2),corrmat(:,3),'type','Spearman');
+[rp,pp]=corr(corrmat(:,2),corrmat(:,3),'type','Pearson');
+
 xlabel('Sensory neuron proportion (%)');
 ylabel('Duration neuron proportion (%)');
 set(gca,'XScale','log','YScale','log')
-title(sprintf(' r = %.3f, p = %.3f',r,p));
+title({sprintf('r = %.3f, p = %.3f',rs,ps); ...
+    sprintf('r = %.3f, p = %.3f',rp,pp)} );
 % xlim([0.003,0.4])
 % if max(ylim())>0.3
 %     ylim([0.1,0.35])

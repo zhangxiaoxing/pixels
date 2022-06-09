@@ -1,6 +1,7 @@
-function [fh,hiermap]=connectivity_proportion_GLM(map_cells,opt)
+function [fh,hiermap]=connectivity_proportion_GLM(map_cells,corr_type,opt)
 arguments
     map_cells (1,:) cell
+    corr_type (1,:) char {mustBeMember(corr_type,{'Spearman','PearsonLogLog','PearsonLinearLog'})}
     opt.skip_efferent (1,1) logical = true
     opt.corr1 (1,1) logical =true;
     opt.plot1 (1,1) logical =true;
@@ -12,6 +13,7 @@ arguments
     opt.stats_type (1,:) char
     opt.data_type (1,:) char
     opt.feat_tag
+    
 end
 
 if ~isfield(opt,'feat_tag') || isempty(opt.feat_tag)
@@ -75,7 +77,20 @@ for featii=1:numel(map_cells) % both, either, summed
     %% one region corr, bar plot
     if opt.corr1
         for regii=1:size(glmxmat,1)
-            [r,p]=corr(glmxmat(regii,:).',feat_prop,'type','Spearman');
+            switch(corr_type)
+                case 'Spearman'
+                    [r,p]=corr(glmxmat(regii,:).',feat_prop,'type','Spearman');
+                case 'PearsonLogLog'
+                    vsel=(glmxmat(regii,:).')>0 & feat_prop>0;
+                    [r,p]=corr(reshape(log10(glmxmat(regii,vsel)),[],1),...
+                        reshape(log10(feat_prop(vsel)),[],1),'type','Pearson');
+                case 'PearsonLinearLog'
+                    vsel=(glmxmat(regii,:).')>0;
+                    [r,p]=corr(reshape(log10(glmxmat(regii,vsel)),[],1),...
+                        reshape(feat_prop(vsel),[],1),'type','Pearson');
+            end
+            
+            
             one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
             %====================================^^^1^^^^^^2^^^^^^3^^^^^^^^^^^4,5,6^^^^^^^^^^^^^7^8^^
         end

@@ -3,7 +3,7 @@ arguments
     opt.pair (1,1) logical = false
     opt.fn (1,:) char ...
         {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}...
-        = 'sums_conn_20win.mat';
+        = 'sums_conn_10.mat';
 end
 warning(['using FC file ',opt.fn]);
 

@@ -1,14 +1,24 @@
 warning('gather all plots from top')
 keyboard()
 
-if exist('collections.pdf','file')
-    delete('collections.pdf')
-end
+% if exist('collections.pdf','file')
+%     delete('collections.pdf')
+% end
 clear all
 close all
 
 %% RANKSUM1
-fnsuffix='_20ms_adj';
+fnsuffix='_10ms_adj_spearman';
+corr_type='Spearman';
+
+if strcmp(corr_type,'Pearson')
+    corr_ln_log='PearsonLinearLog';
+    corr_log_log='PearsonLogLog';
+else
+    corr_ln_log='Spearman';
+    corr_log_log='Spearman';
+end
+
 th=figure('Color','w','Position',[32,32,1600,900]);
 blame=vcs.blame();
 str=strjoin({'Stats:RANKSUM1',blame.datetime,blame.git_hash,blame.git_status},'=====\n');
@@ -33,6 +43,7 @@ load perm_sens.mat
 sens_reg_bar_fh.Children.Children(5).YLim=[1e-3,1];
 sens_GLM_fh=wave.connectivity_proportion_GLM( ...
     sens_map_cells, ...
+    corr_log_log, ...
     'range','grey', ...
     'data_type','sensory', ...
     'stats_type','Ranksum',...
@@ -44,9 +55,12 @@ load perm_dur.mat
 [dur_map_cells,dur_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','RANKSUM','skip_plot',false,'waveid',dur_meta.wave_id,'range','grey','data_type','duration','stats_type',stats_type);
 dur_reg_bar_fh.Children.Children(5).YLim=[5e-5,0.5];
 dur_reg_bar_fh.Children.Children(5).YTick=10.^[-4:0];
-dur_GLM_fhgrey=wave.connectivity_proportion_GLM(dur_map_cells,'range','grey','data_type','duration','stats_type',stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
-dur_GLM_fhch=wave.connectivity_proportion_GLM(dur_map_cells,'range','CH','data_type','duration','stats_type',    stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
-dur_GLM_fhctx=wave.connectivity_proportion_GLM(dur_map_cells,'range','CTX','data_type','duration','stats_type',  stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
+dur_GLM_fhgrey=wave.connectivity_proportion_GLM(dur_map_cells,corr_log_log, ...
+    'range','grey','data_type','duration','stats_type',stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
+dur_GLM_fhch=wave.connectivity_proportion_GLM(dur_map_cells,corr_log_log, ...
+    'range','CH','data_type','duration','stats_type',    stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
+dur_GLM_fhctx=wave.connectivity_proportion_GLM(dur_map_cells,corr_log_log, ...
+    'range','CTX','data_type','duration','stats_type',  stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
 
 
 % plot duration SC
@@ -70,7 +84,8 @@ single_mix_meta.single1=sens_meta.wave_id>0;
 single_mix_meta.single2=dur_meta.wave_id>0;
 [singlemix_map_cells,singlemix_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','SINGLE_MIX','skip_plot',false,'meta',single_mix_meta,'range','grey','data_type','single_mix','stats_type',stats_type);
 % {indep, dep, I or D}
-singlemix_GLM_fh=wave.connectivity_proportion_GLM(singlemix_map_cells,'range','grey','data_type','single_mix','stats_type',stats_type,'feat_tag',{'Single modality','Mixed-modality','All selective neurons'});
+singlemix_GLM_fh=wave.connectivity_proportion_GLM(singlemix_map_cells,corr_log_log, ...
+    'range','grey','data_type','single_mix','stats_type',stats_type,'feat_tag',{'Single modality','Mixed-modality','All selective neurons'});
 % TODO mix density vs. sens density | dur density
 
 
@@ -90,6 +105,7 @@ for currdelay=[6,3]
     [fcom.(['d',num2str(currdelay)]).collection,...
         fcom.(['d',num2str(currdelay)]).com_meta]=wave.per_region_COM(...
         sens_com.(['d',num2str(currdelay)]),'stats_method','mean');
+
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
         fcom.(['d',num2str(currdelay)]).collection(:,2));
     ffrac.(['d',num2str(currdelay)]).collection=...
@@ -98,7 +114,7 @@ for currdelay=[6,3]
         num2cell(ones(numel(ureg),1)*5),...
         num2cell(cellfun(@(x) x(3),sens_map_cells{1}.values(ureg)))];
     
-    [sens_tcom_fh.(['d',num2str(currdelay)]),t]=wave.per_region_COM_frac(fcom.(['d',num2str(currdelay)]),ffrac.(['d',num2str(currdelay)]),'hier_reg','AON');
+    [sens_tcom_fh.(['d',num2str(currdelay)]),t]=wave.per_region_COM_frac(fcom.(['d',num2str(currdelay)]),ffrac.(['d',num2str(currdelay)]),'hier_reg','AON','corr',corr_type);
     t.Title.String=['Sense wave, delay=',num2str(currdelay)];
     [~,tcidx]=ismember(ureg,fcom.(['d',num2str(currdelay)]).collection(:,2));
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
@@ -106,7 +122,8 @@ end
 [comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON');
 
 
-sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,'range','grey','data_type','3s_6s_sensory_TCOM','stats_type',stats_type,'feat_tag',{'Sens TCOM 3s','Sens TCOM 6s'});
+sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
+    'range','grey','data_type','3s_6s_sensory_TCOM','stats_type',stats_type,'feat_tag',{'Sens TCOM 3s','Sens TCOM 6s'});
 
 %===============================================================
 for currcue=[4,8]
@@ -142,14 +159,17 @@ ffrac.dur.collection=...
     num2cell(ones(numel(ureg),1)*5),...
     num2cell(cellfun(@(x) x(3),dur_map_cells{3}.values(ureg)))];
 
- [dur_tcom_fh,t]=wave.per_region_COM_frac(fcom.dur,ffrac.dur,'hier_reg','COA');
+ [dur_tcom_fh,t]=wave.per_region_COM_frac(fcom.dur,ffrac.dur,'hier_reg','COA','corr',corr_type);
  t.Title.String='Duration wave';
  [~,tcidx]=ismember(ureg,fcom.dur.collection(:,2));
  dur_tcom_maps={containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.dur.collection(tcidx,1))))};
 
-dur_TCOM_GLM_grey_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,'range','grey','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-grey'});
-dur_TCOM_GLM_ch_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,'range','CH','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-CH'});
-dur_TCOM_GLM_ctx_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,'range','CTX','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-CTX'});
+dur_TCOM_GLM_grey_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
+    'range','grey','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-grey'});
+dur_TCOM_GLM_ch_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
+    'range','CH','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-CH'});
+dur_TCOM_GLM_ctx_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
+    'range','CTX','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-CTX'});
 
 [comdiff_stats,com_pair]=wave.fc_com_pvsst(dur_com.s4,dur_com.s8,dur_meta,'hiermap','RSP','tbl_title','Duration-RSP');
 %========================================================================

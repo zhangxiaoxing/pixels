@@ -31,9 +31,14 @@ for dd=["d3","d6"]
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     xlabel('Sensory wave COM')
     ylabel('Duration wave COM')
-    [r,p]=corr(coord(:,1),coord(:,2),'type',"Spearman");
+    [rs,ps]=corr(coord(:,1),coord(:,2),'type',"Spearman");
+    [rp,pp]=corr(coord(:,1),coord(:,2),'type',"Pearson");
+
 %     set(gca(),'XScale','log');
-    text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
+    text(max(xlim()),max(ylim()), ...
+        {sprintf('r = %.3f, p = %.3f',rs,ps); ...
+        sprintf('r = %.3f, p = %.3f',rp,pp)}, ...
+        'HorizontalAlignment','right','VerticalAlignment','top');
     title(dd)
 %     if opt.export
 %         exportgraphics(fh,sprintf('per_region_TCOM_FRAC_%d.pdf',opt.delay));
