@@ -4,10 +4,11 @@ keyboard()
 if exist('collections.pdf','file')
     delete('collections.pdf')
 end
+clear all
 close all
 
 %% RANKSUM1
-
+fnsuffix='_20ms_adj';
 th=figure('Color','w','Position',[32,32,1600,900]);
 blame=vcs.blame();
 str=strjoin({'Stats:RANKSUM1',blame.datetime,blame.git_hash,blame.git_status},'=====\n');
@@ -160,9 +161,9 @@ tcom_corr_bar_fh=wave.sens_dur_wave_bar(sens_map_cells,dur_map_cells,fcom);
 
 fhandles=get(groot(),'Children');
 for hc=reshape(fhandles,1,[])
-    exportgraphics(hc,'collections.pdf','ContentType','vector','Append',true)
+    exportgraphics(hc,sprintf('collections%s.pdf',fnsuffix),'ContentType','vector','Append',true)
 end
-savefig(fhandles,'Ranksum1.fig');
+savefig(fhandles,sprintf('Ranksum1%s.fig',fnsuffix));
 
 return
 

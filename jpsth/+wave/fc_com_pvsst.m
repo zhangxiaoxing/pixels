@@ -27,7 +27,6 @@ for sii=reshape(usess,1,[]) %iterate through sessions
     l2h=[l2h;l2h_unsort(sesssel,:)];
 
     suid=sig.suid(sesssel,:);
-
     waveid=sig.waveid(sesssel,:);
     com_sess_2half=nan(size(suid));
     if isfield(com_map_2half,['s',num2str(sii)])
@@ -63,8 +62,6 @@ switch opt.mem_type
     case 'incong'
         congrusel=any(ismember(fc_com_pvsst_stats(:,10:11),[1 3 5]),2) & any(ismember(fc_com_pvsst_stats(:,10:11),[2 4 6]),2);
 end
-
-
 
 fini_sel=@(x) x(all(isfinite(x),2),:);
 fork_join=@(x) [x(:,1:2);x(:,3:4)];

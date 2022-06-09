@@ -4,7 +4,7 @@ arguments
     com_map
     opt.keep_figure (1,1) logical = false
     opt.pdf (1,1) logical = false
-    opt.png (1,1) logical = true
+    opt.png (1,1) logical = false
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index

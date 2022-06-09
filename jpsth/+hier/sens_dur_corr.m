@@ -35,6 +35,6 @@ title(sprintf(' r = %.3f, p = %.3f',r,p));
 %     set(gca(),'YTick',[0.02,0.1,0.2],'YTickLabel',[0.02,0.1,0.2].*100,'XTick',[0.02,0.1,0.2],'XTickLabel',[0.02,0.1,0.2].*100)
 % end
 
-exportgraphics(fh,'sens_dur_corr.pdf','ContentType','vector')
+% exportgraphics(fh,'sens_dur_corr.pdf','ContentType','vector')
 %             close(fh)
 end

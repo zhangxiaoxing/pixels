@@ -1,14 +1,15 @@
 function [sig_,pair_]=load_sig_sums_conn_file(opt)
 arguments
     opt.pair (1,1) logical = false
-    opt.fn (1,:) char {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}= 'sums_conn_10.mat';
+    opt.fn (1,:) char ...
+        {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}...
+        = 'sums_conn_20win.mat';
 end
-% error('TEMP workaround')
 warning(['using FC file ',opt.fn]);
 
 persistent sig pair opt_
 if isempty(sig) || isempty(pair) || ~isequaln(opt,opt_)
-    meta=ephys.util.load_meta('adjust_whit_matter',false);
+    meta=ephys.util.load_meta();
     conn_str=load(opt.fn);
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
     idmap.reg2ccfid('')=0;
