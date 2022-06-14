@@ -42,8 +42,8 @@ for cycle=1:2
     hold on
     [rd,p]=map_match(dur_density_map,sens_density_map,loglogtype);%log log
     bhd=bar(1,rd,'FaceColor',[0.5,0.5,0.5]);
-    set(gca(),'XTick',1,'XTickLabel',{'sens_dur'},'XTickLabelRotation',90)
-    ylim([-1,1]);
+    set(gca(),'XTick',1,'XTickLabel',{'sens_dur'},'XTickLabelRotation',90,...
+        'YLim',[-1,1],'YTick',-1:0.5:1)
     ylabel(ylbl);
     nexttile();
     r=nan(5,1);
@@ -64,9 +64,9 @@ for cycle=1:2
     bh(2).FaceColor='k';
     legend(bh,{'Sensory','Duration'},'Location','northoutside','Orientation','horizontal');
     % set(gca(),'XTick',1:10,'XTickLabel',[diffs(1:5,2).',diffs(end-4:end,2).'],'XTickLabelRotation',90)
-    set(gca(),'XTick',1:5,'XTickLabel',diffs(1:5,2).','XTickLabelRotation',90)
+    set(gca(),'XTick',1:5,'XTickLabel',diffs(1:5,2).','XTickLabelRotation',90, ...
+        'YLim',[-1,1],'YTick',-1:0.5:1)
     ylabel(ylbl);
-    ylim([-1,1]);
     title("density")
 
 
@@ -127,10 +127,10 @@ for cycle=1:2
         bh(2).FaceColor='k';
         legend(bh,{'Sensory','Duration'},'Location','northoutside','Orientation','horizontal');
         %     set(gca(),'XTick',1:12,'XTickLabel',[{'Sensory density','Duration density'},diffs(1:5,2).',diffs(end-4:end,2).'],'XTickLabelRotation',90)
-        set(gca(),'XTick',1:5,'XTickLabel',diffs(1:5,2).','XTickLabelRotation',90)
+        set(gca(),'XTick',1:5,'XTickLabel',diffs(1:5,2).','XTickLabelRotation',90,...
+            'YLim',[-1,1],'YTick',-1:0.5:1)
         ylabel(ylbl);
         title(['TCOM ',char(tcom_delay)])
-        ylim([-1,1]);
     end
     % exportgraphics(gcf(),'collections.pdf','ContentType','vector','Append',true)
 end

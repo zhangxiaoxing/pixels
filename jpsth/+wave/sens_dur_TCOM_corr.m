@@ -1,9 +1,9 @@
 function fh=sens_dur_TCOM_corr(fcom)
-fh=figure('Color','w','Position',[16,180,800,400]);
+fh=figure('Color','w','Position',[16,180,1600,400]);
 % TODDO: double check SU wave-type
-t=tiledlayout(1,2);
+t=tiledlayout(1,4);
 t.Title.String='Olfaction/duration wave timing correlation';
-
+[rs,rp]=deal([]);
 for dd=["d3","d6"]
     nexttile
     hold on;
@@ -31,8 +31,8 @@ for dd=["d3","d6"]
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     xlabel('Sensory wave COM')
     ylabel('Duration wave COM')
-    [rs,ps]=corr(coord(:,1),coord(:,2),'type',"Spearman");
-    [rp,pp]=corr(coord(:,1),coord(:,2),'type',"Pearson");
+    [rs(end+1),ps]=corr(coord(:,1),coord(:,2),'type',"Spearman");
+    [rp(end+1),pp]=corr(coord(:,1),coord(:,2),'type',"Pearson");
 
 %     set(gca(),'XScale','log');
     text(max(xlim()),max(ylim()), ...
@@ -40,7 +40,17 @@ for dd=["d3","d6"]
         sprintf('r = %.3f, p = %.3f',rp,pp)}, ...
         'HorizontalAlignment','right','VerticalAlignment','top');
     title(dd)
+
 %     if opt.export
 %         exportgraphics(fh,sprintf('per_region_TCOM_FRAC_%d.pdf',opt.delay));
 %     end
 end
+nexttile()
+bar(1:2,[rs(1),rs(2)],'FaceColor','k')
+set(gca(),'YLim',[-1,1],'YTick',-1:0.5:1,'XTick',1:2,'XTickLabel',{'3s','6s'})
+title('sens-dur-timing-spearman')
+
+nexttile()
+bar(1:2,[rp(1),rp(2)],'FaceColor','k')
+set(gca(),'YLim',[-1,1],'YTick',-1:0.5:1,'XTick',1:2,'XTickLabel',{'3s','6s'})
+title('sens-dur-timing-pearson')

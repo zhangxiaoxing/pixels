@@ -138,7 +138,11 @@ for featii=1:numel(map_cells) % both, either, summed
             end
             xlabel('Projection density (px/px)');
             ylabel('Regional averaged feature index')
-            set(gca,'XScale','log','YScale','log')
+            if strcmp(corr_type,'PearsonLinearLog')
+                set(gca,'XScale','log','YScale','linear')
+            else
+                set(gca,'XScale','log','YScale','log')
+            end
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
 
             nexttile(6,[1,3])
@@ -151,7 +155,11 @@ for featii=1:numel(map_cells) % both, either, summed
             end
             xlabel('Projection density (px/px)');
             ylabel('Regional averaged feature index')
-            set(gca,'XScale','log','YScale','log')
+            if strcmp(corr_type,'PearsonLinearLog')
+                set(gca,'XScale','log','YScale','linear')
+            else
+                set(gca,'XScale','log','YScale','log')
+            end
             title(sprintf(' r = %.3f, p = %.3f',s_list(end,7),s_list(end,8)));
 
             th=nexttile(9,[1,2]);

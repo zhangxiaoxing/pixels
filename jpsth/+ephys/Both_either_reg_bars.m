@@ -8,7 +8,7 @@ arguments
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
     opt.stats_type (1,:) char;
     opt.data_type (1,:) char;
-
+    opt.skip_error_bar (1,1) logical = true
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -118,8 +118,10 @@ title(sprintf(' r = %.3f, p = %.3f',r,p));
 nexttile(2,[1,2]);
 hold on
 bh=bar(bardata(:,[6,9]),1,'grouped');
-errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,6:7),1,2),diff(bardata(:,[6,8]),1,2),'k.');
-errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,9:10),1,2),diff(bardata(:,[9,11]),1,2),'k.');
+if ~opt.skip_error_bar
+    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,6:7),1,2),diff(bardata(:,[6,8]),1,2),'k.');
+    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,9:10),1,2),diff(bardata(:,[9,11]),1,2),'k.');
+end
 bh(1).FaceColor='k';% independent
 bh(2).FaceColor='w';% dependent
 set(gca(),'YScale','Log')
@@ -133,8 +135,10 @@ nexttile(6,[1,2]);
 hold on
 [~,sidx]=sort(summat(:,1),'descend');
 bh=bar(summat(sidx,1),'FaceColor',ones(1,3)/2);
-errorbar(bh.XEndPoints,bh.YEndPoints,diff(summat(sidx,[1,4]),1,2),diff(summat(sidx,[1,5]),1,2),'k.');
-set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90)
+if ~opt.skip_error_bar
+    errorbar(bh.XEndPoints,bh.YEndPoints,diff(summat(sidx,[1,4]),1,2),diff(summat(sidx,[1,5]),1,2),'k.');
+end
+set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90,'Yscale','Log')
 legend(bh,{'Total'},'Location','northeast','Orientation','horizontal');
 
 

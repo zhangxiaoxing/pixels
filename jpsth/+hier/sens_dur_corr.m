@@ -15,8 +15,8 @@ hold on
 corrmat=[];
 for reg=reshape(ureg,1,[])
     c=ephys.getRegColor(reg{1},'large_area',true);
-    sens=sens_only_map(reg{1});
-    dur=dur_only_map(reg{1});
+    sens=sens_only_map(reg{1}).*100;
+    dur=dur_only_map(reg{1}).*100;
     scatter(sens(1),dur(1),4,c,'filled','o')
     text(sens(1),dur(1),reg{1},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
     corrmat=[corrmat;idmap.reg2ccfid(reg{1}),sens(1),dur(1)];
@@ -26,7 +26,7 @@ end
 
 xlabel('Sensory neuron proportion (%)');
 ylabel('Duration neuron proportion (%)');
-set(gca,'XScale','log','YScale','log')
+set(gca,'XScale','linear','YScale','linear')
 title({sprintf('r = %.3f, p = %.3f',rs,ps); ...
     sprintf('r = %.3f, p = %.3f',rp,pp)} );
 % xlim([0.003,0.4])

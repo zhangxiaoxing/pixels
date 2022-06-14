@@ -12,6 +12,7 @@ arguments
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} = 6 % DPA delay duration
     opt.hier_reg (1,:) char = 'AON'
+    opt.density_scale (1,:) char = 'log'
 end
 
 
@@ -31,6 +32,7 @@ hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid
     anov);
 %%
 [~,~,pvsst_map]=ref.get_pv_sst();
+reg_range=ephys.getGreyRegs('range',opt.range);
 
 
 %% com vs frac
@@ -40,7 +42,7 @@ if opt.frac_COM
     hold on;
     coord=[];
     regs=[];
-    inter_reg=fcom.collection(:,2); %TODO improve call stack
+    inter_reg=fcom.collection(:,2); %TODO refactor call stack
     for ri=1:numel(inter_reg)
         fridx=find(strcmp(ffrac.collection(:,2),inter_reg(ri)));
         if ~isempty(fridx)
@@ -59,13 +61,13 @@ if opt.frac_COM
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     xlabel('Regional proportion of sensory neuron')
     ylabel('Center of FR modulation (s)')
-    if strcmp(opt.corr,'Pearson')
+    if strcmp(opt.corr,'Pearson') && strcmp(opt.density_scale,'log')
         vsel=coord(:,1)>0;
         [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type',opt.corr);
     else
         [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     end
-    set(gca(),'XScale','log');
+    set(gca(),'XScale',opt.density_scale);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
         exportgraphics(fh,sprintf('per_region_TCOM_FRAC_%d.pdf',opt.delay));

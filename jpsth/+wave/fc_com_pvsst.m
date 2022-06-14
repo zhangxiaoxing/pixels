@@ -133,6 +133,10 @@ h=([nnz([comh2l(:,2);comh2l(:,4)]>[comh2l(:,1);comh2l(:,3)]),nnz(all(isfinite([c
 [tbl,chi2,p]=crosstab([zeros(s(2),1);ones(l(2),1);2*ones(h(2),1)],[(1:s(2))>s(1),(1:l(2))>l(1),(1:h(2))>h(1)].');
 binocdfp=[2*binocdf(min(tbl(1,:)),sum(tbl(1,:)),0.5),2*binocdf(min(tbl(2,:)),sum(tbl(2,:)),0.5),2*binocdf(min(tbl(3,:)),sum(tbl(3,:)),0.5),];
 
+% binocdf(min(135+144),sum([135 279 144 208]),0.5)
+
+
+
 binocdfptotal=(2*binocdf(min(sum(tbl)),sum(tbl,'all'),0.5));
 
 statstbl={['signrank p total ', num2str(ps_total),' ttest p total ',num2str(pt_total)]; ...

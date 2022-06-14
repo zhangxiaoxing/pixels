@@ -6,6 +6,7 @@ arguments
     dur_meta
     opt.anova_meta
     opt.skip_raster (1,1) logical = true
+    opt.dim (1,1) double = 2
 end
 close all
 % sens_meta=ephys.util.load_meta();
@@ -71,9 +72,9 @@ for ii=reshape(metaidx,1,[])
             pidx=pidx+1;
         end
 
-        arrayfun(@(x) xline(x,'--k'),[0 1 4 5]);
-        xlim([-1,7])
-        set(gca,'XTick',-1:7,'XTickLabel',-2:6)
+        arrayfun(@(x) xline(x,'--k'),[0 1 4 5 7 8]);
+        xlim([-1,8])
+        set(gca,'XTick',-1:8,'XTickLabel',-2:7)
 
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -93,9 +94,9 @@ for ii=reshape(metaidx,1,[])
             pidx=pidx+1;
         end
 
-        arrayfun(@(x) xline(x,'--k'),[0 1 4 5]);
-        xlim([-1,7])
-        set(gca,'XTick',-1:7,'XTickLabel',-2:6)
+        arrayfun(@(x) xline(x,'--k'),[0 1 4 5 7 8]);
+        xlim([-1,8])
+        set(gca,'XTick',-1:8,'XTickLabel',-2:7)
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -105,19 +106,19 @@ for ii=reshape(metaidx,1,[])
         pidx=0;
         for ti=reshape(s1d3p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0,0,0.5])
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0,0,0.5].*opt.dim)
             pidx=pidx+1;
         end
 
         for ti=reshape(s1d6p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0.5,0,0])
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0.5,0,0].*opt.dim)
             pidx=pidx+1;
         end
 
-        arrayfun(@(x) xline(x,'--k'),[0 1 4 5]);
-        xlim([-1,7])
-        set(gca,'XTick',-1:7,'XTickLabel',-2:6)
+        arrayfun(@(x) xline(x,'--k'),[0 1 4 5 7 8]);
+        xlim([-1,8])
+        set(gca,'XTick',-1:8,'XTickLabel',-2:7)
 
 
 
@@ -127,19 +128,19 @@ for ii=reshape(metaidx,1,[])
         pidx=0;
         for ti=reshape(s2d3p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0,0,0.5])
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0,0,0.5].*opt.dim)
             pidx=pidx+1;
         end
 
         for ti=reshape(s2d6p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'r-','Color',[0.5,0,0])
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'r-','Color',[0.5,0,0].*opt.dim)
             pidx=pidx+1;
         end
 
-        arrayfun(@(x) xline(x,'--k'),[0 1 4 5]);
-        xlim([-1,7])
-        set(gca,'XTick',-1:7,'XTickLabel',-2:6)
+        arrayfun(@(x) xline(x,'--k'),[0 1 4 5 7 8]);
+        xlim([-1,8])
+        set(gca,'XTick',-1:8,'XTickLabel',-2:7)
 
     end
 
@@ -158,10 +159,10 @@ for ii=reshape(metaidx,1,[])
 
     plot(smooth(mean(s1d3c),5),'-r')
     plot(smooth(mean(s2d3c),5),'-b')
-    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5]);
+    
     title('s1 v. s2, d3')
-    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:6)
-    xlim([4.5,36.5]);
+    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5 36.5 40.5]);
+    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:7,'XLim',[4.5,40.5])
     xlabel('Time (s)');
     ylabel('F.R.');
 
@@ -182,11 +183,9 @@ for ii=reshape(metaidx,1,[])
     plot(smooth(mean(s1d6c),5),'-r')
     plot(smooth(mean(s2d6c),5),'-b')
 
-    xline(8.5,'--k')
-    xline(12.5,'--k')
     title('s1 v. s2, d6')
-    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:6)
-    xlim([4.5,36.5]);
+    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5 36.5 40.5]);
+    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:7,'XLim',[4.5,40.5])
     xlabel('Time (s)');
     ylabel('F.R.');
 
@@ -202,15 +201,14 @@ for ii=reshape(metaidx,1,[])
     s1d3ci=[-1;1]*std(s1d3c)./sqrt(size(s1d3c,1)).'+mean(s1d3c);
     s1d6ci=[-1;1]*std(s1d6c)./sqrt(size(s1d6c,1)).'+mean(s1d6c);
 
-    fill([1:40,fliplr(1:40)],[smooth(s1d3ci(1,:),5);flip(smooth(s1d3ci(2,:),5))],[0,0,0.5],'EdgeColor','none','FaceAlpha',0.1);
-    fill([1:40,fliplr(1:40)],[smooth(s1d6ci(1,:),5);flip(smooth(s1d6ci(2,:),5))],[0.5,0,0],'EdgeColor','none','FaceAlpha',0.1);
+    fill([1:40,fliplr(1:40)],[smooth(s1d3ci(1,:),5);flip(smooth(s1d3ci(2,:),5))],[0,0,0.5].*opt.dim,'EdgeColor','none','FaceAlpha',0.1);
+    fill([1:40,fliplr(1:40)],[smooth(s1d6ci(1,:),5);flip(smooth(s1d6ci(2,:),5))],[0.5,0,0].*opt.dim,'EdgeColor','none','FaceAlpha',0.1);
 
-    plot(smooth(mean(s1d3c),5),'-','Color',[0,0,0.5])
-    plot(smooth(mean(s1d6c),5),'-','Color',[0.5,0,0])
-    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5]);
+    plot(smooth(mean(s1d3c),5),'-','Color',[0,0,0.5].*opt.dim)
+    plot(smooth(mean(s1d6c),5),'-','Color',[0.5,0,0].*opt.dim)
     title('d3 v. d6 ,s1')
-    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:6)
-    xlim([4.5,36.5]);
+    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5 36.5 40.5]);
+    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:7,'XLim',[4.5,40.5])
     xlabel('Time (s)');
     ylabel('F.R.');
     arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(dur_meta.fdr_s1(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
@@ -224,16 +222,16 @@ for ii=reshape(metaidx,1,[])
     s2d3ci=[-1;1]*std(s2d3c)./sqrt(size(s2d3c,1)).'+mean(s2d3c);
     s2d6ci=[-1;1]*std(s2d6c)./sqrt(size(s2d6c,1)).'+mean(s2d6c);
 
-    fill([1:40,fliplr(1:40)],[smooth(s2d3ci(1,:),5);flip(smooth(s2d3ci(2,:),5))],[0,0,0.5],'EdgeColor','none','FaceAlpha',0.1);
-    fill([1:40,fliplr(1:40)],[smooth(s2d6ci(1,:),5);flip(smooth(s2d6ci(2,:),5))],[0.5,0,0],'EdgeColor','none','FaceAlpha',0.1);
+    fill([1:40,fliplr(1:40)],[smooth(s2d3ci(1,:),5);flip(smooth(s2d3ci(2,:),5))],[0,0,0.5].*opt.dim,'EdgeColor','none','FaceAlpha',0.1);
+    fill([1:40,fliplr(1:40)],[smooth(s2d6ci(1,:),5);flip(smooth(s2d6ci(2,:),5))],[0.5,0,0].*opt.dim,'EdgeColor','none','FaceAlpha',0.1);
 
-    plot(smooth(mean(s2d3c),5),'-','Color',[0,0,0.5])
-    plot(smooth(mean(s2d6c),5),'-','Color',[0.5,0,0])
+    plot(smooth(mean(s2d3c),5),'-','Color',[0,0,0.5].*opt.dim)
+    plot(smooth(mean(s2d6c),5),'-','Color',[0.5,0,0].*opt.dim)
 
-    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5]);
+
     title('d3 v. d6 ,s2')
-    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:6)
-    xlim([4.5,36.5]);
+    arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5 36.5 40.5]);
+    set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:7,'XLim',[4.5,40.5])
     xlabel('Time (s)');
     ylabel('F.R.');
     arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(dur_meta.fdr_s2(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
