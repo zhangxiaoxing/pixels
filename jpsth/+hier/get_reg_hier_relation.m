@@ -8,10 +8,10 @@ arguments
 end
 if opt.load_int_data
     hier_str=load('conn_prob_bars_hier.mat');
-    if ~isempty(opt.sig_reg)
+    if isfield(opt,'sig_reg') && ~isempty(opt.sig_reg)
         assert(isequaln(opt.sig_reg,hier_str.sig_reg))
     end
-    if ~isempty(opt.pair_reg)
+    if isfield(opt,'pair_reg') && ~isempty(opt.pair_reg)
         assert(isequaln(opt.pair_reg,hier_str.pair_reg))
     end
 

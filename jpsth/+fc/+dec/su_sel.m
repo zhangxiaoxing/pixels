@@ -6,6 +6,8 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'all','pre','post','none','both'})} = 'all'
 end
 
+% meta=ephys.util.load_meta('skip_stats',true);
+
 if strcmp(opt.type,'all')
     out=sums;
     return

@@ -1,19 +1,45 @@
-keyboard();
-[sig,pair]=bz.load_sig_pair('pair',true);
-[sig_same, sig_h2l, sig_l2h,pair_same, pair_h2l, pair_l2h]=hier.get_reg_hier_relation();
+function fh=inter_wave(sens_meta)
+% selstr=load('perm_sens.mat','sens_meta');
 
-[samestats,samep]=statsOne(sig_same,pair_same,sig,pair);
-[l2hstats,l2hp]=statsOne(sig_l2h,pair_l2h,sig,pair);
-[h2lstats,h2lp]=statsOne(sig_h2l,pair_h2l,sig,pair);
+% persistent sig pair 
+
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+sig=bz.join_fc_waveid(sig,sens_meta.wave_id);
+pair=bz.join_fc_waveid(pair,sens_meta.wave_id);
+%>>>>>>>>>>>>>>>>>>Skip hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+[sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
+[pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
+
+[samestats,samep]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair);
+[diffstats,diffp]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair);
+
+fh=figure('Color','w','Position',[32,32,600,225]);
+t=tiledlayout(1,3);
+same_ax=plotOne(samestats,'ylim',[0,0.055]);
+diff_ax=plotOne(diffstats,'ylim',[0,0.02]);
+title(t,'same-, diff- region FC rate')
+th=nexttile();
+ephys.util.figtable(fh,th,{'chisq-same';samep;'chisq-diff';diffp})
+
+% exportgraphics(fh,'inter_wave_fc.pdf','ContentType','vector');
+%<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+%>>>>>>>>>>>>>>>>>>Hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+[~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'hiermap','AON','descend',true);
+[~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true,'hiermap','AON','descend',true);
+
+[l2hstats,h2lstats,p]=statsTwo(sig_l2h(:,5),sig_h2l(:,5),pair_l2h(:,5),pair_h2l(:,5),sig,pair);
+fh=figure('Color','w','Position',[32,32,440,250]);
+nexttile()
+plotTwo(l2hstats,h2lstats,'ylim',[0,0.02]);
+th=nexttile();
+ephys.util.figtable(fh,th,p)
+title(t,'same-, diff- region FC rate')
 
 
-fh=figure('Color','w','Position',[32,32,400,225]);
-plotOne(samestats,1)
-plotOne(l2hstats,2,'ylim',[0,0.02])
-plotOne(h2lstats,3,'ylim',[0,0.02])
-exportgraphics(fh,'inter_wave_fc.pdf','ContentType','vector');
 
-return
+end
 
 function [data,stats]=statsOne(sig_sel,pair_sel,sig,pair)
 % both
@@ -32,186 +58,171 @@ pair_cowave=nnz(pair_sel & (all(ismember(pair.waveid,[1 5]),2)...
     | all(ismember(pair.waveid,[4 6]),2)));
 [cowavehat,cowaveci]=binofit(sig_cowave,pair_cowave);
 % same sample, diff wave
-sig_cosample=nnz(sig_sel & ((any(sig.waveid==1,2) & any(sig.waveid==1,2))...
+sig_cosample=nnz(sig_sel & ((any(sig.waveid==1,2) & any(sig.waveid==3,2))...
     | (any(sig.waveid==2,2) & any(sig.waveid==4,2))));
-pair_cosample=nnz(pair_sel & ((any(pair.waveid==1,2) & any(pair.waveid==1,2))...
+pair_cosample=nnz(pair_sel & ((any(pair.waveid==1,2) & any(pair.waveid==3,2))...
     | (any(pair.waveid==2,2) & any(pair.waveid==4,2))));
 [cosamplehat,cosampleci]=binofit(sig_cosample,pair_cosample);
 
-% diff sample
-sig_diffsample=nnz(sig_sel & any(ismember(sig.waveid,[1 3 5]),2)...
-    & any(ismember(sig.waveid,[2 4 6]),2));
-pair_diffsample=nnz(pair_sel & any(ismember(pair.waveid,[1 3 5]),2)...
-    & any(ismember(pair.waveid,[2 4 6]),2));
-[diffsamplehat,diffsampleci]=binofit(sig_diffsample,pair_diffsample);
+%diff sample, same duration
+sig_diffsample_same_duration=nnz(sig_sel & ...
+    ((any(ismember(sig.waveid,[1 5]),2) & any(ismember(sig.waveid,[2 6]),2)) ...
+    |(any(ismember(sig.waveid,[3 5]),2) & any(ismember(sig.waveid,[4 6]),2))));
+
+pair_diffsample_same_duration=nnz(pair_sel & ...
+    ((any(ismember(pair.waveid,[1 5]),2) & any(ismember(pair.waveid,[2 6]),2)) ...
+    |(any(ismember(pair.waveid,[3 5]),2) & any(ismember(pair.waveid,[4 6]),2))));
+
+[diffsample_samedur_hat,diffsample_samedur_ci]= ...
+    binofit(sig_diffsample_same_duration,pair_diffsample_same_duration);
+
+% diff sample, diff duration
+sig_diffsample_diff_dur=nnz(sig_sel & (...
+    (any(sig.waveid==1,2) & any(sig.waveid==4,2)) ...
+    |(any(sig.waveid==3,2) & any(sig.waveid==2,2))));
+
+pair_diffsample_diff_dur=nnz(pair_sel & (...
+    (any(pair.waveid==1,2) & any(pair.waveid==4,2)) ...
+    |(any(pair.waveid==3,2) & any(pair.waveid==2,2))));
+
+[diffsample_diffdur_hat,diffsample_diffdur_ci]=binofit(sig_diffsample_diff_dur,pair_diffsample_diff_dur);
 
 % nonmem
 sig_nonmem=nnz(sig_sel & all(sig.waveid==0,2));
 pair_nonmem=nnz(pair_sel & all(pair.waveid==0,2));
 [nonmemhat,nonmemci]=binofit(sig_nonmem,pair_nonmem);
 
-data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsamplehat,diffsampleci,nonmemhat,nonmemci];
+data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,diffsample_diffdur_hat,diffsample_diffdur_ci,nonmemhat,nonmemci];
 
-[tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);4*ones(pair_diffsample,1);5*ones(pair_nonmem,1)],...
-    [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,(1:pair_diffsample)>sig_diffsample,(1:pair_nonmem)>sig_nonmem].');
+[tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
+    4*ones(pair_diffsample_same_duration,1);...
+    5*ones(pair_diffsample_diff_dur,1);...
+    6*ones(pair_nonmem,1)],...
+    [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,...
+    (1:pair_diffsample_same_duration)>sig_diffsample_same_duration, ...
+    (1:pair_diffsample_diff_dur)>sig_diffsample_diff_dur, ...
+    (1:pair_nonmem)>sig_nonmem].');
+
 stats=p;
 end
 
-
-% 
-
-
-
-
-function fh=plotOne(stats,sidx,opt)
+function ax=plotOne(stats,opt)
 arguments
     stats
-    sidx
     opt.ylim = []
 end
-    subplot(1,3,sidx)
+    ax=nexttile();
     hold on
-    for ii=1:5
+    for ii=1:6
         bh(ii)=bar(ii,stats(ii*3-2),'FaceColor','w','EdgeColor','k');
         errorbar(ii,stats(ii*3-2),diff(stats(ii*3+[-2,-1]),1,2),diff(stats(ii*3+[-2,0]),1,2),'k.')
     end
     bh(2).FaceColor=[1,0.5,0.5];
     bh(3).FaceColor=[0.5,0.5,1];
-    bh(4).FaceColor=[0.5,0.5,0.5];
-    bh(5).FaceColor='k';
+    bh(4).FaceColor=[1,0.5,1];
+    bh(5).FaceColor=[0.5,0.5,0.5];
+    bh(6).FaceColor='k';
     if ~isempty(opt.ylim), ylim(opt.ylim);end
     ylabel('FC Rate (%)')
     set(gca(),'XTick',[],'YTickLabel',100.*get(gca(),'YTick'));
-%     if strcmp(fn,"h2l_stats"), ylim([0,2]);end
-%     p=chisqInter(hier_stats.(fn));
-%     text(mean(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','center','VerticalAlignment','top')
-% 
-% %     set(gca,'XTick',[1:5,7:11,13:17],...
-% % %         'XTickLabel',cellstr(repmat(["3 and 6","3 only","6 only","partial coactive","indepedent"],1,3)),...
-% %     'XTickLabel',{"Wave 1","Wave 2","Wave 3","W1 and Wave2/3","indepedent"},...
-% %         'XTickLabelRotation',90)
-% %     legend([ph],{'Same-memory w/o classification'});
-%     exportgraphics(fh,sprintf('inter_wave_fc_%s.pdf',fn),'ContentType','vector');
 end
 
-% 
-% fh=figure('Color','w','Position',[32,32,900,200]);
-% plotOneHist(hier_stats.same_stats,1,'Same region',[0,4])
-% plotOneHist(hier_stats.l2h_stats,2,'Olfactory to motor',[0,1.5])
-% plotOneHist(hier_stats.h2l_stats,3,'Motor to olfactory',[0,1.5])
-% exportgraphics(fh,'dTCOM_FC_rate.pdf','ContentType','vector')
-% 
-% % fh=figure('Color','w','Position',[32,32,900,200]);
-% % plotOneBar(hier_stats.same_stats,1,'Same region',[0,3])
-% % p=chisqOne(hier_stats.same_stats);
-% % text(mean(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','center','VerticalAlignment','top')
-% % plotOneBar(hier_stats.l2h_stats,2,'Olfactory to Motor',[0,1.1])
-% % p=chisqOne(hier_stats.l2h_stats);
-% % text(mean(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','center','VerticalAlignment','top')
-% % plotOneBar(hier_stats.h2l_stats,3,'Motor to Olfactory',[0,1.1])
-% % p=chisqOne(hier_stats.h2l_stats);
-% % text(mean(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','center','VerticalAlignment','top')
-% % exportgraphics(fh,'per_bin_FC_bars.pdf','ContentType','vector')
-% 
-% % pHier=[chisqHier(hier_stats.same_stats),chisqHier(hier_stats.l2h_stats),chisqHier(hier_stats.h2l_stats)]
-% 
-% function plotOne(stats,idx,t)
-% subplot(1,3,idx)
-% hold on
-% imagesc(stats.per_bin_FC(:,:,1).*100,[0,4])
-% colormap('turbo');
-% cbh=colorbar();
-% set(gca,'XTick',0.5:1:3.5,'XTickLabel',0:2:6,'YTick',0.5:1:3.5,'YTickLabel',0:2:6)
-% ylabel('Leading neuron FRTC (s)')
-% xlabel('Following neuron FRTC (s)')
-% xlim([0.5,3.5]);
-% ylim([0.5,3.5]);
-% cbh.Label.String='FC Rate (%)';
-% title(t);
-% end
-% 
-% 
-% function plotOneBar(stats,idx,t,yspan)
-% subplot(1,3,idx)
-% hold on
-% mm=[stats.per_bin_FC(1,1,1),stats.per_bin_FC(2,2,1),stats.per_bin_FC(1,2,1),stats.per_bin_FC(2,1,1)].*100;
-% uci=[stats.per_bin_FC(1,1,2),stats.per_bin_FC(2,2,2),stats.per_bin_FC(1,2,2),stats.per_bin_FC(2,1,2)].*100;
-% bci=[stats.per_bin_FC(1,1,3),stats.per_bin_FC(2,2,3),stats.per_bin_FC(1,2,3),stats.per_bin_FC(2,1,3)].*100;
-% n=sum(stats.per_bin_FC(:,:,4),'all');
-% for jj=1:4
-%     bh(jj)=bar(jj,mm(jj),'FaceColor','w','EdgeColor','k');
-% end
-% bh(2).FaceColor='r';
-% bh(3).FaceColor='b';
-% bh(4).FaceColor='k';
-% errorbar(1:4,mm,uci-mm,bci-mm,'k.')
-% % set(gca(),'XTick',1:4,'XTickLabel',{'Early-early','Late-late','Early-late','Late-early'})
-% ylabel('FC Rate (%)');
-% ylim(yspan);
-% title(sprintf('%s,n=%d',t,n));
-% end
-% 
-% 
-% function plotOneHist(stats,idx,t,yspan)
-% subplot(1,3,idx)
-% hold on
-% for jj=1:size(stats.deltaTCOM_FC_rate,2)
-%     [phat(jj),pci(jj,:)]=binofit(stats.deltaTCOM_FC_rate(1,jj),stats.deltaTCOM_FC_rate(2,jj));
-% end
-% fill([stats.deltaTCOM_FC_rate(3,:),stats.deltaTCOM_FC_rate(3,end:-1:1)],[pci(:,1);flip(pci(:,2))].*100,'r','FaceAlpha',0.1,'EdgeColor','none')
-% plot(stats.deltaTCOM_FC_rate(3,:),phat.*100,'-r')
-% ns=sum(stats.deltaTCOM_FC_rate(1,:));
-% np=sum(stats.deltaTCOM_FC_rate(2,:));
-% ylabel('FC Rate (%)');
-% ylim(yspan);
-% title(sprintf('%s,%d of %d',t,ns,np));
-% set(gca,'XTick',-20:20:20,'XTickLabel',-5:5:5)
-% xline(0,'--k')
-% xlabel('follow-lead dTCOM')
-% end
-% 
-% function p=chisqOne(stats)
-%     vec1=[ones(stats.per_bin_FC(1,1,5),1);...
-%         2*ones(stats.per_bin_FC(1,2,5),1);...
-%         3*ones(stats.per_bin_FC(2,1,5),1);...
-%         4*ones(stats.per_bin_FC(2,2,5),1);...
-%         ];
-% 
-%     vec2=[(1:stats.per_bin_FC(1,1,5)).'>stats.per_bin_FC(1,1,4);...
-%         (1:stats.per_bin_FC(1,2,5)).'>stats.per_bin_FC(1,2,4);...
-%         (1:stats.per_bin_FC(2,1,5)).'>stats.per_bin_FC(2,1,4);...
-%         (1:stats.per_bin_FC(2,2,5)).'>stats.per_bin_FC(2,2,4);...
-%         ];
-%     [~,~,p]=crosstab(vec1,vec2);
-% end
-% 
-% 
-% function p=chisqInter(stats)
-%     vec1=[ones(sum(stats.congr_wave(5:6,6)),1);...
-%         2*ones(sum(stats.congr_wave(1:2,6)),1);...
-%         3*ones(sum(stats.congr_wave(3:4,6)),1);...
-%         4*ones(stats.congr_inter_wave(5),1);...
-%         5*ones(stats.congr_overlapped_wave(5),1);...
-%         ];
-% 
-%     vec2=[(1:sum(stats.congr_wave(5:6,6))).'>sum(stats.congr_wave(5:6,5));...
-%         (1:sum(stats.congr_wave(1:2,6))).'>sum(stats.congr_wave(1:2,5));...
-%         (1:sum(stats.congr_wave(3:4,6))).'>sum(stats.congr_wave(3:4,5));...
-%         (1:stats.congr_inter_wave(5)).'>stats.congr_inter_wave(4);...
-%         (1:stats.congr_overlapped_wave(5)).'>stats.congr_overlapped_wave(4)...
-%         ];
-%     [~,~,p]=crosstab(vec1,vec2);
-% end
-% 
-% function p=chisqHier(stats)
-% 
-% vec1=[2*ones(stats.per_bin_FC(1,2,5),1);...
-%     3*ones(stats.per_bin_FC(2,1,5),1);...
-%     ];
-% 
-% vec2=[...
-%     (1:stats.per_bin_FC(1,2,5)).'>stats.per_bin_FC(1,2,4);...
-%     (1:stats.per_bin_FC(2,1,5)).'>stats.per_bin_FC(2,1,4);...
-%     ];
-% [~,~,p]=crosstab(vec1,vec2);
-% end
+function [data1,data2,stats]=statsTwo(sig_sel1,sig_sel2,pair_sel1,pair_sel2,sig,pair)
+% >>>>>>>>>>>>>>>>>>>>>>>>both>>>>>>>>>>>>>>>>>>>>
+sig_both1=nnz(sig_sel1 & (all(sig.waveid==5,2) | all(sig.waveid==6,2)));
+pair_both1=nnz(pair_sel1 & (all(pair.waveid==5,2) | all(pair.waveid==6,2)));
+
+sig_both2=nnz(sig_sel2 & (all(sig.waveid==5,2) | all(sig.waveid==6,2)));
+pair_both2=nnz(pair_sel2 & (all(pair.waveid==5,2) | all(pair.waveid==6,2)));
+
+[bothhat1,bothci1]=binofit(sig_both1,pair_both1);
+[bothhat2,bothci2]=binofit(sig_both2,pair_both2);
+% >>>>>>>>>>>>>>>>>>>>common wave>>>>>>>>>>>>>>>>
+sig_sel_common=all(ismember(sig.waveid,[1 5]),2)...
+    | all(ismember(sig.waveid,[3 5]),2)...
+    | all(ismember(sig.waveid,[2 6]),2)...
+    | all(ismember(sig.waveid,[4 6]),2);
+sig_cowave1=nnz(sig_sel1 &sig_sel_common);
+sig_cowave2=nnz(sig_sel2 &sig_sel_common);
+
+pair_sel_common=all(ismember(pair.waveid,[1 5]),2)...
+    | all(ismember(pair.waveid,[3 5]),2)...
+    | all(ismember(pair.waveid,[2 6]),2)...
+    | all(ismember(pair.waveid,[4 6]),2);
+pair_cowave1=nnz(pair_sel1 & pair_sel_common);
+pair_cowave2=nnz(pair_sel2 & pair_sel_common);
+
+[cowavehat1,cowaveci1]=binofit(sig_cowave1,pair_cowave1);
+[cowavehat2,cowaveci2]=binofit(sig_cowave2,pair_cowave2);
+
+% >>>>>>>>>>>>>>>>>>>>>>> nonmem >>>>>>>>>>>>>>>>>>>>
+sig_nonmem1=nnz(sig_sel1 & all(sig.waveid==0,2));
+sig_nonmem2=nnz(sig_sel2 & all(sig.waveid==0,2));
+pair_nonmem1=nnz(pair_sel1 & all(pair.waveid==0,2));
+pair_nonmem2=nnz(pair_sel2 & all(pair.waveid==0,2));
+
+[nonmemhat1,nonmemci1]=binofit(sig_nonmem1,pair_nonmem1);
+[nonmemhat2,nonmemci2]=binofit(sig_nonmem2,pair_nonmem2);
+
+data1=[bothhat1,bothci1,cowavehat1,cowaveci1,nonmemhat1,nonmemci1];
+data2=[bothhat2,bothci2,cowavehat2,cowaveci2,nonmemhat2,nonmemci2];
+
+%>>>>>>>>>>>>>>>>>>>>>> STATS >>>>>>>>>>>>>>>>>>>>
+[~,~,p(1)]=crosstab([ones(pair_both1,1);2*ones(pair_both2,1)],...
+    [(1:pair_both1)>sig_both1,(1:pair_both2)>sig_both2].');
+
+[~,~,p(2)]=crosstab([ones(pair_cowave1,1);2*ones(pair_cowave2,1)],...
+    [(1:pair_cowave1)>sig_cowave1,(1:pair_cowave2)>sig_cowave2].');
+
+[~,~,p(3)]=crosstab([ones(pair_nonmem1,1);2*ones(pair_nonmem2,1)],...
+    [(1:pair_nonmem1)>sig_nonmem1,(1:pair_nonmem2)>sig_nonmem2].');
+
+stats=p;
+end
+
+function plotTwo(stats1,stats2,opt)
+arguments
+    stats1
+    stats2
+    opt.ylim = [0,0.02]
+end
+
+hold on
+bh=bar([stats1((1:3)*3-2);stats2((1:3)*3-2)].','EdgeColor','k');
+bh(1).FaceColor='w';
+bh(2).FaceColor='k';
+
+errorbar(bh(1).XEndPoints,bh(1).YEndPoints, ...
+    diff([stats1(1:3:end);stats1(2:3:end)]), ...
+    diff([stats1(1:3:end);stats1(3:3:end)]), ...
+    'k.','CapSize',4)
+
+errorbar(bh(2).XEndPoints,bh(2).YEndPoints, ...
+    diff([stats2(1:3:end);stats2(2:3:end)]), ...
+    diff([stats2(1:3:end);stats2(3:3:end)]), ...
+    'k.','CapSize',4)
+
+legend(bh,{'Upward','Downward'},'Location','northoutside','Orientation','horizontal');
+
+if ~isempty(opt.ylim), ylim(opt.ylim);end
+ylabel('F.C. Rate (%)')
+set(gca(),'XTick',1:3,'XTickLabel',...
+    {'both','same wave','nonmem' },...
+    'XTickLabelRotation',90,...
+    'YTickLabel',100.*get(gca(),'YTick'));
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

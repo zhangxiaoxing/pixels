@@ -1,5 +1,8 @@
-function plot_fc_decoding(delay,opt)
+% likely obsolete as of 22-06-15
+
+function plot_fc_decoding(sel_meta,delay,opt)
 arguments
+    sel_meta
     delay (1,1) double {mustBeMember(delay,[3 6])} = 6
     opt.trials (1,1) double {mustBeMember(opt.trials, [20 30 40])} = 20
     opt.debug (1,1) logical = false
@@ -9,7 +12,7 @@ end
 
 out=cellfun(@(x) ...
     fc.dec.dec(...
-    fc.get_fc_decoding('rpts',opt.rpts,'type',x,'trials',opt.trials,'delay',delay,'debug',opt.debug),...
+    fc.get_fc_decoding(sel_meta,'rpts',opt.rpts,'type',x,'trials',opt.trials,'delay',delay,'debug',opt.debug),...
     'decoder',opt.decoder),...
     {'none','both','pre','post'});
 

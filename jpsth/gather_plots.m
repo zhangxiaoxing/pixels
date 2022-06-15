@@ -85,11 +85,14 @@ singlemix_GLM_fh=wave.connectivity_proportion_GLM(singlemix_map_cells,corr_log_l
     'range','grey','data_type','single_mix','stats_type',stats_type,'feat_tag',{'Single modality','Mixed-modality','All selective neurons'});
 % TODO mix density vs. sens density | dur density
 
+fh_interwave=bz.inter_wave(sens_meta);
 
 perm_meta.sens_only=sens_meta.wave_id>0;
 perm_meta.dur_only=dur_meta.wave_id>0;
 perm_meta.mixed=sens_meta.wave_id>0 & dur_meta.wave_id>0;
 inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);
+
+
 
 % TCOM
 % sense, 6s
@@ -116,7 +119,8 @@ for currdelay=[6,3]
     [~,tcidx]=ismember(ureg,fcom.(['d',num2str(currdelay)]).collection(:,2));
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
 end
-[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON');
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-congru');
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-incong','mem_type','incong');
 
 
 sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
@@ -176,13 +180,17 @@ dur_TCOM_GLM_ctx_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, 
 sens_dur_TCOM_corr_fh=wave.sens_dur_TCOM_corr(fcom);
 
 tcom_corr_bar_fh=wave.sens_dur_wave_bar(sens_map_cells,dur_map_cells,fcom);
-
+% >>>>>>>>>>>>>>>>>>>>>>> FC DECODING >>>>>>>>>>>>>>>>>>>>>>>
+bz.fccoding.plot_coding(sens_meta)
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 if exist(sprintf('collections%s.pdf',fnsuffix),'file')
     delete(sprintf('collections%s.pdf',fnsuffix))
 end
+
 fhandles=get(groot(),'Children');
 for hc=reshape(fhandles,1,[])
+    %exportgraphics(gcf(),sprintf('collections%s.pdf',fnsuffix),'ContentType','vector','Append',true)
     exportgraphics(hc,sprintf('collections%s.pdf',fnsuffix),'ContentType','vector','Append',true)
 end
 savefig(fhandles,sprintf('Ranksum1%s.fig',fnsuffix));
@@ -287,14 +295,7 @@ if false
     exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
 
-    % TODO TCOM-density
-    % TODO:get_com_map
-    % TODO:get_region_COM
-    wave.per_region_COM_frac
-
-
-
-
+    
     fhandles={sens_reg_bar_fh,sens_GLM_fh,dur_reg_bar_fh,dur_GLM_fh_grey,dur_GLM_fh_CH,dur_GLM_fh_CTX,dur_sens_corr_fh,singlemix_reg_bar_fh,singlemix_GLM_fh_grey,singlemix_GLM_fh_CH,singlemix_GLM_fh_CTX,inter_wave_fh};
 
     for hc=fhandles

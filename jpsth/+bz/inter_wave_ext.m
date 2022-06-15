@@ -1,3 +1,5 @@
+%% obsolete? 22-06-13
+
 keyboard();
 [sig,pair]=bz.load_sig_pair('pair',true);
 % fh=figure('Color','w','Position',[32,32,400,225]);

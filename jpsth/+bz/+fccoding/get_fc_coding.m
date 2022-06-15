@@ -1,5 +1,6 @@
-function [metas,stats,fwd_rev,per_trial]=get_fc_coding(opt)
+function [metas,stats,fwd_rev,per_trial]=get_fc_coding(sel_meta,opt)
 arguments
+    sel_meta
     opt.no_jitter (1,1) logical = true  % true for observed, false for jitter_shifted
     opt.shuffle (1,1) logical = false
     opt.fwd_rev (1,1) logical = false
@@ -7,8 +8,9 @@ arguments
 end
 persistent metas_ stats_ fwd_rev_ per_trial_ opt_
 if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || isempty(per_trial_) || ~isequaln(opt_,opt)
-    sig=bz.load_sig_pair();
-%     sess=unique(sig.sess);
+    sig=bz.load_sig_sums_conn_file();
+    sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
+
     fl=dir(fullfile('fcdata','fc_coding_*.mat')); % data source jpsth\+bz\+fccoding\fc_coding_one_sess.m
     % {suids(fci,:),fwd_fc,fwd_fc-mean(fwd_shift,2),fwd_shift,rev_fc,rev_fc-mean(rev_shift,2),rev_shift}
     [metas,stats,fwd_rev]=deal([]);
@@ -20,7 +22,7 @@ if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || isempty(per_trial_
         % mapping FCSP to FC-meta
         sesssel=sig.sess==sess;
         ids=sig.suid(sesssel,:);
-        mems=sig.mem_type(sesssel,:);
+        mems=sig.waveid(sesssel,:);
         regs=squeeze(sig.reg(sesssel,5,:));
         roots=squeeze(sig.reg(sesssel,1,:));
         %

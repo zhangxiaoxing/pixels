@@ -5,7 +5,9 @@ arguments
     opt.hiermap (1,:) char
     opt.mincount (1,1) double = 100
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
+    opt.descend (1,1) logical = false
 end
+
 
 
 if opt.hierarchy
@@ -20,11 +22,16 @@ if opt.hierarchy
     switch opt.hiermap
         case 'pvsst'
             [~,~,hiermap]=ref.get_pv_sst();
+            assert(~opt.descend,'desending order not supported');
         case 'OBM1'
             fstr=load('OBM1map.mat','OBM1map');
             hiermap=fstr.OBM1map;
+            assert(~opt.descend,'desending order not supported');
         otherwise
             anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid(opt.hiermap));
+            if opt.descend
+                anov=-anov;
+            end
             hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
                 anov);
 

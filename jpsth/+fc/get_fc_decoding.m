@@ -1,5 +1,7 @@
-function dec=get_fc_decoding(opt)
+function dec=get_fc_decoding(sel_meta,opt)
+
 arguments
+    sel_meta
     opt.rpts (1,1) double = 2
     opt.trials (1,1) double {mustBeMember(opt.trials,10:10:50)} = 20
     opt.denovo (1,1) logical = true
@@ -21,12 +23,12 @@ if opt.denovo
     
     for fidx=1:ubound
         if ~rem(fidx,20), fprintf('Data %d of 163\n',fidx);end
-        fpath=fullfile('K:','code','jpsth','fcdata',sprintf('fc_decoding_f%d.mat',fidx));
+        fpath=fullfile('fcdata',sprintf('fc_decoding_f%d.mat',fidx));
         if ~isfile(fpath)
             continue
         end
         load(fpath,'sums','trials','folder');
-        trials=behav.procPerf(trials,'all'); % col 9 = WT, col 10 = correct
+        trials=behav.procPerf(trials,'mode','all'); % col 9 = WT, col 10 = correct
         
         wtsel=all(trials(:,9:10),2);
         

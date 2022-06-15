@@ -1,21 +1,28 @@
-function plot_coding(opt)
+function plot_coding(sel_meta,opt)
 arguments
+    sel_meta
     opt.plot_trial_frac (1,1) logical = false
     opt.plot_fwd_rev (1,1) logical = false
     opt.plot_coding_idx (1,1) logical = false
     opt.plot_coding_idx_shuf (1,1) logical = false
     opt.plot_svm (1,1) logical = true
+    opt.wave_dir (1,1) logical = false
 end
 
+persistent metas stats per_trial_norm
+
 % [~,~,ratiomap]=ref.get_pv_sst();
-idmap=load('reg_ccfid_map.mat');
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 load('OBM1Map.mat','OBM1map')
 
 % {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
 % congru, incongru, nonmem
 
 if opt.plot_trial_frac
-    [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',false);
+    [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',false); 
+    % meta:sess,suid1,suid2,reg:2;
+    %TODO assign mem_type_selection 
+    error('Needs update');
     congrus1=ismember(metas(:,4),1:2) & ismember(metas(:,5),1:2) & all(~ismissing(stats),2);
     congrus2=ismember(metas(:,4),3:4) & ismember(metas(:,5),3:4) & all(~ismissing(stats),2);
     ci=bootci(500,@(x) mean(x),[stats(congrus1,5);stats(congrus2,6)]);
@@ -77,33 +84,56 @@ if opt.plot_coding_idx
 end
 
 if opt.plot_svm
-    if ~exist('per_trial','var')
-        [metas,stats,~,per_trial]=bz.fccoding.get_fc_coding('no_jitter',true,'per_trial',true);
+    if isempty(metas) ||isempty(per_trial_norm)
+        [metas,~,~,per_trial]=bz.fccoding.get_fc_coding(sel_meta,'no_jitter',true,'per_trial',true);
+
+        %normalize
+        [centt,stdd]=deal(nan(size(per_trial(:,1))));
+        per_trial_norm=cell(size(per_trial(:,1:2)));
+        for ii=1:numel(centt)
+            [N,centt(ii),stdd(ii)]=normalize([per_trial{ii,1};per_trial{ii,2}]);
+            per_trial_norm{ii,1}=N(1:numel(per_trial{ii,1}));
+            per_trial_norm{ii,2}=N(numel(per_trial{ii,1})+1:end);
+            per_trial_norm{ii,3}=normalize(per_trial{ii,3},'center',centt(ii),'scale',stdd(ii));
+            per_trial_norm{ii,4}=normalize(per_trial{ii,4},'center',centt(ii),'scale',stdd(ii));
+        end
     end
-    %normalize
-    [centt,stdd]=deal(nan(size(per_trial(:,1))));
-    per_trial_norm=cell(size(per_trial(:,1:2)));
-    for ii=1:numel(centt)
-        [N,centt(ii),stdd(ii)]=normalize([per_trial{ii,1};per_trial{ii,2}]);
-        per_trial_norm{ii,1}=N(1:numel(per_trial{ii,1}));
-        per_trial_norm{ii,2}=N(numel(per_trial{ii,1})+1:end);
-        per_trial_norm{ii,3}=normalize(per_trial{ii,3},'center',centt(ii),'scale',stdd(ii));
-        per_trial_norm{ii,4}=normalize(per_trial{ii,4},'center',centt(ii),'scale',stdd(ii));
+
+    congrusel=all(ismember(metas(:,4:5),[1,5]),2) | all(ismember(metas(:,4:5),[3,5]),2) ...
+        | all(ismember(metas(:,4:5),[2,6]),2) | all(ismember(metas(:,4:5),[4,6]),2);
+    if opt.wave_dir
+
+        repreg=cat(3,repmat(metas(:,6),1,6),repmat(metas(:,7),1,6));
+        [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(repreg,'hierarchy',true,'hiermap','AON','descend',true);
+        mtypes={congrusel & sig_l2h(:,5),...
+            congrusel & sig_h2l(:,5),...
+            congrusel & sig_same(:,5),...
+            any(ismember(metas(:,4:5),[1,3,5]),2) & any(ismember(metas(:,4:5),[2,4,6]),2),...
+            all(metas(:,4:5)==0,2)};
+
+        nsu_grp=10:10:30;
+    else
+        mtypes={congrusel,...
+            any(ismember(metas(:,4:5),[1,3,5]),2) & any(ismember(metas(:,4:5),[2,4,6]),2),...
+            all(metas(:,4:5)==0,2)};
+        nsu_grp=25:25:100;
     end
-    
+
+
     NTRIAL=40;
     NERR=5;
     NRPT=50;
     dec_result=struct();
-    for NSU=50:50:300
+    
+    for NSU=nsu_grp
         [decdata.s1,decdata.s2]=deal(nan(NSU,NTRIAL,1,NRPT));
         [decdata.e1,decdata.e2]=deal(nan(NSU,NERR,1,NRPT));
-        mtypes={all(ismember(metas(:,4:5),1:2),2) | all(ismember(metas(:,4:5),3:4),2),...
-            any(ismember(metas(:,4:5),1:2),2) & any(ismember(metas(:,4:5),3:4),2),...
-            all(metas(:,4:5)==0,2)};
+
         result=cell(1,3);
         % congru, incong, nonmem
-        for midx=1:3
+        % TODO wave direction
+
+        for midx=1:numel(mtypes)
             su_sel=find(min(cellfun(@(x) size(x,1),per_trial_norm(:,1:2)),[],2)>NTRIAL & mtypes{midx} & centt>1 & stdd>0 & min(cellfun(@(x) size(x,1),per_trial(:,3:4)),[],2)>NERR);
             disp([midx,numel(su_sel)]);
             for rpt=1:NRPT
@@ -123,30 +153,32 @@ if opt.plot_svm
     end
     
     
-    colors={'r','b','k'};
+    colors={'r','b','k','c','m'};
     fh=figure('Color','w','Position',[100,100,235,235]);
     hold on;
-    for mi=1:3
-        cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.cvcorr{1},50:50:300,'UniformOutput',false));
+    for mi=1:1:numel(mtypes)
+        cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.cvcorr{1},nsu_grp,'UniformOutput',false));
         mm=mean(cvmat).*100;
         cim=bootci(500,@(x) mean(x).*100,cvmat);
-        ph(mi)=plot(50:50:300,mm,strjoin({'-',colors{mi}},''));
-        fill([50:50:300,fliplr(50:50:300)],[cim(1,:),fliplr(cim(2,:))],colors{mi},'EdgeColor','none','FaceAlpha',0.1);
+        ph(mi)=plot(nsu_grp,mm,strjoin({'-',colors{mi}},''));
+        fill([nsu_grp,fliplr(nsu_grp)],[cim(1,:),fliplr(cim(2,:))],colors{mi},'EdgeColor','none','FaceAlpha',0.1);
     end
     
-    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.errcorr{1},50:50:300,'UniformOutput',false));
+    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.errcorr{1},nsu_grp,'UniformOutput',false));
     mm=mean(cvmat).*100;
     cim=bootci(500,@(x) mean(x).*100,cvmat);
-    ph(4)=plot(50:50:300,mm,'--r');
-    fill([50:50:300,fliplr(50:50:300)],[cim(1,:),fliplr(cim(2,:))],'r','EdgeColor','none','FaceAlpha',0.1);
+    ph(numel(mtypes)+1)=plot(nsu_grp,mm,'--r');
+    fill([nsu_grp,fliplr(nsu_grp)],[cim(1,:),fliplr(cim(2,:))],'r','EdgeColor','none','FaceAlpha',0.1);
 
-    ylabel('WM classification accuracy');
+    ylabel('Odor classification accuracy');
     xlabel('Number of FC pairs');
-    xlim([50,300])
-    legend(ph,{'Same memory','Diff. memory','Nonmemory','(Error trial)'},Location="northoutside");
-
-    exportgraphics(fh,'FC_coding_SVM.pdf')
-    keyboard()
+    %     xlim([50,100])
+    if opt.wave_dir
+        legend(ph,{'Upward','Downward','Same-region','Diff-mem','Nonmemory','(Error trial)'},Location="northoutside");
+    else
+        legend(ph,{'Same memory','Diff. memory','Nonmemory','(Error trial)'},Location="northoutside");
+    end
+%     exportgraphics(fh,'FC_coding_SVM.pdf')
 end
 
 

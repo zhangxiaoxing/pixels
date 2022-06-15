@@ -14,7 +14,7 @@ end
 % sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
 sig=bz.join_fc_waveid(sig,selmeta.wave_id);
 % same sort as file-list, not same to sessionid
-[~,is_same_unsort,h2l_unsort,l2h_unsort]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su);
+[~,is_same_unsort,h2l_unsort,l2h_unsort]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su,'descend',true);
 disp(nnz(is_same_unsort | l2h_unsort | h2l_unsort))
 fc_com_pvsst_stats=[];
 usess=unique(sig.sess);

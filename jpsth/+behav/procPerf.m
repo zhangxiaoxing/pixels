@@ -22,7 +22,7 @@ else
         end
         i=i+1;
     end
-    facSeq=behav.tag_block(facSeq,'wt',false);
+%     block_tag=behav.tag_block(facSeq,'wt',false);
     if strcmp(opt.mode,'correct') % rtn correct trial only
         out=facSeq(all(facSeq(:,9:10),2),:);
     else % 'all'
