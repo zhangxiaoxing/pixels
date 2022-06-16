@@ -2,12 +2,19 @@ warning('gather all plots from top')
 keyboard()
 clear all
 close all
+% >>>>>>>>>>>>>>> statistic options >>>>>>>>>>>>>>>
+global gather_config
+gather_config=struct();
+gather_config.fc_win=10;
+gather_config.adjust_white_matter=true;
+gather_config.corr_type='Pearson';
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 
 %% RANKSUM1
 fnsuffix='_10ms_adj_pearson';
-corr_type='Pearson';
 
-if strcmp(corr_type,'Pearson')
+if strcmp(gather_config.corr_type,'Pearson')
     corr_ln_log='PearsonLinearLog';
     corr_log_log='PearsonLogLog';
 else
@@ -23,10 +30,9 @@ annotation('textbox',[0.05,0.05,0.9,0.9],...
     'on','Interpreter','none');
 % exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
-% sens_meta=ephys.get_sens_meta();
-% sens_waveid=ephys.get_wave_id(meta);
+sens_meta=ephys.get_sens_meta();
 stats_type='RANKSUM_per_bin';
-load perm_sens.mat
+
 
 % regulated by regional SU number > 100 in getGreRegs
 [sens_map_cells,sens_reg_bar_fh]=ephys.Both_either_reg_bars( ...
@@ -46,8 +52,19 @@ sens_GLM_fh=wave.connectivity_proportion_GLM( ...
     'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
 % sens_reg_bar_fh.reg_bar.Children(2).YLim=[0.001,0.5];
 
-% dur_meta=ephys.get_dur_meta();
-load perm_dur.mat
+
+%>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Sensory wave>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+sust_trans_fh=ephys.sust_trans_bar();
+wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
+stats_half_half_fh=wave.COM_half_half(sens_meta);
+[wave_fh,stats]=wave.plot_wave_3_6(sens_meta);
+
+%>>>>>>>>>>>>>>>>>>>>>>>>>>>> Duration distribution >>>>>>>>>>>>>>>>>>>>>>>>>>>>
+fh=behav.per_sess_duration_coding();
+dur_meta=ephys.get_dur_meta();
+
+[dur_dec_fh,~]=wave.get_duration_decoding(dur_meta);
+
 [dur_map_cells,dur_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','RANKSUM','skip_plot',false,'waveid',dur_meta.wave_id,'range','grey','data_type','duration','stats_type',stats_type);
 dur_reg_bar_fh.Children.Children(5).YLim=[5e-5,0.5];
 dur_reg_bar_fh.Children.Children(5).YTick=10.^[-4:0];
@@ -61,14 +78,13 @@ dur_GLM_fhctx=wave.connectivity_proportion_GLM(dur_map_cells,corr_ln_log, ...
 
 % plot duration SC
 if false
-%     dur_wo_sens=find(ismember(dur_meta.wave_id,5:6));
+    %     dur_wo_sens=find(ismember(dur_meta.wave_id,5:6));
     dur_intact=find(anova2meta.dur & ~anova2meta.sens & anova2meta.interact & dur_meta.wave_id>0 &dur_meta.wave_id<5);
     meta=ephys.util.load_meta('skip_stats',true);
     for ii=[11241]
-%         fh=ephys.sens_dur_SC(dur_intact(ii),meta,sens_meta,dur_meta,'skip_raster',false);
-            fh=ephys.sens_dur_SC(ii,meta,sens_meta,dur_meta,'skip_raster',false);%
-%             11241,20621,9071
-        waitfor(fh);
+        %         fh=ephys.sens_dur_SC(dur_intact(ii),meta,sens_meta,dur_meta,'skip_raster',false);
+        scfh=ephys.sens_dur_SC(ii,meta,sens_meta,dur_meta,'skip_raster',false);%
+        %             11241,20621,9071
     end
 end
 
@@ -114,7 +130,7 @@ for currdelay=[6,3]
         num2cell(ones(numel(ureg),1)*5),...
         num2cell(cellfun(@(x) x(3),sens_map_cells{1}.values(ureg)))];
     
-    [sens_tcom_fh.(['d',num2str(currdelay)]),t]=wave.per_region_COM_frac(fcom.(['d',num2str(currdelay)]),ffrac.(['d',num2str(currdelay)]),'hier_reg','AON','corr',corr_type);
+    [sens_tcom_fh.(['d',num2str(currdelay)]),t]=wave.per_region_COM_frac(fcom.(['d',num2str(currdelay)]),ffrac.(['d',num2str(currdelay)]),'hier_reg','AON','corr',gather_config.corr_type);
     t.Title.String=['Sense wave, delay=',num2str(currdelay)];
     [~,tcidx]=ismember(ureg,fcom.(['d',num2str(currdelay)]).collection(:,2));
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
@@ -161,20 +177,16 @@ for range=["grey","CH","CTX"]
         num2cell(ones(numel(ureg),1)*5),...
         num2cell(cellfun(@(x) x(3),dur_map_cells{3}.values(ureg)))];
 
-    [dur_tcom_fh.(range),t]=wave.per_region_COM_frac(fcom.dur,ffrac.dur,'hier_reg','COA','corr',corr_type,'density_scale','linear');
+    [dur_tcom_fh.(range),t]=wave.per_region_COM_frac(fcom.dur,ffrac.dur,'hier_reg','COA','corr',gather_config.corr_type,'density_scale','linear');
     t.Title.String=sprintf('Duration wave-%s',range);
+
+    [~,tcidx]=ismember(ureg,fcom.dur.collection(:,2));
+    dur_tcom_maps={containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.dur.collection(tcidx,1))))};
+    dur_TCOM_GLM_grey_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
+        'range',range,'data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',"Duration TCOM-"+range);
 end
- [~,tcidx]=ismember(ureg,fcom.dur.collection(:,2));
- dur_tcom_maps={containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.dur.collection(tcidx,1))))};
 
-dur_TCOM_GLM_grey_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
-    'range','grey','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-grey'});
-dur_TCOM_GLM_ch_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
-    'range','CH','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-CH'});
-dur_TCOM_GLM_ctx_fh=wave.connectivity_proportion_GLM(dur_tcom_maps,corr_ln_log, ...
-    'range','CTX','data_type','s4_s8_duration_TCOM','stats_type',stats_type,'feat_tag',{'Duration TCOM-CTX'});
-
-[comdiff_stats,com_pair]=wave.fc_com_pvsst(dur_com.s4,dur_com.s8,dur_meta,'hiermap','RSP','tbl_title','Duration-RSP');
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(dur_com.s4,dur_com.s8,dur_meta,'hiermap','ATN','tbl_title','Duration-ATN');
 %========================================================================
 
 sens_dur_TCOM_corr_fh=wave.sens_dur_TCOM_corr(fcom);

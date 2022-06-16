@@ -16,10 +16,17 @@ persistent com_str opt_ sel_meta_
 
 if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta) 
     meta=ephys.util.load_meta('skip_stats',true);
+    if strlength(opt.onepath)==0
+        usess=unique(meta.sess);
+    else
+        dpath=regexp(opt.onepath,'(?<=SPKINFO[\\/]).*$','match','once');
+        if isempty(dpath)
+            dpath=opt.onepath;
+        end
+        usess=ephys.path2sessid(dpath);
+    end
 
     homedir=ephys.util.getHomedir('type','raw');
-%     fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
-    usess=unique(meta.sess);
     com_str=struct();
 
     %% RANKSUM
@@ -42,17 +49,9 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta)
 
     %%
     for sessid=reshape(usess,1,[])
+        fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
         sesssel=meta.sess==sessid;
         if ~any(sesssel), continue;end
-        if strlength(opt.onepath)==0
-            fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
-        else
-            dpath=regexp(opt.onepath,'(?<=SPKINFO[\\/]).*$','match','once');
-            if isempty(dpath)
-                dpath=opt.onepath;
-            end
-            fpath=fullfile(homedir,dpath,'FR_All_ 250.hdf5');
-        end
         fpath=replace(fpath,'\',filesep());
         fr=h5read(fpath,'/FR_All');
         trials=h5read(fpath,'/Trials');
@@ -89,11 +88,7 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta)
         end
 
         if isempty(msel1) && isempty(msel2)
-            if strlength(opt.onepath)==0
-                continue
-            else
-                break
-            end
+            continue
         end
         
         %% TODO Needs to handle duration groups
@@ -137,9 +132,6 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta)
             com_str=per_su_process(sess,suid,msel1,fr,c1sel,c2sel,com_str,'c1',opt);
             com_str=per_su_process(sess,suid,msel2,fr,c2sel,c1sel,com_str,'c2',opt);
         end
-        if ~strlength(opt.onepath)==0
-            break;
-        end
     end
 end
 com_str_=com_str;
@@ -162,7 +154,7 @@ function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,s
         mm_pref=squeeze(mean(fr(pref_sel,su,stats_window))).'-basemm;
         mm_pref(mm_pref<0)=0;
 
-        if ~any(mm_pref>0),disp('NOPEAK');continue;end % work around 6s paritial
+        if ~any(mm_pref>0),disp(string(samp)+" NOPEAK");continue;end % work around 6s paritial
 
         curve=mm_pref;
         anticurve=squeeze(mean(fr(nonpref_sel,su,stats_window))).'-basemm;

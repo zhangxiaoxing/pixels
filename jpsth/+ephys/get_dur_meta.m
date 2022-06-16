@@ -2,75 +2,87 @@ function out_=get_dur_meta(opt)
 arguments
     opt.permutation (1,1) logical = false
     opt.merge_bin (1,1) logical = true
+    opt.load_file (1,1) logical = true
+    opt.save_file (1,1) logical = false
+    opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
 end
 persistent out opt_
 if isempty(out) || ~isequaln(opt,opt_)
-    [~,~,sessmap]=ephys.sessid2path(0);
-    homedir=ephys.util.getHomedir('type','raw');
-    sesskeys=cell2mat(sessmap.keys());
-    [out.wrs_p_s1,out.wrs_p_s2,out.fdr_s1,out.fdr_s2,out.selec_s1,out.selec_s2,...
-        out.mem_type_s1,out.per_bin_s1,out.mem_type_s2,out.per_bin_s2,out.wave_id]=deal([]);
-    for sessid=sesskeys
-        disp(sessid);
-%         if false
-%             fpath=fullfile(homedir,sessmap(sessid),"FR_All_ 250.hdf5");
-%             fr25=h5read(fpath,'/FR_All');
-%         end
-        fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
-        fr=h5read(fpath,'/FR_All');
-        trials=h5read(fpath,'/Trials');
-        suid=h5read(fpath,'/SU_id');
-        c6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
-        c3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
+    if opt.load_file
+        load('perm_dur.mat','dur_meta')
+        out=dur_meta;
+    else
+        [~,~,sessmap]=ephys.sessid2path(0);
+        homedir=ephys.util.getHomedir('type','raw');
+        sesskeys=cell2mat(sessmap.keys());
+        [out.wrs_p_s1,out.wrs_p_s2,out.fdr_s1,out.fdr_s2,out.selec_s1,out.selec_s2,...
+            out.mem_type_s1,out.per_bin_s1,out.mem_type_s2,out.per_bin_s2,out.wave_id]=deal([]);
+        for sessid=sesskeys
+            disp(sessid);
+            %         if false
+            %             fpath=fullfile(homedir,sessmap(sessid),"FR_All_ 250.hdf5");
+            %             fr25=h5read(fpath,'/FR_All');
+            %         end
+            fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
+            fr=h5read(fpath,'/FR_All');
+            trials=h5read(fpath,'/Trials');
+            suid=h5read(fpath,'/SU_id');
+            c6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
+            c3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
 
-        cS1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
-        cS2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
-        if opt.merge_bin, bins=1; else, bins=4; end
-        [wrs_p_s1,wrs_p_s2,fdr_s1,fdr_s2,selec_s1,selec_s2]=deal(nan(size(fr,2),bins));
-        for suidx=1:size(fr,2)
+            cS1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
+            cS2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
+            if opt.merge_bin, bins=1; else, bins=4; end
+            [wrs_p_s1,wrs_p_s2,fdr_s1,fdr_s2,selec_s1,selec_s2]=deal(nan(size(fr,2),bins));
+            for suidx=1:size(fr,2)
+                if opt.merge_bin
+                    if opt.permutation
+                        wrs_p_s1(suidx,:)=permutation_test_1d(mean(fr(cS1sel & c3sel,suidx,5:7),3),mean(fr(cS1sel & c6sel,suidx,5:7),3),opt.perm_repeat);
+                        wrs_p_s2(suidx,:)=permutation_test_1d(mean(fr(cS2sel & c3sel,suidx,5:7),3),mean(fr(cS2sel & c6sel,suidx,5:7),3),opt.perm_repeat);
+                    else
+                        wrs_p_s1(suidx,:)=ranksum(mean(fr(cS1sel & c3sel,suidx,5:7),3),mean(fr(cS1sel & c6sel,suidx,5:7),3));
+                        wrs_p_s2(suidx,:)=ranksum(mean(fr(cS2sel & c3sel,suidx,5:7),3),mean(fr(cS2sel & c6sel,suidx,5:7),3));
+                    end
+                    selec_s1(suidx,:)=sel_idx(fr(cS1sel & c3sel,suidx,5:7),fr(cS1sel & c6sel,suidx,5:7));
+                    selec_s2(suidx,:)=sel_idx(fr(cS2sel & c3sel,suidx,5:7),fr(cS2sel & c6sel,suidx,5:7));
+                else
+                    if opt.permutation
+                        wrs_p_s1(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x),opt.perm_repeat),4:7);
+                        wrs_p_s2(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x),opt.perm_repeat),4:7);
+                    else
+                        wrs_p_s1(suidx,:)=arrayfun(@(x) ranksum(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
+                        wrs_p_s2(suidx,:)=arrayfun(@(x) ranksum(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+                    end
+                    fdr_s1(suidx,:)=mafdr(wrs_p_s1(suidx,:),'BHFDR',true);
+                    fdr_s2(suidx,:)=mafdr(wrs_p_s2(suidx,:),'BHFDR',true);
+                    selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
+                    selec_s2(suidx,:)=arrayfun(@(x) sel_idx(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+                end
+            end
             if opt.merge_bin
-                if opt.permutation
-                    wrs_p_s1(suidx,:)=permutation_test_1d(mean(fr(cS1sel & c3sel,suidx,5:7),3),mean(fr(cS1sel & c6sel,suidx,5:7),3),100);
-                    wrs_p_s2(suidx,:)=permutation_test_1d(mean(fr(cS2sel & c3sel,suidx,5:7),3),mean(fr(cS2sel & c6sel,suidx,5:7),3),100);
-                else
-                    wrs_p_s1(suidx,:)=ranksum(mean(fr(cS1sel & c3sel,suidx,5:7),3),mean(fr(cS1sel & c6sel,suidx,5:7),3));
-                    wrs_p_s2(suidx,:)=ranksum(mean(fr(cS2sel & c3sel,suidx,5:7),3),mean(fr(cS2sel & c6sel,suidx,5:7),3));
-                end
-                selec_s1(suidx,:)=sel_idx(fr(cS1sel & c3sel,suidx,5:7),fr(cS1sel & c6sel,suidx,5:7));
-                selec_s2(suidx,:)=sel_idx(fr(cS2sel & c3sel,suidx,5:7),fr(cS2sel & c6sel,suidx,5:7));
+                [mem_type_s1,per_bin_s1]=get_mem_type(wrs_p_s1,selec_s1);
+                [mem_type_s2,per_bin_s2]=get_mem_type(wrs_p_s2,selec_s2);
             else
-                if opt.permutation
-                    wrs_p_s1(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x),100),4:7);
-                    wrs_p_s2(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x),100),4:7);
-                else
-                    wrs_p_s1(suidx,:)=arrayfun(@(x) ranksum(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
-                    wrs_p_s2(suidx,:)=arrayfun(@(x) ranksum(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
-                end
-                fdr_s1(suidx,:)=mafdr(wrs_p_s1(suidx,:),'BHFDR',true);
-                fdr_s2(suidx,:)=mafdr(wrs_p_s2(suidx,:),'BHFDR',true);
-                selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(cS1sel & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
-                selec_s2(suidx,:)=arrayfun(@(x) sel_idx(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+                [mem_type_s1,per_bin_s1]=get_mem_type(fdr_s1,selec_s1);
+                [mem_type_s2,per_bin_s2]=get_mem_type(fdr_s2,selec_s2);
+            end
+            wave_id=get_wave_id(mem_type_s1,mem_type_s2);
+            out.wrs_p_s1=[out.wrs_p_s1;wrs_p_s1];
+            out.wrs_p_s2=[out.wrs_p_s2;wrs_p_s2];
+            out.fdr_s1  =[out.fdr_s1  ;fdr_s1  ];
+            out.fdr_s2  =[out.fdr_s2  ;fdr_s2  ];
+            out.selec_s1=[out.selec_s1;selec_s1];
+            out.selec_s2=[out.selec_s2;selec_s2];
+            out.mem_type_s1=[out.mem_type_s1;mem_type_s1];
+            out.mem_type_s2=[out.mem_type_s2;mem_type_s2];
+            out.per_bin_s1 =[out.per_bin_s1 ;per_bin_s1 ];
+            out.per_bin_s2 =[out.per_bin_s2 ;per_bin_s2 ];
+            out.wave_id=[out.wave_id;wave_id];
+            if opt.save_file
+                dur_meta=out;
+                save('perm_dur.mat','dur_meta');
             end
         end
-        if opt.merge_bin
-            [mem_type_s1,per_bin_s1]=get_mem_type(wrs_p_s1,selec_s1);
-            [mem_type_s2,per_bin_s2]=get_mem_type(wrs_p_s2,selec_s2);
-        else
-            [mem_type_s1,per_bin_s1]=get_mem_type(fdr_s1,selec_s1);
-            [mem_type_s2,per_bin_s2]=get_mem_type(fdr_s2,selec_s2);
-        end
-        wave_id=get_wave_id(mem_type_s1,mem_type_s2);
-        out.wrs_p_s1=[out.wrs_p_s1;wrs_p_s1];
-        out.wrs_p_s2=[out.wrs_p_s2;wrs_p_s2];
-        out.fdr_s1  =[out.fdr_s1  ;fdr_s1  ];
-        out.fdr_s2  =[out.fdr_s2  ;fdr_s2  ];
-        out.selec_s1=[out.selec_s1;selec_s1];
-        out.selec_s2=[out.selec_s2;selec_s2];
-        out.mem_type_s1=[out.mem_type_s1;mem_type_s1];
-        out.mem_type_s2=[out.mem_type_s2;mem_type_s2];
-        out.per_bin_s1 =[out.per_bin_s1 ;per_bin_s1 ];
-        out.per_bin_s2 =[out.per_bin_s2 ;per_bin_s2 ];
-        out.wave_id=[out.wave_id;wave_id];
     end
 end
 opt_=opt;

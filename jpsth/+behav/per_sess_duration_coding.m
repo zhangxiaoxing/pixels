@@ -1,4 +1,4 @@
-function out=per_sess_duration_coding(opt)
+function fh=per_sess_duration_coding(opt)
 arguments
     opt.new_data (1,1) logical=true
     opt.calc_dec (1,1) logical=true
@@ -60,7 +60,7 @@ if opt.new_data
         eS2p=arrayfun(@(x) fr_t_align(x,:)*olf_cd.',find(eS2sel));
 %%%%%%%%%%%%%%%%%%%
 
-        fh=figure('Color','w','Position',[32,32,500,225]);
+        fh.("s"+string(ii))=figure('Color','w','Position',[32,32,500,225]);
         subplot(1,2,2)
         hold on;
         swarmchart(ones(size(c6p)),c6p,  4,'r','filled','o','MarkerFaceAlpha','0.2','MarkerEdgeColor','none')
@@ -91,7 +91,7 @@ if opt.new_data
         ylabel('Sensory projection (a.u.)');
         set(gca(),'XTick',1:4,'XTickLabel',{'S1','S2','S1','S2'});
         sgtitle(ii);
-        exportgraphics(fh,'sens_dur_cd_proj_sess_sc.pdf','ContentType','vector');
-        waitfor(fh);
+%         exportgraphics(fh,'sens_dur_cd_proj_sess_sc.pdf','ContentType','vector');
+%         waitfor(fh);
     end
 end

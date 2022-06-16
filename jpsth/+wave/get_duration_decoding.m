@@ -1,6 +1,7 @@
 %TODO brain region filter, olfaction filter.
-function out=get_duration_decoding(opt)
+function [fh,out]=get_duration_decoding(sel_meta,opt)
 arguments
+    sel_meta
     opt.new_data (1,1) logical=true
     %     opt.plot_PCA (1,1) logical=false
     opt.calc_dec (1,1) logical=true
@@ -13,10 +14,12 @@ end
 if opt.new_data
     decode_mat=struct();
     [~,~,sessmap]=ephys.sessid2path(0);
-    meta=ephys.util.load_meta();
+    meta=ephys.util.load_meta('skip_stats',true);
     homedir=ephys.util.getHomedir('type','raw');
 
-    [dur_sense_mix,dur_exclu,~,sens_exclu]=ephys.get_dul_sel('ranksum_stats',opt.ranksum_stats);
+%     [dur_sense_mix,dur_indep,~,sens_exclu]=ephys.get_dul_sel('ranksum_stats',opt.ranksum_stats);
+    dur_dep=ismember(sel_meta.wave_id,1:4);
+    dur_indep=ismember(sel_meta.wave_id,5:6);
 
     regsel=ismember(meta.reg_tree(1,:),{'CH','BS'}).';
 
@@ -33,86 +36,52 @@ if opt.new_data
         %         fr_t_align(trials(:,8)==6,:)=mean(fr(trials(:,8)==6,:,17:28),3); % early/late delay
 
         decode_mat.(sprintf('s%d',ii)).trials=trials;
-        decode_mat.(sprintf('s%d',ii)).fr_dur=fr_t_align(:,regsel(sesssel) & dur_exclu(sesssel));
-        decode_mat.(sprintf('s%d',ii)).fr_sens_dur=fr_t_align(:,regsel(sesssel) & dur_sense_mix(sesssel));
-        decode_mat.(sprintf('s%d',ii)).fr_sens=fr_t_align(:,regsel(sesssel) & sens_exclu(sesssel));
+        decode_mat.(sprintf('s%d',ii)).fr_dur_indep=fr_t_align(:,regsel(sesssel) & dur_indep(sesssel));
+        decode_mat.(sprintf('s%d',ii)).fr_dur_dep=fr_t_align(:,regsel(sesssel) & dur_dep(sesssel));
+%         decode_mat.(sprintf('s%d',ii)).fr_sens=fr_t_align(:,regsel(sesssel) & sens_exclu(sesssel));
     end
 
     frmap=struct();
-    frmap.d3.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d6.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d3_e.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d6_e.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d3.dur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d6.dur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d3_e.dur=containers.Map('KeyType','char','ValueType','any');
-    frmap.d6_e.dur=containers.Map('KeyType','char','ValueType','any');
+    frmap.d3.dur_dep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d6.dur_dep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d3_e.dur_dep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d6_e.dur_dep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d3.dur_indep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d6.dur_indep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d3_e.dur_indep=containers.Map('KeyType','char','ValueType','any');
+    frmap.d6_e.dur_indep=containers.Map('KeyType','char','ValueType','any');
 
-    frmap.S1.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.S2.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.S1_e.sensdur=containers.Map('KeyType','char','ValueType','any');
-    frmap.S2_e.sensdur=containers.Map('KeyType','char','ValueType','any');
-
-    frmap.S1.sens=containers.Map('KeyType','char','ValueType','any');
-    frmap.S2.sens=containers.Map('KeyType','char','ValueType','any');
-    frmap.S1_e.sens=containers.Map('KeyType','char','ValueType','any');
-    frmap.S2_e.sens=containers.Map('KeyType','char','ValueType','any');
-
-    [dur_c_trlCount,dur_e_trlCount,sens_c_trlCount,sens_e_trlCount]=deal([]);
+    [dur_c_trlCount,dur_e_trlCount]=deal([]);
     for skey=reshape(fieldnames(decode_mat),1,[])
         trls=decode_mat.(skey{1}).trials;
         csel=trls(:,9)~=0 & trls(:,10)~=0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,5),[4 8]);
         esel=trls(:,10)==0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,5),[4 8]);
         dur_clbl=trls(csel,8);
         dur_elbl=trls(esel,8);
-        dur_sens_durcfrs=decode_mat.(skey{1}).fr_sens_dur(csel,:); % [nTrl,nSU]
-        dur_sens_durefrs=decode_mat.(skey{1}).fr_sens_dur(esel,:); % [nTrl,nSU]
-        dur_durcfrs=decode_mat.(skey{1}).fr_dur(csel,:); % [nTrl,nSU]
-        dur_durefrs=decode_mat.(skey{1}).fr_dur(esel,:); % [nTrl,nSU]
+        dur_dep_cfrs=decode_mat.(skey{1}).fr_dur_dep(csel,:); % [nTrl,nSU]
+        dur_dep_efrs=decode_mat.(skey{1}).fr_dur_dep(esel,:); % [nTrl,nSU]
+        dur_indep_cfrs=decode_mat.(skey{1}).fr_dur_indep(csel,:); % [nTrl,nSU]
+        dur_indep_efrs=decode_mat.(skey{1}).fr_dur_indep(esel,:); % [nTrl,nSU]
 
-        [dur_c_trlSess,dur_e_trlSess,sens_c_trlSess,sens_e_trlSess]=deal([0,0]);
+        [dur_c_trlSess,dur_e_trlSess]=deal([0,0]);
         for trl_samp=[3,6]
             dur_c_trlSess(trl_samp/3)=nnz(dur_clbl==trl_samp);
             dur_e_trlSess(trl_samp/3)=nnz(dur_elbl==trl_samp);
-            for suidx=1:size(dur_sens_durcfrs,2) % TODO: vectorized batch init
-                frmap.(sprintf('d%d',trl_samp)).sensdur(sprintf('%su%d',skey{1},suidx))=dur_sens_durcfrs(dur_clbl==trl_samp,suidx);
-                frmap.(sprintf('d%d_e',trl_samp)).sensdur(sprintf('%su%d',skey{1},suidx))=dur_sens_durefrs(dur_elbl==trl_samp,suidx);
+            for suidx=1:size(dur_dep_cfrs,2) % TODO: vectorized batch init
+                frmap.(sprintf('d%d',trl_samp)).dur_dep(sprintf('%su%d',skey{1},suidx))=dur_dep_cfrs(dur_clbl==trl_samp,suidx);
+                frmap.(sprintf('d%d_e',trl_samp)).dur_dep(sprintf('%su%d',skey{1},suidx))=dur_dep_efrs(dur_elbl==trl_samp,suidx);
             end
-            for suidx=1:size(dur_durcfrs,2) % TODO: vectorized batch init
-                frmap.(sprintf('d%d',trl_samp)).dur(sprintf('%su%d',skey{1},suidx))=dur_durcfrs(dur_clbl==trl_samp,suidx);
-                frmap.(sprintf('d%d_e',trl_samp)).dur(sprintf('%su%d',skey{1},suidx))=dur_durefrs(dur_elbl==trl_samp,suidx);
+            for suidx=1:size(dur_indep_cfrs,2) % TODO: vectorized batch init
+                frmap.(sprintf('d%d',trl_samp)).dur_indep(sprintf('%su%d',skey{1},suidx))=dur_indep_cfrs(dur_clbl==trl_samp,suidx);
+                frmap.(sprintf('d%d_e',trl_samp)).dur_indep(sprintf('%su%d',skey{1},suidx))=dur_indep_efrs(dur_elbl==trl_samp,suidx);
             end
         end
         dur_c_trlCount=[dur_c_trlCount;dur_c_trlSess];
         dur_e_trlCount=[dur_e_trlCount;dur_e_trlSess];
-
-        %WIP
-        sens_clbl=trls(csel,5);
-        sens_elbl=trls(esel,5);
-        sens_sens_durcfrs=decode_mat.(skey{1}).fr_sens_dur(csel,:); % [nTrl,nSU]
-        sens_sens_durefrs=decode_mat.(skey{1}).fr_sens_dur(esel,:); % [nTrl,nSU]
-        sens_senscfrs=decode_mat.(skey{1}).fr_sens(csel,:); % [nTrl,nSU]
-        sens_sensefrs=decode_mat.(skey{1}).fr_sens(esel,:); % [nTrl,nSU]
-
-        for trl_samp=1:2
-            sens_c_trlSess(trl_samp)=nnz(sens_clbl==trl_samp.*4);
-            sens_e_trlSess(trl_samp)=nnz(sens_elbl==trl_samp.*4);
-            for suidx=1:size(sens_sens_durcfrs,2) % TODO: vectorized batch init
-                frmap.(sprintf('S%d',trl_samp)).sensdur(sprintf('%su%d',skey{1},suidx))=sens_sens_durcfrs(sens_clbl==trl_samp.*4,suidx);
-                frmap.(sprintf('S%d_e',trl_samp)).sensdur(sprintf('%su%d',skey{1},suidx))=sens_sens_durefrs(sens_elbl==trl_samp.*4,suidx);
-            end
-            for suidx=1:size(sens_senscfrs,2) % TODO: vectorized batch init
-                frmap.(sprintf('S%d',trl_samp)).sens(sprintf('%su%d',skey{1},suidx))=sens_senscfrs(sens_clbl==trl_samp.*4,suidx);
-                frmap.(sprintf('S%d_e',trl_samp)).sens(sprintf('%su%d',skey{1},suidx))=sens_sensefrs(sens_elbl==trl_samp.*4,suidx);
-            end
-        end
-        sens_c_trlCount=[sens_c_trlCount;sens_c_trlSess];
-        sens_e_trlCount=[sens_e_trlCount;sens_e_trlSess];
-
     end
-    save('decode_fr.mat','frmap','dur_c_trlCount','dur_e_trlCount','sens_c_trlCount','sens_e_trlCount');
+    save('decode_fr.mat','frmap','dur_c_trlCount','dur_e_trlCount');
 else
-    load('decode_fr.mat','frmap','dur_c_trlCount','dur_e_trlCount','sens_c_trlCount','sens_e_trlCount');
+    load('decode_fr.mat','frmap','dur_c_trlCount','dur_e_trlCount');
 end
 %% available trials for least repeated condition
 %figure();histogram(trlCount(:),1:32)
@@ -122,12 +91,12 @@ end
 if opt.calc_dec
     min_trl=20;
     min_e_trl=2;
-    su_grp={["sensdur","dur"],["sensdur","sens"]};
-    lbl_grp={["d3","d6"],["S1","S2"]};
-    dec_tag=["dur","sens"];
-    trl_cnt_grp={{dur_c_trlCount,dur_e_trlCount},{sens_c_trlCount,sens_e_trlCount}};
+    su_grp={["dur_dep","dur_indep"]};
+    lbl_grp={["d3","d6"]};
+    dec_tag=["dur"];
+    trl_cnt_grp={{dur_c_trlCount,dur_e_trlCount}};
     out=struct();
-    for grp_id=1:2
+    for grp_id=1
         trl_cnt=trl_cnt_grp{grp_id};
         lbls=lbl_grp{grp_id};
         for currgrp=su_grp{grp_id}
@@ -135,10 +104,10 @@ if opt.calc_dec
             dur_trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),curr_keys),find(min(trl_cnt{1},[],2)>min_trl & min(trl_cnt{2},[],2)>=min_e_trl));
             curr_keys=curr_keys(dur_trlSel);
 
-            for n_su=[5,10,50,100,500]
+            for n_su=10:10:50
                 [result,shuf,result_e]=deal([]);
                 for resamp_rpt=1:50%15
-                    sukeys=datasample(curr_keys,n_su);
+                    sukeys=datasample(curr_keys,n_su,'replace',false);
                     rawmat=[...
                         cellfun(@(x) min(x),frmap.(lbls(1)).(currgrp).values(sukeys));...
                         cellfun(@(x) max(x),frmap.(lbls(1)).(currgrp).values(sukeys));...
@@ -193,17 +162,17 @@ end
 
 if opt.plot_dec
     colors=containers.Map(["result","shuf","etrial"],{'r','k','b'});
-    dec_tag=["dur","sens"];
-    su_grp={["sensdur","dur"],["sensdur","sens"]};
-    lbl_grp={["d3","d6"],["S1","S2"]};
+    dec_tag=["dur"];
+    su_grp={["dur_indep","dur_dep"]};
+    lbl_grp={["d3","d6"]};
     lsgrp=["-","--"];
-    for dec_idx=1:2
+    for dec_idx=1
     fh=figure('Color','w','Position',[100,100,250,225]);
     hold on;
     for grpidx=1:2
         for ptype=["shuf","etrial","result"]
             %     datamat=cell2mat(arrayfun(@(x) out.(sprintf('%s_%dsu',ptype,x)),[50,100,200,500,1000],'UniformOutput',false));
-            n_su=[5,10,50,100,500];
+            n_su=10:10:50;
             phat=nan(1,numel(n_su));
             pci=nan(2,numel(n_su));
             for nidx=1:numel(n_su)
@@ -214,7 +183,7 @@ if opt.plot_dec
             ph(grpidx)=plot(n_su,phat,'Color',colors(ptype),'LineStyle',lsgrp(grpidx));
         end
     end
-    legend(ph,{'Mixed modality','Single modality'},'Location','northoutside','Orientation','horizontal')
+    legend(ph,{'Odor independent','Odor dependent'},'Location','northoutside','Orientation','horizontal')
     xlabel('Number of neurons')
     ylabel('Classification accuracy (%)')
     ylim([0,1])

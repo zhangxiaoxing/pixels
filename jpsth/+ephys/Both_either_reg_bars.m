@@ -9,6 +9,7 @@ arguments
     opt.stats_type (1,:) char;
     opt.data_type (1,:) char;
     opt.skip_error_bar (1,1) logical = true
+    opt.yscale (1,2) cell = {'Log','Linear'}
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -124,7 +125,7 @@ if ~opt.skip_error_bar
 end
 bh(1).FaceColor='k';% independent
 bh(2).FaceColor='w';% dependent
-set(gca(),'YScale','Log')
+set(gca(),'YScale',opt.yscale{1})
 % ylim([0.005,0.5])
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
 % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
@@ -138,7 +139,7 @@ bh=bar(summat(sidx,1),'FaceColor',ones(1,3)/2);
 if ~opt.skip_error_bar
     errorbar(bh.XEndPoints,bh.YEndPoints,diff(summat(sidx,[1,4]),1,2),diff(summat(sidx,[1,5]),1,2),'k.');
 end
-set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90,'Yscale','Log')
+set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90,'Yscale',opt.yscale{2})
 legend(bh,{'Total'},'Location','northeast','Orientation','horizontal');
 
 

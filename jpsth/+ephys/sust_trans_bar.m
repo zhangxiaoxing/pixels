@@ -1,13 +1,18 @@
-meta=ephys.util.load_meta();
+function fh=sust_trans_bar()
+meta=ephys.util.load_meta('skip_stats',true);
+sens_meta=ephys.get_sens_meta();
+for fn=reshape(fieldnames(sens_meta),1,[])
+    meta.(fn{1})=sens_meta.(fn{1});
+end
 
-any6=nnz(any(meta.fdr_6(2:7,:)<0.05));
-persist6=nnz(all(meta.fdr_6(2:7,:)<0.05));
+any6=nnz(any(meta.fdr_d6(:,2:end)<0.05,2));
+persist6=nnz(all(meta.fdr_d6(:,2:end)<0.05,2));
 
-any3=nnz(any(meta.fdr_3(2:4,:)<0.05));
-persist3=nnz(all(meta.fdr_3(2:4,:)<0.05));
+any3=nnz(any(meta.fdr_d3(:,2:end)<0.05,2));
+persist3=nnz(all(meta.fdr_d3(:,2:end)<0.05,2));
 
-any_overall=nnz(any(meta.fdr_6(2:7,:)<0.05) | any(meta.fdr_3(2:4,:)<0.05));
-persist_overall=nnz(all(meta.fdr_3(2:4,:)<0.05) | all(meta.fdr_6(2:7,:)<0.05));
+any_overall=nnz(any(meta.fdr_d6(:,2:end)<0.05,2) | any(meta.fdr_d3(:,2:end)<0.05,2));
+persist_overall=nnz(all(meta.fdr_d3(:,2:end)<0.05,2) | all(meta.fdr_d6(:,2:end)<0.05,2));
 
 tot=numel(meta.sess);
 
@@ -34,4 +39,5 @@ set(gca(),'XTick',1:3,'XTickLabel',{'3s','6s','overall'},'FontSize',10,'YTickLab
 % text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]))),'Rotation',90,'FontSize',10)
 % text(max(xlim()),max(ylim()),num2str(numel(meta.mem_type)),'HorizontalAlignment','right','VerticalAlignment','top')
 
-exportgraphics(fh,'sust_trans_fraction.pdf');
+% exportgraphics(fh,'sust_trans_fraction.pdf');
+end

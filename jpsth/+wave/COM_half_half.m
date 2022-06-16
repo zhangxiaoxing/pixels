@@ -1,11 +1,12 @@
-function COM_half_half(opt)
+function fh=COM_half_half(sel_meta,opt)
 arguments
+    sel_meta
     opt.new_data (1,1) logical =true
     opt.plot (1,1) logical = true
     opt.corr_curve (1,1) logical = false
 end
 if opt.new_data
-    stats=gendata();
+    stats=gendata(sel_meta);
     if isunix
         save('COM_half_half.mat','stats');
     end
@@ -18,7 +19,7 @@ if opt.plot %isfile('COM_half_half.mat')
     sessmm=cell2mat(arrayfun(@(x) mean(stats(stats(:,1)==x,3:8)),unique(stats(:,1)),'UniformOutput',false));
 %     mm=mean(sessmm);
 %     sem=std(sessmm);
-    fh=figure('Color','w','Position',[32,32,420,100]);
+    fh=figure('Color','w','Position',[32,32,420,225]);
     for idx=1:3:4
         subplot(1,2,(idx>1)+1);
         hold on
@@ -39,8 +40,9 @@ if opt.plot %isfile('COM_half_half.mat')
 end
 end
 
-function stats=gendata(opt)
+function stats=gendata(sel_meta,opt)
 arguments
+    sel_meta
     opt.to_plot (1,1) logical = false
 end
 
@@ -50,9 +52,6 @@ if isunix
     end
     rpts=500;
 else
-    %     if isempty(gcp('nocreate'))
-    %         parpool(2)
-    %     end
     rpts=5;
 end
 
@@ -62,26 +61,26 @@ stats=[];
 for rpt=1:rpts
     disp(rpt)
     [data1hall,data2hall,dataeall]=deal([]);
-    com_map=wave.get_com_map('curve',true,'rnd_half',true,'wave','any6','delay',6);
+    com_map=wave.get_com_map(sel_meta,'curve',true,'rnd_half',true,'wave','anyContext2','delay',6);
     for fn=reshape(fieldnames(com_map),1,[])
         fs=fn{1};
-        s1key=num2cell(intersect(cell2mat(com_map.(fs).s1a.keys),intersect(cell2mat(com_map.(fs).s1b.keys),cell2mat(com_map.(fs).s1e.keys))));
-        s2key=num2cell(intersect(cell2mat(com_map.(fs).s2a.keys),intersect(cell2mat(com_map.(fs).s2b.keys),cell2mat(com_map.(fs).s2e.keys))));
+        s1key=num2cell(intersect(cell2mat(com_map.(fs).c1a.keys),intersect(cell2mat(com_map.(fs).c1b.keys),cell2mat(com_map.(fs).c1e.keys))));
+        s2key=num2cell(intersect(cell2mat(com_map.(fs).c2a.keys),intersect(cell2mat(com_map.(fs).c2b.keys),cell2mat(com_map.(fs).c2e.keys))));
         if isempty(s1key) || isempty(s2key)
             continue
         end
-        data1h=[cell2mat(com_map.(fs).s1a.values(s1key)).';cell2mat(com_map.(fs).s2a.values(s2key)).'].*0.25;
-        data2h=[cell2mat(com_map.(fs).s1b.values(s1key)).';cell2mat(com_map.(fs).s2b.values(s2key)).'].*0.25;
-        datae=[cell2mat(com_map.(fs).s1e.values(s1key)).';cell2mat(com_map.(fs).s2e.values(s2key)).'].*0.25;
+        data1h=[cell2mat(com_map.(fs).c1a.values(s1key)).';cell2mat(com_map.(fs).c2a.values(s2key)).'].*0.25;
+        data2h=[cell2mat(com_map.(fs).c1b.values(s1key)).';cell2mat(com_map.(fs).c2b.values(s2key)).'].*0.25;
+        datae=[cell2mat(com_map.(fs).c1e.values(s1key)).';cell2mat(com_map.(fs).c2e.values(s2key)).'].*0.25;
 
         data1hall=[data1hall;data1h];
         data2hall=[data2hall;data2h];
         dataeall=[dataeall;datae];
 
 
-        cdata1h=[cell2mat(com_map.(fs).s1acurve.values(s1key.'));cell2mat(com_map.(fs).s2acurve.values(s2key.'))];
-        cdata2h=[cell2mat(com_map.(fs).s1bcurve.values(s1key.'));cell2mat(com_map.(fs).s2bcurve.values(s2key.'))];
-        cdatae=[cell2mat(com_map.(fs).s1ecurve.values(s1key.'));cell2mat(com_map.(fs).s2ecurve.values(s2key.'))];
+        cdata1h=[cell2mat(com_map.(fs).c1acurve.values(s1key.'));cell2mat(com_map.(fs).c2acurve.values(s2key.'))];
+        cdata2h=[cell2mat(com_map.(fs).c1bcurve.values(s1key.'));cell2mat(com_map.(fs).c2bcurve.values(s2key.'))];
+        cdatae=[cell2mat(com_map.(fs).c1ecurve.values(s1key.'));cell2mat(com_map.(fs).c2ecurve.values(s2key.'))];
         if isempty(cdata1h) || isempty(cdata2h) || isempty(cdatae)
             keyboard()
         end

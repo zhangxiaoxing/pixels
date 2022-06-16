@@ -2,13 +2,23 @@ function [sig_,pair_]=load_sig_sums_conn_file(opt)
 arguments
     opt.pair (1,1) logical = false
     opt.fn (1,:) char ...
-        {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}...
-        = 'sums_conn_10.mat';
+        {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}
 end
-warning(['using FC file ',opt.fn]);
+global gather_config
+if ~isempty(gather_config)
+    if gather_config.fc_win==10
+        opt.fn='sums_conn_10.mat';
+    elseif gather_config.fc_win==20
+        opt.fn='sums_conn_20win.mat';
+    else
+        error('Unsupported FC window')
+    end
+end
+assert(isfield(opt,'fn') && ~isempty(opt.fn),'FC window undefined')
 
 persistent sig pair opt_
 if isempty(sig) || isempty(pair) || ~isequaln(opt,opt_)
+    warning(['using FC file ',opt.fn]);
     meta=ephys.util.load_meta();
     conn_str=load(opt.fn);
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));

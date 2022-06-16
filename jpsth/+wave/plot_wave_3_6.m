@@ -1,5 +1,6 @@
-function out=plot_wave_3_6(opt)
+function [fh,out]=plot_wave_3_6(sel_meta,opt)
 arguments
+    sel_meta
     opt.sess (1,1) double {mustBeMember(opt.sess,1:116)} = 102
     opt.sortby (1,:) char {mustBeMember(opt.sortby,{'3s','6s'})} = '6s'
     opt.exportgraphics (1,1) logical = false
@@ -18,21 +19,21 @@ persistent com_map_3_sel com_map_3_alt com_map_6_sel com_map_6_alt com_map_3_sel
 
 if isempty(com_map_3_sel)
 end
-for alt_comb=opt.comb_set
-    switch alt_comb
+for plot_id=opt.comb_set
+    switch plot_id
         case 1
-            com_map_3=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'wave','both');
-            com_map_6=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'wave','both');
+            com_map_3=wave.get_com_map(sel_meta,'curve',true,'rnd_half',false,'delay',3,'wave','bothContext');
+            com_map_6=wave.get_com_map(sel_meta,'curve',true,'rnd_half',false,'delay',6,'wave','bothContext');
             tag='Selective in both 3s and 6s trials';
             fn='corr_3_6_both.pdf';
         case 2
-            com_map_3=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'wave','only6');
-            com_map_6=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'wave','only6');%             com_map_6_si=com_map_6_sel_si;
+            com_map_3=wave.get_com_map(sel_meta,'curve',true,'rnd_half',false,'delay',3,'wave','onlyContext2');
+            com_map_6=wave.get_com_map(sel_meta,'curve',true,'rnd_half',false,'delay',6,'wave','onlyContext2');%             com_map_6_si=com_map_6_sel_si;
             tag='Selective only in 6s trials';
             fn='corr_3_6_only6.pdf';
         case 3
-            com_map_3=wave.get_com_map('curve',true,'rnd_half',false,'delay',3,'wave','only3');
-            com_map_6=wave.get_com_map('curve',true,'rnd_half',false,'delay',6,'wave','only3');
+            com_map_3=wave.get_com_map(sel_meta,'curve',true,'rnd_half',false,'delay',3,'wave','onlyContext1');
+            com_map_6=wave.get_com_map(sel_meta,'curve',true,'rnd_half',false,'delay',6,'wave','onlyContext1');
             tag='Selective only in 3s trials';
             fn='corr_3_6_only3.pdf';
     end
@@ -41,7 +42,7 @@ for alt_comb=opt.comb_set
     [immata,immatb,immat_anti_a,immat_anti_b,com_a,com_b]=deal([]);
     for fs1=fss
         fs=char(fs1);
-        for pref=["s1","s2"]
+        for pref=["c1","c2"]
             curr_key=intersect(cell2mat(com_map_3.(fs).(pref).keys),cell2mat(com_map_6.(fs).(pref).keys));
             heat3=cell2mat(com_map_3.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
             heat6=cell2mat(com_map_6.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
@@ -95,7 +96,7 @@ for alt_comb=opt.comb_set
 
 
 
-        fch=figure('Color','w','Position',[32,32,850,750]);
+        fh.("corr"+string(plot_id))=figure('Color','w','Position',[32,32,850,750]);
         imagesc(confumat,[-1,1]);
         set(gca,'YDir','normal')
         colormap('turbo')
@@ -109,8 +110,8 @@ for alt_comb=opt.comb_set
 
 
         %% wave
-        fh=figure('Color','w','Position',[32,32,1400,800]);
-        if alt_comb==3
+        fh.("wave"+string(plot_id))=figure('Color','w','Position',[32,32,1400,800]);
+        if plot_id==3
             [~,sortidx]=sort(com_a);
         else
             [~,sortidx]=sort(com_b);
@@ -120,7 +121,7 @@ for alt_comb=opt.comb_set
         plotOne(4,immat_anti_a(sortidx,:),com_a(sortidx),'sub_dim',[2,2],'title','FR, non-preferred, 3s','cmap','turbo');
         plotOne(3,immat_anti_b(sortidx,:),com_b(sortidx),'sub_dim',[2,2],'title','FR, non-preferred, 6s','cmap','turbo');
         sgtitle(sprintf('%s, FRTC r=%0.3f',tag,r));
-        exportgraphics(fh,fn,'ContentType','vector')
+%         exportgraphics(fh,fn,'ContentType','vector')
     end
 end
 %     exportgraphics(fh,'wave_3s_6s_global.pdf','ContentType','vector');
@@ -128,7 +129,7 @@ save('wave_3_6_corr_data.mat','out');
 
 %% 2d corr
 if opt.plot_2d_corr
-    fh=figure('Color','w','Position',[32,32,330,150]);
+    fh.("corr_2d")=figure('Color','w','Position',[32,32,330,150]);
     hold on
     bh=bar([out.corr2.corr_3_6_both;out.corr2.corr_3_6_only6;out.corr2.corr_3_6_only3],'FaceColor','w','EdgeColor','k');
     bh(2).FaceColor=ones(1,3)./2;
@@ -145,11 +146,11 @@ if opt.plot_2d_corr
     set(gca,'XTick',[])
     ylabel('FR correlation (r)')
     legend(bh,{'Scaled','Early half','Late half'},'Location','northoutside','Orientation','horizontal')
-    exportgraphics(fh,'wave_3_6_FR_corr.pdf','ContentType','vector')
+%     exportgraphics(fh,'wave_3_6_FR_corr.pdf','ContentType','vector')
 end
 %% per su corr
 if opt.plot_corr_dist
-    fhb=figure('Color','w');
+    fh.("corr_dist")=figure('Color','w');
     subplot(1,3,1)
     scatter(out.corr_dist.corr_3_6_both(1,:),out.corr_dist.corr_3_6_both(2,:),4,'ko','filled','MarkerEdgeColor','none','MarkerFaceColor','k','MarkerFaceAlpha',0.5)
     xlabel('3s correlation to scaled 6s')
@@ -171,7 +172,7 @@ if opt.plot_corr_dist
     title('Only 6s')
     xlim([0,1])
     ylim([0,1])
-    exportgraphics(fhb,'corr_6s_scale_vs_6s_early.pdf','ContentType','vector')
+%     exportgraphics(fhb,'corr_6s_scale_vs_6s_early.pdf','ContentType','vector')
 end
 %% session
 if opt.plot_session
@@ -179,11 +180,11 @@ if opt.plot_session
         %     while true
         disp(sess)
         fs=sprintf('s%d',sess);
-        com_map_3=wave.get_com_map('onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',false,'delay',3);
+        com_map_3=wave.get_com_map(sel_meta,'onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',false,'delay',3);
         if strcmp(opt.sortby,'3s')
-            com_map_6=wave.get_com_map('onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',false,'delay',6,'partial','early3in6');
+            com_map_6=wave.get_com_map(sel_meta,'onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',false,'delay',6,'partial','early3in6');
         else
-            com_map_6=wave.get_com_map('onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',false,'delay',6);
+            com_map_6=wave.get_com_map(sel_meta,'onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',false,'delay',6);
         end
         if ~isfield(com_map_6,fs) || ~isfield(com_map_3,fs)
             continue
@@ -243,7 +244,7 @@ if opt.plot_session
         immata=immata./max(abs([immata,immatb]),[],2);
         immatb=immatb./max(abs([immata,immatb]),[],2);
 
-        fh=figure('Color','w','Position',[32,32,1080,140]);
+        fh.("Sess "+string(sess))=figure('Color','w','Position',[32,32,1080,140]);
         plotOne(plotidces(1),immata,com_a);
         plotOne(plotidces(2),immatb,com_b);
         shufidx=randsample(size(immatb,1),size(immatb,1));

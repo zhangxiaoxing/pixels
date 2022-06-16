@@ -21,7 +21,6 @@ if ~isfield(opt,'feat_tag') || isempty(opt.feat_tag)
 end
 
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
-% For duration, from: K:\code\jpsth\+ephys\duration_reg_bars.m
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 grey_regs=ephys.getGreyRegs('range',opt.range);
@@ -29,13 +28,13 @@ grey_regs=ephys.getGreyRegs('range',opt.range);
 sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
 src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
 sink_src_mat=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/src_target_matrix');
-% grey_regs assume in work space
 src_idx_map=containers.Map(src_ccfid,1:numel(src_ccfid)); %{ccfid:proj_dense_mat_idx}
 sink_idx_map=containers.Map(sink_ccfid,1:numel(sink_ccfid)); %{ccfid:proj_dense_mat_idx}
 
 allen_src_regs=cellfun(@(x) x{1},idmap.ccfid2reg.values(num2cell(src_ccfid)),'UniformOutput',false);
 map_regs=intersect(allen_src_regs,grey_regs);
 
+% disp({opt.range,numel(map_regs)})
 
 
 %% -> feature_region_map entry point

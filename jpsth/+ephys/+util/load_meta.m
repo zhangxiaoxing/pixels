@@ -6,9 +6,15 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.n_bin (1,1) double {mustBeInteger,mustBePositive} = 3
     opt.skip_stats (1,1) logical = true
-    opt.adjust_white_matter (1,1) logical = true
+    opt.adjust_white_matter (1,1) logical
 end
 persistent opt_ out_
+global gather_config
+if ~isempty(gather_config)
+    opt.adjust_white_matter=gather_config.adjust_white_matter;
+end
+assert(isfield(opt,'adjust_white_matter') && ~isempty(opt.adjust_white_matter),...
+    'Undefined white matter SU adjust method')
 
 if isempty(out_) || ~isequaln(opt,opt_)
     homedir=ephys.util.getHomedir();

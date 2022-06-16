@@ -2,71 +2,86 @@ function out_=get_sens_meta(opt)
 arguments
     opt.permutation (1,1) logical = false
     opt.merge_bin (1,1) logical = true
+    opt.load_file (1,1) logical = true
+    opt.save_file (1,1) logical = false
+    opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
 end
+
 persistent out opt_
 if isempty(out) || ~isequaln(opt,opt_)
-    [~,~,sessmap]=ephys.sessid2path(0);
-    homedir=ephys.util.getHomedir('type','raw');
-    sesskeys=cell2mat(sessmap.keys());
-    [out.wrs_p_d3,out.wrs_p_d6,out.fdr_d3,out.fdr_d6,out.selec_d3,out.selec_d6,...
-        out.mem_type_d3,out.per_bin_d3,out.mem_type_d6,out.per_bin_d6,out.wave_id]=deal([]);
-    for sessid=sesskeys
-        disp(sessid);
-        fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
-        fr=h5read(fpath,'/FR_All');
-        trials=h5read(fpath,'/Trials');
-        suid=h5read(fpath,'/SU_id');
-        s2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
-        s1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
 
-        d3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
-        d6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
-        if opt.merge_bin, bins=1; else, bins=4; end
-        [wrs_p_d3,wrs_p_d6,fdr_d3,fdr_d6,selec_d3,selec_d6]=deal(nan(size(fr,2),bins));
-        for suidx=1:size(fr,2)
-            if opt.merge_bin
-                if opt.permutation
-                    wrs_p_d3(suidx,:)=permutation_test_1d(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3),100);
-                    wrs_p_d6(suidx,:)=permutation_test_1d(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3),100);
+    if opt.load_file
+        load('perm_sens.mat','sens_meta')
+        out=sens_meta;
+    else
+
+        [~,~,sessmap]=ephys.sessid2path(0);
+        homedir=ephys.util.getHomedir('type','raw');
+        sesskeys=cell2mat(sessmap.keys());
+        [out.wrs_p_d3,out.wrs_p_d6,out.fdr_d3,out.fdr_d6,out.selec_d3,out.selec_d6,...
+            out.mem_type_d3,out.per_bin_d3,out.mem_type_d6,out.per_bin_d6,out.wave_id]=deal([]);
+        for sessid=sesskeys
+            disp(sessid);
+            fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
+            fr=h5read(fpath,'/FR_All');
+            trials=h5read(fpath,'/Trials');
+            suid=h5read(fpath,'/SU_id');
+            s2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
+            s1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
+
+            d3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
+            d6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
+            if opt.merge_bin, bins=1; else, bins=4; end
+            [wrs_p_d3,wrs_p_d6,fdr_d3,fdr_d6,selec_d3,selec_d6]=deal(nan(size(fr,2),bins));
+            for suidx=1:size(fr,2)
+                if opt.merge_bin
+                    if opt.permutation
+                        wrs_p_d3(suidx,:)=permutation_test_1d(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3),opt.perm_repeat);
+                        wrs_p_d6(suidx,:)=permutation_test_1d(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3),opt.perm_repeat);
+                    else
+                        wrs_p_d3(suidx,:)=ranksum(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3));
+                        wrs_p_d6(suidx,:)=ranksum(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3));
+                    end
+                    selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,5:7),fr(d3sel & s2sel,suidx,5:7));
+                    selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,5:7),fr(d6sel & s2sel,suidx,5:7));
                 else
-                    wrs_p_d3(suidx,:)=ranksum(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3));
-                    wrs_p_d6(suidx,:)=ranksum(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3));
-                end                
-                selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,5:7),fr(d3sel & s2sel,suidx,5:7));
-                selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,5:7),fr(d6sel & s2sel,suidx,5:7));
-            else
-                if opt.permutation
-                    wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),100),4:7);
-                    wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),100),4:7);
-                else
-                    wrs_p_d3(suidx,:)=arrayfun(@(x) ranksum(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x)),4:7);
-                    wrs_p_d6(suidx,:)=arrayfun(@(x) ranksum(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x)),4:7);
+                    if opt.permutation
+                        wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),4:7);
+                        wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),4:7);
+                    else
+                        wrs_p_d3(suidx,:)=arrayfun(@(x) ranksum(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x)),4:7);
+                        wrs_p_d6(suidx,:)=arrayfun(@(x) ranksum(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x)),4:7);
+                    end
+                    fdr_d3(suidx,:)=mafdr(wrs_p_d3(suidx,:),'BHFDR',true);
+                    fdr_d6(suidx,:)=mafdr(wrs_p_d6(suidx,:),'BHFDR',true);
+                    selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(d & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
+                    selec_s2(suidx,:)=arrayfun(@(x) sel_idx(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
                 end
-                fdr_d3(suidx,:)=mafdr(wrs_p_d3(suidx,:),'BHFDR',true);
-                fdr_d6(suidx,:)=mafdr(wrs_p_d6(suidx,:),'BHFDR',true);
-                selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(d & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
-                selec_s2(suidx,:)=arrayfun(@(x) sel_idx(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+            end
+            if opt.merge_bin
+                [mem_type_d3,per_bin_d3]=get_mem_type(wrs_p_d3,selec_d3);
+                [mem_type_d6,per_bin_d6]=get_mem_type(wrs_p_d6,selec_d6);
+            else
+                [mem_type_d3,per_bin_d3]=get_mem_type(fdr_d3,selec_d3);
+                [mem_type_d6,per_bin_d6]=get_mem_type(fdr_d6,selec_d6);
+            end
+            wave_id=get_wave_id(mem_type_d3,mem_type_d6);
+            out.wrs_p_d3=[out.wrs_p_d3;wrs_p_d3];
+            out.wrs_p_d6=[out.wrs_p_d6;wrs_p_d6];
+            out.fdr_d3  =[out.fdr_d3  ;fdr_d3  ];
+            out.fdr_d6  =[out.fdr_d6  ;fdr_d6  ];
+            out.selec_d3=[out.selec_d3;selec_d3];
+            out.selec_d6=[out.selec_d6;selec_d6];
+            out.mem_type_d3=[out.mem_type_d3;mem_type_d3];
+            out.mem_type_d6=[out.mem_type_d6;mem_type_d6];
+            out.per_bin_d3 =[out.per_bin_d3 ;per_bin_d3 ];
+            out.per_bin_d6 =[out.per_bin_d6 ;per_bin_d6 ];
+            out.wave_id=[out.wave_id;wave_id];
+            if opt.save_file
+                sens_meta=out;
+                save('perm_sens.mat','sens_meta');
             end
         end
-        if opt.merge_bin
-            [mem_type_d3,per_bin_d3]=get_mem_type(wrs_p_d3,selec_d3);
-            [mem_type_d6,per_bin_d6]=get_mem_type(wrs_p_d6,selec_d6);
-        else
-            [mem_type_d3,per_bin_d3]=get_mem_type(fdr_d3,selec_d3);
-            [mem_type_d6,per_bin_d6]=get_mem_type(fdr_d6,selec_d6);
-        end
-        wave_id=get_wave_id(mem_type_d3,mem_type_d6);
-        out.wrs_p_d3=[out.wrs_p_d3;wrs_p_d3];
-        out.wrs_p_d6=[out.wrs_p_d6;wrs_p_d6];
-        out.fdr_d3  =[out.fdr_d3  ;fdr_d3  ];
-        out.fdr_d6  =[out.fdr_d6  ;fdr_d6  ];
-        out.selec_d3=[out.selec_d3;selec_d3];
-        out.selec_d6=[out.selec_d6;selec_d6];
-        out.mem_type_d3=[out.mem_type_d3;mem_type_d3];
-        out.mem_type_d6=[out.mem_type_d6;mem_type_d6];
-        out.per_bin_d3 =[out.per_bin_d3 ;per_bin_d3 ];
-        out.per_bin_d6 =[out.per_bin_d6 ;per_bin_d6 ];
-        out.wave_id=[out.wave_id;wave_id];
     end
 end
 opt_=opt;
