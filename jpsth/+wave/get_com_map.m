@@ -10,6 +10,7 @@ arguments
     opt.sens_cue (1,1) double {mustBeMember(opt.sens_cue,[4,8])} % olfactory cue for duration selection
     opt.plot_COM_scheme (1,1) logical = false % for TCOM illustration
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
+    opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
 
 end
 persistent com_str opt_ sel_meta_
@@ -92,16 +93,17 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta)
         end
         
         %% TODO Needs to handle duration groups
-        if isfield(sel_meta,'selec_d3')
+        if isfield(sel_meta,'selec_d3') % Sensory wave 
             opt.dur=false;
             c1sel=find(trials(:,5)==4 & trials(:,8)==opt.delay & trials(:,9)>0 & trials(:,10)>0);
             c2sel=find(trials(:,5)==8 & trials(:,8)==opt.delay & trials(:,9)>0 & trials(:,10)>0);
 
             e1sel=find(trials(:,5)==4 & trials(:,8)==opt.delay & trials(:,10)==0);
             e2sel=find(trials(:,5)==8 & trials(:,8)==opt.delay & trials(:,10)==0);
-        elseif isfield(sel_meta,'selec_s1')
+        elseif isfield(sel_meta,'selec_s1') % Duration wave
             opt.dur=true;
-            opt.delay=3;
+            opt.append_late_delay=true;
+            opt.delay=3; % this does truncate the wave heatmap plot
             c1sel=find(trials(:,5)==opt.sens_cue & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
             c2sel=find(trials(:,5)==opt.sens_cue & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
 
@@ -152,14 +154,34 @@ function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,s
         basemm=mean(basemm);
 
         mm_pref=squeeze(mean(fr(pref_sel,su,stats_window))).'-basemm;
+
+        if opt.append_late_delay
+            if strcmp(samp,'c1') %i.e. 3s-duration
+                curve=mm_pref;
+                anticurve=squeeze(mean(fr(nonpref_sel,su,17:40))).'-basemm;
+            else % 'c2', i.e. 6s-duration
+                curve=squeeze(mean(fr(pref_sel,su,17:40))).'-basemm;
+                anticurve=squeeze(mean(fr(nonpref_sel,su,stats_window))).'-basemm;
+            end
+        else
+            curve=mm_pref;
+            anticurve=squeeze(mean(fr(nonpref_sel,su,stats_window))).'-basemm;
+        end
         mm_pref(mm_pref<0)=0;
 
-        if ~any(mm_pref>0),disp(string(samp)+" NOPEAK");continue;end % work around 6s paritial
-
-        curve=mm_pref;
-        anticurve=squeeze(mean(fr(nonpref_sel,su,stats_window))).'-basemm;
-
-        com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
+        if ~any(mm_pref>0)
+            if (ismember(samp,{'c1e','c2e'})) ...
+                    || (strcmp(opt.wave,'onlyContext2') && opt.delay==3 && evalin('caller','isfield(sel_meta,''selec_d3'')'))... % TODO: fix recursive call stack
+                    || (strcmp(opt.wave,'onlyContext1') && opt.delay==6 && evalin('caller','isfield(sel_meta,''selec_d3'')')) % TODO: fix recursive call stack
+                com=-1;
+                disp(string(samp)+" PEAK mismatch, TCOM set to -1")
+            else
+                disp(string(samp)+" NOPEAK")
+                keyboard();
+            end
+        else
+            com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
+        end
         if opt.plot_COM_scheme
             fc_scheme(curve,mm_pref,com)
         end
@@ -174,7 +196,7 @@ function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,s
             heatnorm(heatnorm<0)=0;
             if size(heatnorm,1)>10
                 if numel(curve)>numel(stats_window)
-                    curve=curve(stats_window);
+                    curve=curve(1:numel(stats_window));
                 end
                 cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
                 [~,idx]=sort(cc,'descend');

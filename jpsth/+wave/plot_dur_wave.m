@@ -1,35 +1,25 @@
-function out=plot_dur_wave(opt)
+function fh=plot_dur_wave(com_map,opt)
 arguments
-    opt.sess (1,1) double {mustBeMember(opt.sess,1:116)} = 102
-    opt.sortby (1,:) char {mustBeMember(opt.sortby,{'3s','6s'})} = '6s'
+    com_map
     opt.exportgraphics (1,1) logical = false
-    opt.plot_global (1,1) logical = true
-    opt.plot_session (1,1) logical = false
-    opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 1:3
-    opt.bootrpt (1,1) double {mustBeInteger,mustBePositive} = 3;
-    opt.plot_2d_corr (1,1) logical = true
-    opt.plot_corr_dist (1,1) logical = true
 end
 %% global
-out=struct();
-out.corr2=struct();
-out.corr_dist=struct();
-
-com_map=wave.get_dur_com_map('curve',true);
-% tag='Selective in both 3s and 6s trials';
-fn='dur_wave.pdf';
-
 immat=struct();
 immat_anti=struct();
 com=struct();
-[immat.d3,immat_anti.d3,com.d3,immat.d6,immat_anti.d6,com.d6]=deal([]);
-for fsess=reshape(fieldnames(com_map),1,[])
+[immat.c1,immat_anti.c1,com.c1,immat.c2,immat_anti.c2,com.c2]=deal([]);
+for fsess=reshape(fieldnames(com_map.summed),1,[])
     fs=char(fsess);
-    for pref=["d3","d6"]
-        curr_key=cell2mat(com_map.(fs).(pref).keys);
-        heat=cell2mat(com_map.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
-        anti=cell2mat(com_map.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
-        COM=cell2mat(values(com_map.(fs).(pref),num2cell(curr_key)));
+    disp(fsess)
+    for pref=["c1","c2"]
+        if ~isfield(com_map.summed.(fs),pref)
+            disp(string(fs)+" missing field "+pref);
+            continue;
+        end
+        curr_key=cell2mat(com_map.summed.(fs).(pref).keys);
+        heat=cell2mat(com_map.summed.(fs).([char(pref),'curve']).values(num2cell(curr_key.')));
+        anti=cell2mat(com_map.summed.(fs).([char(pref),'anticurve']).values(num2cell(curr_key.')));
+        COM=cell2mat(values(com_map.summed.(fs).(pref),num2cell(curr_key)));
         %         keyboard()
         immat.(pref)=[immat.(pref);heat];
         immat_anti.(pref)=[immat_anti.(pref);anti];
@@ -37,23 +27,25 @@ for fsess=reshape(fieldnames(com_map),1,[])
     end
 end
 
-currscale=max(abs([immat.d3,immat_anti.d3;immat.d6,immat_anti.d6]),[],2);
-[immat.d3,immat.d6,immat_anti.d3,immat_anti.d6]...
-    =deal(immat.d3./currscale(1:size(immat.d3,1)),immat.d6./currscale(size(immat.d3,1)+1:end),...
-    immat_anti.d3./currscale(1:size(immat.d3,1)),immat_anti.d6./currscale(size(immat.d3,1)+1:end));
+currscale=max(abs([immat.c1(:,1:12),immat_anti.c1(:,1:12);immat.c2(:,1:12),immat_anti.c2(:,1:12)]),[],2);
+[immat.c1,immat.c2,immat_anti.c1,immat_anti.c2]...
+    =deal(immat.c1./currscale(1:size(immat.c1,1)),immat.c2./currscale(size(immat.c1,1)+1:end),...
+    immat_anti.c1./currscale(1:size(immat.c1,1)),immat_anti.c2./currscale(size(immat.c1,1)+1:end));
 
 
-if opt.plot_global
-    %% wave
-    fh=figure('Color','w','Position',[32,32,1400,800]);
-    [~,sortidx]=sort(com.d3);
-    plotOne(1,immat.d3(sortidx,:),com.d3(sortidx),'sub_dim',[2,2],'title','FR, preferred','cmap','turbo');
-    plotOne(2,immat_anti.d3(sortidx,:),com.d3(sortidx),'sub_dim',[2,2],'title','FR, non-preferred','cmap','turbo');
-    [~,sortidx]=sort(com.d6);
-    plotOne(3,immat.d6(sortidx,:),com.d6(sortidx),'sub_dim',[2,2],'title','FR, preferred','cmap','turbo');
-    plotOne(4,immat_anti.d6(sortidx,:),com.d6(sortidx),'sub_dim',[2,2],'title','FR, non-preferred','cmap','turbo');    
+
+%% wave
+fh=figure('Color','w','Position',[32,32,1400,800]);
+[~,sortidx]=sort(com.c1);
+plotOne(1,immat.c1(sortidx,:),com.c1(sortidx),'sub_dim',[2,2],'title','FR, preferred','cmap','turbo');
+plotOne(2,immat_anti.c1(sortidx,:),com.c1(sortidx),'sub_dim',[2,2],'title','FR, non-preferred','cmap','turbo');
+[~,sortidx]=sort(com.c2);
+plotOne(4,immat.c2(sortidx,:),com.c2(sortidx),'sub_dim',[2,2],'title','FR, preferred','cmap','turbo');
+plotOne(3,immat_anti.c2(sortidx,:),com.c2(sortidx),'sub_dim',[2,2],'title','FR, non-preferred','cmap','turbo');
+if opt.exportgraphics
     exportgraphics(gcf(),'dur_wave.pdf','ContentType','vector')
 end
+
 end
 
 

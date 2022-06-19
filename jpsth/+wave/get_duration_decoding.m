@@ -7,6 +7,7 @@ arguments
     opt.calc_dec (1,1) logical=true
     opt.plot_dec (1,1) logical=true
     opt.ranksum_stats (1,1) logical =false
+    opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 100
 
 end
 %% gen data
@@ -106,7 +107,7 @@ if opt.calc_dec
 
             for n_su=10:10:50
                 [result,shuf,result_e]=deal([]);
-                for resamp_rpt=1:50%15
+                for resamp_rpt=1:opt.rpt%15
                     sukeys=datasample(curr_keys,n_su,'replace',false);
                     rawmat=[...
                         cellfun(@(x) min(x),frmap.(lbls(1)).(currgrp).values(sukeys));...
@@ -188,7 +189,7 @@ if opt.plot_dec
     ylabel('Classification accuracy (%)')
     ylim([0,1])
     set(gca(),'YTick',0:0.1:1,'YTickLabel',0:10:100)
-    xlim([0,max(n_su)])
+    xlim([min(n_su),max(n_su)])
     title(dec_tag(dec_idx));
     end
 %     exportgraphics(fh,'duration_decoding.pdf','ContentType','vector');

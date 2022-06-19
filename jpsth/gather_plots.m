@@ -8,12 +8,11 @@ gather_config=struct();
 gather_config.fc_win=10;
 gather_config.adjust_white_matter=true;
 gather_config.corr_type='Pearson';
+gather_config.fnsuffix='_10ms_adj_pearson';
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
 %% RANKSUM1
-fnsuffix='_10ms_adj_pearson';
-
 if strcmp(gather_config.corr_type,'Pearson')
     corr_ln_log='PearsonLinearLog';
     corr_log_log='PearsonLogLog';
@@ -62,7 +61,6 @@ stats_half_half_fh=wave.COM_half_half(sens_meta);
 %>>>>>>>>>>>>>>>>>>>>>>>>>>>> Duration distribution >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 fh=behav.per_sess_duration_coding();
 dur_meta=ephys.get_dur_meta();
-
 [dur_dec_fh,~]=wave.get_duration_decoding(dur_meta);
 
 [dur_map_cells,dur_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','RANKSUM','skip_plot',false,'waveid',dur_meta.wave_id,'range','grey','data_type','duration','stats_type',stats_type);
@@ -76,21 +74,21 @@ dur_GLM_fhctx=wave.connectivity_proportion_GLM(dur_map_cells,corr_ln_log, ...
     'range','CTX','data_type','duration','stats_type',  stats_type,'feat_tag',{'Context-independent','Context-dependent','All selective neurons'});
 
 
-% plot duration SC
+% plot Neuron SC
 if false
     %     dur_wo_sens=find(ismember(dur_meta.wave_id,5:6));
     dur_intact=find(anova2meta.dur & ~anova2meta.sens & anova2meta.interact & dur_meta.wave_id>0 &dur_meta.wave_id<5);
     meta=ephys.util.load_meta('skip_stats',true);
-    for ii=[11241]
+    for ii=[11241,9071]
         %         fh=ephys.sens_dur_SC(dur_intact(ii),meta,sens_meta,dur_meta,'skip_raster',false);
         scfh=ephys.sens_dur_SC(ii,meta,sens_meta,dur_meta,'skip_raster',false);%
         %             11241,20621,9071
     end
 end
-
-
 % dur_reg_bar_fh.reg_bar.Children(2).YLim=[0.0001,0.5];
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+%>>>>>>>>>>>>>>>>>>> Single mix modality >>>>>>>>>>>>>>>>>>>>>>>>>
 dur_sens_corr_fh=hier.sens_dur_corr(dur_map_cells{3},sens_map_cells{3});
 
 single_mix_meta.single1=sens_meta.wave_id>0;
@@ -109,8 +107,7 @@ perm_meta.mixed=sens_meta.wave_id>0 & dur_meta.wave_id>0;
 inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);
 
 
-
-% TCOM
+%>>>>>>>>>>>>>>>>>>Sensory TCOM Part2 >>>>>>>>>>>>>>>>>>>>>>>>
 % sense, 6s
 sens_tcom_fh=struct();
 tcom_maps=cell(1,2);
@@ -142,30 +139,36 @@ end
 sensory_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
     'range','grey','data_type','3s_6s_sensory_TCOM','stats_type',stats_type,'feat_tag',{'Sens TCOM 3s','Sens TCOM 6s'});
 
-%=============================Dur TCOM===========================
+%>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Dur TCOM>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 for currcue=[4,8]
     dur_com.(['s',num2str(currcue)])=wave.get_com_map(dur_meta, ...
         'wave',['anyContext',num2str(currcue/4)], ... %indep+dep
-        'sens_cue',currcue);
+        'sens_cue',currcue,'curve',true);
 end
 
+%>>>>>>>>>>>> Create merged-odor dataset>>>>>
 padOdor=@(y,z) num2cell(cellfun(@(x) x+z*100000,y));
 usess=unique([fieldnames(dur_com.s4);fieldnames(dur_com.s8)]);
+feat_fields=fieldnames(dur_com.s4.s1);
 for sess=reshape(usess,1,[])
-    c1keys=[padOdor(dur_com.s4.(char(sess)).c1.keys,4),padOdor(dur_com.s8.(char(sess)).c1.keys,8)];
-    if ~isempty(c1keys)
-        dur_com.summed.(char(sess)).c1=...
-            containers.Map(c1keys, ...
-            [dur_com.s4.(char(sess)).c1.values,dur_com.s8.(char(sess)).c1.values]);
+    for fn=reshape(feat_fields,1,[])
+        fnkeys=[padOdor(dur_com.s4.(char(sess)).(fn{1}).keys,4),padOdor(dur_com.s8.(char(sess)).(fn{1}).keys,8)];
+        if ~isempty(fnkeys)
+            dur_com.summed.(char(sess)).(fn{1})=...
+                containers.Map(fnkeys, ...
+                [dur_com.s4.(char(sess)).(fn{1}).values,dur_com.s8.(char(sess)).(fn{1}).values]);
+        end
     end
-    c2keys=[padOdor(dur_com.s4.(char(sess)).c2.keys,4),padOdor(dur_com.s8.(char(sess)).c2.keys,8)];
-    if ~isempty(c2keys)
-        dur_com.summed.(char(sess)).c2=...
-            containers.Map(c2keys, ...
-            [dur_com.s4.(char(sess)).c2.values,dur_com.s8.(char(sess)).c2.values]);
-    end
+%     c2keys=[padOdor(dur_com.s4.(char(sess)).c2.keys,4),padOdor(dur_com.s8.(char(sess)).c2.keys,8)];
+%     if ~isempty(c2keys)
+%         dur_com.summed.(char(sess)).c2=...
+%             containers.Map(c2keys, ...
+%             [dur_com.s4.(char(sess)).c2.values,dur_com.s8.(char(sess)).c2.values]);
+%     end
 end
 
+dur_wave_fh=wave.plot_dur_wave(dur_com);
+%<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 [fcom.dur.collection,fcom.dur.com_meta]=wave.per_region_COM(...
     dur_com.summed,'stats_method','mean','min_su',20);
 for range=["grey","CH","CTX"]
@@ -196,16 +199,16 @@ tcom_corr_bar_fh=wave.sens_dur_wave_bar(sens_map_cells,dur_map_cells,fcom);
 bz.fccoding.plot_coding(sens_meta)
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-if exist(sprintf('collections%s.pdf',fnsuffix),'file')
-    delete(sprintf('collections%s.pdf',fnsuffix))
+if exist(sprintf('collections%s.pdf',gather_config.fnsuffix),'file')
+    delete(sprintf('collections%s.pdf',gather_config.fnsuffix))
 end
 
 fhandles=get(groot(),'Children');
 for hc=reshape(fhandles,1,[])
-    %exportgraphics(gcf(),sprintf('collections%s.pdf',fnsuffix),'ContentType','vector','Append',true)
-    exportgraphics(hc,sprintf('collections%s.pdf',fnsuffix),'ContentType','vector','Append',true)
+    %exportgraphics(gcf(),sprintf('collections%s.pdf',gather_config.fnsuffix),'ContentType','vector','Append',true)
+    exportgraphics(hc,sprintf('collections%s.pdf',gather_config.fnsuffix),'ContentType','vector','Append',true)
 end
-savefig(fhandles,sprintf('Ranksum1%s.fig',fnsuffix));
+savefig(fhandles,sprintf('Ranksum1%s.fig',gather_config.fnsuffix));
 
 return
 
