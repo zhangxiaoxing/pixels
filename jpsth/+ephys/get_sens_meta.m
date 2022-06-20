@@ -1,14 +1,23 @@
 function out_=get_sens_meta(opt)
 arguments
-    opt.permutation (1,1) logical = false
-    opt.merge_bin (1,1) logical = true
+    opt.permutation (1,1) logical = true
+%     opt.merge_bin (1,1) logical = true
     opt.load_file (1,1) logical = true
     opt.save_file (1,1) logical = false
     opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
+    opt.uneven_duration (1,1) logical = true % use all 6-sec delay
 end
 
 persistent out opt_
 if isempty(out) || ~isequaln(opt,opt_)
+    if opt.uneven_duration
+        bin3s=5:7;
+        bin6s=5:10;
+    else
+        bin3s=5:7;
+        bin6s=5:7;
+    end
+
 
     if opt.load_file
         load('perm_sens.mat','sens_meta')
@@ -25,46 +34,57 @@ if isempty(out) || ~isequaln(opt,opt_)
             fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
             fr=h5read(fpath,'/FR_All');
             trials=h5read(fpath,'/Trials');
-            suid=h5read(fpath,'/SU_id');
+%             suid=h5read(fpath,'/SU_id');
             s2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
             s1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
 
             d3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
             d6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
-            if opt.merge_bin, bins=1; else, bins=4; end
-            [wrs_p_d3,wrs_p_d6,fdr_d3,fdr_d6,selec_d3,selec_d6]=deal(nan(size(fr,2),bins));
+%             if opt.merge_bin, bins=1; else, bins=4; end
+            [wrs_p_d3,fdr_d3,selec_d3]=deal(nan(size(fr,2),numel(bin3s)));
+            [wrs_p_d6,fdr_d6,selec_d6]=deal(nan(size(fr,2),numel(bin6s)));
             for suidx=1:size(fr,2)
-                if opt.merge_bin
+%                 if opt.merge_bin
+%                     if opt.permutation
+%                         wrs_p_d3(suidx,:)=permutation_test_1d(mean(fr(d3sel & s1sel,suidx,bin3s),3),mean(fr(d3sel & s2sel,suidx,bin3s),3),opt.perm_repeat);
+%                          %TODO: delay-dependent
+%                         wrs_p_d6(suidx,:)=permutation_test_1d(mean(fr(d6sel & s1sel,suidx,bin6s),3),mean(fr(d6sel & s2sel,suidx,bin6s),3),opt.perm_repeat);
+%                     else
+%                         wrs_p_d3(suidx,:)=ranksum(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3));
+%                          %TODO: delay-dependent
+%                         wrs_p_d6(suidx,:)=ranksum(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3));
+%                     end
+%                     selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,5:7),fr(d3sel & s2sel,suidx,5:7));
+%                      %TODO: delay-dependent
+%                     selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,5:7),fr(d6sel & s2sel,suidx,5:7));
+%                 else
                     if opt.permutation
-                        wrs_p_d3(suidx,:)=permutation_test_1d(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3),opt.perm_repeat);
-                        wrs_p_d6(suidx,:)=permutation_test_1d(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3),opt.perm_repeat);
+                         %TODO: delay-dependent
+                        wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),bin3s);
+                        wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),bin6s);
                     else
-                        wrs_p_d3(suidx,:)=ranksum(mean(fr(d3sel & s1sel,suidx,5:7),3),mean(fr(d3sel & s2sel,suidx,5:7),3));
-                        wrs_p_d6(suidx,:)=ranksum(mean(fr(d6sel & s1sel,suidx,5:7),3),mean(fr(d6sel & s2sel,suidx,5:7),3));
-                    end
-                    selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,5:7),fr(d3sel & s2sel,suidx,5:7));
-                    selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,5:7),fr(d6sel & s2sel,suidx,5:7));
-                else
-                    if opt.permutation
-                        wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),4:7);
-                        wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),4:7);
-                    else
-                        wrs_p_d3(suidx,:)=arrayfun(@(x) ranksum(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x)),4:7);
-                        wrs_p_d6(suidx,:)=arrayfun(@(x) ranksum(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x)),4:7);
+                         %TODO: delay-dependent
+                        wrs_p_d3(suidx,:)=arrayfun(@(x) ranksum(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x)),bin3s);
+                        wrs_p_d6(suidx,:)=arrayfun(@(x) ranksum(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x)),bin6s);
                     end
                     fdr_d3(suidx,:)=mafdr(wrs_p_d3(suidx,:),'BHFDR',true);
                     fdr_d6(suidx,:)=mafdr(wrs_p_d6(suidx,:),'BHFDR',true);
-                    selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(d & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
-                    selec_s2(suidx,:)=arrayfun(@(x) sel_idx(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
-                end
+
+                    selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,5:7),fr(d3sel & s2sel,suidx,bin3s));
+                    selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,5:7),fr(d6sel & s2sel,suidx,bin6s));
+
+                     %TODO: delay-dependent
+%                     selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(d & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
+%                     selec_s2(suidx,:)=arrayfun(@(x) sel_idx(fr(cS2sel & c3sel,suidx,x),fr(cS2sel & c6sel,suidx,x)),4:7);
+%                 end
             end
-            if opt.merge_bin
-                [mem_type_d3,per_bin_d3]=get_mem_type(wrs_p_d3,selec_d3);
-                [mem_type_d6,per_bin_d6]=get_mem_type(wrs_p_d6,selec_d6);
-            else
+%             if opt.merge_bin
+%                 [mem_type_d3,per_bin_d3]=get_mem_type(wrs_p_d3,selec_d3);
+%                 [mem_type_d6,per_bin_d6]=get_mem_type(wrs_p_d6,selec_d6);
+%             else
                 [mem_type_d3,per_bin_d3]=get_mem_type(fdr_d3,selec_d3);
                 [mem_type_d6,per_bin_d6]=get_mem_type(fdr_d6,selec_d6);
-            end
+%             end
             wave_id=get_wave_id(mem_type_d3,mem_type_d6);
             out.wrs_p_d3=[out.wrs_p_d3;wrs_p_d3];
             out.wrs_p_d6=[out.wrs_p_d6;wrs_p_d6];
@@ -105,17 +125,18 @@ arguments
 end
 mem_type=nan(size(selec,1),1);
 if size(stat,2)>1
-    per_bin=nan(size(selec,1),3);
+    per_bin=nan(size(selec,1),size(stat,2));
     for i=1:size(selec,1)
-        sel_bin=find(stat(i,2:4)<opt.alpha);
+         %TODO: delay-dependent
+        sel_bin=find(stat(i,:)<opt.alpha);
         if isempty(sel_bin)
             mem_type(i)=0;
             per_bin(i,:)=0;
         else
-            ssign=sign(selec(i,sel_bin+1));
+            ssign=sign(selec(i,sel_bin));
             if all(ssign>=0) || all(ssign<=0) % non-switched
                 per_bin(i,:)=0;
-                if numel(sel_bin)==3  %sust, TODO replace magic number
+                if numel(sel_bin)==size(stat,2)  %sust, TODO replace magic number
                     m_types=[1,3];
                 else % transient
                     m_types=[2,4];

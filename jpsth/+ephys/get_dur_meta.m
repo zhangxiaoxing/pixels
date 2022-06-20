@@ -1,11 +1,12 @@
 function out_=get_dur_meta(opt)
 arguments
-    opt.permutation (1,1) logical = false
-    opt.merge_bin (1,1) logical = true
+    opt.permutation (1,1) logical = true
+    opt.merge_bin (1,1) logical = false
     opt.load_file (1,1) logical = true
     opt.save_file (1,1) logical = false
     opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
 end
+
 persistent out opt_
 if isempty(out) || ~isequaln(opt,opt_)
     if opt.load_file

@@ -9,6 +9,7 @@ gather_config.fc_win=10;
 gather_config.adjust_white_matter=true;
 gather_config.corr_type='Pearson';
 gather_config.fnsuffix='_10ms_adj_pearson';
+
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
@@ -29,7 +30,7 @@ annotation('textbox',[0.05,0.05,0.9,0.9],...
     'on','Interpreter','none');
 % exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
-sens_meta=ephys.get_sens_meta();
+sens_meta=ephys.get_sens_meta('load_file',false,'permutation',true,'perm_repeat',1000,'save_file',true,'uneven_duration',true);
 stats_type='RANKSUM_per_bin';
 
 
@@ -60,7 +61,7 @@ stats_half_half_fh=wave.COM_half_half(sens_meta);
 
 %>>>>>>>>>>>>>>>>>>>>>>>>>>>> Duration distribution >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 fh=behav.per_sess_duration_coding();
-dur_meta=ephys.get_dur_meta();
+dur_meta=ephys.get_dur_meta('load_file',false,'merge_bin',false,'save_file',true,'perm_repeat',1000,'permutation',true);
 [dur_dec_fh,~]=wave.get_duration_decoding(dur_meta);
 
 [dur_map_cells,dur_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','RANKSUM','skip_plot',false,'waveid',dur_meta.wave_id,'range','grey','data_type','duration','stats_type',stats_type);

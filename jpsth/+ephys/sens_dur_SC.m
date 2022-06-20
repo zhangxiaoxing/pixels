@@ -189,7 +189,7 @@ for ii=reshape(metaidx,1,[])
     xlabel('Time (s)');
     ylabel('F.R.');
 
-    arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(sens_meta.fdr_d6(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
+    arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(sens_meta.fdr_d6(ii,x)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:6)
 
 
     %%

@@ -5,14 +5,14 @@ for fn=reshape(fieldnames(sens_meta),1,[])
     meta.(fn{1})=sens_meta.(fn{1});
 end
 
-any6=nnz(any(meta.fdr_d6(:,2:end)<0.05,2));
-persist6=nnz(all(meta.fdr_d6(:,2:end)<0.05,2));
+any6=nnz(any(meta.fdr_d6<0.05,2));
+persist6=nnz(all(meta.fdr_d6<0.05,2));
 
-any3=nnz(any(meta.fdr_d3(:,2:end)<0.05,2));
-persist3=nnz(all(meta.fdr_d3(:,2:end)<0.05,2));
+any3=nnz(any(meta.fdr_d3<0.05,2));
+persist3=nnz(all(meta.fdr_d3<0.05,2));
 
-any_overall=nnz(any(meta.fdr_d6(:,2:end)<0.05,2) | any(meta.fdr_d3(:,2:end)<0.05,2));
-persist_overall=nnz(all(meta.fdr_d3(:,2:end)<0.05,2) | all(meta.fdr_d6(:,2:end)<0.05,2));
+any_overall=nnz(any(meta.fdr_d6<0.05,2) | any(meta.fdr_d3<0.05,2));
+persist_overall=nnz(all(meta.fdr_d3<0.05,2) | all(meta.fdr_d6<0.05,2));
 
 tot=numel(meta.sess);
 
