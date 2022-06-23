@@ -105,7 +105,7 @@ if opt.calc_dec
             dur_trlSel=ismember(cellfun(@(x) str2double(regexp(x,'(?<=s)\d*(?=u)','match','once')),curr_keys),find(min(trl_cnt{1},[],2)>min_trl & min(trl_cnt{2},[],2)>=min_e_trl));
             curr_keys=curr_keys(dur_trlSel);
 
-            for n_su=10:10:50
+            for n_su=12:12:48
                 [result,shuf,result_e]=deal([]);
                 for resamp_rpt=1:opt.rpt%15
                     sukeys=datasample(curr_keys,n_su,'replace',false);
@@ -173,7 +173,7 @@ if opt.plot_dec
     for grpidx=1:2
         for ptype=["shuf","etrial","result"]
             %     datamat=cell2mat(arrayfun(@(x) out.(sprintf('%s_%dsu',ptype,x)),[50,100,200,500,1000],'UniformOutput',false));
-            n_su=10:10:50;
+            n_su=12:12:48;
             phat=nan(1,numel(n_su));
             pci=nan(2,numel(n_su));
             for nidx=1:numel(n_su)
@@ -188,7 +188,7 @@ if opt.plot_dec
     xlabel('Number of neurons')
     ylabel('Classification accuracy (%)')
     ylim([0,1])
-    set(gca(),'YTick',0:0.1:1,'YTickLabel',0:10:100)
+    set(gca(),'YTick',0:0.25:1,'YTickLabel',0:25:100)
     xlim([min(n_su),max(n_su)])
     title(dec_tag(dec_idx));
     end

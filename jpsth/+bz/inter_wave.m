@@ -1,7 +1,8 @@
 function fh=inter_wave(sens_meta)
+split_diff_samp=false;
 % selstr=load('perm_sens.mat','sens_meta');
 
-% persistent sig pair 
+% persistent sig pair
 
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 sig=bz.join_fc_waveid(sig,sens_meta.wave_id);
@@ -10,8 +11,8 @@ pair=bz.join_fc_waveid(pair,sens_meta.wave_id);
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
 [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
 
-[samestats,samep]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair);
-[diffstats,diffp]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair);
+[samestats,samep]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair,split_diff_samp);
+[diffstats,diffp]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair,split_diff_samp);
 
 fh=figure('Color','w','Position',[32,32,600,225]);
 t=tiledlayout(1,3);
@@ -37,11 +38,10 @@ th=nexttile();
 ephys.util.figtable(fh,th,p)
 title(t,'same-, diff- region FC rate')
 
-
-
 end
 
-function [data,stats]=statsOne(sig_sel,pair_sel,sig,pair)
+function [data,stats]=statsOne(sig_sel,pair_sel,sig,pair,split)
+
 % both
 sig_both=nnz(sig_sel & (all(sig.waveid==5,2) | all(sig.waveid==6,2)));
 pair_both=nnz(pair_sel & (all(pair.waveid==5,2) | all(pair.waveid==6,2)));
@@ -63,47 +63,66 @@ sig_cosample=nnz(sig_sel & ((any(sig.waveid==1,2) & any(sig.waveid==3,2))...
 pair_cosample=nnz(pair_sel & ((any(pair.waveid==1,2) & any(pair.waveid==3,2))...
     | (any(pair.waveid==2,2) & any(pair.waveid==4,2))));
 [cosamplehat,cosampleci]=binofit(sig_cosample,pair_cosample);
-
-%diff sample, same duration
-sig_diffsample_same_duration=nnz(sig_sel & ...
-    ((any(ismember(sig.waveid,[1 5]),2) & any(ismember(sig.waveid,[2 6]),2)) ...
-    |(any(ismember(sig.waveid,[3 5]),2) & any(ismember(sig.waveid,[4 6]),2))));
-
-pair_diffsample_same_duration=nnz(pair_sel & ...
-    ((any(ismember(pair.waveid,[1 5]),2) & any(ismember(pair.waveid,[2 6]),2)) ...
-    |(any(ismember(pair.waveid,[3 5]),2) & any(ismember(pair.waveid,[4 6]),2))));
-
-[diffsample_samedur_hat,diffsample_samedur_ci]= ...
-    binofit(sig_diffsample_same_duration,pair_diffsample_same_duration);
-
-% diff sample, diff duration
-sig_diffsample_diff_dur=nnz(sig_sel & (...
-    (any(sig.waveid==1,2) & any(sig.waveid==4,2)) ...
-    |(any(sig.waveid==3,2) & any(sig.waveid==2,2))));
-
-pair_diffsample_diff_dur=nnz(pair_sel & (...
-    (any(pair.waveid==1,2) & any(pair.waveid==4,2)) ...
-    |(any(pair.waveid==3,2) & any(pair.waveid==2,2))));
-
-[diffsample_diffdur_hat,diffsample_diffdur_ci]=binofit(sig_diffsample_diff_dur,pair_diffsample_diff_dur);
-
 % nonmem
 sig_nonmem=nnz(sig_sel & all(sig.waveid==0,2));
 pair_nonmem=nnz(pair_sel & all(pair.waveid==0,2));
 [nonmemhat,nonmemci]=binofit(sig_nonmem,pair_nonmem);
 
-data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,diffsample_diffdur_hat,diffsample_diffdur_ci,nonmemhat,nonmemci];
+if split
+    %diff sample, same duration
+    sig_diffsample=nnz(sig_sel & ...
+        ((any(ismember(sig.waveid,[1 5]),2) & any(ismember(sig.waveid,[2 6]),2)) ...
+        |(any(ismember(sig.waveid,[3 5]),2) & any(ismember(sig.waveid,[4 6]),2))));
 
-[tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
-    4*ones(pair_diffsample_same_duration,1);...
-    5*ones(pair_diffsample_diff_dur,1);...
-    6*ones(pair_nonmem,1)],...
-    [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,...
-    (1:pair_diffsample_same_duration)>sig_diffsample_same_duration, ...
-    (1:pair_diffsample_diff_dur)>sig_diffsample_diff_dur, ...
-    (1:pair_nonmem)>sig_nonmem].');
+    pair_diffsample=nnz(pair_sel & ...
+        ((any(ismember(pair.waveid,[1 5]),2) & any(ismember(pair.waveid,[2 6]),2)) ...
+        |(any(ismember(pair.waveid,[3 5]),2) & any(ismember(pair.waveid,[4 6]),2))));
 
-stats=p;
+    [diffsample_samedur_hat,diffsample_samedur_ci]= ...
+        binofit(sig_diffsample,pair_diffsample);
+
+    % diff sample, diff duration
+    sig_diffsample_diff_dur=nnz(sig_sel & (...
+        (any(sig.waveid==1,2) & any(sig.waveid==4,2)) ...
+        |(any(sig.waveid==3,2) & any(sig.waveid==2,2))));
+
+    pair_diffsample_diff_dur=nnz(pair_sel & (...
+        (any(pair.waveid==1,2) & any(pair.waveid==4,2)) ...
+        |(any(pair.waveid==3,2) & any(pair.waveid==2,2))));
+
+    [diffsample_diffdur_hat,diffsample_diffdur_ci]=binofit(sig_diffsample_diff_dur,pair_diffsample_diff_dur);
+
+    data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,diffsample_diffdur_hat,diffsample_diffdur_ci,nonmemhat,nonmemci];
+
+    [tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
+        4*ones(pair_diffsample,1);...
+        5*ones(pair_diffsample_diff_dur,1);...
+        6*ones(pair_nonmem,1)],...
+        [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,...
+        (1:pair_diffsample)>sig_diffsample, ...
+        (1:pair_diffsample_diff_dur)>sig_diffsample_diff_dur, ...
+        (1:pair_nonmem)>sig_nonmem].');
+
+    stats=p;
+else
+    %diff sample
+    sig_diffsample=nnz(sig_sel & ...
+        (any(ismember(sig.waveid,[1 3 5]),2) & any(ismember(sig.waveid,[2 4 6]),2)));
+    pair_diffsample=nnz(pair_sel & ...
+        (any(ismember(pair.waveid,[1 3 5]),2) & any(ismember(pair.waveid,[2 4 6]),2))); ...
+    [diffsample_samedur_hat,diffsample_samedur_ci]= ...
+        binofit(sig_diffsample,pair_diffsample);
+
+    data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,nonmemhat,nonmemci];
+
+    [tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
+        4*ones(pair_diffsample,1);...
+        5*ones(pair_nonmem,1)],...
+        [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,...
+        (1:pair_diffsample)>sig_diffsample, ...
+        (1:pair_nonmem)>sig_nonmem].');
+    stats=p;
+end
 end
 
 function ax=plotOne(stats,opt)
@@ -111,20 +130,25 @@ arguments
     stats
     opt.ylim = []
 end
-    ax=nexttile();
-    hold on
-    for ii=1:6
-        bh(ii)=bar(ii,stats(ii*3-2),'FaceColor','w','EdgeColor','k');
-        errorbar(ii,stats(ii*3-2),diff(stats(ii*3+[-2,-1]),1,2),diff(stats(ii*3+[-2,0]),1,2),'k.')
-    end
-    bh(2).FaceColor=[1,0.5,0.5];
-    bh(3).FaceColor=[0.5,0.5,1];
-    bh(4).FaceColor=[1,0.5,1];
-    bh(5).FaceColor=[0.5,0.5,0.5];
+ax=nexttile();
+hold on
+for ii=1:numel(stats)./3
+    bh(ii)=bar(ii,stats(ii*3-2),'FaceColor','w','EdgeColor','k');
+    errorbar(ii,stats(ii*3-2),diff(stats(ii*3+[-2,-1]),1,2),diff(stats(ii*3+[-2,0]),1,2),'k.')
+end
+bh(1).FaceColor=[1,0.5,0.5];
+bh(2).FaceColor=[1,0.5,1];
+bh(3).FaceColor=[0.5,0.5,1];
+bh(4).FaceColor=[0.5,0.5,0.5];
+if numel(bh)==6
+    bh(5).FaceColor='w';
     bh(6).FaceColor='k';
-    if ~isempty(opt.ylim), ylim(opt.ylim);end
-    ylabel('FC Rate (%)')
-    set(gca(),'XTick',[],'YTickLabel',100.*get(gca(),'YTick'));
+else
+    bh(5).FaceColor='k';
+end
+if ~isempty(opt.ylim), ylim(opt.ylim);end
+ylabel('FC Rate (%)')
+set(gca(),'XTick',[],'YTickLabel',100.*get(gca(),'YTick'));
 end
 
 function [data1,data2,stats]=statsTwo(sig_sel1,sig_sel2,pair_sel1,pair_sel2,sig,pair)
@@ -211,18 +235,4 @@ set(gca(),'XTick',1:3,'XTickLabel',...
     'XTickLabelRotation',90,...
     'YTickLabel',100.*get(gca(),'YTick'));
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

@@ -6,8 +6,9 @@ arguments
     opt.corr_curve (1,1) logical = false
 end
 if opt.new_data
-    stats=gendata(sel_meta);
     if isunix
+        warning('Skipped new COM-CV data generation on PC')
+        stats=gendata(sel_meta);
         save('COM_half_half.mat','stats');
     end
 end

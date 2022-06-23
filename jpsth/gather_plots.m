@@ -30,7 +30,8 @@ annotation('textbox',[0.05,0.05,0.9,0.9],...
     'on','Interpreter','none');
 % exportgraphics(th,'collections.pdf','ContentType','vector','Append',true)
 
-sens_meta=ephys.get_sens_meta('load_file',false,'permutation',true,'perm_repeat',1000,'save_file',true,'uneven_duration',true);
+% sens_meta=ephys.get_sens_meta('load_file',false,'permutation',true,'perm_repeat',1000,'save_file',true,'uneven_duration',true);
+sens_meta=ephys.get_sens_meta('load_file',true);
 stats_type='RANKSUM_per_bin';
 
 
@@ -53,7 +54,7 @@ sens_GLM_fh=wave.connectivity_proportion_GLM( ...
 % sens_reg_bar_fh.reg_bar.Children(2).YLim=[0.001,0.5];
 
 
-%>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>Sensory wave>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+%>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Sensory wave part 1 >>>>>>>>>>>>>>>>>>>>>>>>
 sust_trans_fh=ephys.sust_trans_bar();
 wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
 stats_half_half_fh=wave.COM_half_half(sens_meta);
@@ -61,7 +62,8 @@ stats_half_half_fh=wave.COM_half_half(sens_meta);
 
 %>>>>>>>>>>>>>>>>>>>>>>>>>>>> Duration distribution >>>>>>>>>>>>>>>>>>>>>>>>>>>>
 fh=behav.per_sess_duration_coding();
-dur_meta=ephys.get_dur_meta('load_file',false,'merge_bin',false,'save_file',true,'perm_repeat',1000,'permutation',true);
+% dur_meta=ephys.get_dur_meta('load_file',false,'merge_bin',false,'save_file',true,'perm_repeat',1000,'permutation',true);
+dur_meta=ephys.get_dur_meta('load_file',true);
 [dur_dec_fh,~]=wave.get_duration_decoding(dur_meta);
 
 [dur_map_cells,dur_reg_bar_fh]=ephys.Both_either_reg_bars('stats_model','RANKSUM','skip_plot',false,'waveid',dur_meta.wave_id,'range','grey','data_type','duration','stats_type',stats_type);
@@ -108,10 +110,11 @@ perm_meta.mixed=sens_meta.wave_id>0 & dur_meta.wave_id>0;
 inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);
 
 
-%>>>>>>>>>>>>>>>>>>Sensory TCOM Part2 >>>>>>>>>>>>>>>>>>>>>>>>
+%>>>>>>>>>>>>>>>>>>>>>> Sensory wave Part2 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % sense, 6s
 sens_tcom_fh=struct();
 tcom_maps=cell(1,2);
+% sens_meta_even=ephys.sens_uneven2even(sens_meta);
 for currdelay=[6,3]
     sens_com.(['d',num2str(currdelay)])=wave.get_com_map(sens_meta, ...
         'wave',['anyContext',num2str(currdelay/3)], ... %indep+dep
@@ -133,6 +136,7 @@ for currdelay=[6,3]
     [~,tcidx]=ismember(ureg,fcom.(['d',num2str(currdelay)]).collection(:,2));
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
 end
+
 [comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-congru');
 [comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-incong','mem_type','incong');
 

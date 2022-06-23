@@ -176,8 +176,13 @@ function com_str=per_su_process(sess,suid,msel,fr,pref_sel,nonpref_sel,com_str,s
                 com=-1;
                 disp(string(samp)+" PEAK mismatch, TCOM set to -1")
             else
-                disp(string(samp)+" NOPEAK")
-                keyboard();
+                warning(string(samp)+" NOPEAK")
+                    if ispc
+                    keyboard();
+                else
+                    continue;
+                end
+    
             end
         else
             com=sum((1:numel(stats_window)).*mm_pref)./sum(mm_pref);
