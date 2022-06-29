@@ -164,12 +164,6 @@ for sess=reshape(usess,1,[])
                 [dur_com.s4.(char(sess)).(fn{1}).values,dur_com.s8.(char(sess)).(fn{1}).values]);
         end
     end
-%     c2keys=[padOdor(dur_com.s4.(char(sess)).c2.keys,4),padOdor(dur_com.s8.(char(sess)).c2.keys,8)];
-%     if ~isempty(c2keys)
-%         dur_com.summed.(char(sess)).c2=...
-%             containers.Map(c2keys, ...
-%             [dur_com.s4.(char(sess)).c2.values,dur_com.s8.(char(sess)).c2.values]);
-%     end
 end
 
 dur_wave_fh=wave.plot_dur_wave(dur_com);

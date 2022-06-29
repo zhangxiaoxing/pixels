@@ -104,8 +104,10 @@ else
 end
 if strcmp(opt.stats_method,'mean')
     curr_com_all=cellfun(@(x) mean([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);
+    curr_com_spread=cellfun(@(x) std([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);
 else
     curr_com_all=cellfun(@(x) median([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);
+    curr_com_spread=cellfun(@(x) iqr([com_meta{strcmp(com_meta(:,curr_branch+3),x),3}]),curr_ureg);
 end
 [curr_com_all,sidx]=sort(curr_com_all);
 curr_ureg=curr_ureg(sidx);
@@ -114,7 +116,8 @@ collection=[collection;...
     [num2cell(reshape(curr_com_all,[],1)),...
     reshape(curr_ureg,[],1),...
     num2cell(ones(numel(curr_ureg),1)*curr_branch),...
-    num2cell(reshape(curr_count,[],1))]];
+    num2cell(reshape(curr_count,[],1))],...
+    num2cell(curr_com_spread(sidx))];
 curr_accu=prev_accu;
 for curr_idx=1:numel(curr_ureg)
     if isempty(char(curr_ureg(curr_idx))), continue;end

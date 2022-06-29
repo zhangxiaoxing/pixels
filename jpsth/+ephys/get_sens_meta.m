@@ -20,7 +20,7 @@ if isempty(out) || ~isequaln(opt,opt_)
 
 
     if opt.load_file
-        load('perm_sens.mat','sens_meta')
+        load('perm_sens_uneven.mat','sens_meta')
         out=sens_meta;
     else
 
