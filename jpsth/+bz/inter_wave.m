@@ -1,4 +1,8 @@
-function fh=inter_wave(sens_meta)
+function [fh,fh2]=inter_wave(sens_meta,merge_same)
+arguments
+    sens_meta
+    merge_same (1,1) logical = false
+end
 split_diff_samp=false;
 % selstr=load('perm_sens.mat','sens_meta');
 
@@ -11,8 +15,8 @@ pair=bz.join_fc_waveid(pair,sens_meta.wave_id);
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
 [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
 
-[samestats,samep]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair,split_diff_samp);
-[diffstats,diffp]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair,split_diff_samp);
+[samestats,samep]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair,split_diff_samp,merge_same);
+[diffstats,diffp]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair,split_diff_samp,merge_same);
 
 fh=figure('Color','w','Position',[32,32,600,225]);
 t=tiledlayout(1,3);
@@ -26,26 +30,27 @@ ephys.util.figtable(fh,th,{'chisq-same';samep;'chisq-diff';diffp})
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 %>>>>>>>>>>>>>>>>>>Hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+fh2=[];
+if false
 [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'hiermap','AON','descend',true);
 [~,pair_same,pair_h2l,pair_l2h]=bz.util.diff_at_level(pair.reg,'hierarchy',true,'hiermap','AON','descend',true);
 
 [l2hstats,h2lstats,p]=statsTwo(sig_l2h(:,5),sig_h2l(:,5),pair_l2h(:,5),pair_h2l(:,5),sig,pair);
-fh=figure('Color','w','Position',[32,32,440,250]);
+fh2=figure('Color','w','Position',[32,32,440,250]);
 nexttile()
 plotTwo(l2hstats,h2lstats,'ylim',[0,0.02]);
 th=nexttile();
 ephys.util.figtable(fh,th,p)
 title(t,'same-, diff- region FC rate')
-
+end
 end
 
-function [data,stats]=statsOne(sig_sel,pair_sel,sig,pair,split)
+function [data,stats]=statsOne(sig_sel,pair_sel,sig,pair,split,merge_same)
 
 % both
 sig_both=nnz(sig_sel & (all(sig.waveid==5,2) | all(sig.waveid==6,2)));
 pair_both=nnz(pair_sel & (all(pair.waveid==5,2) | all(pair.waveid==6,2)));
-[bothhat,bothci]=binofit(sig_both,pair_both);
+
 % common wave
 sig_cowave=nnz(sig_sel & (all(ismember(sig.waveid,[1 5]),2)...
     | all(ismember(sig.waveid,[3 5]),2)...
@@ -56,13 +61,22 @@ pair_cowave=nnz(pair_sel & (all(ismember(pair.waveid,[1 5]),2)...
     | all(ismember(pair.waveid,[3 5]),2)...
     | all(ismember(pair.waveid,[2 6]),2)...
     | all(ismember(pair.waveid,[4 6]),2)));
-[cowavehat,cowaveci]=binofit(sig_cowave,pair_cowave);
+
 % same sample, diff wave
 sig_cosample=nnz(sig_sel & ((any(sig.waveid==1,2) & any(sig.waveid==3,2))...
     | (any(sig.waveid==2,2) & any(sig.waveid==4,2))));
 pair_cosample=nnz(pair_sel & ((any(pair.waveid==1,2) & any(pair.waveid==3,2))...
     | (any(pair.waveid==2,2) & any(pair.waveid==4,2))));
-[cosamplehat,cosampleci]=binofit(sig_cosample,pair_cosample);
+
+
+if merge_same
+    [same_hat,same_ci]=binofit(sig_both+sig_cowave+sig_cosample,pair_both+pair_cowave+pair_cosample);
+else
+    [bothhat,bothci]=binofit(sig_both,pair_both);
+    [cowavehat,cowaveci]=binofit(sig_cowave,pair_cowave);
+    [cosamplehat,cosampleci]=binofit(sig_cosample,pair_cosample);
+end
+
 % nonmem
 sig_nonmem=nnz(sig_sel & all(sig.waveid==0,2));
 pair_nonmem=nnz(pair_sel & all(pair.waveid==0,2));
@@ -91,7 +105,6 @@ if split
         |(any(pair.waveid==3,2) & any(pair.waveid==2,2))));
 
     [diffsample_diffdur_hat,diffsample_diffdur_ci]=binofit(sig_diffsample_diff_dur,pair_diffsample_diff_dur);
-
     data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,diffsample_diffdur_hat,diffsample_diffdur_ci,nonmemhat,nonmemci];
 
     [tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
@@ -110,17 +123,28 @@ else
         (any(ismember(sig.waveid,[1 3 5]),2) & any(ismember(sig.waveid,[2 4 6]),2)));
     pair_diffsample=nnz(pair_sel & ...
         (any(ismember(pair.waveid,[1 3 5]),2) & any(ismember(pair.waveid,[2 4 6]),2))); ...
-    [diffsample_samedur_hat,diffsample_samedur_ci]= ...
+        [diffsample_samedur_hat,diffsample_samedur_ci]= ...
         binofit(sig_diffsample,pair_diffsample);
+    if merge_same
+        data=[same_hat,same_ci,diffsample_samedur_hat,diffsample_samedur_ci,nonmemhat,nonmemci];
 
-    data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,nonmemhat,nonmemci];
+        [tbl,chi2,p]=crosstab([ones(pair_both+pair_cowave+pair_cosample,1); ...
+            4*ones(pair_diffsample,1);...
+            5*ones(pair_nonmem,1)],...
+            [(1:(pair_both+pair_cowave+pair_cosample))>(sig_both+sig_cowave+sig_cosample),...
+            (1:pair_diffsample)>sig_diffsample, ...
+            (1:pair_nonmem)>sig_nonmem].');
 
-    [tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
-        4*ones(pair_diffsample,1);...
-        5*ones(pair_nonmem,1)],...
-        [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,...
-        (1:pair_diffsample)>sig_diffsample, ...
-        (1:pair_nonmem)>sig_nonmem].');
+    else
+        data=[bothhat,bothci,cowavehat,cowaveci,cosamplehat,cosampleci,diffsample_samedur_hat,diffsample_samedur_ci,nonmemhat,nonmemci];
+
+        [tbl,chi2,p]=crosstab([ones(pair_both,1);2*ones(pair_cowave,1);3*ones(pair_cosample,1);...
+            4*ones(pair_diffsample,1);...
+            5*ones(pair_nonmem,1)],...
+            [(1:pair_both)>sig_both,(1:pair_cowave)>sig_cowave,(1:pair_cosample)>sig_cosample,...
+            (1:pair_diffsample)>sig_diffsample, ...
+            (1:pair_nonmem)>sig_nonmem].');
+    end
     stats=p;
 end
 end
@@ -139,12 +163,15 @@ end
 bh(1).FaceColor=[1,0.5,0.5];
 bh(2).FaceColor=[1,0.5,1];
 bh(3).FaceColor=[0.5,0.5,1];
-bh(4).FaceColor=[0.5,0.5,0.5];
-if numel(bh)==6
-    bh(5).FaceColor='w';
-    bh(6).FaceColor='k';
-else
-    bh(5).FaceColor='k';
+if numel(bh)>3
+    bh(4).FaceColor=[0.5,0.5,0.5];
+
+    if numel(bh)>5
+        bh(5).FaceColor='w';
+        bh(6).FaceColor='k';
+    else
+        bh(5).FaceColor='k';
+    end
 end
 if ~isempty(opt.ylim), ylim(opt.ylim);end
 ylabel('FC Rate (%)')

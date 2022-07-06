@@ -5,10 +5,11 @@ arguments
     sens_meta
     dur_meta
     opt.anova_meta
-    opt.skip_raster (1,1) logical = true
+    opt.skip_raster (1,1) logical = false
     opt.dim (1,1) double = 2
+    opt.plot_cross_sample (1,1) logical = false
 end
-close all
+% close all
 % sens_meta=ephys.util.load_meta();
 % dur_meta=ephys.get_dur_meta();
 set(groot,'defaultTextFontSize',10);
@@ -28,13 +29,14 @@ for ii=reshape(metaidx,1,[])
     s1d6t=find(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6);
     s2d6t=find(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6);
     if min([numel(s1d3t),numel(s2d3t),numel(s1d6t),numel(s2d6t)])<10
+        fh=[];
         continue
     end
 
 
 
-    fh=figure('Color','w','Position',[32,180,1280,800]);
-    tiledlayout(2,4)
+    fh=figure('Color','w','Position',[32,32,1920,800]);
+    tiledlayout(2,6)
 
 %% raster
     if ~opt.skip_raster
@@ -54,6 +56,9 @@ for ii=reshape(metaidx,1,[])
         s2d3p=s2d3t(max(floor(numel(s2d3t)./2)-4,1):min(floor(numel(s2d3t)./2)+5,numel(s2d3t)));
         s2d6p=s2d6t(max(floor(numel(s2d6t)./2)-4,1):min(floor(numel(s2d6t)./2)+5,numel(s2d6t)));
         s1d6p=s1d6t(max(floor(numel(s1d6t)./2)-4,1):min(floor(numel(s1d6t)./2)+5,numel(s1d6t)));
+
+        sad3p=subsref(sort([s1d3p;s2d3p]),struct(type='()',subs={{6:15}}));
+        sad6p=subsref(sort([s1d6p;s2d6p]),struct(type='()',subs={{6:15}}));
         
 %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         nexttile(1) %d3, s1 vs s2
@@ -100,7 +105,7 @@ for ii=reshape(metaidx,1,[])
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-        nexttile(3) %s1,d3 v d6
+        nexttile(4) %s1,d3 v d6
         hold on
 
         pidx=0;
@@ -122,7 +127,7 @@ for ii=reshape(metaidx,1,[])
 
 
 
-        nexttile(4) %s2 d3 v d6
+        nexttile(5) %s2 d3 v d6
         hold on
 
         pidx=0;
@@ -142,10 +147,31 @@ for ii=reshape(metaidx,1,[])
         xlim([-1,8])
         set(gca,'XTick',-1:8,'XTickLabel',-2:7)
 
+        if opt.plot_cross_sample    %%
+            nexttile(6) %d3 v d6, cross sample
+            hold on
+
+            pidx=0;
+            for ti=reshape(sad3p,1,[])
+                ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
+                plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0,0,0.5].*opt.dim)
+                pidx=pidx+1;
+            end
+
+            for ti=reshape(sad6p,1,[])
+                ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
+                plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'r-','Color',[0.5,0,0].*opt.dim)
+                pidx=pidx+1;
+            end
+
+            arrayfun(@(x) xline(x,'--k'),[0 1 4 5 7 8]);
+            xlim([-1,8])
+            set(gca,'XTick',-1:8,'XTickLabel',-2:7)
+        end
     end
 
     %%
-    ax3=nexttile(5);
+    ax3=nexttile(7);
     hold on
     s1d3c=squeeze(fr(s1d3t,suid==su_meta.allcid(ii),5:44));
     s2d3c=squeeze(fr(s2d3t,suid==su_meta.allcid(ii),5:44));
@@ -166,10 +192,10 @@ for ii=reshape(metaidx,1,[])
     xlabel('Time (s)');
     ylabel('F.R.');
 
-    arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(sens_meta.fdr_d3(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
+    arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(sens_meta.fdr_d3(ii,x)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
 
     %%
-    ax6=nexttile(6);
+    ax6=nexttile(8);
     hold on
     s1d6c=squeeze(fr(s1d6t,suid==su_meta.allcid(ii),5:44));
     s2d6c=squeeze(fr(s2d6t,suid==su_meta.allcid(ii),5:44));
@@ -193,7 +219,7 @@ for ii=reshape(metaidx,1,[])
 
 
     %%
-    axs1=nexttile(7);
+    axs1=nexttile(10);
     hold on
     s1d3c=squeeze(fr(s1d3t,suid==su_meta.allcid(ii),5:44));
     s1d6c=squeeze(fr(s1d6t,suid==su_meta.allcid(ii),5:44));
@@ -214,7 +240,7 @@ for ii=reshape(metaidx,1,[])
     arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(dur_meta.fdr_s1(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
 
     %%
-    axs2=nexttile(8);
+    axs2=nexttile(11);
     hold on
     s2d3c=squeeze(fr(s2d3t,suid==su_meta.allcid(ii),5:44));
     s2d6c=squeeze(fr(s2d6t,suid==su_meta.allcid(ii),5:44));
@@ -237,6 +263,33 @@ for ii=reshape(metaidx,1,[])
     arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(dur_meta.fdr_s2(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
     arrayfun(@(x) set(x,'YLim',[min([ax3.YLim,ax6.YLim].'),max([ax3.YLim,ax6.YLim]).']),[ax3,ax6,axs1,axs2]);
 
+
+    if opt.plot_cross_sample    %%%%
+        axsa=nexttile(12);
+        hold on
+        sad3c=squeeze(fr([s1d3t;s2d3t],suid==su_meta.allcid(ii),5:44));
+        sad6c=squeeze(fr([s1d6t;s2d6t],suid==su_meta.allcid(ii),5:44));
+
+        sad3ci=[-1;1]*std(sad3c)./sqrt(size(sad3c,1)).'+mean(sad3c);
+        sad6ci=[-1;1]*std(sad6c)./sqrt(size(sad6c,1)).'+mean(sad6c);
+
+        fill([1:40,fliplr(1:40)],[smooth(sad3ci(1,:),5);flip(smooth(sad3ci(2,:),5))],[0,0,0.5].*opt.dim,'EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smooth(sad6ci(1,:),5);flip(smooth(sad6ci(2,:),5))],[0.5,0,0].*opt.dim,'EdgeColor','none','FaceAlpha',0.1);
+
+        plot(smooth(mean(sad3c),5),'-','Color',[0,0,0.5].*opt.dim)
+        plot(smooth(mean(sad6c),5),'-','Color',[0.5,0,0].*opt.dim)
+
+
+        title('d3 v. d6, cross sample')
+        arrayfun(@(x) xline(x,'--k'),[8.5 12.5 24.5 28.5 36.5 40.5]);
+        set(gca,'XTick',12.5:4:40.5,'XTickLabel',0:7,'XLim',[4.5,40.5])
+        xlabel('Time (s)');
+        ylabel('F.R.');
+        %     arrayfun(@(x) text(10.5+x*4,max(ylim()),formatp(dur_meta.fdr_s2(ii,x+1)),'HorizontalAlignment','center','VerticalAlignment','top','FontSize',9),1:3)
+        arrayfun(@(x) set(x,'YLim',[min([ax3.YLim,ax6.YLim].'),max([ax3.YLim,ax6.YLim]).']),[ax3,ax6,axs1,axs2]);
+    end
+
+%TODO stats
 
     %%table
     %     uitable(fh,'Data',rand(2,2),'Position',[0.55,0.1,0.4,0.8])

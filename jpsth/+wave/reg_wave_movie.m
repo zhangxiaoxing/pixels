@@ -7,14 +7,16 @@ arguments
     opt.export_data (1,1) logical = false
     opt.color_type (1,:) char {mustBeMember(opt.color_type,{'proportion','wavefront'})} = 'proportion'
     opt.annotation (1,:) char {mustBeMember(opt.annotation,{'500ms','std'})} = 'std'
+    opt.slow_rate (1,1) double {mustBeMember(opt.slow_rate,[4,8,10])} = 8
+    opt.waves (1,:) char {mustBeMember(opt.waves,{'sens','dur','both'})} = both
 end
 if opt.spatial_coord
     coordmap=bz.gephi.reg2coord();
 end
 if opt.spatial_coord
-    fnsuffix="_spatial";
+    fnsuffix="_spatial_"+string(opt.waves);
 else
-    fnsuffix="";
+    fnsuffix="_"+string(opt.waves);
 end
 if opt.write_video
     v=VideoWriter("sens_dur_wave"+fnsuffix+".mp4",'MPEG-4');
@@ -49,17 +51,30 @@ for dd=["d3"] %["d3","d6"]
     out{1,1}='time';
 
     tidx=2;
-    for timebin=1:(1/30):12
+    switch opt.slow_rate
+        case 4
+            dT=1/30;
+        case 8
+            dT=1/60;
+        case 10
+            dT=1/75;
+    end
+
+    for timebin=dT:(dT):12
         disp(timebin)
         clf
         hold on;
-        xline(timebin/4,'r-')
-        yline(timebin/4,'b-')
+        if ismember(opt.waves,{'both','sens'})
+            xline(timebin/4,'r-')
+        end
+        if ismember(opt.waves,{'both','dur'})
+            yline(timebin/4,'b-')
+        end
         %TODO std envelope
         switch opt.annotation
             case '500ms'
-                fill((timebin+[-1,1,1,-1])./4,[0,0,3,3],'r','EdgeColor','none','FaceAlpha',0.1);
-                fill([0,0,3,3],(timebin+[-1,1,1,-1])./4,'b','EdgeColor','none','FaceAlpha',0.1);
+                rfh=fill((timebin+[-1,1,1,-1])./4,[0,0,3,3],'r','EdgeColor','none','FaceAlpha',0.1);
+                bfh=fill([0,0,3,3],(timebin+[-1,1,1,-1])./4,'b','EdgeColor','none','FaceAlpha',0.1);
             case 'std'
 % 
 %                 int_dv=interp1([0;dv(yidx,1);12],[sv(yidx(1),2);sv(yidx,2);sv(yidx(end),2)],0:0.1:12);
@@ -71,10 +86,12 @@ for dd=["d3"] %["d3","d6"]
                 sxs=[0;dv(yidx,1);12];
                 dvs=[dv(xidx(1),2);dv(xidx,2);dv(xidx(end),2)];
                 dxs=[0;sv(xidx,1);12];
-
-                fill((timebin+[-0.5*svs;0.5*flip(svs)])./4,[sxs;flip(sxs)]./4,'r','EdgeColor','none','FaceAlpha',0.1);
-                fill([dxs;flip(dxs)]./4,(timebin+[-0.5*dvs;0.5*flip(dvs)])./4,'b','EdgeColor','none','FaceAlpha',0.1);
-
+                if ismember(opt.waves,{'both','sens'})
+                    rfh=fill((timebin+[-0.5*svs;0.5*flip(svs)])./4,[sxs;flip(sxs)]./4,'r','EdgeColor','none','FaceAlpha',0.1);
+                end
+                if ismember(opt.waves,{'both','dur'})    
+                    bfh=fill([dxs;flip(dxs)]./4,(timebin+[-0.5*dvs;0.5*flip(dvs)])./4,'b','EdgeColor','none','FaceAlpha',0.1);
+                end
 
         end
 
@@ -85,9 +102,19 @@ for dd=["d3"] %["d3","d6"]
                 coord=coordmap(inter_reg{ri});
                 xx=coord(1);
                 yy=coord(2);
+                txx=xx;
             else
                 yy=fcom.dur.collection{dur_idx,1}./4;
                 xx=fcom.(dd).collection{sens_idx,1}./4;
+                txx=xx;
+                if ismember(inter_reg(ri),{'DP','RSP','PL'})
+                    txx=txx-0.015;
+                elseif ismember(inter_reg(ri),{'SS','ILA'})
+                    txx=txx-0.025;
+                elseif ismember(inter_reg(ri),{'ORB','GPe','VIS','LAT'})
+                    txx=txx+0.015;
+                end
+                
             end
 %             coord(ri,:)=[xx,yy,1];
             regs(ri)=inter_reg(ri);
@@ -138,10 +165,17 @@ for dd=["d3"] %["d3","d6"]
                     end
                     
             end
-            wave_color=[0.2+sens_c,0.2,0.2+dur_c];
+            switch opt.waves
+                case 'both'
+                    wave_color=[0.2+sens_c,0.2,0.2+dur_c];
+                case 'sens'
+                    wave_color=[0.2+sens_c,0.2,0.2];
+                case 'dur'
+                    wave_color=[0.2,0.2,0.2+dur_c];
+            end
 
             scatter(xx,yy,49,'o','MarkerFaceColor',wave_color,'MarkerEdgeColor','none');
-            text(xx,yy-0.002,inter_reg{ri},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',12,'Color',wave_color);
+            text(txx,yy-0.002,inter_reg{ri},'HorizontalAlignment','center','VerticalAlignment','top','FontSize',12,'Color',wave_color);
             out{1,tidx}=timebin;
             out{ri+1,tidx}=[sens_c>0,dur_c>0];
         end
@@ -149,26 +183,7 @@ for dd=["d3"] %["d3","d6"]
         ah0=gca();
         title(sprintf('%0.2fs',timebin/4),'FontSize',12);
         set(ah0,'TitleHorizontalAlignment','right')
-%         colorbar(gca(),"eastoutside",)
 
-        ax1=gca();
-        ax2=axes();
-        linkaxes([ax1,ax2]);
-        ax2.Visible='off';
-        [ax2.XTick,ax2.YTick]=deal([]);
-        redmap=zeros(64,3)+0.2+(0:(0.8/63):0.8).'*[1,0,0];
-        bluemap=zeros(64,3)+0.2+(0:(0.8/63):0.8).'*[0,0,1];
-        colormap(ax1,redmap);
-        colormap(ax2,bluemap);
-        set([ax1,ax2],'Position',[0.1,0.15,0.6,0.7])
-        ah1=colorbar(ax1,'Position',[0.75,0.15,0.03,0.7],'Limits',[0,1]);
-        ah2=colorbar(ax2,'Position',[0.85,0.15,0.03,0.7],'Limits',[0,1]);
-        set([ah1,ah2],'Ticks',[0,0.5,1]);
-        set([ah1,ah2],'TickLabels',[0,10,20]);
-        ah1.Label.FontSize=12;
-        ah2.Label.FontSize=12;
-        ah1.Label.String='Proportion of neuron at odor TCOM (%)';
-        ah2.Label.String='Proportion of neuron at duration TCOM (%)';
         if opt.spatial_coord
             xlabel(ah0,'AP (\mum)')
             ylabel(ah0,'DV (\mum)')
@@ -181,6 +196,15 @@ for dd=["d3"] %["d3","d6"]
             xlim(ah0,[1.25,2.06])
             ylim(ah0,[1.25,2.06])
         end
+        switch opt.waves
+            case 'both'
+                legend([rfh,bfh],{'Sensory wave','Duration wave'},'Location','northeastoutside')
+            case 'sens'
+                legend([rfh],{'Sensory wave'},'Location','northeastoutside')
+            case 'dur'
+                legend([bfh],{'Duration wave'},'Location','northeastoutside')
+        end
+        set(ah0,'Position',[0.1,0.15,0.6,0.7])
         if opt.write_video
             writeVideo(v,getframe(fh))
         end

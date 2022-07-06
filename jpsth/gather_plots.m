@@ -54,6 +54,16 @@ sens_GLM_fh=wave.connectivity_proportion_GLM( ...
 % sens_reg_bar_fh.reg_bar.Children(2).YLim=[0.001,0.5];
 
 
+
+% >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> sens dur FC >>>>>>>>>>>>>>>
+
+fh_interwave_sens=bz.inter_wave(sens_meta);
+fh_interwave_dur=bz.inter_wave(dur_meta,true);
+fh_interwave_dur.Children.Children(3).YLim=[0,0.03];
+fh_interwave_dur.Children.Children(2).YLim=[0,0.01];
+fh_interwave_dur.Children.Children(2).YTickLabel=0:0.5:1;
+fh_interwave_dur.Children.Children(2).YTick=0:0.005:0.01;
+
 %>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Sensory wave part 1 >>>>>>>>>>>>>>>>>>>>>>>>
 sust_trans_fh=ephys.sust_trans_bar();
 wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
@@ -82,7 +92,7 @@ if false
     %     dur_wo_sens=find(ismember(dur_meta.wave_id,5:6));
     dur_intact=find(anova2meta.dur & ~anova2meta.sens & anova2meta.interact & dur_meta.wave_id>0 &dur_meta.wave_id<5);
     meta=ephys.util.load_meta('skip_stats',true);
-    for ii=[11241,9071]
+    for ii=[9071,21530,3387,2617]
         %         fh=ephys.sens_dur_SC(dur_intact(ii),meta,sens_meta,dur_meta,'skip_raster',false);
         scfh=ephys.sens_dur_SC(ii,meta,sens_meta,dur_meta,'skip_raster',false);%
         %             11241,20621,9071
@@ -102,7 +112,6 @@ singlemix_GLM_fh=wave.connectivity_proportion_GLM(singlemix_map_cells,corr_log_l
     'range','grey','data_type','single_mix','stats_type',stats_type,'feat_tag',{'Single modality','Mixed-modality','All selective neurons'});
 % TODO mix density vs. sens density | dur density
 
-fh_interwave=bz.inter_wave(sens_meta);
 
 perm_meta.sens_only=sens_meta.wave_id>0;
 perm_meta.dur_only=dur_meta.wave_id>0;
@@ -197,6 +206,17 @@ tcom_corr_bar_fh=wave.sens_dur_wave_bar(sens_map_cells,dur_map_cells,fcom);
 % >>>>>>>>>>>>>>>>>>>>>>> FC DECODING >>>>>>>>>>>>>>>>>>>>>>>
 bz.fccoding.plot_coding(sens_meta)
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+% >>>>>>>>>>>>>>>>>>>>> Movie >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+if false
+    [~,out]=wave.reg_wave_movie(fcom,'spatial_coord',false,'write_video',true,'color_type','wavefront','export_data',true,'waves','both');
+    [~,~]=wave.reg_wave_movie(fcom,'spatial_coord',false,'write_video',true,'color_type','wavefront','export_data',false,'waves','sens');
+    [~,~]=wave.reg_wave_movie(fcom,'spatial_coord',false,'write_video',true,'color_type','wavefront','export_data',false,'waves','dur');
+end
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
 
 if exist(sprintf('collections%s.pdf',gather_config.fnsuffix),'file')
     delete(sprintf('collections%s.pdf',gather_config.fnsuffix))
