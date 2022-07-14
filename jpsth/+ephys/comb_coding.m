@@ -1,11 +1,16 @@
-function svm_meta=comb_coding(su_meta,opt)
+function svm_meta=comb_coding(opt)
 arguments
-    su_meta
     opt.hist_model (1,1) logical = true % modeling history effect
     opt.lo (1,1) double {mustBeInteger,mustBePositive} = 1
     opt.hi (1,1) double {mustBeInteger,mustBePositive} = 33028
     opt.save_file (1,1) logical = false
 end
+
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+if opt.hi>numel(su_meta.allcid)
+    opt.hi=numel(su_meta.allcid);
+end
+
 svm_meta=struct();
 svm_meta.polf=ones(numel(su_meta.allcid),3);
 svm_meta.pdur=ones(numel(su_meta.allcid),3);
@@ -16,13 +21,12 @@ homedir=ephys.util.getHomedir('type','raw');
 
 for ii=opt.lo:opt.hi
     if ~strcmp(currstem,su_meta.allpath{ii})
-        disp(ii)
         currstem=su_meta.allpath{ii};
-        fpath=fullfile(homedir,su_meta.allpath{ii},'FR_All_1000.hdf5');
+        fpath=replace(fullfile(homedir,su_meta.allpath{ii},'FR_All_1000.hdf5'),'\',filesep());
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         fr=h5read(fpath,'/FR_All');
-
+        disp(num2str(ii)+" total trials "+num2str(nnz(trials(:,9) & trials(:,10))))
         s1d3t=find(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==3);
         s2d3t=find(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==3);
         s1d6t=find(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6);
@@ -81,7 +85,6 @@ s1=decdata.s1;
 s2=decdata.s2;
 
 trlN=min(size(s1,2),size(s2,2));
-
 cv=cvpartition(trlN,'KFold',10);
 y=[zeros(trlN,1);ones(trlN,1)];
 
