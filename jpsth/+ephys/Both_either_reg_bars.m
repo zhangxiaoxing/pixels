@@ -1,7 +1,7 @@
 function [map_cells,fh]=Both_either_reg_bars(opt) %TODO refactoring function name
 arguments
     opt.skip_plot (1,1) logical = false % return map_cell data for GLM etc.
-    opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'ANOVA2','ANOVA3','RANKSUM','RANKSUM2','SINGLE_MIX'})} = 'ANOVA2'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
+    opt.stats_model (1,:) char {mustBeMember(opt.stats_model,{'Combinatorial','ANOVA2','ANOVA3','RANKSUM','RANKSUM2','SINGLE_MIX'})} = 'ANOVA2'  % 2-way anova, 3-way anova (with time bin), s1-s2 rannksum, 2-way ranksum (w/ duration)
     opt.waveid
     opt.meta
     opt.single_field (1,:) char {mustBeMember(opt.single_field,{'sens','dur','time_bin'})}='sens'
@@ -26,7 +26,8 @@ sums=[];
 match_ranksum=(contains(opt.stats_model,'RANKSUM') && isfield(opt,'waveid') && ~isempty(opt.waveid));
 match_ANOVA2=(strcmp(opt.stats_model,'ANOVA2') && isfield(opt,'meta') && ~isempty(opt.meta));
 match_singlemix=(strcmp(opt.stats_model,'SINGLE_MIX') && isfield(opt,'meta') && ~isempty(opt.meta));
-assert(match_ranksum || match_ANOVA2 || match_singlemix, 'Unmatch stats and data');
+match_comb=(strcmp(opt.stats_model,'Combinatorial') && isfield(opt,'meta') && ~isempty(opt.meta));
+assert(match_ranksum || match_ANOVA2 || match_singlemix || match_comb, 'Unmatch stats and data');
 
 
 for reg=reshape(ureg,1,[])
@@ -54,6 +55,12 @@ for reg=reshape(ureg,1,[])
             ctxt_indi_maineffect_mix_cnt=nnz(regsel & (singlemix_meta.single1 & singlemix_meta.single2) );
             ctxt_depd_interact_single_cnt=nnz(regsel & (singlemix_meta.single1 | singlemix_meta.single2) & ~(singlemix_meta.single1 & singlemix_meta.single2));
             legends={'Mixed modality','Single modality'};
+        case 'Combinatorial'
+            comb_meta=opt.meta;
+            ctxt_indi_maineffect_mix_cnt=nnz(regsel & comb_meta.typeAsel);
+            ctxt_depd_interact_single_cnt=nnz(regsel & comb_meta.typeBsel);
+            legends={'Mixed modality','Single modality'};   
+
             
     end
     grp=idmap.reg2tree(reg{1});

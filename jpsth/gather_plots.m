@@ -117,7 +117,7 @@ singlemix_GLM_fh=wave.connectivity_proportion_GLM(singlemix_map_cells,corr_log_l
 perm_meta.sens_only=sens_meta.wave_id>0;
 perm_meta.dur_only=dur_meta.wave_id>0;
 perm_meta.mixed=sens_meta.wave_id>0 & dur_meta.wave_id>0;
-inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);
+inter_wave_fh=bz.inter_wave_ext_bars(perm_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
 
 
 %>>>>>>>>>>>>>>>>>>>>>> Sensory wave Part2 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
