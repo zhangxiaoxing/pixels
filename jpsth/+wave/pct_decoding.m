@@ -11,6 +11,8 @@ arguments
     opt.lblidx (1,1) double {mustBeMember(opt.lblidx,[5,8])} = 8 %5 for sample 8 for duration
     opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 100
     opt.n_su (1,:) double {mustBeInteger,mustBePositive} =12:12:48;
+    opt.cmap (1,:) char {mustBeMember(opt.cmap,{'parula','cool'})}
+    opt.cross (1,1) logical = false
 end
 
 if opt.lblidx==5
@@ -20,6 +22,11 @@ else
     behav_tags=[3,6];
     dec_tag="dur";
 end
+
+if opt.cross
+    dec_tag=dec_tag+"x";
+end
+
 ebound=reshape(bound,1,[]);
 %% gen data
 
@@ -47,7 +54,7 @@ if opt.new_data
         frmap.(sprintf('fr%d',behav_tags(1))).("band"+num2str(bidx))=containers.Map('KeyType','char','ValueType','any');
         frmap.(sprintf('fr%d',behav_tags(2))).("band"+num2str(bidx))=containers.Map('KeyType','char','ValueType','any');
     end
-    
+
     trlCount=[];
     for skey=reshape(fieldnames(decode_mat),1,[])
         trls=decode_mat.(skey{1}).trials;
@@ -80,7 +87,7 @@ if opt.calc_dec
     lbls=["fr"+num2str(behav_tags(1)),"fr"+num2str(behav_tags(2))];
     trl_cnt={trlCount};
     out=struct();
-    
+
     for bidx=1:(numel(ebound)-1)
         disp("band #"+num2str(bidx))
         curr_keys=frmap.(char(lbls(1))).("band"+num2str(bidx)).keys();
@@ -91,7 +98,7 @@ if opt.calc_dec
             result=[];
             for resamp_rpt=1:opt.rpt%15
                 sukeys=datasample(curr_keys,n_su,'replace',false);
-                  rawmat=[...
+                rawmat=[...
                     cellfun(@(x) min(x),frmap.(lbls(1)).("band"+num2str(bidx)).values(sukeys));...
                     cellfun(@(x) max(x),frmap.(lbls(1)).("band"+num2str(bidx)).values(sukeys));...
                     cellfun(@(x) min(x),frmap.(lbls(2)).("band"+num2str(bidx)).values(sukeys));...
@@ -124,15 +131,22 @@ if opt.calc_dec
             out.(dec_tag).(sprintf('result_%dsu',n_su)).("band"+num2str(bidx))=result;
         end
     end
-    save(sprintf('10_band_decoding_%s.mat',dec_tag),'out');
+    save(sprintf('5_band_decoding_%s.mat',dec_tag),'out');
 elseif opt.plot_dec
-    load(sprintf('10_band_decoding_%s.mat',dec_tag),'out');
+    load(sprintf('5_band_decoding_%s.mat',dec_tag),'out');
 end
 
 if opt.plot_dec
+    switch opt.cmap
+        case 'parula'
+            cmap=flip(colormap(parula(5)));
+        case 'cool'
+            cmap=colormap(cool(5));
+        otherwise
+            cmap=colormap(turbo(5));
+    end
     
-    cmap=colormap(jet(10));
-    fh=figure('Color','w','Position',[100,100,250,225]);
+    fh=figure('Color','w','Position',[100,100,720,450]);
     hold on;
     for bidx=1:(numel(ebound)-1)
         n_su=opt.n_su;
@@ -147,15 +161,15 @@ if opt.plot_dec
     end
     yline(0.5,'k--');
     xlim([0,500])
-    su_tags=arrayfun(@(x) "Top "+num2str(x-10)+"%~"+num2str(x)+"%" ,10:10:100);
+    su_tags=arrayfun(@(x) "Top "+num2str(x-20)+"%~"+num2str(x)+"%" ,20:20:100);
     legend(ph,su_tags,'Location','eastoutside','Orientation','vertical')
     xlabel('Number of neurons')
     ylabel('Classification accuracy (%)')
     ylim([0.25,1])
     set(gca(),'YTick',0:0.25:1,'YTickLabel',0:25:100)
-%     xlim([min(n_su),max(n_su)])
+    %     xlim([min(n_su),max(n_su)])
     title(dec_tag);
-%     exportgraphics(fh,sprintf('pct_decoding_%s.pdf',dec_tag),'ContentType','vector');
+    %     exportgraphics(fh,sprintf('pct_decoding_%s.pdf',dec_tag),'ContentType','vector');
     exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 end
@@ -209,66 +223,121 @@ set(fh,'Position',[100,100,480,285])
 end
 
 function follow_up_stats()
-sens_p=min([sens_meta.wrs_p_d3(:,1:3),sens_meta.wrs_p_d6(:,1:3)],[],2);
-sens_p_win=[0,prctile(sens_p,[10:10:90]),1];
 
-dur_p=min([dur_meta.wrs_p_s1(:,1:3),dur_meta.wrs_p_s2(:,1:3)],[],2);
-dur_p_win=[0,prctile(dur_p,[10:10:90]),1];
 
-count_mat=nan(10,10);
-for s_idx=1:10
-    for d_idx=1:10
+
+
+
+eff_meta=ephys.effect_size_meta();
+
+
+%% p-distribution histogram
+
+sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
+sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
+
+dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
+dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
+
+cmap=flip(colormap(parula(5)));
+bh=ephys.cmap_histogram(sens_efsz,sens_win,cmap);
+set(gca(),'YScale','linear','XScale','linear')
+set(gcf(),'Color','w')
+set(gcf(),'Position',[100,100,520,100])
+xlabel('p-value (permutation-test)')
+ylabel('Number of neurons')
+title('Olfactory guided 5 band binning')
+% xlim([min(sens_efsz),max(sens_efsz)])
+xlim([0,0.6])
+exportgraphics(bh,'pct_decoding.pdf','ContentType','vector','Append',true);
+
+cmap=colormap(cool(5));
+bh=ephys.cmap_histogram(dur_efsz,dur_win,cmap);
+set(gca(),'YScale','linear','XScale','linear')
+set(gcf(),'Color','w')
+set(gcf(),'Position',[100,100,520,100])
+xlabel('p-value (permutation-test)')
+ylabel('Number of neurons')
+title('Duration guided 5 band binning')
+xlim([0,0.6])
+exportgraphics(bh,'pct_decoding.pdf','ContentType','vector','Append',true);
+
+%% svm decoding
+[fh,olf_dec_olf]=wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100)
+[fh,dur_dec_dur]=wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','cool','new_data',true,'calc_dec',true,'rpt',100);
+
+%% cross decoding
+wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','parula','cross',true,'new_data',true,'calc_dec',true)
+title('Rank by odor-encoding, decoding duration')
+exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
+wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','cool','cross',true,'new_data',true,'calc_dec',true)
+title('Rank by duration-encoding, decoding odor')
+exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
+
+
+
+%% mixed coding heatmap
+win_cnt=numel(sens_win)-1;
+count_mat=nan(win_cnt,win_cnt);
+for s_idx=1:win_cnt
+    for d_idx=1:win_cnt
         count_mat(s_idx,d_idx)=...
-            nnz(sens_p>sens_p_win(s_idx) & ...
-            sens_p<=sens_p_win(s_idx+1) & ...
-            dur_p>dur_p_win(d_idx) & ...
-            dur_p<=dur_p_win(d_idx+1));
+            nnz(sens_efsz>sens_win(s_idx) & ...
+            sens_efsz<=sens_win(s_idx+1) & ...
+            dur_efsz>dur_win(d_idx) & ...
+            dur_efsz<=dur_win(d_idx+1));
     end
 end
 
 frac_mat=count_mat./sum(count_mat,'all');
 
 figure('Color','w')
-imagesc(frac_mat,[0.002,0.02])
+imagesc(frac_mat,[0.02,0.06])
 colormap('turbo')
 cbh=colorbar();
-set(gca(),'YDir','normal','XTick',0.5:1:10.5,'XTickLabel',0:10:100,...
-    'YTick',0.5:1:10.5,'YTickLabel',0:10:100);
+set(gca(),'YDir','normal','XTick',0.5:1:10.5,'XTickLabel',0:20:100,...
+    'YTick',0.5:1:10.5,'YTickLabel',0:20:100);
 cbh.Label.String='Proportion of total population (%)';
 cbh.TickLabels=cbh.Ticks*100;
-xlabel('Olfactory coding rank, lower is better(%)');
-ylabel('Duration coding rank, lower is better (%)');
+xlabel('Olfactory coding rank, higher is better(%)');
+ylabel('Duration coding rank, higher is better (%)');
+exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 
-sens_p=min([sens_meta.wrs_p_d3(:,1:3),sens_meta.wrs_p_d6(:,1:3)],[],2);
-sens_p_win=[0,prctile(sens_p,[10:10:90]),1];
-
-dur_p=min([dur_meta.wrs_p_s1(:,1:3),dur_meta.wrs_p_s2(:,1:3)],[],2);
-dur_p_win=[0,prctile(dur_p,[10:10:90]),1];
-
-wave.pct_decoding(sens_p,sens_p_win,'n_su',[10,50,100,200,300,500],'lblidx',8)
-wave.pct_decoding(dur_p,dur_p_win,'n_su',[10,50,100,200,300,500],'lblidx',5)
-
-pct_meta=struct();
-pct_meta.wave_id=zeros(size(sens_p));
-pct_meta.wave_id(sens_p<sens_p_win(6) & dur_p<dur_p_win(6))=1;
-pct_meta.wave_id(sens_p>=sens_p_win(6) & dur_p<dur_p_win(6))=2;
-pct_meta.wave_id(sens_p<sens_p_win(6) & dur_p>=dur_p_win(6))=3;
-pct_meta.wave_id(sens_p>=sens_p_win(6) & dur_p>=dur_p_win(6))=4;
-bz.inter_wave_pct(pct_meta);
-
-pct_map_cells=cell(1,4);
-grey_regs=ephys.getGreyRegs('range','grey');
-for mii=1:4
-    pct_map_cells{mii}=containers.Map('KeyType','char','ValueType','any');
-    for rr=grey_regs
-        reg_sel=strcmp(meta.reg_tree(5,:),rr).';
-        pct_map_cells{mii}(rr{1})=nnz(reg_sel & pct_meta.wave_id==mii)./nnz(reg_sel);
+%% Functional coupling
+meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+for bw=1:2
+    pct_meta=struct();
+    pct_meta.wave_id=zeros(size(sens_efsz));
+    pct_meta.wave_id(sens_efsz<sens_win(1+bw) & dur_efsz<dur_win(1+bw))=1;
+    pct_meta.wave_id(sens_efsz>=sens_win(6-bw) & dur_efsz<dur_win(1+bw))=2;
+    pct_meta.wave_id(sens_efsz<sens_win(1+bw) & dur_efsz>=dur_win(6-bw))=3;
+    pct_meta.wave_id(sens_efsz>=sens_win(6-bw) & dur_efsz>=dur_win(6-bw))=4;
+    if false
+        [fh,~,th]=bz.inter_wave_pct(pct_meta);
+        title(th,sprintf('class of %d bins',bw));
+        exportgraphics(fh,'pct_decoding.pdf','ContentType','vector','Append',true);
+    end
+    %% region-dist
+    if true
+        pct_map_cells=cell(1,4);
+        grey_regs=ephys.getGreyRegs('range','grey');
+        for mii=1:4
+            pct_map_cells{mii}=containers.Map('KeyType','char','ValueType','any');
+            for rr=grey_regs
+                reg_sel=strcmp(meta.reg_tree(5,:),rr).';
+                pct_map_cells{mii}(rr{1})=nnz(reg_sel & pct_meta.wave_id==mii)./nnz(reg_sel);
+            end
+        end
+        fh=ephys.pct_proportion_GLM(pct_map_cells,'PearsonLogLog',...
+            'range','grey','data_type',sprintf('class-%d bins',bw),'stats_type','pct',...
+            'feat_tag',{'Class#1','Class#2','Class#3','Class#4'});
+        for ff=reshape(fieldnames(fh),1,[])
+            exportgraphics(fh.(ff{1}),'pct_decoding.pdf','ContentType','vector','Append',true);
+        end
     end
 end
-fh=ephys.pct_proportion_GLM(pct_map_cells,'PearsonLogLog',...
-    'range','grey','data_type','class','stats_type','pct',...
-    'feat_tag',{'Class#1','Class#2','Class#3','Class#4'});
+
 
 
 end

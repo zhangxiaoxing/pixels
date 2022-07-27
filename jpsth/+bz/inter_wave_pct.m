@@ -1,4 +1,4 @@
-function fh=inter_wave_pct(pct_meta)
+function [fh,stats,t]=inter_wave_pct(pct_meta)
 arguments
     pct_meta
 end
@@ -13,15 +13,20 @@ pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
 [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
 
-[samestats,samep]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair);
-[diffstats,diffp]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair);
+[samestats,sameci]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair);
+[diffstats,diffci]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair);
+stats.samestats=samestats;
+stats.sameci=sameci;
+stats.diffstats=diffstats;
+stats.diffci=diffci;
+
 
 fh=figure('Color','w','Position',[32,32,1220,320]);
 t=tiledlayout(1,3);
 nexttile(2)
-ax_same=plotOne(samestats,'scale',[0.01,0.02]);
+ax_same=plotOne(samestats,'scale',[min(samestats,[],"all"),max(samestats,[],"all")]);
 nexttile(3)
-ax_diff=plotOne(diffstats,'scale',[0.003,0.005]);
+ax_diff=plotOne(diffstats,'scale',[min(diffstats,[],"all"),max(diffstats,[],"all")]);
 title(t,'Same-, cross-region FC rate')
 % th=nexttile();
 % ephys.util.figtable(fh,th,{'chisq-same';samep;'chisq-diff';diffp})
