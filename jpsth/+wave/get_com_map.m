@@ -63,8 +63,8 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta)
         mcid1=meta.allcid(ismember(waveid,c1ids) & sesssel);
         mcid2=meta.allcid(ismember(waveid,c2ids) & sesssel);
 
-        msel1=find(ismember(suid,mcid1));
-        msel2=find(ismember(suid,mcid2));
+        [~,msel1]=ismember(mcid1,suid);
+        [~,msel2]=ismember(mcid2,suid);
 
         if opt.rnd_half
             for ff=["c1a","c2a","c1b","c2b","c1e","c2e"]

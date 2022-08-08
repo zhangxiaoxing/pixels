@@ -2,7 +2,7 @@ warning('gather all plots from top')
 keyboard()
 clear all
 close all
-% >>>>>>>>>>>>>>> statistic options >>>>>>>>>>>>>>>
+%% >>>>>>>>>>>>>>> statistic options >>>>>>>>>>>>>>>
 global gather_config
 gather_config=struct();
 gather_config.fc_win=10;
@@ -12,8 +12,6 @@ gather_config.fnsuffix='_10ms_adj_pearson';
 
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-
-%% RANKSUM1
 if strcmp(gather_config.corr_type,'Pearson')
     corr_ln_log='PearsonLinearLog';
     corr_log_log='PearsonLogLog';
@@ -21,6 +19,8 @@ else
     corr_ln_log='Spearman';
     corr_log_log='Spearman';
 end
+
+%% RANKSUM1 <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 th=figure('Color','w','Position',[32,32,1600,900]);
 blame=vcs.blame();
@@ -147,6 +147,8 @@ for currdelay=[6,3]
     tcom_maps{currdelay/3}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(['d',num2str(currdelay)]).collection(tcidx,1))));
 end
 
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-indep','mem_type','indep');
+[comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-mixed','mem_type','mixed');
 [comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-congru');
 [comdiff_stats,com_pair]=wave.fc_com_pvsst(sens_com.d3,sens_com.d6,sens_meta,'hiermap','AON','tbl_title','Olfactory-AON-incong','mem_type','incong');
 

@@ -13,21 +13,31 @@ pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
 [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
 
-[samestats,sameci]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair);
-[diffstats,diffci]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair);
+[samestats,sameci,samefromhat,samefromci,sametohat,sametoci]=statsOne(sig_same(:,5),pair_same(:,5),sig,pair);
+[diffstats,diffci,difffromhat,difffromci,difftohat,difftoci]=statsOne(sig_diff(:,5),pair_diff(:,5),sig,pair);
 stats.samestats=samestats;
 stats.sameci=sameci;
 stats.diffstats=diffstats;
 stats.diffci=diffci;
 
+fh=struct();
 
-fh=figure('Color','w','Position',[32,32,1220,320]);
+fh.mat=figure('Color','w','Position',[32,32,1220,320]);
 t=tiledlayout(1,3);
 nexttile(2)
-ax_same=plotOne(samestats,'scale',[min(samestats,[],"all"),max(samestats,[],"all")]);
+ax_same=plotOne(samestats.','scale',[min(samestats,[],"all"),max(samestats,[],"all")]);
 nexttile(3)
-ax_diff=plotOne(diffstats,'scale',[min(diffstats,[],"all"),max(diffstats,[],"all")]);
+ax_diff=plotOne(diffstats.','scale',[min(diffstats,[],"all"),max(diffstats,[],"all")]);
 title(t,'Same-, cross-region FC rate')
+
+fh.bar=figure('Color','w','Position',[100,100,1600,330]);
+t=tiledlayout(1,4);
+plotOneBar(t,samefromhat,samefromci);
+plotOneBar(t,sametohat,sametoci);
+plotOneBar(t,difffromhat,difffromci);
+plotOneBar(t,difftohat,difftoci);
+
+
 % th=nexttile();
 % ephys.util.figtable(fh,th,{'chisq-same';samep;'chisq-diff';diffp})
 
@@ -35,17 +45,52 @@ title(t,'Same-, cross-region FC rate')
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 end
 
-function [cowavehat,cowaveci]=statsOne(sig_sel,pair_sel,sig,pair)
+function [cowavehat,cowaveci,fromhat,fromsem,tohat,tosem]=statsOne(sig_sel,pair_sel,sig,pair)
 %% 4 Qdr FC rate loop
 cowavehat=nan(4,4);
 cowaveci=nan(4,4,2);
+[fromhat,tohat,fromsem,tosem]=deal(nan(4,1));
+% [fromci,toci]=deal(nan(4,2));
+
 for fromqtr=1:4
     for toqtr=1:4
-        sig_cowave=nnz(sig_sel & sig.waveid(:,1)==fromqtr & sig.waveid(:,2)==toqtr);
-        pair_cowave=nnz(pair_sel & pair.waveid(:,1)==fromqtr & pair.waveid(:,2)==toqtr);
-        [cowavehat(fromqtr,toqtr),cowaveci(fromqtr,toqtr,:)]=binofit(sig_cowave,pair_cowave);
+        sig_cowave=sig.sess(sig_sel & sig.waveid(:,1)==fromqtr & sig.waveid(:,2)==toqtr);
+        pair_cowave=pair.sess(pair_sel & pair.waveid(:,1)==fromqtr & pair.waveid(:,2)==toqtr);
+%         [cowavehat(fromqtr,toqtr),cowaveci(fromqtr,toqtr,:)]=binofit(sig_cowave,pair_cowave);
+        sess_vec=[histcounts(sig_cowave,(0:116)+0.5);histcounts(pair_cowave,(0:116)+0.5)];
+        cowavehat(fromqtr,toqtr)=mean(sess_vec(1,sess_vec(2,:)>10)./sess_vec(2,sess_vec(2,:)>10));
+
     end
 end
+anovastats=[];
+for fromqtr=1:4
+    sig_cowave=sig.sess(sig_sel & sig.waveid(:,1)==fromqtr & ismember(sig.waveid(:,2),1:4));
+    pair_cowave=pair.sess(pair_sel & pair.waveid(:,1)==fromqtr & ismember(pair.waveid(:,2),1:4));
+%     [fromhat(fromqtr),fromci(fromqtr,:)]=binofit(sig_cowave,pair_cowave);
+    sess_vec=[histcounts(sig_cowave,(0:116)+0.5);histcounts(pair_cowave,(0:116)+0.5)];
+    fromhat(fromqtr)=mean(sess_vec(1,sess_vec(2,:)>10)./sess_vec(2,sess_vec(2,:)>10));
+    fromsem(fromqtr)=std(sess_vec(1,sess_vec(2,:)>10)./sess_vec(2,sess_vec(2,:)>10))./sqrt(nnz(sess_vec(2,:)>10));
+    finivec=reshape(sess_vec(1,sess_vec(2,:)>10),[],1);
+    anovastats=cat(1,anovastats,[finivec,fromqtr.*ones(numel(finivec),1)]);
+end
+p=anovan(anovastats(:,1),anovastats(:,2),'display','off');
+disp("From bars anova p="+num2str(p))
+
+anovastats=[];
+for toqtr=1:4
+    sig_cowave=sig.sess(sig_sel  & ismember(sig.waveid(:,1),1:4) & sig.waveid(:,2)==toqtr);
+    pair_cowave=pair.sess(pair_sel  & ismember(pair.waveid(:,1),1:4) & pair.waveid(:,2)==toqtr);
+    sess_vec=[histcounts(sig_cowave,(0:116)+0.5);histcounts(pair_cowave,(0:116)+0.5)];
+    tohat(toqtr)=mean(sess_vec(1,sess_vec(2,:)>10)./sess_vec(2,sess_vec(2,:)>10));
+    tosem(toqtr)=std(sess_vec(1,sess_vec(2,:)>10)./sess_vec(2,sess_vec(2,:)>10))./sqrt(nnz(sess_vec(2,:)>10));
+    finivec=reshape(sess_vec(1,sess_vec(2,:)>10),[],1);
+    anovastats=cat(1,anovastats,[finivec,toqtr.*ones(numel(finivec),1)]);
+end
+
+p=anovan(anovastats(:,1),anovastats(:,2),'display','off');
+disp("To bars anova p="+num2str(p))
+
+
 %% skipped statistics for now
 % data=[cowavehat,cowaveci,crosswavehat,crosswaveci,nonmemhat,nonmemci];
 % 
@@ -68,7 +113,7 @@ cbh=colorbar();
 cbh.Label.String='F.C. Rate (%)';
 cbh.TickLabels=cbh.Ticks*100;
 set(gca(),'YDir','normal')
-colormap('turbo')
+colormap(flip(colormap('gray')))
 xlabel('From class # neuron');
 ylabel('To class # neuron');
 set(gca(),'XTick',1:4,'YTick',1:4)
@@ -159,3 +204,11 @@ set(gca(),'XTick',1:3,'XTickLabel',...
     'YTickLabel',100.*get(gca(),'YTick'));
 end
 
+function plotOneBar(t,stats,ci)
+nexttile(t)
+hold on
+bh=bar(stats,'FaceColor','w');
+errorbar(1:4,stats,ci,'k.');
+set(gca(),'YTickLabel',get(gca(),'YTick').*100);
+set(gca(),'XTick',1:4,'XTickLabel',{'Non','Olf','Dur','Mix'});
+end
