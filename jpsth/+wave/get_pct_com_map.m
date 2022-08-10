@@ -35,6 +35,7 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
     com_str=struct();
 
     pct_sel=struct();
+    %%  mixed
     sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(end-opt.band_width);
     dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(end-opt.band_width);
     pct_sel.s1d3=sens_sel & dur_sel;
@@ -50,6 +51,25 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
     sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(end-opt.band_width);
     dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(end-opt.band_width);
     pct_sel.s2d6=sens_sel & dur_sel;
+
+    %% olf
+    sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(end-opt.band_width);
+    dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<dur_win(1+opt.band_width);
+    pct_sel.olf_s1=sens_sel & dur_sel;
+    
+    sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(end-opt.band_width);
+    dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<dur_win(1+opt.band_width);
+    pct_sel.olf_s2=sens_sel & dur_sel;
+
+    %% olf
+    sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<sens_win(1+opt.band_width);
+    dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(end-opt.band_width);
+    pct_sel.dur_d3=sens_sel & dur_sel;
+    
+    sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<sens_win(1+opt.band_width);
+    dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(end-opt.band_width);
+    pct_sel.dur_d6=sens_sel & dur_sel;
+
     
     for sessid=reshape(usess,1,[])
         fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
@@ -72,7 +92,7 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
         sess=['s',num2str(sessid)];
 
 
-        for ff=["s1d3","s2d3","s1d6","s2d6"]
+        for ff=["s1d3","s2d3","s1d6","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
             mcid1=meta.allcid(sesssel & pct_sel.(ff));
             [~,msel1]=ismember(mcid1,suid);
 
@@ -88,14 +108,24 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
             %                 end
             %             end
             %         else
+
             com_str.(['s',num2str(sessid)]).(ff).com=containers.Map('KeyType','int32','ValueType','any');
+
             if opt.curve
+                if startsWith(ff,'s')
                 for cc=["s1d3","s2d3","s1d6","s2d6"]
                     com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
                 end
+                elseif startsWith(ff,'o')
+                    for cc=["olf_s1","olf_s2"]
+                        com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+                    end
+                else
+                    for cc=["dur_d3","dur_d6"]
+                        com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+                    end
+                end
             end
-            %         end
-
             if isempty(msel1)
                 continue
             end
@@ -109,8 +139,14 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
             %                 com_str=per_su_process(sess,suid,msel1,fr,trl,com_str,'c1e',opt);
             %             end
             %         else
-            com_str=per_su_process(sess,suid,msel1,fr,trl,com_str,ff,opt);
             %         end
+            if ismember(ff,["s1d3","s2d3","s1d6","s2d6"])
+                com_str=per_su_process(sess,suid,msel1,fr,trl,com_str,ff,opt);
+            elseif ismember(ff,["olf_s1","olf_s2"])
+                com_str=per_su_process_olf(sess,suid,msel1,fr,trl,com_str,ff,opt);
+            else 
+                com_str=per_su_process_dur(sess,suid,msel1,fr,trl,com_str,ff,opt);
+            end
         end
     end
 end
@@ -133,15 +169,12 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
         mm_pref=classnn(typeidx,1:12);
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
-            com=-1;
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
-            if ispc
-%                 keyboard();
-            end
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
+            com_str.(sess).(type).com(suid(su))=com;
         end
-        com_str.(sess).(type).com(suid(su))=com;
+        
 
         if opt.curve
             for typeidx=1:4
@@ -152,19 +185,77 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                     com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
                 end
 
-%                 heatcent=squeeze(fr(trls,su,stats_window))-basemm; %centralized norm. firing rate for heatmap plot
-%                 heatnorm=heatcent./max(abs(heatcent));
-%                 heatnorm(heatnorm<0)=0;
-%                 if size(heatnorm,1)>10
-%                     if numel(curve)>numel(stats_window)
-%                         curve=curve(1:numel(stats_window));
-%                     end
-%                     cc=arrayfun(@(x) min(corrcoef(heatnorm(x,:),curve),[],'all'),1:size(heatnorm,1));
-%                     [~,idx]=sort(cc,'descend');
-%                     heatnorm=heatnorm(idx(1:10),:);
-%                 end
-%                 com_str.(sess).([type,'heat'])(suid(su))=heatnorm;
             end
         end
     end
 end
+
+
+function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
+    for su=reshape(msel,1,[])
+        ffmats1=squeeze([fr(trls.cs1d3,su,:);fr(trls.cs1d6,su,:)]);
+        ffmats2=squeeze([fr(trls.cs2d3,su,:);fr(trls.cs2d6,su,:)]);
+        classmm=[mean(ffmats1(:,17:40),1);mean(ffmats2(:,17:40),1)];
+
+        basemm=mean(classmm(:,1:12),'all');
+        S=max(abs(classmm(:,1:12)-basemm),[],'all');
+        classnn=(classmm-basemm)./S;
+        if contains(type,'s1')
+            mm_pref=classnn(1,1:12);
+        else
+            mm_pref=classnn(2,1:12);
+        end
+        mm_pref(mm_pref<0)=0;
+        if ~any(mm_pref>0)
+            disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
+%             if ispc
+%                 keyboard();
+%             end
+        else
+            com=sum((1:12).*mm_pref)./sum(mm_pref);
+            com_str.(sess).(type).com(suid(su))=com;
+        end
+        
+        if opt.curve
+            for typeidx=1:2
+                cc=subsref(["olf_s1","olf_s2"],struct(type='()',subs={{typeidx}}));
+                com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+            end
+        end
+    end
+end
+
+function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
+    for su=reshape(msel,1,[])
+        ffmats1=squeeze([fr(trls.cs1d3,su,:);fr(trls.cs2d3,su,:)]);
+        ffmats2=squeeze([fr(trls.cs1d6,su,:);fr(trls.cs2d6,su,:)]);
+        classmm=[mean(ffmats1(:,17:40),1);mean(ffmats2(:,17:40),1)];
+
+        basemm=mean(classmm(:,1:12),'all');
+        S=max(abs(classmm(:,1:12)-basemm),[],'all');
+        classnn=(classmm-basemm)./S;
+        if contains(type,'d3')
+            mm_pref=classnn(1,1:12);
+        else
+            mm_pref=classnn(2,1:12);
+        end
+        mm_pref(mm_pref<0)=0;
+        if ~any(mm_pref>0)
+            disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
+%             if ispc
+%                 keyboard();
+%             end
+        else
+            com=sum((1:12).*mm_pref)./sum(mm_pref);
+            com_str.(sess).(type).com(suid(su))=com;
+        end
+        
+        if opt.curve
+            for typeidx=1:2
+                cc=subsref(["dur_d3","dur_d6"],struct(type='()',subs={{typeidx}}));
+                com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+            end
+        end
+    end
+end
+

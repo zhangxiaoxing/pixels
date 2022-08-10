@@ -60,7 +60,7 @@ if opt.frac_COM
     regres=coord(:,[1,3])\coord(:,2);
     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     xlabel('Regional proportion of sensory neuron')
-    ylabel('Center of FR modulation (s)')
+    ylabel('TCOM (s)')
     if strcmp(opt.corr,'Pearson') && strcmp(opt.density_scale,'log')
         vsel=coord(:,1)>0;
         [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type',opt.corr);
@@ -109,7 +109,7 @@ if opt.COM_PVSST
 %     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     
     xlabel('PV/(PV+SST) interneuron ratio')
-    ylabel('Center of FR modulation')
+    ylabel('TCOM (s)')
     [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
@@ -208,7 +208,7 @@ if opt.frac_PVSST
 %     end
     set(gca(),'YScale','log');
     xlabel('PV / (PV + SST) density')
-    ylabel('Regional proportion of sensory neuron')
+    ylabel('Regional proportion of neuron')
 %     xlim([0,0.6]);
     if strcmp(opt.corr,'Pearson')
         vsel=coord(:,2)>0;

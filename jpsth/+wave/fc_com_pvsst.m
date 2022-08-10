@@ -6,7 +6,7 @@ arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.hiermap (1,:) char 
-    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any'})} = 'congru' %TCOM for NONMEM undefined
+    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any','indep','mixed'})} = 'congru' %TCOM for NONMEM undefined
     opt.reg_min_su (1,1) double = 100
     opt.tbl_title (1,:) char = []
 end
@@ -54,6 +54,16 @@ end
 % save('fc_com_pvsst_stats.mat','fc_com_pvsst_stats');
 
 switch opt.mem_type
+    case 'indep'
+        congrusel=all(fc_com_pvsst_stats(:,10:11)==5,2) ...
+        | all(fc_com_pvsst_stats(:,10:11)==6,2);
+
+    case 'mixed'
+        congrusel=all(fc_com_pvsst_stats(:,10:11)==1,2) ...
+            | all(fc_com_pvsst_stats(:,10:11)==2,2) ...
+            | all(fc_com_pvsst_stats(:,10:11)==3,2) ...
+            | all(fc_com_pvsst_stats(:,10:11)==4,2);
+
     case 'congru'
         congrusel=all(ismember(fc_com_pvsst_stats(:,10:11),[1 5]),2) ...
         | all(ismember(fc_com_pvsst_stats(:,10:11),[3 5]),2) ...

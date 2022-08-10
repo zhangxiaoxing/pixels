@@ -65,7 +65,7 @@ for featii=1:numel(map_cells) % both, either, summed
     idx4corr=cell2mat(sink_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
     for ii=1:numel(src_ccfid)
         allen_density=sink_src_mat(idx4corr,ii); % from one alternating target, to idx4corr
-        if nnz(allen_density~=0)<10
+        if nnz(allen_density~=0)<8
             disp(src_ccfid)
             continue
         end

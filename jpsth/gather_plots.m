@@ -176,7 +176,7 @@ for sess=reshape(usess,1,[])
                 [dur_com.s4.(char(sess)).(fn{1}).values,dur_com.s8.(char(sess)).(fn{1}).values]);
         end
     end
-end
+    end
 
 dur_wave_fh=wave.plot_dur_wave(dur_com);
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<

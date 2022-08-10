@@ -78,13 +78,15 @@ exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 %% Functional coupling
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-for bw=1:2
+for bw=1
     pct_meta=struct();
     pct_meta.wave_id=zeros(size(sens_efsz));
-    pct_meta.wave_id(sens_efsz<sens_win(1+bw) & dur_efsz<dur_win(1+bw))=1;
-    pct_meta.wave_id(sens_efsz>=sens_win(6-bw) & dur_efsz<dur_win(1+bw))=2;
-    pct_meta.wave_id(sens_efsz<sens_win(1+bw) & dur_efsz>=dur_win(6-bw))=3;
-    pct_meta.wave_id(sens_efsz>=sens_win(6-bw) & dur_efsz>=dur_win(6-bw))=4;
+    pct_meta.wave_id(sens_efsz<sens_win(1+bw) & dur_efsz<dur_win(1+bw))=1; % none
+    pct_meta.wave_id(sens_efsz>=sens_win(6-bw) & dur_efsz<dur_win(1+bw))=2; % olf
+    pct_meta.wave_id(sens_efsz<sens_win(1+bw) & dur_efsz>=dur_win(6-bw))=3; % duration
+    pct_meta.wave_id(sens_efsz>=sens_win(6-bw) & dur_efsz>=dur_win(6-bw))=4; % both
+
+    %>>> jump to TCOM section as needed
     if true
         % initiate global variable
         [fh,~,th]=bz.inter_wave_pct(pct_meta);
@@ -110,8 +112,60 @@ for bw=1:2
             exportgraphics(fh.(ff{1}),'pct_decoding.pdf','ContentType','vector','Append',true);
         end
     end
-    
 end
+
+%% region-dist
+
+
+%% TCOM
+pct_tcom_fh=struct();
+tcom_maps=cell(1,3);
+[map_cells,pct_bar_fh]=ephys.pct_reg_bars(pct_meta); % only need map_cells for tcom-frac corr
+% map_cells: mixed_map,olf_map,dur_map
+com_map=wave.get_pct_com_map(eff_meta,'curve',true);
+for typeidx=1:3
+    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
+        com_map,'pct_type',type);
+    ureg=intersect(ephys.getGreyRegs('range','grey'),...
+        fcom.(type).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
+    tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+end
+
+mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
+    'range','grey','data_type','pct-TCOM','stats_type','percentile','feat_tag',{'Mixed','Olfactory','Duration'});
+
+
+%% mixed
+
+conn_reg=["CP","ACB","BST"];
+for typeidx=1:3
+    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+    ureg=intersect(ephys.getGreyRegs('range','grey'),...
+        fcom.(type).collection(:,2));
+    ffrac.collection=...
+        [num2cell(cellfun(@(x) x(1),map_cells{typeidx}.values(ureg))),...
+        ureg,...
+        num2cell(ones(numel(ureg),1)*5),...
+        num2cell(cellfun(@(x) x(3),map_cells{typeidx}.values(ureg)))];
+
+    [pct_tcom_fh,t]=wave.per_region_COM_frac(fcom.(type),ffrac,'hier_reg',conn_reg(typeidx),'corr',gather_config.corr_type);
+end
+
+
+% 
+% olf_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
+%     'range','grey','data_type','OLF-TCOM','stats_type','percentile','feat_tag',{'Mixed'});
+% 
+% dur_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
+%     'range','grey','data_type','DUR-TCOM','stats_type','percentile','feat_tag',{'Mixed'});
+
+
+
+
+t.Title.String=['Sense wave, delay=',num2str(currdelay)];
+
 
 
 fhandles=get(groot(),'Children');
