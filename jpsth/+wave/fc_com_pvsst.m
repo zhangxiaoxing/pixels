@@ -6,15 +6,18 @@ arguments
     opt.level (1,1) double {mustBeInteger} = 5 %allen ccf structure detail level
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.hiermap (1,:) char 
-    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','any','indep','mixed'})} = 'congru' %TCOM for NONMEM undefined
+    opt.mem_type (1,:) char {mustBeMember(opt.mem_type,{'congru','incong','mixed','olf','dur'})} = 'congru' %TCOM for NONMEM undefined
     opt.reg_min_su (1,1) double = 100
     opt.tbl_title (1,:) char = []
+    opt.descend (1,1) logical = false
+    opt.pct_stats (1,1) logical = false
 end
 [sig,~]=bz.load_sig_sums_conn_file();
 % sig=bz.load_sig_pair('type','neupix','prefix','BZWT','criteria','WT','load_waveid',false);
+% TODO: join sig and pct_wave_id
 sig=bz.join_fc_waveid(sig,selmeta.wave_id);
-% same sort as file-list, not same to sessionid
-[~,is_same_unsort,h2l_unsort,l2h_unsort]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su,'descend',true);
+% same order as file-list, different to sessionid
+[~,is_same_unsort,h2l_unsort,l2h_unsort]=bz.util.diff_at_level(sig.reg,'hierarchy',true,'range','grey','hiermap',opt.hiermap,'mincount',opt.reg_min_su,'descend',opt.descend);
 disp(nnz(is_same_unsort | l2h_unsort | h2l_unsort))
 fc_com_pvsst_stats=[];
 usess=unique(sig.sess);
@@ -28,41 +31,56 @@ for sii=reshape(usess,1,[]) %iterate through sessions
 
     suid=sig.suid(sesssel,:);
     waveid=sig.waveid(sesssel,:);
-    com_sess_2half=nan(size(suid));
-    if isfield(com_map_2half,['s',num2str(sii)])
-        s1keys=int32(cell2mat(com_map_2half.(['s',num2str(sii)]).c1.keys())); % s1 prefered SUid
-        s1sel=ismember(suid,s1keys);% same dim as suid
-        com_sess_2half(s1sel)=cell2mat(com_map_2half.(['s',num2str(sii)]).c1.values(num2cell(suid(s1sel)))); % out put is nx2 in dim
-        s2keys=int32(cell2mat(com_map_2half.(['s',num2str(sii)]).c2.keys())); % differernt SUs, e.g. prefer S2
-        s2sel=ismember(suid,s2keys);
-        com_sess_2half(s2sel)=cell2mat(com_map_2half.(['s',num2str(sii)]).c2.values(num2cell(suid(s2sel))));
-    end
-    com_sess_1half=nan(size(suid));
-    if isfield(com_map_1half,['s',num2str(sii)])
-        s1keys=int32(cell2mat(com_map_1half.(['s',num2str(sii)]).c1.keys()));
-        s1sel=ismember(suid,s1keys);
-        com_sess_1half(s1sel)=cell2mat(com_map_1half.(['s',num2str(sii)]).c1.values(num2cell(suid(s1sel))));
-        s2keys=int32(cell2mat(com_map_1half.(['s',num2str(sii)]).c2.keys()));
-        s2sel=ismember(suid,s2keys);
-        com_sess_1half(s2sel)=cell2mat(com_map_1half.(['s',num2str(sii)]).c2.values(num2cell(suid(s2sel))));
-    end
-
     regsess=squeeze(sig.reg(sesssel,5,:));
-    fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_2half,com_sess_1half,double(regsess),double(waveid)];
+    if opt.pct_stats
+        com_sess_mixed=nan(size(suid));
+        for ff=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2"]
+            sukeys=com_map_1half.(['s',num2str(sii)]).(ff).com.keys(); % prefered SUid
+            susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
+            com_sess_mixed(susel)=cell2mat(com_map_1half.(['s',num2str(sii)]).(ff).com.values(num2cell(suid(susel)))); % out put is nx2 in dim
+        end
+        fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_mixed,nan(size(suid)),double(regsess),double(waveid)];
+    else
+        com_sess_2half=nan(size(suid));
+        if isfield(com_map_2half,['s',num2str(sii)])
+            s1keys=int32(cell2mat(com_map_2half.(['s',num2str(sii)]).c1.keys())); % s1 prefered SUid
+            s1sel=ismember(suid,s1keys);% same dim as suid
+            com_sess_2half(s1sel)=cell2mat(com_map_2half.(['s',num2str(sii)]).c1.values(num2cell(suid(s1sel)))); % out put is nx2 in dim
+            s2keys=int32(cell2mat(com_map_2half.(['s',num2str(sii)]).c2.keys())); % differernt SUs, e.g. prefer S2
+            s2sel=ismember(suid,s2keys);
+            com_sess_2half(s2sel)=cell2mat(com_map_2half.(['s',num2str(sii)]).c2.values(num2cell(suid(s2sel))));
+        end
+        com_sess_1half=nan(size(suid));
+        if isfield(com_map_1half,['s',num2str(sii)])
+            s1keys=int32(cell2mat(com_map_1half.(['s',num2str(sii)]).c1.keys()));
+            s1sel=ismember(suid,s1keys);
+            com_sess_1half(s1sel)=cell2mat(com_map_1half.(['s',num2str(sii)]).c1.values(num2cell(suid(s1sel))));
+            s2keys=int32(cell2mat(com_map_1half.(['s',num2str(sii)]).c2.keys()));
+            s2sel=ismember(suid,s2keys);
+            com_sess_1half(s2sel)=cell2mat(com_map_1half.(['s',num2str(sii)]).c2.values(num2cell(suid(s2sel))));
+        end
+        fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_2half,com_sess_1half,double(regsess),double(waveid)];
+    end
     %==================================================sess=====================suid=======COM_context1=====COM_context2=====ccfid===========waveid======
 end
 % save('fc_com_pvsst_stats.mat','fc_com_pvsst_stats');
 
 switch opt.mem_type
-    case 'indep'
+    case 'olf'
         congrusel=all(fc_com_pvsst_stats(:,10:11)==5,2) ...
-        | all(fc_com_pvsst_stats(:,10:11)==6,2);
+            | all(fc_com_pvsst_stats(:,10:11)==6,2);
 
+    case 'dur'
+        congrusel=all(fc_com_pvsst_stats(:,10:11)==7,2) ...
+            | all(fc_com_pvsst_stats(:,10:11)==8,2);
     case 'mixed'
         congrusel=all(fc_com_pvsst_stats(:,10:11)==1,2) ...
-            | all(fc_com_pvsst_stats(:,10:11)==2,2) ...
-            | all(fc_com_pvsst_stats(:,10:11)==3,2) ...
+            | all(fc_com_pvsst_stats(:,10:11)==2,2)...
+            | all(fc_com_pvsst_stats(:,10:11)==3,2)...
             | all(fc_com_pvsst_stats(:,10:11)==4,2);
+    
+    case 'pct_congru'
+        congrusel=all(fc_com_pvsst_stats(:,10:11)==4,2);
 
     case 'congru'
         congrusel=all(ismember(fc_com_pvsst_stats(:,10:11),[1 5]),2) ...

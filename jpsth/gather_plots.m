@@ -95,7 +95,7 @@ if false
     meta=ephys.util.load_meta('skip_stats',true);
     for ii=[9071,21530,3387,2617]
         %         fh=ephys.sens_dur_SC(dur_intact(ii),meta,sens_meta,dur_meta,'skip_raster',false);
-        scfh=ephys.sens_dur_SC(ii,meta,sens_meta,dur_meta,'skip_raster',false);%
+        scfh=ephys.sens_dur_SC(ii,meta,'sens_meta',sens_meta,'dur_meta',dur_meta,'skip_raster',false);%
         %             11241,20621,9071
     end
 end

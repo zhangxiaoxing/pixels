@@ -1,6 +1,6 @@
-function com_str_=get_pct_com_map(eff_meta,opt)
+function com_str_=get_pct_com_map(pct_meta,opt)
 arguments
-    eff_meta  (1,1) struct
+    pct_meta  (1,1) struct
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
@@ -12,14 +12,10 @@ arguments
 
 end
 
-sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
-sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
-dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
-dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
 %TODO proper declaration
-persistent com_str opt_ eff_meta_
+persistent com_str opt_ pct_meta_
 
-if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta) 
+if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,pct_meta) 
     meta=ephys.util.load_meta('skip_stats',true);
     if strlength(opt.onepath)==0
         usess=unique(meta.sess);
@@ -35,42 +31,19 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
     com_str=struct();
 
     pct_sel=struct();
+
     %%  mixed
-    sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(end-opt.band_width);
-    dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(end-opt.band_width);
-    pct_sel.s1d3=sens_sel & dur_sel;
+    pct_sel.s1d3=pct_meta.wave_id==1;
+    pct_sel.s1d6=pct_meta.wave_id==2;
+    pct_sel.s2d3=pct_meta.wave_id==3;
+    pct_sel.s2d6=pct_meta.wave_id==4;
 
-    sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(end-opt.band_width);
-    dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(end-opt.band_width);
-    pct_sel.s1d6=sens_sel & dur_sel;
+    pct_sel.olf_s1=pct_meta.wave_id==5;
+    pct_sel.olf_s2=pct_meta.wave_id==6;
 
-    sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(end-opt.band_width);
-    dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(end-opt.band_width);
-    pct_sel.s2d3=sens_sel & dur_sel;
+    pct_sel.dur_d3=pct_meta.wave_id==7;
+    pct_sel.dur_d6=pct_meta.wave_id==8;
 
-    sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(end-opt.band_width);
-    dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(end-opt.band_width);
-    pct_sel.s2d6=sens_sel & dur_sel;
-
-    %% olf
-    sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(end-opt.band_width);
-    dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<dur_win(1+opt.band_width);
-    pct_sel.olf_s1=sens_sel & dur_sel;
-    
-    sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(end-opt.band_width);
-    dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<dur_win(1+opt.band_width);
-    pct_sel.olf_s2=sens_sel & dur_sel;
-
-    %% olf
-    sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<sens_win(1+opt.band_width);
-    dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(end-opt.band_width);
-    pct_sel.dur_d3=sens_sel & dur_sel;
-    
-    sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<sens_win(1+opt.band_width);
-    dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(end-opt.band_width);
-    pct_sel.dur_d6=sens_sel & dur_sel;
-
-    
     for sessid=reshape(usess,1,[])
         fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
         sesssel=meta.sess==sessid;
@@ -112,19 +85,19 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
             com_str.(['s',num2str(sessid)]).(ff).com=containers.Map('KeyType','int32','ValueType','any');
 
             if opt.curve
-                if startsWith(ff,'s')
+%                 if startsWith(ff,'s')
                 for cc=["s1d3","s2d3","s1d6","s2d6"]
                     com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
                 end
-                elseif startsWith(ff,'o')
-                    for cc=["olf_s1","olf_s2"]
-                        com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
-                    end
-                else
-                    for cc=["dur_d3","dur_d6"]
-                        com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
-                    end
-                end
+%                 elseif startsWith(ff,'o')
+%                     for cc=["olf_s1","olf_s2"]
+%                         com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+%                     end
+%                 else
+%                     for cc=["dur_d3","dur_d6"]
+%                         com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+%                     end
+%                 end
             end
             if isempty(msel1)
                 continue
@@ -152,7 +125,7 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(eff_meta_,eff_meta)
 end
 com_str_=com_str;
 opt_=opt;
-eff_meta_=eff_meta;
+pct_meta_=pct_meta;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
@@ -217,9 +190,20 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
         end
         
         if opt.curve
-            for typeidx=1:2
-                cc=subsref(["olf_s1","olf_s2"],struct(type='()',subs={{typeidx}}));
-                com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+            classmm=[];
+            for ff=["cs1d3","cs2d3","cs1d6","cs2d6"]
+                ffmat=squeeze(fr(trls.(ff),su,:));
+                classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
+            end
+            S=max(abs(classmm(:,1:12)-basemm),[],'all');
+            classnn=(classmm-basemm)./S;
+            for typeidx=1:4
+                cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
+                if typeidx<3
+                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+                else
+                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                end
             end
         end
     end
@@ -251,9 +235,20 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
         end
         
         if opt.curve
-            for typeidx=1:2
-                cc=subsref(["dur_d3","dur_d6"],struct(type='()',subs={{typeidx}}));
-                com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+            classmm=[];
+            for ff=["cs1d3","cs2d3","cs1d6","cs2d6"]
+                ffmat=squeeze(fr(trls.(ff),su,:));
+                classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
+            end
+            S=max(abs(classmm(:,1:12)-basemm),[],'all');
+            classnn=(classmm-basemm)./S;
+            for typeidx=1:4
+                cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
+                if typeidx<3
+                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+                else
+                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                end
             end
         end
     end

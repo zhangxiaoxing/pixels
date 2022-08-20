@@ -19,9 +19,9 @@ for reg=reshape(ureg,1,[])
     regsel=strcmp(meta.reg_tree(5,:),reg).';
     cnt=nnz(regsel);
 
-    mixed_cnt=nnz(regsel & pct_meta.wave_id==4);
-    olf_cnt=nnz(regsel & pct_meta.wave_id==2);
-    dur_cnt=nnz(regsel & pct_meta.wave_id==3);
+    mixed_cnt=nnz(regsel & pct_meta.class_id==4);
+    olf_cnt=nnz(regsel & pct_meta.class_id==2);
+    dur_cnt=nnz(regsel & pct_meta.class_id==3);
     legends={'Mixed modality','Olfactory only','Duration only'};
             
     grp=idmap.reg2tree(reg{1});
@@ -88,7 +88,7 @@ for ll=1:size(bardata,1)
     text(bardata(ll,7),bardata(ll,13),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
 end
 xlabel(legends{1})
-ylabel(legends{2})
+ylabel(legends{3})
 set(gca,'XScale','linear','YScale','linear')
 [r,p]=corr(bardata(:,7),bardata(:,13));
 title(sprintf(' r = %.3f, p = %.3f',r,p));
@@ -102,8 +102,8 @@ for ll=1:size(bardata,1)
     scatter(bardata(ll,10),bardata(ll,13),4,c,'filled','o')
     text(bardata(ll,10),bardata(ll,13),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
 end
-xlabel(legends{1})
-ylabel(legends{2})
+xlabel(legends{2})
+ylabel(legends{3})
 set(gca,'XScale','linear','YScale','linear')
 [r,p]=corr(bardata(:,10),bardata(:,13));
 title(sprintf(' r = %.3f, p = %.3f',r,p));

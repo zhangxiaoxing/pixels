@@ -27,6 +27,8 @@ if opt.hierarchy
             fstr=load('OBM1map.mat','OBM1map');
             hiermap=fstr.OBM1map;
             assert(~opt.descend,'desending order not supported');
+        case 'pct'
+            hiermap=opt.hiermap_map;
         otherwise
             anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid(opt.hiermap));
             if opt.descend
