@@ -51,16 +51,17 @@ for featii=1:numel(map_cells) % both, either, summed
 
     [glmxmat,glmxmeta]=deal([]);
     % efferent_proj_dense(soruce) ~ feature_proportion
-    for ii=1:numel(sink_ccfid)
-        %     allen_density=log10(sink_src_mat(ii,idx4corr)+1e-12); % from idx4corr, to one alternating target
-        allen_density=sink_src_mat(ii,idx4corr);
-        if nnz(allen_density~=0)<10
-            continue
+    if ~opt.skip_efferent
+        for ii=1:numel(sink_ccfid)
+            %     allen_density=log10(sink_src_mat(ii,idx4corr)+1e-12); % from idx4corr, to one alternating target
+            allen_density=sink_src_mat(ii,idx4corr);
+            if nnz(allen_density~=0)<10
+                continue
+            end
+            glmxmat=[glmxmat;allen_density];
+            glmxmeta=[glmxmeta;1,ii,sink_ccfid(ii)];
         end
-        glmxmat=[glmxmat;allen_density];
-        glmxmeta=[glmxmeta;1,ii,sink_ccfid(ii)];
     end
-
     % afferent_proj_dense(sink) ~ feature_proportion
     idx4corr=cell2mat(sink_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
     for ii=1:numel(src_ccfid)
@@ -89,7 +90,6 @@ for featii=1:numel(map_cells) % both, either, summed
                         reshape(feat_prop(vsel),[],1),'type','Pearson');
             end
             
-            
             one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
             %====================================^^^1^^^^^^2^^^^^^3^^^^^^^^^^^4,5,6^^^^^^^^^^^^^7^8^^
         end
@@ -99,9 +99,9 @@ for featii=1:numel(map_cells) % both, either, summed
         if opt.plot1 % plot one-region: coding proportion correlation bars
             s_list=sortrows(one_reg_corr_list(one_reg_corr_list(:,1)==featii & one_reg_corr_list(:,2)==epochii,:),7,'descend');
             %                 s_list=s_list(isfinite(s_list(:,7)),:);
-            if opt.skip_efferent
-                s_list=s_list(s_list(:,4)==2,:);
-            end
+%             if opt.skip_efferent
+%                 s_list=s_list(s_list(:,4)==2,:);
+%             end
             
             s_list=s_list([1:5,end-4:end],:);
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
@@ -184,9 +184,9 @@ for featii=1:numel(map_cells) % both, either, summed
             if rem(jj,1000)==0
                 disp(jj)
             end
-            allen_A=glmxmat(comb2(jj,1),:).'; % from one alternating target, to idx4corr
-            allen_B=glmxmat(comb2(jj,2),:).';
-            mdl=fitglm([allen_A,allen_B],feat_prop,'interactions'); % (1|2)jj => glmxmat==glmxmeta => (sink_ccfid|src_ccfid)
+            allen_A=log10(glmxmat(comb2(jj,1),:).'); % from one alternating target, to idx4corr
+            allen_B=log10(glmxmat(comb2(jj,2),:).');
+            mdl=fitglm([allen_A,allen_B],feat_prop,'linear'); % (1|2)jj => glmxmat==glmxmeta => (sink_ccfid|src_ccfid)
             two_reg_corr_list=[two_reg_corr_list;featii,epochii,jj,double(glmxmeta(comb2(jj,1),:)),double(glmxmeta(comb2(jj,2),:)),mdl.Coefficients.Estimate.',mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc];
             %============================================^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -200,75 +200,79 @@ for featii=1:numel(map_cells) % both, either, summed
             mdlid_rsq_AICC=sortrows(mdlid_rsq_AICC,3);
             % keyboard();
             ytk=cell(0,0);
-            for kk=1:20
+            for kk=1:10
                 maxidx=mdlid_rsq_AICC(kk,1);
-                if glmxmeta(comb2(maxidx,1),1)==1
-                    reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
-                    reg1=['To ',reg1{1}];
-                else
+%                 if glmxmeta(comb2(maxidx,1),1)==1
+%                     reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
+%                     reg1=['To ',reg1{1}];
+%                 else
                     reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,1),2))));
                     reg1=['From ',reg1{1}];
-                end
-                if glmxmeta(comb2(maxidx,2),1)==1
-                    reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
-                    reg2=['To ',reg2{1}];
-                else
+%                 end
+%                 if glmxmeta(comb2(maxidx,2),1)==1
+%                     reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
+%                     reg2=['To ',reg2{1}];
+%                 else
                     reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
                     reg2=['From ',reg2{1}];
-                end
-                disp([reg1,'-',reg2,' ',num2str(mdlid_rsq_AICC(kk,2:3))])
-                ytk{end+1}=[reg1,'-',reg2];
+%                 end
+%                 disp([reg1,',',reg2,' ',num2str(mdlid_rsq_AICC(kk,2:3))])
+                ytk{end+1}=[reg1,',',reg2];
             end
 
-            fh=figure('Color','w','Position',[32,32,400,800]);
-            bar(sqrt(mdlid_rsq_AICC(1:10,2)),'Horizontal','on')
+            fh=figure('Color','w','Position',[32,32,600,400]);
+            tiledlayout(2,3)
+            nexttile(3,[2,1]);
+            bar(sqrt(mdlid_rsq_AICC(1:10,2)),'Horizontal','on','FaceColor','k')
             set(gca(),'YDir','reverse','YTick',1:10,'YTickLabel',ytk(1:10))
             xlabel('Person''s r')
             xlim([0,1])
             title(sprintf('selectivity %d - epoch %d',featii,epochii));
-            exportgraphics(fh,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
-            close(fh)
+%             exportgraphics(fh,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
+%             close(fh)
 
             maxidx=mdlid_rsq_AICC(1,1);
-            allen_A=glmxmat(comb2(maxidx,1),:).'; % from one alternating target, to idx4corr
-            allen_B=glmxmat(comb2(maxidx,2),:).';
-            mdl=fitglm([allen_A,allen_B],feat_prop,'interactions');
+            allen_A=log10(glmxmat(comb2(maxidx,1),:).'); % from one alternating target, to idx4corr
+            allen_B=log10(glmxmat(comb2(maxidx,2),:).');
+            mdl=fitglm([allen_A,allen_B],feat_prop,'linear');
 
 
-            disp(sqrt(mdl.Rsquared.Ordinary));
-            if glmxmeta(comb2(maxidx,1),1)==1
-                reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
-                reg1=['To_',reg1{1}];
-            else
+%             disp(sqrt(mdl.Rsquared.Ordinary));
+%             if glmxmeta(comb2(maxidx,1),1)==1
+%                 reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
+%                 reg1=['To_',reg1{1}];
+%             else
                 reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,1),2))));
                 reg1=['From_',reg1{1}];
-            end
-            if glmxmeta(comb2(maxidx,2),1)==1
-                reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
-                reg2=['To_',reg2{1}];
-            else
+%             end
+%             if glmxmeta(comb2(maxidx,2),1)==1
+%                 reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
+%                 reg2=['To_',reg2{1}];
+%             else
                 reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
                 reg2=['From_',reg2{1}];
-            end
-
-            fh=figure('Color','w','Position',[32,32,320,320]);
+%             end
+            nexttile(1,[2,2])
+%             fh=figure('Color','w','Position',[32,32,320,320]);
             hold on
             for ll=1:numel(feat_prop)
                 c=ephys.getRegColor(intersect_regs{ll},'large_area',true);
                 scatter(mdl.Fitted.Response(ll),feat_prop(ll),4,c,'filled','o')
                 text(mdl.Fitted.Response(ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
             end
-            title(sprintf('Coding proportion ~ %.3f [%s] + %.3f [%s] +%.3f [%s]', ...
-                mdl.Coefficients.Estimate(2),reg1,mdl.Coefficients.Estimate(3),reg2,mdl.Coefficients.Estimate(4),'interaction'), ...
-                'Interpreter','none')
+%             title(sprintf('Coding proportion ~ %.3f [%s] + %.3f [%s] +%.3f [%s]', ...
+%                 mdl.Coefficients.Estimate(2),reg1,mdl.Coefficients.Estimate(3),reg2,mdl.Coefficients.Estimate(4),'interaction'), ...
+            title(sprintf('Coding proportion ~ %.3f [%s] + %.3f [%s]', ...
+                mdl.Coefficients.Estimate(2),reg1,mdl.Coefficients.Estimate(3),reg2), ...
+            'Interpreter','none')
             xlabel(sprintf('Model %d prediction',maxidx))
-            ylabel('Proportion of coding neuron')
-            set(gca,'XScale','log','YScale','log')
+            ylabel('Dependent feature')
+%             set(gca,'XScale','log','YScale','log')
             text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
             % xlim([0.15,0.5])
             % ylim([0.15,0.5])
-            exportgraphics(fh,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
-            close(fh)
+%             exportgraphics(fh,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
+%             close(fh)
             %         keyboard()
 
         end

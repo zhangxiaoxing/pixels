@@ -65,8 +65,22 @@ end
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 eff_meta=ephys.effect_size_meta();
 %% wave
-fh=wave.plot_pct_wave(eff_meta);
-fh=wave.plot_pct_wave(eff_meta,'comb_set',2);
+fh=wave.plot_pct_wave(eff_meta,'sort_by',3);
+sgtitle(gcf(),'multi, sort by 3s')
+fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',3);
+sgtitle(gcf(),'single-mod, sort by 3s')
+
+fh=wave.plot_pct_wave(eff_meta,'sort_by',6);
+sgtitle(gcf(),'multi, sort by 6s')
+fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6);
+sgtitle(gcf(),'single-mod, sort by 6s')
+
+fh=wave.plot_pct_wave(eff_meta,'sort_by',3,'xlim',3);
+sgtitle(gcf(),'multi, sort by 3s')
+fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',3,'xlim',3);
+sgtitle(gcf(),'single-mod, sort by 3s')
+
+
 
 sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
 sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
@@ -104,7 +118,7 @@ xlim([0,0.6])
 exportgraphics(bh,'pct_decoding.pdf','ContentType','vector','Append',true);
 
 %% svm decoding
-[fh,olf_dec_olf]=wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100);
+[fh,olf_dec_olf]=veve.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100);
 [fh,dur_dec_dur]=wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','cool','new_data',true,'calc_dec',true,'rpt',100);
 
 %% cross decoding
@@ -166,7 +180,7 @@ exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 % end
 
 %% Proportion, TCOM related
-[map_cells,pct_bar_fh]=ephys.pct_reg_bars(pct_meta); % only need map_cells for tcom-frac corr
+[map_cells,pct_bar_fh]=ephys.pct_reg_bars(pct_meta4); % only need map_cells for tcom-frac corr
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,corr_log_log, ...
     'range','grey','data_type','pct-frac','stats_type','percentile','feat_tag',{'Mixed','Olfactory','Duration'});
 
@@ -177,6 +191,7 @@ tcom_maps=cell(1,3);
 
 % map_cells: mixed_map,olf_map,dur_map
 % com-map >>>>>>>>>>>>>>>>>>>>>>>>>>
+global_init;
 com_map=wave.get_pct_com_map(pct_meta4,'curve',true);
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 for typeidx=1:3
@@ -191,6 +206,11 @@ end
 
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
     'range','grey','data_type','pct-TCOM','stats_type','percentile','feat_tag',{'Mixed','Olfactory','Duration'});
+
+dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom_maps(3),corr_ln_log, ...
+    'range','grey','data_type','pct-TCOM','stats_type','percentile',...
+    'feat_tag',{'Duration'},'corr2',true,'plot2',true,'corr1',false);
+
 
 %% TCOM and proportion correlation
 

@@ -3,6 +3,8 @@ function fh=plot_pct_wave(eff_meta,opt)
 arguments
     eff_meta
     opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 1
+    opt.sort_by (1,1) double {mustBeMember(opt.sort_by,[3 6])} = 6
+    opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 6
 end
 %% global
 for plot_id=opt.comb_set
@@ -32,8 +34,13 @@ for plot_id=opt.comb_set
                 end
                 for fs1=fss
                     fs=char(fs1);
-                    curr_key=com_map.(fs).(pref).com.keys();
-                    imdata.(pref).com=cat(1,imdata.(pref).com,cell2mat(values(com_map.(fs).(pref).com,curr_key.')));
+                    if opt.sort_by==6
+                        curr_key=com_map.(fs).(pref).com4plot.keys();
+                        imdata.(pref).com=cat(1,imdata.(pref).com,cell2mat(values(com_map.(fs).(pref).com4plot,curr_key.')));
+                    else
+                        curr_key=com_map.(fs).(pref).com.keys();
+                        imdata.(pref).com=cat(1,imdata.(pref).com,cell2mat(values(com_map.(fs).(pref).com,curr_key.')));
+                    end
                     for ff=["s1d3","s1d6","s2d3","s2d6"]
                         imdata.(pref).(ff)=cat(1,imdata.(pref).(ff),cell2mat(com_map.(fs).(pref).(ff).values(curr_key.')));
                     end
@@ -42,7 +49,11 @@ for plot_id=opt.comb_set
                 [~,sortidx]=sort(imdata.(pref).com);
                 for ffidx=1:4
                     nexttile((prefidx-1)*4+ffidx);
-                    plotOne(imdata.(pref).(tags(ffidx))(sortidx,:));
+                    if opt.xlim==3
+                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,1:12));
+                    else
+                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,:));
+                    end
                 end
             end
         case 2 % olf
@@ -58,8 +69,13 @@ for plot_id=opt.comb_set
                 end
                 for fs1=fss
                     fs=char(fs1);
-                    curr_key=com_map.(fs).(pref).com.keys();
-                    imdata.(pref).com=cat(1,imdata.(pref).com,cell2mat(values(com_map.(fs).(pref).com,curr_key.')));
+                    if opt.sort_by==6
+                        curr_key=com_map.(fs).(pref).com4plot.keys();
+                        imdata.(pref).com=cat(1,imdata.(pref).com,cell2mat(values(com_map.(fs).(pref).com4plot,curr_key.')));
+                    else
+                        curr_key=com_map.(fs).(pref).com.keys();
+                        imdata.(pref).com=cat(1,imdata.(pref).com,cell2mat(values(com_map.(fs).(pref).com,curr_key.')));
+                    end
                     for ff=["s1d3","s1d6","s2d3","s2d6"]
                         imdata.(pref).(ff)=cat(1,imdata.(pref).(ff),cell2mat(com_map.(fs).(pref).(ff).values(curr_key.')));
                     end
@@ -69,7 +85,11 @@ for plot_id=opt.comb_set
                 ffs=["s1d3","s1d6","s2d3","s2d6"];
                 for ffidx=1:4
                     nexttile((prefidx-1)*4+ffidx);
-                    plotOne(imdata.(pref).(ffs(ffidx))(sortidx,:));
+                    if opt.xlim==3
+                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,1:12));
+                    else
+                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,:));
+                    end
                 end
             end
             

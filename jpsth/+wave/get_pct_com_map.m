@@ -83,6 +83,7 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,pct_meta)
             %         else
 
             com_str.(['s',num2str(sessid)]).(ff).com=containers.Map('KeyType','int32','ValueType','any');
+            com_str.(['s',num2str(sessid)]).(ff).com4plot=containers.Map('KeyType','int32','ValueType','any');
 
             if opt.curve
 %                 if startsWith(ff,'s')
@@ -146,6 +147,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
+            com_str.(sess).(type).com4plot(suid(su))=com;
         end
         
 
@@ -157,7 +159,20 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                 else
                     com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
                 end
-
+            end
+            if contains(type,'d3')
+                com_str.(sess).(type).com4plot(suid(su))=com;
+            else
+                if contains(type,'s1')
+                    ppref=classnn(3,:);
+                else
+                    ppref=classnn(4,:);
+                end
+                ppref(ppref<0)=0;
+                if any(ppref>0)
+                    com=sum((1:24).*ppref)./sum(ppref);
+                    com_str.(sess).(type).com4plot(suid(su))=com;
+                end
             end
         end
     end
@@ -165,6 +180,7 @@ end
 
 
 function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
+
     for su=reshape(msel,1,[])
         ffmats1=squeeze([fr(trls.cs1d3,su,:);fr(trls.cs1d6,su,:)]);
         ffmats2=squeeze([fr(trls.cs2d3,su,:);fr(trls.cs2d6,su,:)]);
@@ -181,9 +197,6 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
-%             if ispc
-%                 keyboard();
-%             end
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
@@ -204,6 +217,16 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
                 else
                     com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
                 end
+            end
+            if contains(type,'s1')
+                ppref=classnn(3,:);
+            else
+                ppref=classnn(4,:);
+            end
+            ppref(ppref<0)=0;
+            if any(ppref>0)
+                com=sum((1:24).*ppref)./sum(ppref);
+                com_str.(sess).(type).com4plot(suid(su))=com;
             end
         end
     end
@@ -248,6 +271,16 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
                     com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
                 else
                     com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                end
+            end
+            if contains(type,'d3')
+                com_str.(sess).(type).com4plot(suid(su))=com;
+            else
+                ppref=classnn(3,:);
+                ppref(ppref<0)=0;
+                if any(ppref>0)
+                    com=sum((1:24).*ppref)./sum(ppref);
+                    com_str.(sess).(type).com4plot(suid(su))=com;
                 end
             end
         end
