@@ -1,9 +1,12 @@
-%% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+%% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+eff_meta=ephys.effect_size_meta();
+%% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % mix >>>>>>>>>>>>>>>>>>>>>>>>>
 for bb=1:3
-    [mxd,dd]=maxk(abs(eff_meta.cohen_d_dur(:,bb)),500);
-    [mxo,oo]=maxk(abs(eff_meta.cohen_d_olf(:,bb)),500);
+    [mxd,dd]=maxk(abs(eff_meta.cohen_d_dur(:,bb)),600);
+    [mxo,oo]=maxk(abs(eff_meta.cohen_d_olf(:,bb)),600);
 
     idx=intersect(dd,oo);
     for ii=reshape(idx,1,[])
@@ -28,10 +31,7 @@ for ii=reshape(idx,1,[])
         keyboard();
     end
 end
-
-%<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-%>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
+%====================
 [mxd,dd]=mink(max(abs(eff_meta.cohen_d_dur),[],2),500);
 [mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),500);
 idx=intersect(oo,dd);
@@ -42,9 +42,7 @@ for ii=reshape(idx,1,[])
         keyboard();
     end
 end
-
-
-
+%====================
 [mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur),[],2),1000);
 [mxo,oo]=mink(max(abs(eff_meta.cohen_d_olf),[],2),1000);
 idx=intersect(oo,dd);
@@ -55,16 +53,9 @@ for ii=reshape(idx,1,[])
         keyboard();
     end
 end
-
-
-
-
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-
-%% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-eff_meta=ephys.effect_size_meta();
-%% wave
+%% wave heatmap
 fh=wave.plot_pct_wave(eff_meta,'sort_by',3);
 sgtitle(gcf(),'multi, sort by 3s')
 fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',3);
@@ -80,20 +71,18 @@ sgtitle(gcf(),'multi, sort by 3s')
 fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',3,'xlim',3);
 sgtitle(gcf(),'single-mod, sort by 3s')
 
-
-
+%% basic stats Pt.2
 sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
 sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
 
 dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
 dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
 
-% pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win);
-
 pct_meta4=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',4);
 pct_meta5=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',5);
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-%% p-distribution histogram
+
+%% effect size distribution histogram colorbar
 cmap=flip(colormap(parula(5)));
 bh=ephys.cmap_histogram(sens_efsz,sens_win,cmap);
 set(gca(),'YScale','linear','XScale','linear')
@@ -118,7 +107,7 @@ xlim([0,0.6])
 exportgraphics(bh,'pct_decoding.pdf','ContentType','vector','Append',true);
 
 %% svm decoding
-[fh,olf_dec_olf]=veve.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100);
+[fh,olf_dec_olf]=wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100);
 [fh,dur_dec_dur]=wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','cool','new_data',true,'calc_dec',true,'rpt',100);
 
 %% cross decoding
@@ -129,9 +118,55 @@ wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cm
 title('Rank by duration-encoding, decoding odor')
 exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
+%% correct error decoding
+if false
+    odorMulti=pct.pct_decoding_correct_error(pct_meta4,1:4,'lblidx',5,'n_su',20);% odor
+    odorSingle=pct.pct_decoding_correct_error(pct_meta4,5:6,'lblidx',5,'n_su',20);% odor
+    durMulti=pct.pct_decoding_correct_error(pct_meta4,1:4,'lblidx',8,'n_su',50);% odor
+    durSingle=pct.pct_decoding_correct_error(pct_meta4,7:8,'lblidx',8,'n_su',50);% odor
+    save('corr_err_pct_decoding.mat','odorMulti','odorSingle','durMulti','durSingle');
+else
+    load('corr_err_pct_decoding.mat','odorMulti','odorSingle','durMulti','durSingle');
+end
 
+% plot correct error decoding, maybe encapsulate >>>>>>>>>>>>>>>>>>>>>
+figure('Color','w','Position',[100,100,275,235]);
+tiledlayout(1,2)
+nexttile();
+hold on
+mm=[mean(odorMulti.olf.c_result_20su),mean(odorMulti.olf.e_result_20su),...
+    mean(odorSingle.olf.c_result_20su),mean(odorSingle.olf.e_result_20su)];
+bh=bar([1:2,4:5],diag(mm),'stacked');
+[bh(1).FaceColor,bh(3).FaceColor]=deal('w');
+[bh(2).FaceColor,bh(4).FaceColor]=deal('k');
+sem=[std(odorMulti.olf.c_result_20su),std(odorMulti.olf.e_result_20su),...
+    std(odorSingle.olf.c_result_20su),std(odorSingle.olf.e_result_20su)]...
+    ./sqrt(numel(odorMulti.olf.c_result_20su));
+errorbar([1:2,4:5],mm,sem,'k.');
+ylim([0.4,1]);
+set(gca(),'XTick',[1.5,4.5],'XTickLabel',{'Multi','Single'},'YTickLabel',get(gca(),'YTick').*100)
+yline(0.5,'k--')
+ylabel('Classification accuracy');
 
-%% mixed coding proportion heatmap
+nexttile();
+hold on
+mm=[mean(durMulti.dur.c_result_50su),mean(durMulti.dur.e_result_50su),...
+    mean(durSingle.dur.c_result_50su),mean(durSingle.dur.e_result_50su)];
+bh=bar([1:2,4:5],diag(mm),'stacked');
+[bh(1).FaceColor,bh(3).FaceColor]=deal('w');
+[bh(2).FaceColor,bh(4).FaceColor]=deal('k');
+sem=[std(durMulti.dur.c_result_50su),std(durMulti.dur.e_result_50su),...
+    std(durSingle.dur.c_result_50su),std(durSingle.dur.e_result_50su)]...
+    ./sqrt(numel(odorMulti.olf.c_result_20su));
+errorbar([1:2,4:5],mm,sem,'k.');
+ylim([0.4,1])
+set(gca(),'XTick',[1.5,4.5],'XTickLabel',{'Multi','Single'},'YTickLabel',get(gca(),'YTick').*100)
+yline(0.5,'k--')
+ylabel('Classification accuracy');
+
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+%% mixed coding proportion matrix heatmap
 win_cnt=numel(sens_win)-1;
 count_mat=nan(win_cnt,win_cnt);
 for s_idx=1:win_cnt
@@ -180,9 +215,11 @@ exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 % end
 
 %% Proportion, TCOM related
+
 [map_cells,pct_bar_fh]=ephys.pct_reg_bars(pct_meta4); % only need map_cells for tcom-frac corr
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,corr_log_log, ...
-    'range','grey','data_type','pct-frac','stats_type','percentile','feat_tag',{'Mixed','Olfactory','Duration'});
+    'range','grey','data_type','pct-frac','stats_type','percentile',...
+    'feat_tag',{'Mixed','Olfactory','Duration'},'corr2',true,'plot2',true);
 
 
 %% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -191,7 +228,7 @@ tcom_maps=cell(1,3);
 
 % map_cells: mixed_map,olf_map,dur_map
 % com-map >>>>>>>>>>>>>>>>>>>>>>>>>>
-global_init;
+
 com_map=wave.get_pct_com_map(pct_meta4,'curve',true);
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 for typeidx=1:3
@@ -234,14 +271,14 @@ end
 
 
 %% Functional coupling
-meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-pct_meta=pct.get_pct_meta();
+% meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+% pct_meta=pct.get_pct_meta();
 
 %>>> jump to TCOM section as needed
 if true
     % initiate global variable
-    [fh,~,th]=bz.inter_wave_pct(pct_meta4);
-    [fh,~,th]=bz.inter_wave_pct(pct_meta5);
+    fh4=bz.inter_wave_pct(pct_meta4);
+    fh5=bz.inter_wave_pct(pct_meta5);
     title(th,sprintf('class of %d bins',bw));
     exportgraphics(fh.mat,'pct_decoding.pdf','ContentType','vector','Append',true);
     exportgraphics(fh.bar,'pct_decoding.pdf','ContentType','vector','Append',true);

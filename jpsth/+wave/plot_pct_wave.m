@@ -50,7 +50,7 @@ for plot_id=opt.comb_set
                 for ffidx=1:4
                     nexttile((prefidx-1)*4+ffidx);
                     if opt.xlim==3
-                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,1:12));
+                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,1:12),'xlim',3);
                     else
                         plotOne(imdata.(pref).(tags(ffidx))(sortidx,:));
                     end
@@ -103,6 +103,7 @@ arguments
     opt.scale (1,2) double = [-1,1]
     opt.title (1,:) char = []
     opt.cmap (1,:) char = 'turbo'
+    opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 3
 end
 
 colormap(opt.cmap);
@@ -114,7 +115,11 @@ if size(imdata,2)>20
     xline(12.5,'--w','LineWidth',1);
     xlim([0.5,size(imdata,2)+0.5])
 else
-    xlim([0.5,size(imdata,2)*2+0.5])
+    if opt.xlim==6
+        xlim([0.5,size(imdata,2)*2+0.5])
+    else
+        xlim([0.5,size(imdata,2)+0.5])
+    end
     set(gca(),'XTick',[0.5,12.5],'XTickLabel',[0,3]);
 end
 colorbar();

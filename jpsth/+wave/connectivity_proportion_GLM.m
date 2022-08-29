@@ -41,7 +41,7 @@ map_regs=intersect(allen_src_regs,grey_regs);
 epochii=1;
 for featii=1:numel(map_cells) % both, either, summed
     one_reg_corr_list=[];
-    two_reg_corr_list=[];
+%     two_reg_corr_list=[];
     feat_reg_map=map_cells{epochii,featii};
     intersect_regs=intersect(map_regs,feat_reg_map.keys());
     idx4corr=cell2mat(src_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
@@ -103,13 +103,15 @@ for featii=1:numel(map_cells) % both, either, summed
 %                 s_list=s_list(s_list(:,4)==2,:);
 %             end
             
-            s_list=s_list([1:5,end-4:end],:);
+%             s_list=s_list([1:5,end-4:end],:);
+            s_list=s_list([1:2,end-1:end],:);
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
             xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
 
             fh.(sprintf('feat%d',featii))=figure('Color','w','Position',[32,32,650,700]);
-            tiledlayout(2,5);
-            nexttile(4,[1,2])
+            tiledlayout(4,2);
+%             nexttile(4,[1,2]) % GLM bar
+            nexttile(5)
             hold on
             %                 bhto=bar(find(s_list(:,4)==1),s_list(s_list(:,4)==1,7),0.6,'white');
             %                 bhfrom=bar(find(s_list(:,4)==2),s_list(s_list(:,4)==2,7),0.6,'black');
@@ -127,7 +129,8 @@ for featii=1:numel(map_cells) % both, either, summed
             %                 legend([bhto,bhfrom],{'Connectivity to this region','Connectivity from this region'})
 %             exportgraphics(fh.bar1,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
 
-            nexttile(1,[1,3])
+%             nexttile(1,[1,3])
+            nexttile(1,[2,1]) % positive max
             hold on
             glmidx=find(glmxmeta(:,1)==s_list(1,4) & glmxmeta(:,2)==s_list(1,5));
             for ll=1:numel(feat_prop)
@@ -144,7 +147,7 @@ for featii=1:numel(map_cells) % both, either, summed
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
 
-            nexttile(6,[1,3])
+            nexttile(2,[2,1]) %negative max
             hold on
             glmidx=find(glmxmeta(:,1)==s_list(end,4) & glmxmeta(:,2)==s_list(end,5));
             for ll=1:numel(feat_prop)
@@ -161,7 +164,7 @@ for featii=1:numel(map_cells) % both, either, summed
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(end,7),s_list(end,8)));
 
-            th=nexttile(9,[1,2]);
+            th=nexttile(6,[2,1]); % data table
             tbl=cell(0);
             if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
                 tbl=[tbl;'Stats';opt.stats_type];
@@ -187,18 +190,14 @@ for featii=1:numel(map_cells) % both, either, summed
             allen_A=log10(glmxmat(comb2(jj,1),:).'); % from one alternating target, to idx4corr
             allen_B=log10(glmxmat(comb2(jj,2),:).');
             mdl=fitglm([allen_A,allen_B],feat_prop,'linear'); % (1|2)jj => glmxmat==glmxmeta => (sink_ccfid|src_ccfid)
-            two_reg_corr_list=[two_reg_corr_list;featii,epochii,jj,double(glmxmeta(comb2(jj,1),:)),double(glmxmeta(comb2(jj,2),:)),mdl.Coefficients.Estimate.',mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc];
+%             two_reg_corr_list=[two_reg_corr_list;featii,epochii,jj,double(glmxmeta(comb2(jj,1),:)),double(glmxmeta(comb2(jj,2),:)),mdl.Coefficients.Estimate.',mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc];
             %============================================^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-            mdlid_rsq_AICC=[mdlid_rsq_AICC;jj,mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc];
-            %     if mdl.Rsquared.Ordinary>maxrsq
-            %         maxrsq=mdl.Rsquared.Ordinary;
-            %         maxidx=jj;
-            %     end
+            mdlid_rsq_AICC=[mdlid_rsq_AICC;jj,mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc,mdl.Coefficients.Estimate(2),mdl.Coefficients.Estimate(3)];
         end
         if opt.plot2
             mdlid_rsq_AICC=sortrows(mdlid_rsq_AICC,3);
-            % keyboard();
+            signs=["-","+","+"];
             ytk=cell(0,0);
             for kk=1:10
                 maxidx=mdlid_rsq_AICC(kk,1);
@@ -207,24 +206,24 @@ for featii=1:numel(map_cells) % both, either, summed
 %                     reg1=['To ',reg1{1}];
 %                 else
                     reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,1),2))));
-                    reg1=['From ',reg1{1}];
+                    reg1=signs(sign(mdlid_rsq_AICC(kk,4))+2)+string(reg1);
 %                 end
 %                 if glmxmeta(comb2(maxidx,2),1)==1
 %                     reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
 %                     reg2=['To ',reg2{1}];
 %                 else
                     reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
-                    reg2=['From ',reg2{1}];
+                    reg2=signs(sign(mdlid_rsq_AICC(kk,5))+2)+string(reg2);
 %                 end
 %                 disp([reg1,',',reg2,' ',num2str(mdlid_rsq_AICC(kk,2:3))])
-                ytk{end+1}=[reg1,',',reg2];
+                ytk{end+1}=reg1+", "+reg2;
             end
 
-            fh=figure('Color','w','Position',[32,32,600,400]);
-            tiledlayout(2,3)
-            nexttile(3,[2,1]);
-            bar(sqrt(mdlid_rsq_AICC(1:10,2)),'Horizontal','on','FaceColor','k')
-            set(gca(),'YDir','reverse','YTick',1:10,'YTickLabel',ytk(1:10))
+            fh.(sprintf('feat%d_2f',featii))=figure('Color','w','Position',[32,32,400,600]);
+            tiledlayout(3,1)
+            nexttile(3);
+            bar(sqrt(mdlid_rsq_AICC(1:4,2)),'Horizontal','on','FaceColor','k')
+            set(gca(),'YDir','reverse','YTick',1:4,'YTickLabel',ytk(1:4))
             xlabel('Person''s r')
             xlim([0,1])
             title(sprintf('selectivity %d - epoch %d',featii,epochii));
@@ -252,7 +251,7 @@ for featii=1:numel(map_cells) % both, either, summed
                 reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
                 reg2=['From_',reg2{1}];
 %             end
-            nexttile(1,[2,2])
+            nexttile(1,[2,1])
 %             fh=figure('Color','w','Position',[32,32,320,320]);
             hold on
             for ll=1:numel(feat_prop)
@@ -267,7 +266,12 @@ for featii=1:numel(map_cells) % both, either, summed
             'Interpreter','none')
             xlabel(sprintf('Model %d prediction',maxidx))
             ylabel('Dependent feature')
-%             set(gca,'XScale','log','YScale','log')
+            if strcmp(corr_type,'PearsonLinearLog')
+                set(gca,'XScale','log','YScale','linear')
+            else
+                set(gca,'XScale','log','YScale','log')
+            end
+
             text(min(xlim()),max(ylim()),sprintf(' r = %.3f, AIC = %.1f',sqrt(mdl.Rsquared.Ordinary),mdl.ModelCriterion.AIC),'HorizontalAlignment','left','VerticalAlignment','top');
             % xlim([0.15,0.5])
             % ylim([0.15,0.5])
@@ -276,7 +280,7 @@ for featii=1:numel(map_cells) % both, either, summed
             %         keyboard()
 
         end
-        save('two_reg_corr_list.mat','two_reg_corr_list')
+%         save('two_reg_corr_list.mat','two_reg_corr_list')
     end
     %%
     if opt.corr3
