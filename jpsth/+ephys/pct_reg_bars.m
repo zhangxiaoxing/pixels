@@ -44,7 +44,16 @@ end
 flatten=@(y) cellfun(@(x) x,y);
 bardata=sortrows(sums,7,'descend');
 regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
+if true % export for brain renderer
+    for rr=1:size(bardata,1)
+        disp("["+string(idmap.ccfid2reg(bardata(rr,2))) ...
+            +","...
+            + num2str(bardata(rr,[7 10 13]),"%.3f,")...
+            + "]");
+    end
 
+    keyboard()
+end
 mixed_map=containers.Map(regstr,num2cell(bardata(:,[7,4,3]),2));
 olf_map=containers.Map(regstr,num2cell(bardata(:,[10,5,3]),2));
 dur_map=containers.Map(regstr,num2cell(bardata(:,[13,5,3]),2));

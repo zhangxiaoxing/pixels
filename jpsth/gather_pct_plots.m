@@ -3,7 +3,7 @@ global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 eff_meta=ephys.effect_size_meta();
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-% mix >>>>>>>>>>>>>>>>>>>>>>>>>
+% mix same bin>>>>>>>>>>>>>>>>>>>>>>>>>
 for bb=1:3
     [mxd,dd]=maxk(abs(eff_meta.cohen_d_dur(:,bb)),600);
     [mxo,oo]=maxk(abs(eff_meta.cohen_d_olf(:,bb)),600);
@@ -18,7 +18,7 @@ for bb=1:3
     end
 end
 %<<<<<<<<<<<<<<<<<<<<<<
-%>>>>mix, cross time>>>>>>>>>>>>>>>>>>>>>>>
+%>>>>mix, alternate bin>>>>>>>>>>>>>>>>>>>>>>>
 
 [mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur),[],2),1000);
 [mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),1000);
@@ -31,7 +31,7 @@ for ii=reshape(idx,1,[])
         keyboard();
     end
 end
-%====================
+% olf only ====================
 [mxd,dd]=mink(max(abs(eff_meta.cohen_d_dur),[],2),500);
 [mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),500);
 idx=intersect(oo,dd);
@@ -42,15 +42,16 @@ for ii=reshape(idx,1,[])
         keyboard();
     end
 end
-%====================
-[mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur),[],2),1000);
-[mxo,oo]=mink(max(abs(eff_meta.cohen_d_olf),[],2),1000);
-idx=intersect(oo,dd);
-for ii=reshape(idx,1,[])
+% dur only ====================
+% [mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur(:,1:2)),[],2),2000);
+% [mxo,oo]=mink(max(abs(eff_meta.cohen_d_olf),[],2),12000);
+% idx=intersect(oo,dd);
+for ii=[881,10248,10986,11547,20054,27126,27249]%reshape(idx,1,[])
     scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
     if ~isempty(scfh)
         sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", dur");
-        keyboard();
+        exportgraphics(scfh,sprintf('SC/SCDUR%5d.png',ii),'ContentType','image');
+%         close(scfh)
     end
 end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -275,14 +276,14 @@ end
 % pct_meta=pct.get_pct_meta();
 
 %>>> jump to TCOM section as needed
-if true
+% if true
     % initiate global variable
     fh4=bz.inter_wave_pct(pct_meta4);
     fh5=bz.inter_wave_pct(pct_meta5);
-    title(th,sprintf('class of %d bins',bw));
-    exportgraphics(fh.mat,'pct_decoding.pdf','ContentType','vector','Append',true);
-    exportgraphics(fh.bar,'pct_decoding.pdf','ContentType','vector','Append',true);
-end
+%     title(th,sprintf('class of %d bins',bw));
+%     exportgraphics(fh.mat,'pct_decoding.pdf','ContentType','vector','Append',true);
+%     exportgraphics(fh.bar,'pct_decoding.pdf','ContentType','vector','Append',true);
+% end
 
 
 

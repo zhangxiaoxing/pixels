@@ -86,7 +86,7 @@ for plot_id=opt.comb_set
                 for ffidx=1:4
                     nexttile((prefidx-1)*4+ffidx);
                     if opt.xlim==3
-                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,1:12));
+                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,1:12),'xlim',3);
                     else
                         plotOne(imdata.(pref).(ffs(ffidx))(sortidx,:));
                     end
@@ -103,7 +103,7 @@ arguments
     opt.scale (1,2) double = [-1,1]
     opt.title (1,:) char = []
     opt.cmap (1,:) char = 'turbo'
-    opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 3
+    opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 6
 end
 
 colormap(opt.cmap);
