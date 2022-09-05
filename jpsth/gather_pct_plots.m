@@ -276,15 +276,8 @@ end
 % pct_meta=pct.get_pct_meta();
 
 %>>> jump to TCOM section as needed
-% if true
-    % initiate global variable
-    fh4=bz.inter_wave_pct(pct_meta4);
-    fh5=bz.inter_wave_pct(pct_meta5);
-%     title(th,sprintf('class of %d bins',bw));
-%     exportgraphics(fh.mat,'pct_decoding.pdf','ContentType','vector','Append',true);
-%     exportgraphics(fh.bar,'pct_decoding.pdf','ContentType','vector','Append',true);
-% end
-
+fh4=bz.inter_wave_pct(pct_meta4);
+fh5=bz.inter_wave_pct(pct_meta5);
 
 
 %% FC_TCOM_hierachy

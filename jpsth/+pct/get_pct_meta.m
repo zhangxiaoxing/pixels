@@ -1,7 +1,7 @@
 function pct_meta=get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,opt)
 arguments
     eff_meta,sens_efsz,sens_win,dur_efsz,dur_win
-    opt.single_mod_thresh (1,1) double {mustBeMember(opt.single_mod_thresh,4:5)} = 4
+    opt.single_mod_thresh (1,1) double {mustBeMember(opt.single_mod_thresh,[2,4,5])} = 4
 end
 persistent pct_meta_ opt_
 if isempty(pct_meta_) || ~isequaln(opt,opt_)

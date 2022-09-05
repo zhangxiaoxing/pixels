@@ -1,7 +1,8 @@
 function fh=inter_wave_pct(pct_meta,opt)
 arguments
     pct_meta
-    opt.min_pair_per_session (1,1) double = 10
+    opt.min_pair_per_session (1,1) double = 20
+    opt.per_sess (1,1) logical = false
 end
 % selstr=load('perm_sens.mat','sens_meta');
 
@@ -17,8 +18,11 @@ pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 % [samestats,sameci]=statsMixed(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session);
 % [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
 
-fh.samereg=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session);
-fh.crossreg=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
+fh.samereg=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
+fh.crossreg=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
+
+%% single-mixed
+statsMixed(sig,pair)
 
 % 
 % stats.samestats=samestats;
@@ -51,25 +55,112 @@ fh.crossreg=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 end
 
-function [cowavehat,cowaveci]=statsMixed(sig_sel,pair_sel,sig,pair,min_pair_per_session)
+function statsMixed(sig,pair)
 %% 4 Qdr FC rate loop
-cowavehat=nan(5,5);
-cowaveci=nan(5,5,2);
 
-for fromqtr=0:4
-    for toqtr=0:4
-        sig_cowave=sig.sess(sig_sel & sig.waveid(:,1)==fromqtr & sig.waveid(:,2)==toqtr);
-        pair_cowave=pair.sess(pair_sel & pair.waveid(:,1)==fromqtr & pair.waveid(:,2)==toqtr);
-        %         [cowavehat(fromqtr,toqtr),cowaveci(fromqtr,toqtr,:)]=binofit(sig_cowave,pair_cowave);
-        sess_vec=[histcounts(sig_cowave,(0:116)+0.5);histcounts(pair_cowave,(0:116)+0.5)];
-        cowavehat(fromqtr+1,toqtr+1)=mean(sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session));
-    end
+pair_sel_olf=((pair.waveid(:,1)==1 | pair.waveid(:,1)==2) & pair.waveid(:,2)==5) ...
+    |((pair.waveid(:,1)==3 | pair.waveid(:,1)==4) & pair.waveid(:,2)==6); 
+% pair info was flipped and duplicated, so mix-> single always equals single->mix
+% in number.
+
+pair_sel_dur=((pair.waveid(:,1)==1 | pair.waveid(:,1)==3) & pair.waveid(:,2)==7) ...
+    |((pair.waveid(:,1)==2 | pair.waveid(:,1)==4) & pair.waveid(:,2)==8);
+
+ms_sig_sel_olf=((sig.waveid(:,1)==1 | sig.waveid(:,1)==2) & sig.waveid(:,2)==5) ...
+    |((sig.waveid(:,1)==3 | sig.waveid(:,1)==4) & sig.waveid(:,2)==6);
+
+ms_sig_sel_dur=((sig.waveid(:,1)==1 | sig.waveid(:,1)==3) & sig.waveid(:,2)==7) ...
+    |((sig.waveid(:,1)==2 | sig.waveid(:,1)==4) & sig.waveid(:,2)==8);
+
+sm_sig_sel_olf=((sig.waveid(:,2)==1 | sig.waveid(:,2)==2) & sig.waveid(:,1)==5) ...
+    |((sig.waveid(:,2)==3 | sig.waveid(:,2)==4) & sig.waveid(:,1)==6);
+
+sm_sig_sel_dur=((sig.waveid(:,2)==1 | sig.waveid(:,2)==3) & sig.waveid(:,1)==7) ...
+    |((sig.waveid(:,2)==2 | sig.waveid(:,2)==4) & sig.waveid(:,1)==8);
+
+
+olfstats=[nnz(sm_sig_sel_olf),nnz(ms_sig_sel_olf),nnz(pair_sel_olf)];
+durstats=[nnz(sm_sig_sel_dur),nnz(ms_sig_sel_dur),nnz(pair_sel_dur)];
+
+%% mix-mix, single-single
+mm_pair=pair.waveid(:,1)==pair.waveid(:,2) & ismember(pair.waveid(:,1),1:4);
+mm_sig=sig.waveid(:,1)==sig.waveid(:,2) & ismember(sig.waveid(:,1),1:4);
+
+olf_pair=pair.waveid(:,1)==pair.waveid(:,2) & ismember(pair.waveid(:,1),5:6);
+olf_sig=sig.waveid(:,1)==sig.waveid(:,2) & ismember(sig.waveid(:,1),5:6);
+
+dur_pair=pair.waveid(:,1)==pair.waveid(:,2) & ismember(pair.waveid(:,1),7:8);
+dur_sig=sig.waveid(:,1)==sig.waveid(:,2) & ismember(sig.waveid(:,1),7:8);
+
+[mm_hat,mm_ci]=binofit(nnz(mm_sig),nnz(mm_pair));
+[olf_hat,olf_ci]=binofit(nnz(olf_sig),nnz(olf_pair));
+[dur_hat,dur_ci]=binofit(nnz(dur_sig),nnz(dur_pair));
+
+mmm=[mm_hat,olf_hat,dur_hat];
+
+[~,smci_olf]=binofit(olfstats(1),olfstats(3));
+[~,msci_olf]=binofit(olfstats(2),olfstats(3));
+
+[~,smci_dur]=binofit(durstats(1),durstats(3));
+[~,msci_dur]=binofit(durstats(2),durstats(3));
+
+[~,~,polf]=crosstab([zeros(1,nnz(olf_pair)),ones(1,olfstats(3)),ones(1,olfstats(3)).*2],...
+    [1:nnz(olf_pair)>nnz(olf_sig),1:olfstats(3)>olfstats(1),1:olfstats(3)>olfstats(2)]);
+
+[~,~,pdur]=crosstab([zeros(1,nnz(dur_pair)),ones(1,durstats(3)),ones(1,durstats(3)).*2],...
+    [1:nnz(dur_pair)>nnz(dur_sig),1:durstats(3)>durstats(1),1:durstats(3)>durstats(2)]);
+
+[~,~,povall]=crosstab([zeros(1,nnz(olf_pair)),ones(1,olfstats(3)),ones(1,olfstats(3)).*2,ones(1,nnz(dur_pair)).*3,ones(1,durstats(3)).*4,ones(1,durstats(3)).*5,ones(1,nnz(mm_pair)).*6],...
+    [1:nnz(olf_pair)>nnz(olf_sig),1:olfstats(3)>olfstats(1),1:olfstats(3)>olfstats(2),1:nnz(dur_pair)>nnz(dur_sig),1:durstats(3)>durstats(1),1:durstats(3)>durstats(2),1:(nnz(mm_pair))>nnz(mm_sig)]);
+
+
+figure('Color','w','Position',[100,100,275,235])
+hold on
+bh1=bar(1,mmm(1),0.25);
+bh2=bar(2,[mmm(2),olfstats(1:2)./olfstats(3)]);
+bh3=bar(3,[mmm(3),durstats(1:2)./durstats(3)]);
+errorbar([bh1.XEndPoints,bh2.XEndPoints,bh3.XEndPoints],...
+    [bh1.YEndPoints,bh2.YEndPoints,bh3.YEndPoints],...
+    [mm_ci(1),olf_ci(1),smci_olf(1),msci_olf(1),dur_ci(1),smci_dur(1),msci_dur(1)]-[bh1.YEndPoints,bh2.YEndPoints,bh3.YEndPoints],...
+    [mm_ci(2),olf_ci(2),smci_olf(2),msci_olf(2),dur_ci(2),smci_dur(2),msci_dur(2)]-[bh1.YEndPoints,bh2.YEndPoints,bh3.YEndPoints],...
+    'k.');
+    
+[bh2(1).FaceColor,bh3(1).FaceColor]=deal('k');
+[bh2(2).FaceColor,bh3(2).FaceColor]=deal([0.5,0.5,0.5]);
+[bh2(3).FaceColor,bh3(3).FaceColor]=deal('w');
+
+% legend(bh,{'Single->Multiplexed','Multiplexed->Single'},'Location','northoutside')
+set(gca(),'XTick',1:3,'XTickLabel',{'m2m','Olfactory','Duration'},'YTickLabel',get(gca(),'YTick').*100)
+ylabel('F.C. rate (%)')
+title (sprintf('p=%.3f,%.3f',polf,pdur));
+
+
+
+
+
+
+
+
+
+
+%%
+% cowavehat=nan(5,5);
+% cowaveci=nan(5,5,2);
+% 
+% for fromqtr=0:4
+%     for toqtr=0:4
+%         sig_cowave=sig.sess(sig_sel & sig.waveid(:,1)==fromqtr & sig.waveid(:,2)==toqtr);
+%         pair_cowave=pair.sess(pair_sel & pair.waveid(:,1)==fromqtr & pair.waveid(:,2)==toqtr);
+%         %         [cowavehat(fromqtr,toqtr),cowaveci(fromqtr,toqtr,:)]=binofit(sig_cowave,pair_cowave);
+%         sess_vec=[histcounts(sig_cowave,(0:116)+0.5);histcounts(pair_cowave,(0:116)+0.5)];
+%         cowavehat(fromqtr+1,toqtr+1)=mean(sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session));
+%     end
+% end
 end
-end
 
 
 
-function fh=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session)
+function fh=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess)
 % [fromhat,tohat,fromsem,tosem]=deal(nan(5,1));
 
 nonmem_sig=pct.su_pairs.get_nonmem(sig.waveid);
@@ -81,47 +172,53 @@ congru_pair=pct.su_pairs.get_congru(pair.waveid);
 incong_sig=pct.su_pairs.get_incongru(sig.waveid);
 incong_pair=pct.su_pairs.get_incongru(pair.waveid);
 
-sig_nonmem=nnz(sig_sel & nonmem_sig);
-pair_nonmem=nnz(pair_sel & nonmem_pair);
-[nonmem_hat,nonmem_sem]=binofit(sig_nonmem,pair_nonmem);
+if per_sess
+    sig_nonmem=sig.sess(sig_sel & nonmem_sig);
+    pair_nonmem=pair.sess(pair_sel & nonmem_pair);
+    sess_vec=[histcounts(sig_nonmem,(0:116)+0.5);histcounts(pair_nonmem,(0:116)+0.5)];
+    inc_vec=sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session);
+    nonmem_hat=mean(inc_vec);
+    nonmem_sem=std(inc_vec)./sqrt(numel(inc_vec));
+    finivec=[reshape(inc_vec,[],1),repmat(0,numel(inc_vec),1)];
 
+    sig_congru=sig.sess(sig_sel & congru_sig);
+    pair_congru=pair.sess(pair_sel & congru_pair);
+    sess_vec=[histcounts(sig_congru,(0:116)+0.5);histcounts(pair_congru,(0:116)+0.5)];
+    inc_vec=sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session);
+    congru_hat=mean(inc_vec);
+    congru_sem=std(inc_vec)./sqrt(numel(inc_vec));
+    finivec=[finivec;reshape(inc_vec,[],1),repmat(1,numel(inc_vec),1)];
 
-% 
-% sig_nonmem=sig.sess(sig_sel & nonmem_sig);
-% pair_nonmem=pair.sess(pair_sel & nonmem_pair);
-% sess_vec=[histcounts(sig_nonmem,(0:116)+0.5);histcounts(pair_nonmem,(0:116)+0.5)];
-% inc_vec=sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session);
-% nonmem_hat=mean(inc_vec);
-% nonmem_sem=std(inc_vec)./sqrt(numel(inc_vec));
-% finivec=[reshape(inc_vec,[],1),repmat(0,numel(inc_vec),1)];
+    sig_incong=sig.sess(sig_sel & incong_sig);
+    pair_incong=pair.sess(pair_sel & incong_pair);
+    sess_vec=[histcounts(sig_incong,(0:116)+0.5);histcounts(pair_incong,(0:116)+0.5)];
+    inc_vec=sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session);
+    incong_hat=mean(inc_vec);
+    incong_sem=std(inc_vec)./sqrt(numel(inc_vec));
+    finivec=[finivec;reshape(inc_vec,[],1),repmat(2,numel(inc_vec),1)];
 
-sig_congru=nnz(sig_sel & congru_sig);
-pair_congru=nnz(pair_sel & congru_pair);
-[congru_hat,congru_sem]=binofit(sig_congru,pair_congru);
+%     [h,p]=ttest2(finivec(finivec(:,2)==0,1),finivec(finivec(:,2)==2,1))
 
-% sig_congru=sig.sess(sig_sel & congru_sig);
-% pair_congru=pair.sess(pair_sel & congru_pair);
-% sess_vec=[histcounts(sig_congru,(0:116)+0.5);histcounts(pair_congru,(0:116)+0.5)];
-% inc_vec=sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session);
-% congru_hat=mean(inc_vec);
-% congru_sem=std(inc_vec)./sqrt(numel(inc_vec));
-% finivec=[finivec;reshape(inc_vec,[],1),repmat(1,numel(inc_vec),1)];
+    p=anovan(finivec(:,1),finivec(:,2),'display','off');
+    disp("From bars anova p="+num2str(p));
 
-sig_incong=nnz(sig_sel & incong_sig);
-pair_incong=nnz(pair_sel & incong_pair);
-[incong_hat,incong_sem]=binofit(sig_incong,pair_incong);
-% sig_incong=sig.sess(sig_sel & incong_sig);
-% pair_incong=pair.sess(pair_sel & incong_pair);
-% sess_vec=[histcounts(sig_incong,(0:116)+0.5);histcounts(pair_incong,(0:116)+0.5)];
-% inc_vec=sess_vec(1,sess_vec(2,:)>min_pair_per_session)./sess_vec(2,sess_vec(2,:)>min_pair_per_session);
-% incong_hat=mean(inc_vec);
-% incong_sem=std(inc_vec)./sqrt(numel(inc_vec));
-% finivec=[finivec;reshape(inc_vec,[],1),repmat(2,numel(inc_vec),1)];
+else
+    sig_nonmem=nnz(sig_sel & nonmem_sig);
+    pair_nonmem=nnz(pair_sel & nonmem_pair);
+    [nonmem_hat,nonmem_sem]=binofit(sig_nonmem,pair_nonmem);
 
-% [h,p]=ttest2(finivec(finivec(:,2)==0,1),finivec(finivec(:,2)==2,1))
-% 
-% p=anovan(finivec(:,1),finivec(:,2),'display','off');
-% disp("From bars anova p="+num2str(p));
+    sig_congru=nnz(sig_sel & congru_sig);
+    pair_congru=nnz(pair_sel & congru_pair);
+    [congru_hat,congru_sem]=binofit(sig_congru,pair_congru);
+
+    sig_incong=nnz(sig_sel & incong_sig);
+    pair_incong=nnz(pair_sel & incong_pair);
+    [incong_hat,incong_sem]=binofit(sig_incong,pair_incong);
+
+    [~,~,p]=crosstab([zeros(pair_nonmem,1);ones(pair_congru,1);2.*ones(pair_incong,1)],...
+    [(1:pair_nonmem)>sig_nonmem,(1:pair_congru)>sig_congru,(1:pair_incong)>sig_incong].');
+end
+
 
 fh=figure('Color','w','Position',[100,100,235,235]);
 hold on
@@ -129,13 +226,16 @@ bh=bar(1:3,diag([nonmem_hat,incong_hat,congru_hat]),'stacked');
 bh(1).FaceColor='k';
 bh(2).FaceColor='b';
 bh(3).FaceColor='r';
+if per_sess
+    errorbar(1:3,[nonmem_hat,incong_hat,congru_hat],...
+        [nonmem_sem,incong_sem,congru_sem],...
+        'k.');
+else
 errorbar(1:3,[nonmem_hat,incong_hat,congru_hat],...
     [nonmem_sem(1),incong_sem(1),congru_sem(1)]-[nonmem_hat,incong_hat,congru_hat],...
     [nonmem_sem(2),incong_sem(2),congru_sem(2)]-[nonmem_hat,incong_hat,congru_hat],...
     'k.');
-
-[~,~,p]=crosstab([zeros(pair_nonmem,1);ones(pair_congru,1);2.*ones(pair_incong,1)],...
-    [(1:pair_nonmem)>sig_nonmem,(1:pair_congru)>sig_congru,(1:pair_incong)>sig_incong].');
+end
 
 set(gca(),'XTick',1:3,'XTickLabel',{'NONMEM','INCONG','CONGRU'},'XTickLabelRotation',90,...
     'YTickLabel',100.*get(gca(),'YTick'));
