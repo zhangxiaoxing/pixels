@@ -19,9 +19,9 @@ for reg=reshape(ureg,1,[])
     regsel=strcmp(meta.reg_tree(5,:),reg).';
     cnt=nnz(regsel);
 
-    mixed_cnt=nnz(regsel & pct_meta.class_id==4);
-    olf_cnt=nnz(regsel & pct_meta.class_id==2);
-    dur_cnt=nnz(regsel & pct_meta.class_id==3);
+    mixed_cnt=nnz(regsel & ismember(pct_meta.wave_id,1:4));
+    olf_cnt=nnz(regsel & ismember(pct_meta.wave_id,5:6));
+    dur_cnt=nnz(regsel & ismember(pct_meta.wave_id,7:8));
     legends={'Mixed modality','Olfactory only','Duration only'};
             
     grp=idmap.reg2tree(reg{1});
@@ -44,7 +44,7 @@ end
 flatten=@(y) cellfun(@(x) x,y);
 bardata=sortrows(sums,7,'descend');
 regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
-if true % export for brain renderer
+if false % export for brain renderer
     for rr=1:size(bardata,1)
         disp("["+string(idmap.ccfid2reg(bardata(rr,2))) ...
             +","...

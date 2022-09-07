@@ -5,6 +5,8 @@ arguments
     opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 1
     opt.sort_by (1,1) double {mustBeMember(opt.sort_by,[3 6])} = 6
     opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 6
+    opt.lesser_grade (1,1) logical = false
+    opt.merge (1,1) logical = false
 end
 %% global
 for plot_id=opt.comb_set
@@ -15,9 +17,14 @@ for plot_id=opt.comb_set
     dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
     dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
     % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-    pct_meta4=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',4);
-    com_map=wave.get_pct_com_map(pct_meta4,'curve',true);
+    if opt.merge
+        pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',false);
+        pct_metaL=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',true);
+        pct_meta.wave_id=max([pct_meta.wave_id,pct_metaL.wave_id],[],2);
+    else
+        pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',opt.lesser_grade);
+    end
+    com_map=wave.get_pct_com_map(pct_meta,'curve',true);
     fss=reshape(fieldnames(com_map),1,[]);
     imdata=struct();
     switch plot_id

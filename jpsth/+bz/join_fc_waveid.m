@@ -1,16 +1,38 @@
-function fc=join_fc_waveid(fc,waveid)
+function fc=join_fc_waveid(fc,waveid,opt)
+arguments
+    fc
+    waveid
+    opt.pct_mat (1,1) logical = false
+end
     meta=ephys.util.load_meta('skip_stats',true);
     usess=unique(fc.sess);
-    fc.waveid=zeros(size(fc.suid));
+    if opt.pct_mat
+        fc.pct_coord=zeros(size(fc.suid,1),4)-1;
+    else
+        fc.waveid=zeros(size(fc.suid))-1;
+    end
     for ss=reshape(usess,1,[])
-        metaid=int32(meta.allcid(meta.sess==ss));
-        sesswave=waveid(meta.sess==ss);
-        suidL=fc.suid(fc.sess==ss,1);
-        [isin,idL]=ismember(suidL,metaid);
-        fc.waveid(fc.sess==ss,1)=sesswave(idL);
+        if opt.pct_mat
+            metaid=int32(meta.allcid(meta.sess==ss));
+            sess_coord=waveid(meta.sess==ss,:);
+            suidL=fc.suid(fc.sess==ss,1);
+            [~,idL]=ismember(suidL,metaid);
+            fc.pct_coord(fc.sess==ss,1:2)=sess_coord(idL,:);
 
-        suidF=fc.suid(fc.sess==ss,2);
-        [isin,idF]=ismember(suidF,metaid);
-        fc.waveid(fc.sess==ss,2)=sesswave(idF);
+            suidF=fc.suid(fc.sess==ss,2);
+            [~,idF]=ismember(suidF,metaid);
+            fc.pct_coord(fc.sess==ss,3:4)=sess_coord(idF,:);
+        else
+            metaid=int32(meta.allcid(meta.sess==ss));
+            sesswave=waveid(meta.sess==ss);
+            suidL=fc.suid(fc.sess==ss,1);
+            [~,idL]=ismember(suidL,metaid);
+            fc.waveid(fc.sess==ss,1)=sesswave(idL);
+
+            suidF=fc.suid(fc.sess==ss,2);
+            [~,idF]=ismember(suidF,metaid);
+            fc.waveid(fc.sess==ss,2)=sesswave(idF);
+        end
+
     end
 end

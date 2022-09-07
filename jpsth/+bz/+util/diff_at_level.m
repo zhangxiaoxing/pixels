@@ -18,7 +18,6 @@ if opt.hierarchy
     src_reg=cellfun(@(x) x, idmap.ccfid2reg.values(num2cell(src_ccfid)));
     assert(ismember(opt.hiermap,[src_reg;{'pvsst'};{'OBM1'}]),'Unknown hierachical mapping');
 
-
     switch opt.hiermap
         case 'pvsst'
             [~,~,hiermap]=ref.get_pv_sst();
@@ -27,19 +26,15 @@ if opt.hierarchy
             fstr=load('OBM1map.mat','OBM1map');
             hiermap=fstr.OBM1map;
             assert(~opt.descend,'desending order not supported');
-        case 'pct'
-            hiermap=opt.hiermap_map;
+
         otherwise
-            anov=sink_src_mat(:,src_ccfid==idmap.reg2ccfid(opt.hiermap));
+            connv=sink_src_mat(:,src_ccfid==idmap.reg2ccfid(opt.hiermap));
             if opt.descend
-                anov=-anov;
+                connv=-connv;
             end
             hiermap=containers.Map(cellfun(@(x) x,idmap.ccfid2reg.values(num2cell(sink_ccfid))),...
-                anov);
-
+                connv);
     end
-
-    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
     is_diff=[];
     [is_same,h2l,l2h]=deal(false(size(reg,1),6));

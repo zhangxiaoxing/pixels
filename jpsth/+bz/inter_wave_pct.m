@@ -10,7 +10,9 @@ end
 
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 sig=bz.join_fc_waveid(sig,pct_meta.wave_id);
+sig=bz.join_fc_waveid(sig,pct_meta.mat_coord,'pct_mat',true); %lead_olf, lead_dur,folo_olf,folo_dur
 pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
+pair=bz.join_fc_waveid(pair,pct_meta.mat_coord,"pct_mat",true);
 %>>>>>>>>>>>>>>>>>>Skip hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
 [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
@@ -22,38 +24,125 @@ fh.samereg=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_s
 fh.crossreg=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
 
 %% single-mixed
+statsMat(sig,pair)
 statsMixed(sig,pair)
 
-% 
-% stats.samestats=samestats;
-% stats.sameci=sameci;
-% stats.diffstats=diffstats;
-% stats.diffci=diffci;
-% 
-% fh=struct();
-% 
-% fh.mat=figure('Color','w','Position',[32,32,1220,320]);
-% t=tiledlayout(1,3);
-% nexttile(2)
-% ax_same=plotOne(samestats.','scale',[min(samestats,[],"all"),max(samestats,[],"all")]);
-% nexttile(3)
-% ax_diff=plotOne(diffstats.','scale',[min(diffstats,[],"all"),max(diffstats,[],"all")]);
-% title(t,'Same-, cross-region FC rate')
-% 
-% fh.bar=figure('Color','w','Position',[100,100,1600,330]);
-% t=tiledlayout(1,4);
-% plotOneBar(t,samefromhat,samefromci);
-% plotOneBar(t,sametohat,sametoci);
-% plotOneBar(t,difffromhat,difffromci);
-% plotOneBar(t,difftohat,difftoci);
-
-
-% th=nexttile();
-% ephys.util.figtable(fh,th,{'chisq-same';samep;'chisq-diff';diffp})
-
-% exportgraphics(fh,'inter_wave_fc.pdf','ContentType','vector');
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 end
+
+
+function stats=statsMat(sig,pair)
+
+stats=struct();
+% from 
+struc_from_tag={'from_mix','from_olf','from_dur','from_nonmem'};
+lead_member={1:4,5:6,7:8,0};
+for ii=1:4
+    pair_cnt=nan(5,5);
+    sig_cnt=nan(5,5);
+
+    pair_lead_sel=ismember(pair.waveid(:,1),lead_member{ii});
+    sig_lead_sel=ismember(sig.waveid(:,1),lead_member{ii});
+    for oidx=1:5
+        for didx=1:5
+            pair_coord_sel=pair.pct_coord(:,3)==oidx ...
+                & pair.pct_coord(:,4)==didx;
+            sig_coord_sel=sig.pct_coord(:,3)==oidx ...
+                & sig.pct_coord(:,4)==didx;
+            pair_cnt(oidx,didx)=nnz(pair_lead_sel & pair_coord_sel);
+            sig_cnt(oidx,didx)=nnz(sig_lead_sel & sig_coord_sel);
+        end
+    end
+    stats.(struc_from_tag{ii}).sig_cnt=sig_cnt;
+    stats.(struc_from_tag{ii}).pair_cnt=pair_cnt;
+end
+%to
+struc_to_tag={'to_mix','to_olf','to_dur','to_nonmem'};
+lead_member={1:4,5:6,7:8,0};
+for ii=1:4
+    pair_cnt=nan(5,5);
+    sig_cnt=nan(5,5);
+
+    pair_lead_sel=ismember(pair.waveid(:,2),lead_member{ii});
+    sig_lead_sel=ismember(sig.waveid(:,2),lead_member{ii});
+    for oidx=1:5
+        for didx=1:5
+            pair_coord_sel=pair.pct_coord(:,1)==oidx ...
+                & pair.pct_coord(:,2)==didx;
+            sig_coord_sel=sig.pct_coord(:,1)==oidx ...
+                & sig.pct_coord(:,2)==didx;
+            pair_cnt(oidx,didx)=nnz(pair_lead_sel & pair_coord_sel);
+            sig_cnt(oidx,didx)=nnz(sig_lead_sel & sig_coord_sel);
+        end
+    end
+    stats.(struc_to_tag{ii}).sig_cnt=sig_cnt;
+    stats.(struc_to_tag{ii}).pair_cnt=pair_cnt;
+end
+
+%% matrix
+figure('Color','w')
+tiledlayout(2,4);
+
+for ii=1:4
+    nexttile(ii)
+    imagesc((stats.(struc_from_tag{ii}).sig_cnt./stats.(struc_from_tag{ii}).pair_cnt).*100,[0.4,1]);
+    title(struc_from_tag{ii},'Interpreter','none')
+    colormap(flip(colormap('gray')));
+    set(gca(),'YDir','normal','XTick',0.5:1:10.5,'XTickLabel',0:20:100,...
+    'YTick',0.5:1:10.5,'YTickLabel',0:20:100);
+    xlabel('Duration rank (%)')
+    ylabel('Olfactory rank (%)')
+    colorbar()
+end
+
+for ii=1:4
+    nexttile(4+ii)
+    imagesc((stats.(struc_to_tag{ii}).sig_cnt./stats.(struc_to_tag{ii}).pair_cnt).*100,[0.4,1]);
+    title(struc_to_tag{ii},'Interpreter','none')
+    colormap(flip(colormap('gray')));
+    set(gca(),'YDir','normal','XTick',0.5:1:5.5,'XTickLabel',0:20:100,...
+    'YTick',0.5:1:5.5,'YTickLabel',0:20:100);
+    xlabel('Duration rank (%)')
+    ylabel('Olfactory rank (%)')
+    colorbar()
+end
+
+%% margin
+figure('Color','w')
+tiledlayout(4,4);
+
+for ii=1:4
+    nexttile(ii)
+    bar(sum(stats.(struc_from_tag{ii}).sig_cnt)./sum(stats.(struc_from_tag{ii}).pair_cnt).*100,'grouped','black');
+    title('collapse olf')
+    xlabel('to dur rank')
+    ylabel('fc rate')
+    ylim([0,1.05])
+    nexttile(4+ii)
+    bar(sum(stats.(struc_from_tag{ii}).sig_cnt,2)./sum(stats.(struc_from_tag{ii}).pair_cnt,2).*100,'grouped','black','Horizontal','on');
+    title('collapse dur')
+    xlim([0,1.05])
+    ylabel('to olf rank')
+    xlabel('fc rate')
+end
+
+for ii=1:4
+    nexttile(8+ii)
+    bar(sum(stats.(struc_to_tag{ii}).sig_cnt)./sum(stats.(struc_to_tag{ii}).pair_cnt).*100,'grouped','black');
+    title('collapse olf')
+    xlabel('from dur rank')
+    ylabel('fc rate')
+    ylim([0,1.05])
+    nexttile(12+ii)
+    bar(sum(stats.(struc_to_tag{ii}).sig_cnt,2)./sum(stats.(struc_to_tag{ii}).pair_cnt,2).*100,'grouped','black','Horizontal','on');
+    title('collapse dur')
+    ylabel('from olf rank')
+    xlabel('fc rate')
+    xlim([0,1.05])
+end
+
+end
+
 
 function statsMixed(sig,pair)
 %% 4 Qdr FC rate loop
@@ -132,7 +221,7 @@ errorbar([bh1.XEndPoints,bh2.XEndPoints,bh3.XEndPoints],...
 % legend(bh,{'Single->Multiplexed','Multiplexed->Single'},'Location','northoutside')
 set(gca(),'XTick',1:3,'XTickLabel',{'m2m','Olfactory','Duration'},'YTickLabel',get(gca(),'YTick').*100)
 ylabel('F.C. rate (%)')
-title (sprintf('p=%.3f,%.3f',polf,pdur));
+title (sprintf('p=%.3f,%.3f,%.3f',povall,polf,pdur));
 
 
 

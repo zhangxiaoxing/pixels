@@ -57,20 +57,23 @@ end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 %% wave heatmap
-fh=wave.plot_pct_wave(eff_meta,'sort_by',3);
-sgtitle(gcf(),'multi, sort by 3s')
-fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',3);
-sgtitle(gcf(),'single-mod, sort by 3s')
-
+%prime grade
 fh=wave.plot_pct_wave(eff_meta,'sort_by',6);
 sgtitle(gcf(),'multi, sort by 6s')
 fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6);
 sgtitle(gcf(),'single-mod, sort by 6s')
+% lesser grade
+fh=wave.plot_pct_wave(eff_meta,'sort_by',6,'lesser_grade',true);
+sgtitle(gcf(),'multi, sort by 6s, lesser grade')
+fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6,'lesser_grade',true);
+sgtitle(gcf(),'single-mod, sort by 6s, lesser grade')
+% lesser grade
+fh=wave.plot_pct_wave(eff_meta,'sort_by',6,'merge',true);
+sgtitle(gcf(),'multi, sort by 6s, extended')
+fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6,'merge',true);
+sgtitle(gcf(),'single-mod, sort by 6s, extended')
 
-fh=wave.plot_pct_wave(eff_meta,'sort_by',3,'xlim',3);
-sgtitle(gcf(),'multi, sort by 3s')
-fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',3,'xlim',3);
-sgtitle(gcf(),'single-mod, sort by 3s')
+
 
 %% basic stats Pt.2
 sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
@@ -79,8 +82,9 @@ sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
 dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
 dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
 
-pct_meta4=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',4);
-pct_meta5=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',5);
+pct_meta=pct.get_pct_meta(eff_meta,sens_win,dur_win);
+
+
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 %% effect size distribution histogram colorbar
@@ -121,10 +125,10 @@ exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 %% correct error decoding
 if false
-    odorMulti=pct.pct_decoding_correct_error(pct_meta4,1:4,'lblidx',5,'n_su',20);% odor
-    odorSingle=pct.pct_decoding_correct_error(pct_meta4,5:6,'lblidx',5,'n_su',20);% odor
-    durMulti=pct.pct_decoding_correct_error(pct_meta4,1:4,'lblidx',8,'n_su',50);% odor
-    durSingle=pct.pct_decoding_correct_error(pct_meta4,7:8,'lblidx',8,'n_su',50);% odor
+    odorMulti=pct.pct_decoding_correct_error(pct_meta,1:4,'lblidx',5,'n_su',20);% odor
+    odorSingle=pct.pct_decoding_correct_error(pct_meta,5:6,'lblidx',5,'n_su',20);% odor
+    durMulti=pct.pct_decoding_correct_error(pct_meta,1:4,'lblidx',8,'n_su',50);% odor
+    durSingle=pct.pct_decoding_correct_error(pct_meta,7:8,'lblidx',8,'n_su',50);% odor
     save('corr_err_pct_decoding.mat','odorMulti','odorSingle','durMulti','durSingle');
 else
     load('corr_err_pct_decoding.mat','odorMulti','odorSingle','durMulti','durSingle');
@@ -172,11 +176,9 @@ win_cnt=numel(sens_win)-1;
 count_mat=nan(win_cnt,win_cnt);
 for s_idx=1:win_cnt
     for d_idx=1:win_cnt
-        count_mat(s_idx,d_idx)=...
-            nnz(sens_efsz>sens_win(s_idx) & ...
-            sens_efsz<=sens_win(s_idx+1) & ...
-            dur_efsz>dur_win(d_idx) & ...
-            dur_efsz<=dur_win(d_idx+1));
+        count_mat(s_idx,d_idx)=nnz(...
+            pct_meta.mat_coord(:,1)==s_idx ...
+            & pct_meta.mat_coord(:,2)==d_idx);
     end
 end
 
@@ -190,10 +192,10 @@ set(gca(),'YDir','normal','XTick',0.5:1:10.5,'XTickLabel',0:20:100,...
     'YTick',0.5:1:10.5,'YTickLabel',0:20:100);
 cbh.Label.String='Proportion of total population (%)';
 cbh.TickLabels=cbh.Ticks*100;
-xlabel('Olfactory coding rank, higher is better(%)');
-ylabel('Duration coding rank, higher is better (%)');
+xlabel('Duration coding rank, higher is better (%)');
+ylabel('Olfactory coding rank, higher is better (%)');
 truesize(gcf(),[640,640])
-exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
+% exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 
 % %% region-dist
@@ -217,7 +219,7 @@ exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 %% Proportion, TCOM related
 
-[map_cells,pct_bar_fh]=ephys.pct_reg_bars(pct_meta4); % only need map_cells for tcom-frac corr
+[map_cells,pct_bar_fh]=ephys.pct_reg_bars(pct_meta); % only need map_cells for tcom-frac corr
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,corr_log_log, ...
     'range','grey','data_type','pct-frac','stats_type','percentile',...
     'feat_tag',{'Mixed','Olfactory','Duration'},'corr2',true,'plot2',true);
@@ -230,7 +232,7 @@ tcom_maps=cell(1,3);
 % map_cells: mixed_map,olf_map,dur_map
 % com-map >>>>>>>>>>>>>>>>>>>>>>>>>>
 
-com_map=wave.get_pct_com_map(pct_meta4,'curve',true);
+com_map=wave.get_pct_com_map(pct_meta,'curve',true);
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
@@ -276,12 +278,14 @@ end
 % pct_meta=pct.get_pct_meta();
 
 %>>> jump to TCOM section as needed
-fh4=bz.inter_wave_pct(pct_meta4);
-fh5=bz.inter_wave_pct(pct_meta5);
+fh4=bz.inter_wave_pct(pct_meta);
 
 
 %% FC_TCOM_hierachy
 [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
+
+[fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
+
 [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
 
 % [fc_com_pvsst_stats_mix,fh_mix]=wave.fc_com_pvsst(com_map,struct(),pct_meta,'pct_stats',true,'hiermap','CP','descend',false,'mem_type','mixed');
@@ -289,6 +293,12 @@ fh5=bz.inter_wave_pct(pct_meta5);
 
 
 
+pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',false);
+bz.fc_conn_screen(com_map,pct_meta,'title_suffix','stringent')
+
+pct_metaL=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',true);
+pct_meta.wave_id=max([pct_meta.wave_id,pct_metaL.wave_id],[],2);
+bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 %% exports
 fhandles=get(groot(),'Children');
 for hc=reshape(fhandles,1,[])
