@@ -44,14 +44,14 @@ end
 flatten=@(y) cellfun(@(x) x,y);
 bardata=sortrows(sums,7,'descend');
 regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
-if false % export for brain renderer
+exp=input('export for 3d render? yes/no\n','s');
+if strcmpi(exp,'yes') % export for brain renderer
     for rr=1:size(bardata,1)
-        disp("["+string(idmap.ccfid2reg(bardata(rr,2))) ...
-            +","...
+        disp("['"+string(idmap.ccfid2reg(bardata(rr,2))) ...
+            +"',"...
             + num2str(bardata(rr,[7 10 13]),"%.3f,")...
             + "]");
     end
-
     keyboard()
 end
 mixed_map=containers.Map(regstr,num2cell(bardata(:,[7,4,3]),2));
@@ -59,11 +59,6 @@ olf_map=containers.Map(regstr,num2cell(bardata(:,[10,5,3]),2));
 dur_map=containers.Map(regstr,num2cell(bardata(:,[13,5,3]),2));
 
 map_cells={mixed_map,olf_map,dur_map};
-if false % one-time export for 3d heatmap in brainrender
-    for ii=1:numel(regstr)
-        fprintf('[''%s'',%.3f,%.3f,%.3f],\n',regstr{ii},bardata(ii,6),bardata(ii,9),summat(ii,1))
-    end
-end
 
 if opt.skip_plot
     return

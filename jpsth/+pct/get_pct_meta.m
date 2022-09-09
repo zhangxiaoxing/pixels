@@ -2,7 +2,8 @@ function pct_meta=get_pct_meta(eff_meta,sens_win,dur_win,opt)
 arguments
     eff_meta,sens_win,dur_win
     opt.single_mod_thresh (1,1) double {mustBeMember(opt.single_mod_thresh,[4])} = 4 % option=5 removed as of 22.09.05
-    opt.lesser_grade (1,1) logical = false
+    opt.extended (1,1) logical = true
+    opt.exlude_corner (1,1) logical = false
 end
 
 persistent pct_meta_ opt_
@@ -27,7 +28,7 @@ if isempty(pct_meta_) || ~isequaln(opt,opt_)
     pct_meta.wave_id=repmat(-1,size(eff_meta.cohen_d_dur,1),1);
     %%  mixed
     % boundries are >= and <
-    if ~opt.lesser_grade   
+    if ~opt.extended   
         sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); % none
         dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
         pct_meta.wave_id(sens_sel & dur_sel)=0;
@@ -48,44 +49,54 @@ if isempty(pct_meta_) || ~isequaln(opt,opt_)
         dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(5);
         pct_meta.wave_id(sens_sel & dur_sel)=4;
     else
-        sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); % none
-        dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
+        corner=false;
+        if opt.exlude_corner
+            sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); % none
+            dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(4); % none
-            dur_lsel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(4);        
+        end
+        sens_lsel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(4); % none
+        dur_lsel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(4);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=0;
 
-        sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(5); % s1 d3
-        dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(5);
+        if opt.exlude_corner
+            sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(5); % s1 d3
+            dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(5);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(eff_meta.cohen_d_olf,[],2)>sens_win(4); % s1 d3
-            dur_lsel=max(eff_meta.cohen_d_dur,[],2)>dur_win(4);
-       pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=1;
-
-        sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(5); %s1 d6
-        dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(5);
+        end
+        sens_lsel=max(eff_meta.cohen_d_olf,[],2)>sens_win(4); % s1 d3
+        dur_lsel=max(eff_meta.cohen_d_dur,[],2)>dur_win(4);
+        pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=1;
+        
+        if opt.exlude_corner
+            sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(5); %s1 d6
+            dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(5);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(eff_meta.cohen_d_olf,[],2)>sens_win(4); %s1 d6
-            dur_lsel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(4);
+        end
+        sens_lsel=max(eff_meta.cohen_d_olf,[],2)>sens_win(4); %s1 d6
+        dur_lsel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(4);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=2;
 
-        sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(5); %s2 d3
-        dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(5);
+        if opt.exlude_corner
+            sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(5); %s2 d3
+            dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(5);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(4); %s2 d3
-            dur_lsel=max(eff_meta.cohen_d_dur,[],2)>dur_win(4);
+        end
+        sens_lsel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(4); %s2 d3
+        dur_lsel=max(eff_meta.cohen_d_dur,[],2)>dur_win(4);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=3;
 
-        sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(5); %s2 d6
-        dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(5);
+        if opt.exlude_corner
+            sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(5); %s2 d6
+            dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(5);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(4); %s2 d6
-            dur_lsel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(4);
+        end
+        sens_lsel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(4); %s2 d6
+        dur_lsel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(4);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=4;
-
     end
     %% olf
-    if ~opt.lesser_grade
+    if ~opt.extended
         sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(opt.single_mod_thresh); % s1
         dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
         pct_meta.wave_id(sens_sel & dur_sel)=5;
@@ -94,23 +105,28 @@ if isempty(pct_meta_) || ~isequaln(opt,opt_)
         dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
         pct_meta.wave_id(sens_sel & dur_sel)=6;
     else
-        sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(opt.single_mod_thresh); % s1
-        dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
+        corner=false;
+        if opt.exlude_corner
+            sens_sel=max(eff_meta.cohen_d_olf,[],2)>sens_win(opt.single_mod_thresh); % s1
+            dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(eff_meta.cohen_d_olf,[],2)>sens_win(opt.single_mod_thresh); % s1
-            dur_lsel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(4);
+        end
+        sens_lsel=max(eff_meta.cohen_d_olf,[],2)>sens_win(opt.single_mod_thresh); % s1
+        dur_lsel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(4);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=5;
 
-        sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(opt.single_mod_thresh); % s2
-        dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
+        if opt.exlude_corner
+            sens_sel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(opt.single_mod_thresh); % s2
+            dur_sel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(2);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(opt.single_mod_thresh); % s2
-            dur_lsel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(4);
+        end
+        sens_lsel=max(eff_meta.cohen_d_olf.*-1,[],2)>sens_win(opt.single_mod_thresh); % s2
+        dur_lsel=max(abs(eff_meta.cohen_d_dur),[],2)<=dur_win(4);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=6;
     end
 
     %% dur
-    if ~opt.lesser_grade
+    if ~opt.extended
         sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); % d3
         dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(opt.single_mod_thresh);
         pct_meta.wave_id(sens_sel & dur_sel)=7;
@@ -119,18 +135,23 @@ if isempty(pct_meta_) || ~isequaln(opt,opt_)
         dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(opt.single_mod_thresh);
         pct_meta.wave_id(sens_sel & dur_sel)=8;
     else
-        sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); % d3
-        dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(opt.single_mod_thresh);
+        corner=false;
+        if opt.exlude_corner
+            sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); % d3
+            dur_sel=max(eff_meta.cohen_d_dur,[],2)>dur_win(opt.single_mod_thresh);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(4); % d3
-            dur_lsel=max(eff_meta.cohen_d_dur,[],2)>dur_win(opt.single_mod_thresh);
+        end
+        sens_lsel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(4); % d3
+        dur_lsel=max(eff_meta.cohen_d_dur,[],2)>dur_win(opt.single_mod_thresh);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=7;
 
-        sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); %d6
-        dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(opt.single_mod_thresh);
+        if opt.exlude_corner
+            sens_sel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(2); %d6
+            dur_sel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(opt.single_mod_thresh);
             corner=sens_sel & dur_sel;
-            sens_lsel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(4); %d6
-            dur_lsel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(opt.single_mod_thresh);
+        end
+        sens_lsel=max(abs(eff_meta.cohen_d_olf),[],2)<=sens_win(4); %d6
+        dur_lsel=max(eff_meta.cohen_d_dur.*-1,[],2)>dur_win(opt.single_mod_thresh);
         pct_meta.wave_id(sens_lsel & dur_lsel & ~corner)=8;
     end
 

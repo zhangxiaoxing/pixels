@@ -2,6 +2,17 @@
 global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 eff_meta=ephys.effect_size_meta();
+
+sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
+sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
+
+dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
+dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
+
+pct_meta=pct.get_pct_meta(eff_meta,sens_win,dur_win);
+
+com_map=wave.get_pct_com_map(pct_meta,'curve',true);
+
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % mix same bin>>>>>>>>>>>>>>>>>>>>>>>>>
 for bb=1:3
@@ -56,33 +67,22 @@ for ii=[881,10248,10986,11547,20054,27126,27249]%reshape(idx,1,[])
 end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-%% wave heatmap
+%% wave heatmap >>>>>>>>>>>>>>>>>>
 %prime grade
-fh=wave.plot_pct_wave(eff_meta,'sort_by',6);
-sgtitle(gcf(),'multi, sort by 6s')
-fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6);
-sgtitle(gcf(),'single-mod, sort by 6s')
+% fh=wave.plot_pct_wave(eff_meta,'sort_by',6);
+% sgtitle(gcf(),'multi, sort by 6s')
+% fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6);
+% sgtitle(gcf(),'single-mod, sort by 6s')
+% % lesser grade
+% fh=wave.plot_pct_wave(eff_meta,'sort_by',6,'lesser_grade',true);
+% sgtitle(gcf(),'multi, sort by 6s, lesser grade')
+% fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6,'lesser_grade',true);
+% sgtitle(gcf(),'single-mod, sort by 6s, lesser grade')
 % lesser grade
-fh=wave.plot_pct_wave(eff_meta,'sort_by',6,'lesser_grade',true);
-sgtitle(gcf(),'multi, sort by 6s, lesser grade')
-fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6,'lesser_grade',true);
-sgtitle(gcf(),'single-mod, sort by 6s, lesser grade')
-% lesser grade
-fh=wave.plot_pct_wave(eff_meta,'sort_by',6,'merge',true);
+fh=wave.plot_pct_wave(pct_meta,com_map,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'multi, sort by 6s, extended')
-fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6,'merge',true);
+fh=wave.plot_pct_wave(pct_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'single-mod, sort by 6s, extended')
-
-
-
-%% basic stats Pt.2
-sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
-sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
-
-dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
-dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
-
-pct_meta=pct.get_pct_meta(eff_meta,sens_win,dur_win);
 
 
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -123,10 +123,10 @@ wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cm
 title('Rank by duration-encoding, decoding odor')
 exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
-%% correct error decoding
+%% correct error decoding >>>>>>>>>>>>>>>>>
 if false
-    odorMulti=pct.pct_decoding_correct_error(pct_meta,1:4,'lblidx',5,'n_su',20);% odor
-    odorSingle=pct.pct_decoding_correct_error(pct_meta,5:6,'lblidx',5,'n_su',20);% odor
+    odorMulti=pct.pct_decoding_correct_error(pct_meta,1:4,'lblidx',5,'n_su',50);% odor
+    odorSingle=pct.pct_decoding_correct_error(pct_meta,5:6,'lblidx',5,'n_su',50);% odor
     durMulti=pct.pct_decoding_correct_error(pct_meta,1:4,'lblidx',8,'n_su',50);% odor
     durSingle=pct.pct_decoding_correct_error(pct_meta,7:8,'lblidx',8,'n_su',50);% odor
     save('corr_err_pct_decoding.mat','odorMulti','odorSingle','durMulti','durSingle');
@@ -139,14 +139,14 @@ figure('Color','w','Position',[100,100,275,235]);
 tiledlayout(1,2)
 nexttile();
 hold on
-mm=[mean(odorMulti.olf.c_result_20su),mean(odorMulti.olf.e_result_20su),...
-    mean(odorSingle.olf.c_result_20su),mean(odorSingle.olf.e_result_20su)];
+mm=[mean(odorMulti.olf.c_result_50su),mean(odorMulti.olf.e_result_50su),...
+    mean(odorSingle.olf.c_result_50su),mean(odorSingle.olf.e_result_50su)];
 bh=bar([1:2,4:5],diag(mm),'stacked');
 [bh(1).FaceColor,bh(3).FaceColor]=deal('w');
 [bh(2).FaceColor,bh(4).FaceColor]=deal('k');
-sem=[std(odorMulti.olf.c_result_20su),std(odorMulti.olf.e_result_20su),...
-    std(odorSingle.olf.c_result_20su),std(odorSingle.olf.e_result_20su)]...
-    ./sqrt(numel(odorMulti.olf.c_result_20su));
+sem=[std(odorMulti.olf.c_result_50su),std(odorMulti.olf.e_result_50su),...
+    std(odorSingle.olf.c_result_50su),std(odorSingle.olf.e_result_50su)]...
+    ./sqrt(numel(odorMulti.olf.c_result_50su));
 errorbar([1:2,4:5],mm,sem,'k.');
 ylim([0.4,1]);
 set(gca(),'XTick',[1.5,4.5],'XTickLabel',{'Multi','Single'},'YTickLabel',get(gca(),'YTick').*100)
@@ -162,7 +162,7 @@ bh=bar([1:2,4:5],diag(mm),'stacked');
 [bh(2).FaceColor,bh(4).FaceColor]=deal('k');
 sem=[std(durMulti.dur.c_result_50su),std(durMulti.dur.e_result_50su),...
     std(durSingle.dur.c_result_50su),std(durSingle.dur.e_result_50su)]...
-    ./sqrt(numel(odorMulti.olf.c_result_20su));
+    ./sqrt(numel(odorMulti.olf.c_result_50su));
 errorbar([1:2,4:5],mm,sem,'k.');
 ylim([0.4,1])
 set(gca(),'XTick',[1.5,4.5],'XTickLabel',{'Multi','Single'},'YTickLabel',get(gca(),'YTick').*100)
@@ -230,9 +230,6 @@ pct_tcom_fh=struct();
 tcom_maps=cell(1,3);
 
 % map_cells: mixed_map,olf_map,dur_map
-% com-map >>>>>>>>>>>>>>>>>>>>>>>>>>
-
-com_map=wave.get_pct_com_map(pct_meta,'curve',true);
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
@@ -274,37 +271,25 @@ end
 
 
 %% Functional coupling
-% meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-% pct_meta=pct.get_pct_meta();
 
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(pct_meta);
 
 
 %% FC_TCOM_hierachy
-[fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
-
-[fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
-
-[fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
-
-% [fc_com_pvsst_stats_mix,fh_mix]=wave.fc_com_pvsst(com_map,struct(),pct_meta,'pct_stats',true,'hiermap','CP','descend',false,'mem_type','mixed');
-% [fc_com_pvsst_stats_olf,fh_olf]=wave.fc_com_pvsst(com_map,struct(),pct_meta,'pct_stats',true,'hiermap','MOB','descend',true,'mem_type','olf');
+% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
+% 
+% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
+% 
+% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
 
 
-
-pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',false);
-bz.fc_conn_screen(com_map,pct_meta,'title_suffix','stringent')
-
-pct_metaL=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',true);
-pct_meta.wave_id=max([pct_meta.wave_id,pct_metaL.wave_id],[],2);
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 %% exports
 fhandles=get(groot(),'Children');
 for hc=reshape(fhandles,1,[])
     exportgraphics(hc,'pct_decoding.pdf','ContentType','vector','Append',true);
 end
+close all
 % savefig(fhandles,sprintf('Ranksum1%s.fig',gather_config.fnsuffix));
-
-
 

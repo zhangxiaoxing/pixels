@@ -41,9 +41,11 @@ for srcidx=1:numel(src_ccfid)
     end
     % olf and dur
     finite_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
+    same_sel=fc_com_pvsst_stats(:,6)==fc_com_pvsst_stats(:,7);
     m2l_sel=fc_com_pvsst_stats(:,6)>fc_com_pvsst_stats(:,7);
     l2m_sel=fc_com_pvsst_stats(:,6)<fc_com_pvsst_stats(:,7);
     congrusel=pct.su_pairs.get_congru(fc_com_pvsst_stats(:,10:11));
+    
     olf_m2l_sel=finite_sel & m2l_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);  % no 7 or 8
     olf_l2m_sel=finite_sel & l2m_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);  % no 7 or 8
     dur_m2l_sel=finite_sel & m2l_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);  % no 5 or 6
@@ -51,8 +53,28 @@ for srcidx=1:numel(src_ccfid)
     mix_m2l_sel=finite_sel & m2l_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);  % no 7 or 8
     mix_l2m_sel=finite_sel & l2m_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);  % no 7 or 8    
     
-    %consistent, inconsistent : com2>com1, connv2>conv1
-    
+    if strcmp(idmap.ccfid2reg(src_ccfid(srcidx)),'COA')
+        olf_sel=finite_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);  % no 7 or 8
+        olf_same_sel=finite_sel & same_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);  % no 7 or 8
+        histo_panel(fc_com_pvsst_stats(olf_sel,:),fc_com_pvsst_stats(olf_same_sel,:),...
+            fc_com_pvsst_stats(olf_m2l_sel,:),fc_com_pvsst_stats(olf_l2m_sel,:));
+        sgtitle('Olfactory congruent FC, COA projection gradient')
+    elseif strcmp(idmap.ccfid2reg(src_ccfid(srcidx)),'MTN')
+        mix_sel=finite_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);  % no 7 or 8
+        mix_same_sel=finite_sel & same_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);  % no 7 or 8
+        histo_panel(fc_com_pvsst_stats(mix_sel,:),fc_com_pvsst_stats(mix_same_sel,:),...
+            fc_com_pvsst_stats(mix_m2l_sel,:),fc_com_pvsst_stats(mix_l2m_sel,:));
+        sgtitle('Mixed congruent FC, MTN projection gradient')
+    elseif strcmp(idmap.ccfid2reg(src_ccfid(srcidx)),'ILA')
+        dur_sel=finite_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);  % no 7 or 8
+        dur_same_sel=finite_sel & same_sel & congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);  % no 7 or 8
+        histo_panel(fc_com_pvsst_stats(dur_sel,:),fc_com_pvsst_stats(dur_same_sel,:),...
+            fc_com_pvsst_stats(dur_m2l_sel,:),fc_com_pvsst_stats(dur_l2m_sel,:));
+        sgtitle('Duration congruent FC, ILA projection gradient')
+    end
+
+
+
     % src_ccfid, #olf_total, #olf_consist, olf_com_latency,#dur_total, #dur_consist, dur_com_latency    
     screen_stats(srcidx,:)=[src_ccfid(srcidx),...
         nnz(olf_m2l_sel),...
@@ -118,3 +140,42 @@ end
 
 end
 
+
+
+function fh=histo_panel(fc_com_pvsst_stats_ovall,fc_com_pvsst_stats_same,fc_com_pvsst_stats_m2l,fc_com_pvsst_stats_l2m)
+fh=figure('Color','w');
+tiledlayout(2,2)
+% total
+fcs={fc_com_pvsst_stats_ovall,fc_com_pvsst_stats_same,fc_com_pvsst_stats_m2l,fc_com_pvsst_stats_l2m};
+sub_title={'Overall','Same region','More to less innervated','Less to more innervated'}
+for fii=1:4
+    fc=fcs{fii};
+    nexttile
+    latency=diff(fc(:,4:5),1,2)./4;
+    [h,p]=ttest(latency);
+    histogram(latency,-1:0.1:1,'Normalization','probability')
+    xline(0,'--k','LineWidth',1)
+    xline(mean(latency),'--r','LineWidth',1)
+    xlabel({'Lead-Follow TCOM latency (s)',sprintf('mean=%.3f, p=%.3f',mean(latency),p)})
+    ylabel('Probability')
+    title(sub_title{fii});
+end
+% % same
+% nexttile
+% latency=diff(fc_com_pvsst_stats_same(:,4:5),1,2)./4;
+% histogram(latency,-0.5:0.1:0.5)
+% xline(0,'--k')
+% xline(mean(latency),'--r')
+% % more to less
+% nexttile
+% latency=diff(fc_com_pvsst_stats_m2l(:,4:5),1,2)./4;
+% histogram(latency,-0.5:0.1:0.5)
+% xline(0,'--k')
+% xline(mean(latency),'--r')
+% % less to more
+% nexttile
+% latency=diff(fc_com_pvsst_stats_l2m(:,4:5),1,2)./4;
+% histogram(latency,-0.5:0.1:0.5)
+% xline(0,'--r')
+% xline(mean(latency),'--k')
+end

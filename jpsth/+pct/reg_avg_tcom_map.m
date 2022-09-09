@@ -1,17 +1,20 @@
-function reg_avg_com_map=reg_avg_tcom_map(opt)
+function reg_avg_com_map=reg_avg_tcom_map(pct_meta,com_map,opt)
+
 arguments
+    pct_meta
+    com_map
     opt.single_mod_thresh (1,1) double = 4
 end
 
 % TODO: proper encapsulation 
-eff_meta=ephys.effect_size_meta();
-sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
-sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
-
-dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
-dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
-pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',opt.single_mod_thresh);
-com_map=wave.get_pct_com_map(pct_meta,'curve',true);
+% eff_meta=ephys.effect_size_meta();
+% sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
+% sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
+% 
+% dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
+% dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
+% pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'single_mod_thresh',opt.single_mod_thresh);
+% com_map=wave.get_pct_com_map(pct_meta,'curve',true);
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
 fns=fieldnames(com_map);

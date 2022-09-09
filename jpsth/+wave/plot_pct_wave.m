@@ -1,30 +1,32 @@
 
-function fh=plot_pct_wave(eff_meta,opt)
+function fh=plot_pct_wave(pct_meta,com_map,opt)
 arguments
-    eff_meta
+%     eff_meta
+    pct_meta
+    com_map
     opt.comb_set (1,:) double {mustBeInteger,mustBePositive} = 1
     opt.sort_by (1,1) double {mustBeMember(opt.sort_by,[3 6])} = 6
     opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 6
     opt.lesser_grade (1,1) logical = false
-    opt.merge (1,1) logical = false
+    opt.scale (1,2) double = [-1,1]
+
 end
 %% global
-for plot_id=opt.comb_set
-    %TODO do not repeat>>>>>>>>>>>>>>>>
-    sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
-    sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
 
-    dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
-    dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
-    % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    if opt.merge
-        pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',false);
-        pct_metaL=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',true);
-        pct_meta.wave_id=max([pct_meta.wave_id,pct_metaL.wave_id],[],2);
-    else
-        pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win,'lesser_grade',opt.lesser_grade);
-    end
-    com_map=wave.get_pct_com_map(pct_meta,'curve',true);
+%     %TODO do not repeat>>>>>>>>>>>>>>>>
+%     sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
+%     sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
+% 
+%     dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
+%     dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
+%     % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+% 
+%     pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win);
+% 
+%     com_map=wave.get_pct_com_map(pct_meta,'curve',true);
+
+
+for plot_id=opt.comb_set
     fss=reshape(fieldnames(com_map),1,[]);
     imdata=struct();
     switch plot_id
@@ -57,9 +59,9 @@ for plot_id=opt.comb_set
                 for ffidx=1:4
                     nexttile((prefidx-1)*4+ffidx);
                     if opt.xlim==3
-                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,1:12),'xlim',3);
+                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,1:12),'xlim',3,'scale',opt.scale);
                     else
-                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,:));
+                        plotOne(imdata.(pref).(tags(ffidx))(sortidx,:),'scale',opt.scale);
                     end
                 end
             end
@@ -93,9 +95,9 @@ for plot_id=opt.comb_set
                 for ffidx=1:4
                     nexttile((prefidx-1)*4+ffidx);
                     if opt.xlim==3
-                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,1:12),'xlim',3);
+                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,1:12),'xlim',3,'scale',opt.scale);
                     else
-                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,:));
+                        plotOne(imdata.(pref).(ffs(ffidx))(sortidx,:),'scale',opt.scale);
                     end
                 end
             end

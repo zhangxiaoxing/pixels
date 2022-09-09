@@ -184,13 +184,3 @@ ephys.util.figtable(fh,th,statstbl,'title',opt.tbl_title)
 
 % exportgraphics(fh,'fc_prog_regres_bars_hier.pdf')
 end
-
-function com_map=list2map(com_meta)
-com_map=struct();
-for ii=1:size(com_meta,1)
-    if ~isfield(com_map,['s',num2str(com_meta{ii,1})])
-        com_map.(['s',num2str(com_meta{ii,1})])=containers.Map('KeyType','int32','ValueType','any');
-    end
-    com_map.(['s',num2str(com_meta{ii,1})])(com_meta{ii,2})=com_meta(ii,3:end);
-end
-end
