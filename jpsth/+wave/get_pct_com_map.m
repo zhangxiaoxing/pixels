@@ -4,12 +4,9 @@ arguments
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
-    
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
-
     opt.band_width (1,1) double {mustBeMember(opt.band_width,1:2)} = 1
-
 end
 
 %TODO proper declaration
@@ -137,7 +134,8 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
         basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-        S=max(abs([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');
+        S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+
         classnn=(classmm-basemm)./S;
         [~,typeidx]=ismember("c"+type,["cs1d3","cs2d3","cs1d6","cs2d6"]);
         mm_pref=classnn(typeidx,1:12);
@@ -187,7 +185,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
         basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-        S=max(abs([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');
+        S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
         classnn=(classmm-basemm)./S;
         
         if contains(type,'s1')
@@ -235,7 +233,7 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
         basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-        S=max(abs([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');
+        S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
         classnn=(classmm-basemm)./S;
 
         if contains(type,'d3')

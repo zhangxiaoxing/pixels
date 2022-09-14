@@ -42,14 +42,14 @@ end
 %map_cells
 
 flatten=@(y) cellfun(@(x) x,y);
-bardata=sortrows(sums,7,'descend');
+bardata=sortrows(sums,10,'descend');
 regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
 exp=input('export for 3d render? yes/no\n','s');
 if strcmpi(exp,'yes') % export for brain renderer
     for rr=1:size(bardata,1)
         disp("['"+string(idmap.ccfid2reg(bardata(rr,2))) ...
             +"',"...
-            + num2str(bardata(rr,[7 10 13]),"%.3f,")...
+            + num2str(bardata(rr,[10 13 7]),"%.3f,")...
             + "]");
     end
     keyboard()
@@ -121,21 +121,29 @@ title(sprintf(' r = %.3f, p = %.3f',r,p));
 
 nexttile(1,[1,3]);
 hold on
-bh=bar(bardata(:,[7,10,13]),1,'grouped');
+bh=bar(bardata(:,[10,13,7]),1,'grouped');
 if ~opt.skip_error_bar
-    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
-    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
-    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,diff(bardata(:,13:14),1,2),diff(bardata(:,[13,15]),1,2),'k.');
+    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
+    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
+    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,13:14),1,2),diff(bardata(:,[13,15]),1,2),'k.');
 end
-bh(1).FaceColor='w';% mixed
-bh(2).FaceColor='r';% olf
-bh(3).FaceColor='b';% dur
+bh(3).FaceColor='w';% mixed
+bh(1).FaceColor='r';% olf
+bh(2).FaceColor='b';% dur
 
 set(gca(),'YScale',opt.yscale{1})
 % ylim([0.005,0.5])
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
+%% colorize region
+ymax=max(ylim());
+for rr=1:numel(regstr)
+    c=ephys.getRegColor(regstr{rr},'large_area',true);
+    text(rr,ymax,regstr{rr},'HorizontalAlignment','center','VerticalAlignment','bottom','Color',c,'Rotation',90)
+end
+
+
 % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
-legend(bh,legends,'Location','northoutside','Orientation','horizontal');
+legend(bh,legends([2,3,1]),'Location','northoutside','Orientation','horizontal');
 % cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false);
 %%------------------------
 % nexttile(6,[1,2]);

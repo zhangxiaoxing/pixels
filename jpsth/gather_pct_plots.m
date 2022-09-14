@@ -248,6 +248,10 @@ dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom_maps(3),corr_ln_log, ..
     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
     'feat_tag',{'Duration'},'corr2',true,'plot2',true,'corr1',false);
 
+mix_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom_maps(1),corr_ln_log, ...
+    'range','grey','data_type','pct-TCOM','stats_type','percentile',...
+    'feat_tag',{'Mixed'},'corr2',true,'plot2',true,'corr1',false);
+
 
 %% TCOM and proportion correlation
 
@@ -271,7 +275,7 @@ end
 
 
 %% Functional coupling
-
+fc.fc_com_reg_wave
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(pct_meta);
 
