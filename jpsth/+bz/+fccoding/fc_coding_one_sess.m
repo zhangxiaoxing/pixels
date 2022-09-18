@@ -22,8 +22,8 @@ for fci=1:size(suids,1)
     for ti=1:size(trials,1)
         susel1=strcmp(FT_SPIKE.label,num2str(suids(fci,1)));
         susel2=strcmp(FT_SPIKE.label,num2str(suids(fci,2)));
-        spk1=FT_SPIKE.time{susel1}(FT_SPIKE.trial{susel1}==ti & FT_SPIKE.time{susel1}<trials(ti,8));
-        spk2=FT_SPIKE.time{susel2}(FT_SPIKE.trial{susel2}==ti & FT_SPIKE.time{susel2}<trials(ti,8));
+        spk1=FT_SPIKE.time{susel1}(FT_SPIKE.trial{susel1}==ti & FT_SPIKE.time{susel1}<3 & FT_SPIKE.time{susel1}>=0);
+        spk2=FT_SPIKE.time{susel2}(FT_SPIKE.trial{susel2}==ti & FT_SPIKE.time{susel2}<3 & FT_SPIKE.time{susel2}>=0);
         deltaT=spk2-spk1.';
 %         accuDelta=[accuDelta;deltaT(:)];
         fwd_evts=deltaT>=0.0008 & deltaT<0.01;
