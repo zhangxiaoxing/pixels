@@ -57,7 +57,7 @@ end
 % [mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur(:,1:2)),[],2),2000);
 % [mxo,oo]=mink(max(abs(eff_meta.cohen_d_olf),[],2),12000);
 % idx=intersect(oo,dd);
-for ii=[881,10248,10986,11547,20054,27126,27249]%reshape(idx,1,[])
+for ii=[589]%reshape(idx,1,[])
     scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
     if ~isempty(scfh)
         sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", dur");

@@ -25,7 +25,8 @@ for ii=1:numel(meta.allcid)
         d6sel=csel & trials(:,8)==6;
     end
     suidx=(suid==meta.allcid(ii));
-    %% actural calculatio effective size
+    % per-su effective size
+
     frs1=squeeze(fr_t_align(s1sel,suidx,:));
     frs2=squeeze(fr_t_align(s2sel,suidx,:));
     dmean=mean(frs1)-mean(frs2);
