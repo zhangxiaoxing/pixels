@@ -19,7 +19,7 @@ load('OBM1Map.mat','OBM1map')
 % congru, incongru, nonmem
 
 if opt.plot_trial_frac
-    [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',false); 
+    [metas,stats,~]=bz.fccoding.get_fc_coding(pct_meta,'no_jitter',false); 
     % meta:sess,suid1,suid2,reg:2;
     %TODO assign mem_type_selection 
     error('Needs update');

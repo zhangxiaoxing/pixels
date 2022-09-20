@@ -5,7 +5,7 @@ arguments
 end
 persistent grey_regs opt_
 if isempty(grey_regs) || ~isequaln(opt_,opt)
-    meta=ephys.util.load_meta();
+    meta=ephys.util.load_meta('skip_stats',true);
     BSsel=strcmp(meta.reg_tree(1,:),'BS') & ~strcmp(meta.reg_tree(5,:),'');
     CHsel=strcmp(meta.reg_tree(1,:),'CH') & ~strcmp(meta.reg_tree(5,:),'');
     CTXsel=strcmp(meta.reg_tree(2,:),'CTX') & ~strcmp(meta.reg_tree(5,:),'');

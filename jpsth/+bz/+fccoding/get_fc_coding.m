@@ -51,6 +51,7 @@ if isempty(metas_) || isempty(stats_) || isempty(fwd_rev_) || isempty(per_trial_
             mem=mems(fcsel,:);
             root=roots(fcsel,:);
             reg=regs(fcsel,:);
+            %TODO member of grey-regions, if needed
             if any(isempty(reg)) || any(reg==0,'all') || ~all(root==567,'all'), continue;end
             pertrl=fstr.onesess.fc{fci,stat_idx}>0;
             metas=[metas;sess,suid1,suid2,mem,reg];

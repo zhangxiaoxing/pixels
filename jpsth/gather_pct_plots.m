@@ -79,6 +79,9 @@ end
 % fh=wave.plot_pct_wave(eff_meta,'comb_set',2,'sort_by',6,'lesser_grade',true);
 % sgtitle(gcf(),'single-mod, sort by 6s, lesser grade')
 % lesser grade
+
+%% TODO wave-half-half
+
 fh=wave.plot_pct_wave(pct_meta,com_map,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'multi, sort by 6s, extended')
 fh=wave.plot_pct_wave(pct_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
@@ -275,10 +278,18 @@ end
 
 
 %% Functional coupling
+
+%% TODO: COM_CHAIN
+% K:\code\jpsth\+wave\COM_chain_SC.m
+
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+bz.conn_prob_spatial_dist(sig,pair);
 fc.fc_com_reg_wave
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(pct_meta);
 
+%% TODO: FC_Decoding
+% K:\code\jpsth\+bz\+fccoding\plot_coding.m
 
 %% FC_TCOM_hierachy
 % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');

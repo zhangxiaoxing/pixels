@@ -11,13 +11,16 @@ sess_cnt=max(sig.sess);
 same_stats=struct();
 [same_stats.nm_nm,same_stats.congr,same_stats.incon,same_stats.mem_nm,same_stats.nm_mem]...
     =deal(nan(sess_cnt,1));
-l2h_stats=same_stats;
-h2l_stats=same_stats;
- [sig_same, sig_h2l, sig_l2h,pair_same, pair_h2l, pair_l2h]=hier.get_reg_hier_relation();
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+% l2h_stats=same_stats;
+% h2l_stats=same_stats;
+%  [sig_same, sig_h2l, sig_l2h,pair_same, pair_h2l, pair_l2h]=hier.get_reg_hier_relation();
 
-diff_reg_pair=squeeze(pair.reg(pair_h2l(:,opt.dist) | pair_l2h(:,opt.dist),opt.dist,:));
-ureg=unique(diff_reg_pair(:,1));
+% [diff_reg_pair,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
+% diff_reg_pair=diff_reg_pair(:,5);
+
+grey_reg=ephys.getGreyRegs('range','grey');
+ureg=cell2mat(idmap.reg2ccfid.values(grey_reg));
 same_stats=[];
 for ridx=1:numel(ureg)
     pair_count=nnz(all(pair.reg(:,opt.dist,:)==ureg(ridx),3));
@@ -59,7 +62,7 @@ dist_sums(:,2:end)=dist_sums(:,2:end).*100;
 xx=[same_stats(:,3);dist_stats(:,3)].*10;% micro-meter unit
 yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
 tbl=table(xx,yy);
-save('fcrate_distance.mat','tbl')
+% save('fcrate_distance.mat','tbl')
 
 % [fxy,gof] = fit(tbl.xx,tbl.yy,'exp1');
 modelfun=@(b,x) b(1)*(x(:,1).^b(2))+b(3);
@@ -84,4 +87,4 @@ ylim([0,3])
 legend([mh,fith],{'Mean','Power law fit'},'Location','northoutside')
 text(max(xlim()),max(ylim()),sprintf('%.2f,%.2f',sqrt(mdl.Rsquared.Ordinary),0),'HorizontalAlignment','right','VerticalAlignment','top');
 keyboard()
-exportgraphics(fh,'fc_rate_vs_spatial_dist.pdf')
+% exportgraphics(fh,'fc_rate_vs_spatial_dist.pdf')
