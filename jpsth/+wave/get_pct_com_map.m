@@ -133,8 +133,8 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
             ffmat=squeeze(fr(trls.(ff),su,:));
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
-        basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-        S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+        basemm=mean([classmm(:,1:12)],'all');
+        S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
 
         classnn=(classmm-basemm)./S;
         [~,typeidx]=ismember("c"+type,["cs1d3","cs2d3","cs1d6","cs2d6"]);
@@ -142,13 +142,17 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
+            keyboard();
+            continue
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
         end
-        
 
         if opt.curve
+            basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
+            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+            classnn=(classmm-basemm)./S;
             for typeidx=1:4
                 cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                 if typeidx<3
@@ -184,8 +188,8 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
             ffmat=squeeze(fr(trls.(ff),su,:));
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
-        basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-        S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+        basemm=mean([classmm(:,1:12)],'all');
+        S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
         classnn=(classmm-basemm)./S;
         
         if contains(type,'s1')
@@ -195,13 +199,19 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
         end
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
-            disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
+            keyboard();
+            continue
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
         end
         
         if opt.curve
+
+            basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
+            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+            classnn=(classmm-basemm)./S;
+
             for typeidx=1:4
                 cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                 if typeidx<3
@@ -232,8 +242,8 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
             ffmat=squeeze(fr(trls.(ff),su,:));
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
-        basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-        S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+        basemm=mean([classmm(:,1:12)],'all');
+        S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
         classnn=(classmm-basemm)./S;
 
         if contains(type,'d3')
@@ -244,15 +254,17 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
-%             if ispc
-%                 keyboard();
-%             end
+            keyboard();
+            continue
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
         end
         
         if opt.curve
+            basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
+            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+            classnn=(classmm-basemm)./S;
             for typeidx=1:4
                 cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                 if typeidx<3

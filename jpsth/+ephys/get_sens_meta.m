@@ -69,9 +69,10 @@ if isempty(out) || ~isequaln(opt,opt_)
                     end
                     fdr_d3(suidx,:)=mafdr(wrs_p_d3(suidx,:),'BHFDR',true);
                     fdr_d6(suidx,:)=mafdr(wrs_p_d6(suidx,:),'BHFDR',true);
-
-                    selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,5:7),fr(d3sel & s2sel,suidx,bin3s));
-                    selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,5:7),fr(d6sel & s2sel,suidx,bin6s));
+                    % call sel_idx function
+                    % TODO: error in parameter A bins?
+                    selec_d3(suidx,:)=sel_idx(fr(d3sel & s1sel,suidx,bin3s),fr(d3sel & s2sel,suidx,bin3s));
+                    selec_d6(suidx,:)=sel_idx(fr(d6sel & s1sel,suidx,bin6s),fr(d6sel & s2sel,suidx,bin6s));
 
                      %TODO: delay-dependent
 %                     selec_s1(suidx,:)=arrayfun(@(x) sel_idx(fr(d & c3sel,suidx,x),fr(cS1sel & c6sel,suidx,x)),4:7);
@@ -82,8 +83,8 @@ if isempty(out) || ~isequaln(opt,opt_)
 %                 [mem_type_d3,per_bin_d3]=get_mem_type(wrs_p_d3,selec_d3);
 %                 [mem_type_d6,per_bin_d6]=get_mem_type(wrs_p_d6,selec_d6);
 %             else
-                [mem_type_d3,per_bin_d3]=get_mem_type(fdr_d3,selec_d3);
-                [mem_type_d6,per_bin_d6]=get_mem_type(fdr_d6,selec_d6);
+            [mem_type_d3,per_bin_d3]=get_mem_type(fdr_d3,selec_d3);
+            [mem_type_d6,per_bin_d6]=get_mem_type(fdr_d6,selec_d6);
 %             end
             wave_id=get_wave_id(mem_type_d3,mem_type_d6);
             out.wrs_p_d3=[out.wrs_p_d3;wrs_p_d3];

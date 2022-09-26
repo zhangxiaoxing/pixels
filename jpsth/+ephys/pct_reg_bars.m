@@ -6,7 +6,7 @@ arguments
     opt.stats_type (1,:) char = "percentile"
     opt.data_type (1,:) char = "mixed-olf-dur"
     opt.skip_error_bar (1,1) logical = true
-    opt.yscale (1,2) cell = {'Linear','Linear'}
+    opt.xyscale (1,2) cell = {'Linear','Linear'}
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -77,8 +77,16 @@ for ll=1:size(bardata,1)
 end
 xlabel(legends{1})
 ylabel(legends{2})
-set(gca,'XScale','linear','YScale','linear')
-[r,p]=corr(bardata(:,7),bardata(:,10));
+set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
+xxdata=bardata(:,7);
+yydata=bardata(:,10);
+if strcmp(opt.xyscale{1},'log')
+xxdata=log10(xxdata);
+end
+if strcmp(opt.xyscale{2},'log')
+    yydata=log10(yydata);
+end
+[r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
 
 
@@ -93,8 +101,16 @@ for ll=1:size(bardata,1)
 end
 xlabel(legends{1})
 ylabel(legends{3})
-set(gca,'XScale','linear','YScale','linear')
-[r,p]=corr(bardata(:,7),bardata(:,13));
+set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
+xxdata=bardata(:,7);
+yydata=bardata(:,13);
+if strcmp(opt.xyscale{1},'log')
+xxdata=log10(xxdata);
+end
+if strcmp(opt.xyscale{2},'log')
+    yydata=log10(yydata);
+end
+[r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
 
 %==============================================================
@@ -108,8 +124,16 @@ for ll=1:size(bardata,1)
 end
 xlabel(legends{2})
 ylabel(legends{3})
-set(gca,'XScale','linear','YScale','linear')
-[r,p]=corr(bardata(:,10),bardata(:,13));
+set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
+xxdata=bardata(:,10);
+yydata=bardata(:,13);
+if strcmp(opt.xyscale{1},'log')
+xxdata=log10(xxdata);
+end
+if strcmp(opt.xyscale{2},'log')
+    yydata=log10(yydata);
+end
+[r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
 
 
@@ -131,8 +155,8 @@ bh(3).FaceColor='w';% mixed
 bh(1).FaceColor='r';% olf
 bh(2).FaceColor='b';% dur
 
-set(gca(),'YScale',opt.yscale{1})
-% ylim([0.005,0.5])
+set(gca(),'YScale',opt.xyscale{2})
+ylim([0.02,1])
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
 %% colorize region
 ymax=max(ylim());
@@ -153,7 +177,7 @@ legend(bh,legends([2,3,1]),'Location','northoutside','Orientation','horizontal')
 % if ~opt.skip_error_bar
 %     errorbar(bh.XEndPoints,bh.YEndPoints,diff(summat(sidx,[1,4]),1,2),diff(summat(sidx,[1,5]),1,2),'k.');
 % end
-% set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90,'Yscale',opt.yscale{2})
+% set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90,'Yscale',opt.xyscale{2})
 % legend(bh,{'Total'},'Location','northeast','Orientation','horizontal');
 
 

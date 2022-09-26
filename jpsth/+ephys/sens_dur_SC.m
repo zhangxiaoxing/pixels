@@ -65,7 +65,7 @@ for ii=reshape(metaidx,1,[])
         pidx=1;
         for ti=reshape(s2d3p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti & FT_SPIKE.time{1}<4);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'k-')
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'c-')
             pidx=pidx+1;
         end
         pidx=pidx+2;
@@ -87,7 +87,7 @@ for ii=reshape(metaidx,1,[])
             pidx=pidx+1;
         end
 
-        line([0,1,4,7;0,1,4,7],[0,0,0,20;40,40,20,40],'LineStyle','--','Color','k')
+        line([0,0,1,1,4,7;0,0,1,1,4,7],[0,20,0,20,0,20;20,40,20,40,20,40],'LineStyle','--','Color','k')
 
         xlim(opt.xlim_sec)
         set(gca,'XTick',-1:8,'XTickLabel',-2:7)

@@ -10,8 +10,13 @@ dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
 dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
 
 pct_meta=pct.get_pct_meta(eff_meta,sens_win,dur_win);
-
 com_map=wave.get_pct_com_map(pct_meta,'curve',true);
+
+%ALT
+wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true);
+% wrs_mux_meta=ephys.get_wrs_mux_meta();
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
+
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % mix same bin>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -54,15 +59,14 @@ for ii=reshape(idx,1,[])
     end
 end
 % dur only ====================
-% [mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur(:,1:2)),[],2),2000);
-% [mxo,oo]=mink(max(abs(eff_meta.cohen_d_olf),[],2),12000);
-% idx=intersect(oo,dd);
-for ii=[589]%reshape(idx,1,[])
+reshape(find(any(out.p_mux(:,1:2)<0.002,2)),1,[]);
+
+for ii=[3770,5818]%reshape(find(any(wrs_mux_meta.p_mux(:,1:2)<0.003,2) & median(wrs_mux_meta.class_fr,[2 3])>2.5 & median(wrs_mux_meta.class_fr,[2 3])<40),1,[])
     scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
     if ~isempty(scfh)
         sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", dur");
-        exportgraphics(scfh,sprintf('SC/SCDUR%5d.png',ii),'ContentType','image');
-%         close(scfh)
+%         exportgraphics(scfh,sprintf('SC/SCDUR%5d.png',ii),'ContentType','image');
+        
     end
 end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -86,6 +90,14 @@ fh=wave.plot_pct_wave(pct_meta,com_map,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'multi, sort by 6s, extended')
 fh=wave.plot_pct_wave(pct_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'single-mod, sort by 6s, extended')
+
+%ALT
+
+fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'sort_by',6,'scale',[0,1]);
+sgtitle(gcf(),'multi, sort by 6s, expanded')
+fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
+sgtitle(gcf(),'single-mod, sort by 6s, expanded')
+
 
 
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -301,10 +313,7 @@ fh4=bz.inter_wave_pct(pct_meta);
 
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 %% exports
-fhandles=get(groot(),'Children');
-for hc=reshape(fhandles,1,[])
-    exportgraphics(hc,'pct_decoding.pdf','ContentType','vector','Append',true);
-end
+
 close all
 % savefig(fhandles,sprintf('Ranksum1%s.fig',gather_config.fnsuffix));
 
