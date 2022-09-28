@@ -5,6 +5,24 @@ arguments
     opt.sess
     opt.save_file (1,1) logical = false
     opt.fn (1,:) char = 'GLM_meta.mat'
+    opt.collect_file (1,1) logical = false
+end
+if isunix && opt.collect_file
+    fs=split(ls('GLM_meta*.mat'));
+    fs=fs(~ismissing(fs));
+    fstr=load(fs{1});
+    out=fstr.out;
+    fldn=fieldnames(fstr.out);
+    for fid=2:numel(fs)
+        fstr=load(fs{fid});
+        for fldidx=1:numel(fldn)
+            out.(fldn{fldidx})=[out.(fldn{fldidx});...
+                fstr.out.(fldn{fldidx})];
+        end
+    end
+    blame=vcs.blame();
+    save('GLM_summed_meta.mat','out','blame');
+    return
 end
 zthres=norminv(0.95);
 
@@ -43,6 +61,7 @@ for gidx=1:numel(globalidx)
     if meta.sess(ii)~=curr_sess
         disp(meta.sess(ii))
         fpath=fullfile(homedir,ephys.sessid2path(meta.sess(ii)),"FR_All_1000.hdf5");
+        fpath=replace(fpath,'\',filesep());
         fr=h5read(fpath,'/FR_All'); %Trial x SU x time-bin
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');

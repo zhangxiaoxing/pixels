@@ -8,6 +8,7 @@ arguments
     opt.per_trial (1,1) logical = false
 end
 
+ephys.util.dependency('buz',false);
 %Fieldtrip routine
 [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(fidx,'keep_trial',true,'suids',unique(suids),'only_delay',true);
 %TODO: possible trial number criteria
@@ -15,9 +16,6 @@ onesess=struct();
 onesess.trials=trials;
 onesess.fidx=fidx;
 onesess.fc=[];
-if opt.per_trial
-    onesess.per_trial=cell(0);
-end
 
 for fci=1:size(suids,1)
     if rem(fci,100)==0,disp(fci);end
