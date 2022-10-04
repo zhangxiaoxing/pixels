@@ -86,11 +86,10 @@ end
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-bz.conn_prob_spatial_dist(sig,pair);
-fc.fc_com_reg_wave
+fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps)
 %>>> jump to TCOM section as needed
-fh4=bz.inter_wave_pct(pct_meta);
-
+fh4=bz.inter_wave_pct(wrs_mux_meta);
+bz.conn_prob_spatial_dist(sig,pair);
 %% TODO: FC_Decoding
 % K:\code\jpsth\+bz\+fccoding\plot_coding.m
 

@@ -32,9 +32,9 @@ for epochi=1:(numel(epochs))
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
 
-        sensible_sel=ismember(trials(:,8),[3,6]) & ismember(trials(:,5),[4,8]) & all(trials(:,9:10)~=0,2);
-        trials=trials(sensible_sel,:);
-        fr=fr(sensible_sel,:,:);
+        valid_sel=ismember(trials(:,8),[3,6]) & ismember(trials(:,5),[4,8]) & all(trials(:,9:10)~=0,2);
+        trials=trials(valid_sel,:);
+        fr=fr(valid_sel,:,:);
 
         anovanps=nan(size(fr,2),3); %1:Samp,2:Dur,3:Samp*Dur
 

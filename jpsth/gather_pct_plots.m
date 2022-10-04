@@ -12,10 +12,10 @@ dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
 pct_meta=pct.get_pct_meta(eff_meta,sens_win,dur_win);
 com_map=wave.get_pct_com_map(pct_meta,'curve',true);
 
-%ALT
-wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true);
+%ALT -> moved to new script
+% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true);
 % wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
+% com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

@@ -10,9 +10,8 @@ end
 
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 sig=bz.join_fc_waveid(sig,pct_meta.wave_id);
-sig=bz.join_fc_waveid(sig,pct_meta.mat_coord,'pct_mat',true); %lead_olf, lead_dur,folo_olf,folo_dur
 pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
-pair=bz.join_fc_waveid(pair,pct_meta.mat_coord,"pct_mat",true);
+
 %>>>>>>>>>>>>>>>>>>Skip hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
 [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
@@ -24,9 +23,14 @@ fh.samereg=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_s
 fh.crossreg=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
 
 %% single-mixed
-statsMat(sig,pair)
 statsMixed(sig,pair)
 
+%% graded mat
+if isfield(pct_meta,'mat_coord')
+    sig=bz.join_fc_waveid(sig,pct_meta.mat_coord,'pct_mat',true); %lead_olf, lead_dur,folo_olf,folo_dur
+    pair=bz.join_fc_waveid(pair,pct_meta.mat_coord,"pct_mat",true);
+    statsMat(sig,pair)
+end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 end
 

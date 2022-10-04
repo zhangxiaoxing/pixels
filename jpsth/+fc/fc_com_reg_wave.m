@@ -1,0 +1,141 @@
+function fc_com_pvsst_stats=fc_com_reg_wave(wave_meta,com_map,tcom_maps)
+
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+
+[sig,~]=bz.load_sig_sums_conn_file();
+sig=bz.join_fc_waveid(sig,wave_meta.wave_id);
+usess=unique(sig.sess);
+fc_com_pvsst_stats=[];
+
+for sii=reshape(usess,1,[]) %iterate through sessions
+    sesssel=sig.sess==sii;
+    
+    suid=sig.suid(sesssel,:);
+    waveid=sig.waveid(sesssel,:);
+    regsess=squeeze(sig.reg(sesssel,5,:));
+
+    com_sess_pct=nan(size(suid));
+    for ff=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
+        sukeys=com_map.(['s',num2str(sii)]).(ff).com.keys(); % prefered SUid
+        susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
+        com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).com.values(num2cell(suid(susel)))); % out put is nx2 in dim
+    end
+    fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];
+    %==================================================sess=====================suid=======COM_context1=====COM_context2=====ccfid===========waveid======
+end
+
+congrusel=pct.su_pairs.get_congru(fc_com_pvsst_stats(:,10:11));
+incongsel=pct.su_pairs.get_incongru(fc_com_pvsst_stats(:,10:11));
+mixed_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);
+olf_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);
+dur_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);
+
+typesel_mat=[olf_congru,dur_congru,mixed_congru,incongsel];
+tcom_maps_rearr=tcom_maps([2,3,1,2]);
+
+colors={'r','b','k','m'};
+titles={'Olfactory','Duration','Multiplexed','Incongru-OLF-gradient'};
+% regional wave timing selectivity dependent >>>>>>>>>>>>>>>>
+figure('Color','w','Position',[100,100,1024,235])
+
+tiledlayout(1,4)
+for typeIdx=1:4
+    nexttile();
+    hold on
+
+    sel_tcom_map=tcom_maps_rearr{typeIdx};
+    
+    avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
+    reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
+
+    reg_wave_timing=cellfun(@(x) sel_tcom_map(x{1}),...
+        idmap.ccfid2reg.values(...
+        num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
+    fc_com_pvsst_stats(:,6:7)=nan;
+    fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing;
+    fini_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
+    % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    % correlation region wave timing v.s. FC latency
+
+    typesel=typesel_mat(:,typeIdx);
+
+    reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
+    fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
+    [N,edges,binidx]=histcounts(reg_latency,-0.35:0.1:0.35);
+
+    fcmm=arrayfun(@(x) mean(fc_latency(binidx==x),'all'),unique(binidx(binidx>0)))./4;
+    fcstd=arrayfun(@(x) std(fc_latency(binidx==x)),unique(binidx(binidx>0)))./4;
+    fcsem=reshape(fcstd,1,[])./sqrt(N(N>0));
+    xep=edges(2:end)-0.05;
+    fill([xep(N>0),fliplr(xep(N>0))],[fcmm(:)+fcsem(:);flip(fcmm(:)-fcsem(:))],colors{typeIdx},'EdgeColor','none','FaceAlpha',0.2)
+    plot(xep(N>0),fcmm,'Color',colors{typeIdx});
+    ylim([-0.8,0.4])
+    yline(0,'k--')
+    xlabel('Region wave timing latency (s)')
+    ylabel('F.C. COM latency (s)')
+    set(gca(),'YTick',-0.8:0.4:0.4)
+    title(titles{typeIdx});
+end
+sgtitle(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
+
+barcnt=[];
+barmm=[];
+barci=[];
+for typeIdx=1:3
+    sel_tcom_map=tcom_maps_rearr{typeIdx};
+    
+    avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
+    reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
+
+    reg_wave_timing=cellfun(@(x) sel_tcom_map(x{1}),...
+        idmap.ccfid2reg.values(...
+        num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
+    fc_com_pvsst_stats(:,6:7)=nan;
+    fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing;
+    fini_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
+    typesel=typesel_mat(:,typeIdx);
+%     reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
+    fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
+    same_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,8)==fc_com_pvsst_stats(fini_sel & typesel,9) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
+    wave_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,6)<fc_com_pvsst_stats(fini_sel & typesel,7) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
+    % same region
+    [same_hat,same_ci]=binofit(nnz(fc_latency>0 & same_reg_sel),nnz(same_reg_sel));
+    % wave dir
+    [wave_hat,wave_ci]=binofit(nnz(fc_latency>0 & wave_reg_sel),nnz(wave_reg_sel));
+    barcnt=[barcnt;nnz(fc_latency>0 & same_reg_sel),nnz(same_reg_sel),nnz(fc_latency>0 & wave_reg_sel),nnz(wave_reg_sel)];
+    barmm=[barmm;1-same_hat,same_hat,1-wave_hat,wave_hat];
+    barci=[barci;same_ci,wave_ci];
+end
+
+titles={'Within region','Within region','Early region to Late region','Early region to Late region'};
+figure('Color','w','Position',[100,100,500,235])
+tiledlayout(1,2)
+for ii=0:2:2
+    nexttile()
+    hold on
+    bh=bar(1:3,barmm(:,(1:2)+ii),'grouped');
+    errorbar([bh.XEndPoints],[bh.YEndPoints],...
+        [1-barci(:,1+ii);barci(:,1+ii)]-[bh.YEndPoints].',...
+        [1-barci(:,2+ii);barci(:,2+ii)]-[bh.YEndPoints].','k.')
+    ylim([0.35,0.65])
+    yline(0.5,'k--')
+    set(gca(),'XTick',1:3,'XTickLabel',{'OLF','DUR','MIX'},...
+        'YTick',0.4:0.1:0.6,'YTickLabel',40:10:60)
+    title(titles{ii+1});
+end
+sgtitle(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
+
+for typeidx=1:3
+    [~,~,p]=crosstab([zeros(barcnt(typeidx,2),1);ones(barcnt(typeidx,4),1)],...
+        [(1:barcnt(typeidx,2))>barcnt(typeidx,1),(1:barcnt(typeidx,4))>barcnt(typeidx,3)]);
+
+        binocdfp=[2*binocdf(min(barcnt(typeidx,1),barcnt(typeidx,2)-barcnt(typeidx,1)),barcnt(typeidx,2),0.5),...
+            2*binocdf(min(barcnt(typeidx,3),barcnt(typeidx,4)-barcnt(typeidx,3)),barcnt(typeidx,4),0.5)];
+    disp([typeidx,p,binocdfp]);
+end
+
+end
+
+% consistent v. inconsistent
+
+% congruent v. incongruent
