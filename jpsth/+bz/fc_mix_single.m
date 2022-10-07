@@ -3,8 +3,8 @@ meta=ephys.util.load_meta('skip_stats',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
-function conn_stat(wrs_mux_meta,com_map,tcom_maps)
-
+function FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
+%% timing
 fc_stats=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
 congrusel=pct.su_pairs.get_congru(fc_stats(:,10:11));
 
@@ -58,6 +58,26 @@ plot(edges,[0,omcdf],'--ro');
 yline(0.5,'k:');
 xline(0,'k:');
 
+rratio=@(x) x./(sum(x,'all'));
+figure() % mix vs olfactory, mo,om
+mocount=[nnz(modf>0),nnz(modf<=0)];
+omcount=[nnz(omdf>0),nnz(omdf<=0)];
+pmo=binocdf(min(mocount),numel(modf),0.5)*2;
+pom=binocdf(min(omcount),numel(omdf),0.5)*2;
+bh=bar([rratio(mocount);rratio(omcount)],'grouped');
+title('mix-olf, olf-mix')
+set(gca(),'YTickLabel',get(gca(),'YTick').*100,'XTick',1:2,'XTickLabel',{'Mix>OLF','OLF>Mixed'})
+
+figure() % mix vs duration
+mdcount=[nnz(mddf>0),nnz(mddf<=0)];
+dmcount=[nnz(dmdf>0),nnz(dmdf<=0)];
+pmd=binocdf(min(mdcount),numel(mddf),0.5)*2;
+pdm=binocdf(min(dmcount),numel(dmdf),0.5)*2;
+bh=bar([rratio(mdcount);rratio(dmcount)],'grouped');
+set(gca(),'YTickLabel',get(gca(),'YTick').*100,'XTick',1:2,'XTickLabel',{'Mix>Dur','Dur>Mixed'})
+title('mix-dur, dur-mix')
+
+%%
 end
 
 function split_class_stats(sel_meta)
@@ -78,7 +98,7 @@ s1d3_s1sg_rate=rrate(nnz(sig.waveid(:,1)==1 & sig.waveid(:,2)==5),nnz(pair.wavei
 s1sg_s1d3_rate=rrate(nnz(sig.waveid(:,1)==5 & sig.waveid(:,2)==1),nnz(pair.waveid(:,1)==5 & pair.waveid(:,2)==1));
 
 s1d6_s1sg_rate=rrate(nnz(sig.waveid(:,1)==2 & sig.waveid(:,2)==5),nnz(pair.waveid(:,1)==2 & pair.waveid(:,2)==5));
-s1d6_s1sg_rate=rrate(nnz(sig.waveid(:,1)==5 & sig.waveid(:,2)==2),nnz(pair.waveid(:,1)==5 & pair.waveid(:,2)==2));
+s1sg_s1d6_rate=rrate(nnz(sig.waveid(:,1)==5 & sig.waveid(:,2)==2),nnz(pair.waveid(:,1)==5 & pair.waveid(:,2)==2));
 
 % TODO total input, i.e. rate * lead freq
 

@@ -7,9 +7,31 @@ end
 if strcmp(opt.dtype,'neupix') ||  strcmp(opt.dtype,'MY')
     if ispc
         if strcmp(opt.type,'sums')
-            homedir = fullfile('K:','code','per_sec');
+            if endsWith(pwd(),[filesep(),'jpsth'])
+                homedir = fullfile('..','per_sec');
+                [avail,attstr]=fileattrib(homedir);
+                if avail
+                    homedir=attstr.Name;
+                else
+                    keyboard();
+                end
+            else
+                keyboard();
+            end
         elseif strcmp(opt.type,'raw')
-            homedir = fullfile('K:','neupix','SPKINFO');
+            if endsWith(pwd(),[filesep(),'jpsth'])
+                homedir = fullfile('..','..','neupix','SPKINFO');
+                [avail,attstr]=fileattrib(homedir);
+                if avail
+                    homedir=attstr.Name;
+                else
+                    keyboard();
+                end
+            else
+                keyboard();
+            end
+
+
         end
     elseif isunix
         if strcmp(opt.type,'sums')
