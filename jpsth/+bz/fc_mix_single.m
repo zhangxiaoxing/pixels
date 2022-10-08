@@ -1,3 +1,4 @@
+keyboard();
 global_init;
 meta=ephys.util.load_meta('skip_stats',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
@@ -105,24 +106,8 @@ s1sg_s1d6_rate=rrate(nnz(sig.waveid(:,1)==5 & sig.waveid(:,2)==2),nnz(pair.wavei
 end
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function activity_stats
+%% activity_stats, fcsp, fc_coding, etc
+function activity_stats()
 
 mix_sel=ismember(wrs_mux_meta.wave_id,1:4);
 olf_sel=ismember(wrs_mux_meta.wave_id,5:6);
@@ -160,7 +145,7 @@ for fi=1:numel(fl)
         curr_wave=fc_wave_id(fci,:);
         % consistent trial inconsistent trial
         [consis,incons]=consist_incons_trial(trials,curr_wave);
-        fc_data=cell2mat(fstr.onesess.fc(fci,[2 8 9]));
+        fc_data=cell2mat(fstr.onesess.fc(fci,[2 8 9])); %fcsp, lead_spks, follow_spks
         consis_data=fc_data(consis,:);
         incons_data=fc_data(incons,:);
 
@@ -392,3 +377,127 @@ elseif all(ismember(wave_id,[4 8]),'all')
 end
 end
 
+function fc_rate_wo_TCOM(sel_meta)
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
+pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
+
+% congrusel=pct.su_pairs.get_congru(sig.waveid);
+% mix_olf_sel_sig=ismember(sig.waveid(:,1),1:4) & ismember(sig.waveid(:,2),5:6) & congrusel;
+% olf_mix_sel_sig=ismember(sig.waveid(:,2),1:4) & ismember(sig.waveid(:,1),5:6) & congrusel;
+% mix_dur_sel_sig=ismember(sig.waveid(:,1),1:4) & ismember(sig.waveid(:,2),7:8) & congrusel;
+% dur_mix_sel_sig=ismember(sig.waveid(:,2),1:4) & ismember(sig.waveid(:,1),7:8) & congrusel;
+% 
+% congrusel=pct.su_pairs.get_congru(pair.waveid);
+% mix_olf_sel_pair=ismember(pair.waveid(:,1),1:4) & ismember(pair.waveid(:,2),5:6) & congrusel;
+% olf_mix_sel_pair=ismember(pair.waveid(:,2),1:4) & ismember(pair.waveid(:,1),5:6) & congrusel;
+% mix_dur_sel_pair=ismember(pair.waveid(:,1),1:4) & ismember(pair.waveid(:,2),7:8) & congrusel;
+% dur_mix_sel_pair=ismember(pair.waveid(:,2),1:4) & ismember(pair.waveid(:,1),7:8) & congrusel;
+% 
+% nnz(mix_olf_sel_sig)./nnz(mix_olf_sel_pair)
+% nnz(olf_mix_sel_sig)./nnz(olf_mix_sel_pair)
+% nnz(mix_dur_sel_sig)./nnz(mix_dur_sel_pair)
+% nnz(dur_mix_sel_sig)./nnz(dur_mix_sel_pair)
+
+
+
+[inhibit_sig,inhibit_pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',true);
+inhibit_sig=bz.join_fc_waveid(inhibit_sig,sel_meta.wave_id);
+inhibit_pair=bz.join_fc_waveid(inhibit_pair,sel_meta.wave_id);
+
+% s1d3,s1d6,s1
+sumratio=@(x) sum(x(:,1))./sum(x(:,2));
+
+s1_out=triplet_stats(sig,pair,1,2,5);
+inhibit_s1_out=triplet_stats(inhibit_sig,inhibit_pair,1,2,5);
+
+s2_out=triplet_stats(sig,pair,3,4,6);
+inhibit_s2_out=triplet_stats(inhibit_sig,inhibit_pair,3,4,6);
+
+d3_out=triplet_stats(sig,pair,1,3,7);
+inhibit_d3_out=triplet_stats(inhibit_sig,inhibit_pair,1,3,7);
+
+d6_out=triplet_stats(sig,pair,2,4,8);
+inhibit_d6_out=triplet_stats(inhibit_sig,inhibit_pair,2,4,8);
+
+m2o_count=[s1_out.a2c_c2a(1,1:2);s1_out.b2c_c2b(1,1:2);s2_out.a2c_c2a(1,1:2);s2_out.b2c_c2b(1,1:2)];
+inhibit_m2o_count=[inhibit_s1_out.a2c_c2a(1,1:2);inhibit_s1_out.b2c_c2b(1,1:2);inhibit_s2_out.a2c_c2a(1,1:2);inhibit_s2_out.b2c_c2b(1,1:2)];
+
+o2m_count=[s1_out.a2c_c2a(2,1:2);s1_out.b2c_c2b(2,1:2);s2_out.a2c_c2a(2,1:2);s2_out.b2c_c2b(2,1:2)];
+inhibit_o2m_count=[inhibit_s1_out.a2c_c2a(2,1:2);inhibit_s1_out.b2c_c2b(2,1:2);inhibit_s2_out.a2c_c2a(2,1:2);inhibit_s2_out.b2c_c2b(2,1:2)];
+
+m2m_count=[s1_out.a2b_b2a(:,1:2);s2_out.a2b_b2a(:,1:2)];
+inhibit_m2m_count=[inhibit_s1_out.a2b_b2a(:,1:2);inhibit_s2_out.a2b_b2a(:,1:2)];
+
+
+count_sum=[sum(m2o_count);sum(o2m_count);sum(m2m_count);...
+sum(inhibit_m2o_count);sum(inhibit_o2m_count);sum(inhibit_m2m_count)];
+[mohat,moci]=binofit(count_sum(:,1),count_sum(:,2));
+
+moci=moci-mohat;
+
+figure('Color','w')
+hold on
+bh=bar([mohat(1:3).';mohat(4:6).']);
+errorbar([bh.XEndPoints],[bh.YEndPoints],moci([1 4 2 5 3 6],1),moci([1 4 2 5 3 6],2),'k.')
+set(gca(),'YTickLabel',get(gca(),'YTick').*100,'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+ylabel('F.C. rate (%)')
+legend(bh,{'Mixed to olf','Olf. to mixed','Mixed to mixed'},'Location','northoutside','Orientation','horizontal')
+
+
+
+m2d_count=[d3_out.a2c_c2a(1,1:2);d3_out.b2c_c2b(1,1:2);d6_out.a2c_c2a(1,1:2);d6_out.b2c_c2b(1,1:2)];
+inhibit_m2d_count=[inhibit_d3_out.a2c_c2a(1,1:2);inhibit_d3_out.b2c_c2b(1,1:2);inhibit_d6_out.a2c_c2a(1,1:2);inhibit_d6_out.b2c_c2b(1,1:2)];
+
+d2m_count=[d3_out.a2c_c2a(2,1:2);d3_out.b2c_c2b(2,1:2);d6_out.a2c_c2a(2,1:2);d6_out.b2c_c2b(2,1:2)];
+inhibit_d2m_count=[inhibit_d3_out.a2c_c2a(2,1:2);inhibit_d3_out.b2c_c2b(2,1:2);inhibit_d6_out.a2c_c2a(2,1:2);inhibit_d6_out.b2c_c2b(2,1:2)];
+
+m2m_count=[d3_out.a2b_b2a(:,1:2);d6_out.a2b_b2a(:,1:2)];
+inhibit_m2m_count=[inhibit_d3_out.a2b_b2a(:,1:2);inhibit_d6_out.a2b_b2a(:,1:2)];
+
+figure()
+bar([sumratio(m2d_count),sumratio(d2m_count),sumratio(m2m_count);...
+sumratio(inhibit_m2d_count),sumratio(inhibit_d2m_count),sumratio(inhibit_m2m_count)])
+
+
+
+
+end
+
+function out=triplet_stats(sig,pair,a,b,c)
+rratio=@(x,y) [x,y,x./y];
+out.a2b_b2a=[rratio(nnz(sig.waveid(:,1)==a & sig.waveid(:,2)==b),nnz(pair.waveid(:,1)==a & pair.waveid(:,2)==b));...
+rratio(nnz(sig.waveid(:,1)==b & sig.waveid(:,2)==a),nnz(pair.waveid(:,1)==b & pair.waveid(:,2)==a))];
+
+out.a2c_c2a=[rratio(nnz(sig.waveid(:,1)==a & sig.waveid(:,2)==c),nnz(pair.waveid(:,1)==a & pair.waveid(:,2)==c));...
+rratio(nnz(sig.waveid(:,1)==c & sig.waveid(:,2)==a),nnz(pair.waveid(:,1)==c & pair.waveid(:,2)==a))];
+
+out.b2c_c2b=[rratio(nnz(sig.waveid(:,1)==b & sig.waveid(:,2)==c),nnz(pair.waveid(:,1)==b & pair.waveid(:,2)==c));...
+rratio(nnz(sig.waveid(:,1)==c & sig.waveid(:,2)==b),nnz(pair.waveid(:,1)==c & pair.waveid(:,2)==b))];
+
+
+out.a2a=rratio(nnz(sig.waveid(:,1)==a & sig.waveid(:,2)==a),nnz(pair.waveid(:,1)==a & pair.waveid(:,2)==a));
+out.b2b=rratio(nnz(sig.waveid(:,1)==b & sig.waveid(:,2)==b),nnz(pair.waveid(:,1)==b & pair.waveid(:,2)==b));
+out.c2c=rratio(nnz(sig.waveid(:,1)==c & sig.waveid(:,2)==c),nnz(pair.waveid(:,1)==c & pair.waveid(:,2)==c));
+end
+
+function plot_triplet(excite,inhibit)
+figure()
+hold on
+annotation('arrow',[2,4]./5,[4.5,4.5]./5)
+annotation('arrow',[2,4]./5,[4,4]./5,'HeadStyle','rectangle')
+
+annotation('arrow',[4,2]./5,[3.5,3.5]./5)
+annotation('arrow',[4,2]./5,[3,3]./5,'HeadStyle','rectangle')
+
+
+annotation('arrow',[1,1]./5,[2,3]./5)
+annotation('arrow',[1.5,1.5]./5,[2,3]./5,'HeadStyle','rectangle')
+
+annotation('arrow',[4,4]./5,[2,3]./5)
+annotation('arrow',[4.5,4.5]./5,[2,3]./5,'HeadStyle','rectangle')
+end
+
+function plot_triplet_bar
+    
+end
