@@ -142,7 +142,10 @@ end
 disp(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
 
 
-
+figure()
+bar([barcnt(1,[4,6])./sum(barcnt(1,[4 6]),'all');...
+    barcnt(2,[4,6])./sum(barcnt(2,[4 6]),'all');...
+    barcnt(3,[4,6])./sum(barcnt(3,[4 6]),'all')])
 
 
 
