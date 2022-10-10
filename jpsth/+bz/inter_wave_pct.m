@@ -3,12 +3,12 @@ arguments
     pct_meta
     opt.min_pair_per_session (1,1) double = 20
     opt.per_sess (1,1) logical = false
+    opt.inhibit (1,1) logical = false
 end
 % selstr=load('perm_sens.mat','sens_meta');
 
 % persistent sig pair
-
-[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',opt.inhibit);
 sig=bz.join_fc_waveid(sig,pct_meta.wave_id);
 pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 
@@ -18,12 +18,13 @@ pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 % 
 % [samestats,sameci]=statsMixed(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session);
 % [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
-
-fh.samereg=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
-fh.crossreg=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
-
-%% single-mixed
-statsMixed(sig,pair)
+fh.fig=figure('Color','w','Position',[100,100,500,235]);
+tiledlayout(1,2)
+fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
+fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
+sgtitle('same-reg, cross-reg')
+%% single-mixed % separated into own code. 
+% statsMixed(sig,pair)
 
 %% graded mat
 if isfield(pct_meta,'mat_coord')
@@ -253,7 +254,7 @@ end
 
 
 
-function fh=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess)
+function ax=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess)
 % [fromhat,tohat,fromsem,tosem]=deal(nan(5,1));
 
 nonmem_sig=pct.su_pairs.get_nonmem(sig.waveid);
@@ -313,7 +314,8 @@ else
 end
 
 
-fh=figure('Color','w','Position',[100,100,235,235]);
+% fh=figure('Color','w','Position',[100,100,235,235]);
+ax=nexttile();
 hold on
 bh=bar(1:3,diag([nonmem_hat,incong_hat,congru_hat]),'stacked');
 bh(1).FaceColor='k';
@@ -329,9 +331,10 @@ errorbar(1:3,[nonmem_hat,incong_hat,congru_hat],...
     [nonmem_sem(2),incong_sem(2),congru_sem(2)]-[nonmem_hat,incong_hat,congru_hat],...
     'k.');
 end
-
+yytick=get(gca(),'YTick');
+yyticklbl=100.*yytick;
 set(gca(),'XTick',1:3,'XTickLabel',{'NONMEM','INCONG','CONGRU'},'XTickLabelRotation',90,...
-    'YTickLabel',100.*get(gca(),'YTick'));
+    'YTick',yytick,'YTickLabel',yyticklbl);
 
 title("chisq-p "+num2str(p))
 xlim([0.4,3.6]);

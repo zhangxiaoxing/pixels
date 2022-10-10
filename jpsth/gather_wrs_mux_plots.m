@@ -36,7 +36,7 @@ tcom_maps=cell(1,3);
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
     [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
-        com_map,'pct_type',type);
+        com_map,'sel_type',type);
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
         fcom.(type).collection(:,2));
     [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
@@ -89,6 +89,9 @@ end
 fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps)
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(wrs_mux_meta);
+fh4.fig.Children.Subtitle.String='Excitatory';
+fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
+fh4i.fig.Children.Subtitle.String='Inhibitory';
 bz.conn_prob_spatial_dist(sig,pair);
 %% TODO: FC_Decoding
 % K:\code\jpsth\+bz\+fccoding\plot_coding.m

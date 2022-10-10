@@ -249,7 +249,7 @@ tcom_maps=cell(1,3);
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
     [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
-        com_map,'pct_type',type);
+        com_map,'sel_type',type);
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
         fcom.(type).collection(:,2));
     [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));

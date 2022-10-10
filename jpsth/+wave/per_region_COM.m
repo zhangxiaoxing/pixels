@@ -9,7 +9,7 @@ arguments
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.min_su (1,1) double = 20
-    opt.pct_type (1,:) char {mustBeMember(opt.pct_type,{'mixed','olf','dur'})}
+    opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'mixed','olf','dur'})}
 end
 
 if opt.min_su==20
@@ -32,8 +32,8 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
         sid=str2double(replace(sess{si},'s',''));
         allcid=meta.allcid(meta.sess==sid);
         allreg=meta.reg_tree(:,meta.sess==sid);
-        if isfield(opt,'pct_type')
-            switch opt.pct_type
+        if isfield(opt,'sel_type')
+            switch opt.sel_type
                 case 'mixed'
                     ffs=["s1d3","s1d6","s2d3","s2d6"];
                 case 'olf'
