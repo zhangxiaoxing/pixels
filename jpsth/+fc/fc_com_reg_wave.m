@@ -142,12 +142,29 @@ end
 disp(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
 
 
-figure() % FC rate along wave direction
-binofit(barcnt(:,4),sum(barcnt(:,[4 6]),2))
 
-bar([barcnt(1,[4,6])./sum(barcnt(1,[4 6]),'all');...
-    barcnt(2,[4,6])./sum(barcnt(2,[4 6]),'all');...
-    barcnt(3,[4,6])./sum(barcnt(3,[4 6]),'all')])
+[fwdhat, fwdci]=binofit(barcnt(:,4),sum(barcnt(:,[4 6]),2));
+[revhat, revci]=binofit(barcnt(:,6),sum(barcnt(:,[4 6]),2)); %not really necessary
+
+bcdfp=[binocdf(min(barcnt(1,4),barcnt(1,6)),sum(barcnt(1,[4,6]),'all'),0.5).*2;...
+    binocdf(min(barcnt(2,4),barcnt(2,6)),sum(barcnt(2,[4,6]),'all'),0.5).*2;...
+    binocdf(min(barcnt(3,4),barcnt(3,6)),sum(barcnt(3,[4,6]),'all'),0.5).*2];
+
+figure() % FC rate along wave direction
+hold on
+bh=bar([fwdhat,revhat]);
+errorbar([bh.XEndPoints],[bh.YEndPoints],...
+    [fwdci(:,1);revci(:,1)].'-[bh.YEndPoints],...
+    [fwdci(:,2);revci(:,2)].'-[bh.YEndPoints],...
+    'k.');
+yline(0.5,'k:');
+ylabel('Proportion of F.C (%)')
+set(gca(),'YLim',[0.3,0.7],'YTick',0.3:0.1:0.7,'YTickLabel',30:10:70,...
+    'XTick',1:3,'XTickLabel',{'Olf.','Dur.','Mixed'})
+legend(bh,{'Leading- to following reg.','Following- to leading reg.'},...
+    'Location','northoutside','Orientation','horizontal');
+title(sprintf('%.3f,',bcdfp));
+
 
 
 
