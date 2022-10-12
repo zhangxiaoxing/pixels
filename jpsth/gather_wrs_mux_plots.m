@@ -6,6 +6,19 @@ meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
+tcom_maps=cell(1,3);
+% map_cells: mixed_map,olf_map,dur_map
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+for typeidx=1:3
+    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
+        com_map,'sel_type',type);
+    ureg=intersect(ephys.getGreyRegs('range','grey'),...
+        fcom.(type).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
+    tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+end
+
 %% TODO wave-half-half
 
 fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'sort_by',6,'scale',[0,1]);
@@ -28,20 +41,6 @@ mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,corr_log_log, ...
 
 
 %% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-pct_tcom_fh=struct();
-tcom_maps=cell(1,3);
-
-% map_cells: mixed_map,olf_map,dur_map
-% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',type);
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom.(type).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
-    tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
-end
 
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM','stats_type','wrs-mux','feat_tag',{'Mixed','Olfactory','Duration'});
@@ -60,7 +59,7 @@ dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom_maps(3),corr_ln_log, ..
 % 
 
 %% TCOM and proportion correlation
-
+pct_tcom_fh=struct();
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
     conn_reg=subsref(["EPd","AON","SS"],struct(type='()',subs={{typeidx}}));
