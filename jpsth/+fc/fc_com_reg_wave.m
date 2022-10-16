@@ -120,12 +120,14 @@ for typeIdx=1:3
     barci=[barci;same_ci,wave_ci,rev_ci];
 end
 
-titles={'Within region','Within region',...
-    'Early region to late region','Early region to late region',...
-    'Late region to early region','Late region to early region'};
+
 figure('Color','w','Position',[100,100,720,235])
 tiledlayout(1,3)
-for ii=0:2:4
+%TODO: region-defined panels-> selectivity defined panels
+if false
+    titles={'Within region','Within region',...
+    'Early region to late region','Early region to late region',...
+    'Late region to early region','Late region to early region'};
     nexttile()
     hold on
     bh=bar(1:3,barmm(:,(1:2)+ii),'grouped');
@@ -137,19 +139,42 @@ for ii=0:2:4
     set(gca(),'XTick',1:3,'XTickLabel',{'OLF','DUR','MIX'},...
         'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
     title(titles{ii+1});
-    subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
+%     subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
+else
+    for ii=1:3
+        titles={'Olf.','Dur.','Mixed'};
+        nexttile()
+        hold on
+        bh=bar(1:3,[barmm(ii,[1,3,5]);barmm(ii,[2,4,6])],'grouped');
+        errorbar([bh.XEndPoints],[bh.YEndPoints],...
+            [barci(ii,[1 3 5]),1-barci(ii,[1 3 5])]-[bh.YEndPoints],...
+            [barci(ii,[2 4 6]),1-barci(ii,[2 4 6])]-[bh.YEndPoints],'k.')
+        ylim([0,0.8])
+        yline(0.5,'k--')
+        set(gca(),'XTick',1:3,'XTickLabel',{'Within','Wave','Rev.'},...
+            'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
+        title(titles{ii});
+%         subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
+    end
 end
 disp(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
 
+disp("type idx:1, cross reg. condition:1, binocdf each reg.condition:3")
 for typeidx=1:3
-    [~,~,chi2p]=crosstab([zeros(barcnt(typeidx,2),1);ones(barcnt(typeidx,4),1)],...
-        [(1:barcnt(typeidx,2))>barcnt(typeidx,1),(1:barcnt(typeidx,4))>barcnt(typeidx,3)]);
+    [~,~,chi2p(typeidx)]=crosstab([zeros(barcnt(typeidx,2),1);...
+        ones(barcnt(typeidx,4),1);...
+        2.*ones(barcnt(typeidx,6),1)],...
+        [(1:barcnt(typeidx,2))>barcnt(typeidx,1),...
+        (1:barcnt(typeidx,4))>barcnt(typeidx,3),...
+        (1:barcnt(typeidx,6))>barcnt(typeidx,5)]);
 
-    binocdfp=[2*binocdf(min(barcnt(typeidx,1),barcnt(typeidx,2)-barcnt(typeidx,1)),barcnt(typeidx,2),0.5),...
-        2*binocdf(min(barcnt(typeidx,3),barcnt(typeidx,4)-barcnt(typeidx,3)),barcnt(typeidx,4),0.5)];
-    disp([typeidx,chi2p,binocdfp]);
+    binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
+    binocdfp=[2*binocdf(binomin(1,2),barcnt(typeidx,2),0.5),...
+        2*binocdf(binomin(3,4),barcnt(typeidx,4),0.5),...
+        2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5)];
+    disp([typeidx,chi2p(typeidx),binocdfp]);
 end
-
+sgtitle(sprintf('%.3f',chi2p));
 
 [fwdhat, fwdci]=binofit(barcnt(:,4),sum(barcnt(:,[4 6]),2));
 [revhat, revci]=binofit(barcnt(:,6),sum(barcnt(:,[4 6]),2)); %not really necessary
