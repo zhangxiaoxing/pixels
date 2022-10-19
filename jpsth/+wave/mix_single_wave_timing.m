@@ -34,28 +34,116 @@ for si=1:numel(sess)
 end
 
 % end
-if false
-mean(com_meta.com(ismember(com_meta.wave_id,1:4)))
-mean(com_meta.com(ismember(com_meta.wave_id,5:6)))
-mean(com_meta.com(ismember(com_meta.wave_id,7:8)))
 
-ranksum(com_meta.com(ismember(com_meta.wave_id,1:4)),...
-    com_meta.com(ismember(com_meta.wave_id,5:6)))
-end
+%% mean
+mm=[mean(com_meta.com(ismember(com_meta.wave_id,5:6))),...
+mean(com_meta.com(ismember(com_meta.wave_id,7:8))),...
+mean(com_meta.com(ismember(com_meta.wave_id,1:4)))];
+
+sem=[std(com_meta.com(ismember(com_meta.wave_id,5:6)))./sqrt(nnz(ismember(com_meta.wave_id,5:6))),...
+mean(com_meta.com(ismember(com_meta.wave_id,7:8)))./sqrt(nnz(ismember(com_meta.wave_id,7:8))),...
+mean(com_meta.com(ismember(com_meta.wave_id,1:4)))./sqrt(nnz(ismember(com_meta.wave_id,1:4)))];
+figure()
+hold on
+bh=bar(diag(mm),'stacked');
+errorbar(bh(3).XEndPoints,bh(3).YEndPoints,sem,'k.')
+xlim([0.5,3.5])
+set(gca(),'YTick',0:2:12,'YTickLabel',0:0.5:3,...
+    'XTick',1:3,'XTickLabel',{'Olf','Dur','Mix'})
+ylabel('Wave-specific mean TCOM (s)')
+[bh.FaceColor]=deal('r','b','w');
+anovap=anovan([com_meta.com(ismember(com_meta.wave_id,5:6));...
+    com_meta.com(ismember(com_meta.wave_id,7:8));...
+    com_meta.com(ismember(com_meta.wave_id,1:4))], ...
+    [zeros(nnz(ismember(com_meta.wave_id,5:6)),1);...
+    ones(nnz(ismember(com_meta.wave_id,7:8)),1);...
+    2*ones(nnz(ismember(com_meta.wave_id,1:4)),1)],...
+    'display','off');
+
+omp=ranksum(com_meta.com(ismember(com_meta.wave_id,1:4)),...
+    com_meta.com(ismember(com_meta.wave_id,5:6)));
+odp=ranksum(com_meta.com(ismember(com_meta.wave_id,7:8)),...
+    com_meta.com(ismember(com_meta.wave_id,5:6)));
+mdp=ranksum(com_meta.com(ismember(com_meta.wave_id,7:8)),...
+    com_meta.com(ismember(com_meta.wave_id,1:4)));
+title(sprintf('anova %.3f, wrs %.3f,%.3f,%.3f',anovap,omp,odp,mdp))
+ylim([4,8])
 
 
+%% cdf in specific selective subpopulations
 mixcdf=histcounts(com_meta.com(ismember(com_meta.wave_id,1:4)),0:0.25:12,'Normalization','cdf');
 olfcdf=histcounts(com_meta.com(ismember(com_meta.wave_id,5:6)),0:0.25:12,'Normalization','cdf');
 durcdf=histcounts(com_meta.com(ismember(com_meta.wave_id,7:8)),0:0.25:12,'Normalization','cdf');
 
 figure()
 hold on
-plot(mixcdf,'-k')
-plot(olfcdf,'-r')
-plot(durcdf,'-b')
-ylabel('Cumulated density (%)')
-set(gca(),'XTick',0:16:48,'XTickLabel',0:1:3,'YLim',[0,1])
+mh=plot(mixcdf,'-k');
+oh=plot(olfcdf,'-r');
+dh=plot(durcdf,'-b');
+set(gca(),'XTick',0:16:48,'XTickLabel',0:1:3,'YLim',[0,1]);
 
+ylabel('Cumulated density (%)')
+xlabel('Time (s)')
+legend([oh,dh,mh],{'Olfactory','Duration','Mixed'},'Location','northoutside','Orientation','horizontal')
+
+%% percentage of total population
+
+mixcuc=histcounts(com_meta.com(ismember(com_meta.wave_id,1:4)),0:0.25:12,'Normalization','cumcount');
+olfcuc=histcounts(com_meta.com(ismember(com_meta.wave_id,5:6)),0:0.25:12,'Normalization','cumcount');
+durcuc=histcounts(com_meta.com(ismember(com_meta.wave_id,7:8)),0:0.25:12,'Normalization','cumcount');
 
 figure()
-histogram(com_meta.com(ismember(com_meta.wave_id,1:4)))
+hold on
+mh=plot(mixcuc,'-k');
+oh=plot(olfcuc,'-r');
+dh=plot(durcuc,'-b');
+ylim([0,3303]);
+set(gca(),'XTick',0:16:48,'XTickLabel',0:1:3,...
+    'YTick',0:(330.3*5):3303,'YTickLabel',0:5:10);
+xlabel('Time (s)');
+ylabel('Percentage of total neuron (%)')
+xlabel('Time (s)')
+
+
+ylabel('Cumulated density (%)')
+xlabel('Time (s)')
+legend([oh,dh,mh],{'Olfactory','Duration','Mixed'},'Location','northoutside','Orientation','horizontal')
+
+
+%% region-wise
+
+fc_stats=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps); % produce two figures
+    %mix<>olf
+    
+    %mix<>dur
+    %olf<>dur
+
+
+
+
+
+
+
+if false
+    olf_sel=strcmp(com_meta.reg_tree(4,:),'OLF');
+    asso_sel=ismember(com_meta.reg_tree(5,:),{'PL','ILA','ACA','ORB','AI'});
+    th_sel=ismember(com_meta.reg_tree(5,:),{'VENT','ILM','LAT','MED'});
+
+
+end
+
+
+
+%%
+olf_com_per_reg=struct();
+[olf_com_per_reg.collection,olf_com_per_reg.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','olf');
+% [mean/media,reg,depth,count,std/iqr]
+
+depth_sel=cell2mat(olf_com_per_reg.collection(:,3))==5 ...
+    & ~ismissing(olf_com_per_reg.collection(:,2));
+sortrows(olf_com_per_reg.collection(depth_sel,:),1)
+%%
+
+
+

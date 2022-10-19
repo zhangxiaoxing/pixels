@@ -457,7 +457,9 @@ pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
 [inhibit_sig,inhibit_pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',true);
 inhibit_sig=bz.join_fc_waveid(inhibit_sig,sel_meta.wave_id);
 inhibit_pair=bz.join_fc_waveid(inhibit_pair,sel_meta.wave_id);
-sumratio=@(x) sum(x(:,1))./sum(x(:,2));
+
+
+% sumratio=@(x) sum(x(:,1))./sum(x(:,2));
 %% olfactory
 % s1d3,s1d6,s1
 s1_out=triplet_stats(sig,pair,1,2,5);
@@ -669,4 +671,25 @@ end
 % annotation('arrow',[4.5,4.5]./5,[2,3]./5,'HeadStyle','rectangle')
 % end
 
+
+function reg_group(dinput,leadgrp,followgrp)
+persistent idmap
+if isempty(idmap)
+    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+end
+
+leadgrp_ccfid=cell2mat(idmap.reg2ccfid.values(leadgrp));
+followgrp_ccfid=cell2mat(idmap.reg2ccfid.values(followgrp));
+%     olf_sel=strcmp(com_meta.reg_tree(4,:),'OLF');
+%     asso_sel=ismember(com_meta.reg_tree(5,:),{'PL','ILA','ACA','ORB','AI'});
+%     th_sel=ismember(com_meta.reg_tree(5,:),{'VENT','ILM','LAT','MED'});
+
+currgrp=zeros(size(dinput.suid));
+ismember(squeeze(sig.reg(:,5,:)),leadgrp_ccfid);
+
+
+
+
+
+end
 
