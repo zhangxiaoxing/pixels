@@ -4,9 +4,17 @@ meta=ephys.util.load_meta('skip_stats',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
-FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
+
 fc_rate_mix_simple(wrs_mux_meta)
 
+olfgrp={'AON','TT','DP','PIR'};
+pfcgrp={'PL','ILA','ACA','ORB','AI'};
+thsgrp={'VENT','ILM','LAT','MED'};
+
+fc_rate_mix_simple(wrs_mux_meta,olfgrp,olfgrp)
+
+%%
+FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
 
 function FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
 %% timing
@@ -432,7 +440,12 @@ elseif all(ismember(wave_id,[4 8]),'all')
 end
 end
 
-function fc_rate_mix_simple(sel_meta)
+function fc_rate_mix_simple(sel_meta,leadgrp,followgrp)
+% arguments
+%     sel_meta
+%     leadgrp
+%     followgrp
+% end
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
 pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
@@ -457,6 +470,22 @@ pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
 [inhibit_sig,inhibit_pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',true);
 inhibit_sig=bz.join_fc_waveid(inhibit_sig,sel_meta.wave_id);
 inhibit_pair=bz.join_fc_waveid(inhibit_pair,sel_meta.wave_id);
+
+if exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp)
+% sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
+% pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
+    sig=reg_group(sig,leadgrp,followgrp);
+    pair=reg_group(pair,leadgrp,followgrp);
+    inhibit_sig=reg_group(inhibit_sig,leadgrp,followgrp);
+    inhibit_pair=reg_group(inhibit_pair,leadgrp,followgrp);
+end
+
+
+%TODO region - grouped
+
+%     olf_sel=strcmp(com_meta.reg_tree(4,:),'OLF');
+%     asso_sel=ismember(com_meta.reg_tree(5,:),{'PL','ILA','ACA','ORB','AI'});
+%     th_sel=ismember(com_meta.reg_tree(5,:),{'VENT','ILM','LAT','MED'});
 
 
 % sumratio=@(x) sum(x(:,1))./sum(x(:,2));
@@ -671,8 +700,8 @@ end
 % annotation('arrow',[4.5,4.5]./5,[2,3]./5,'HeadStyle','rectangle')
 % end
 
-
-function reg_group(dinput,leadgrp,followgrp)
+% leadgrp={'AON','TT','DP','PIR'}
+function out=reg_group(dinput,leadgrp,followgrp)
 persistent idmap
 if isempty(idmap)
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -680,16 +709,17 @@ end
 
 leadgrp_ccfid=cell2mat(idmap.reg2ccfid.values(leadgrp));
 followgrp_ccfid=cell2mat(idmap.reg2ccfid.values(followgrp));
-%     olf_sel=strcmp(com_meta.reg_tree(4,:),'OLF');
-%     asso_sel=ismember(com_meta.reg_tree(5,:),{'PL','ILA','ACA','ORB','AI'});
-%     th_sel=ismember(com_meta.reg_tree(5,:),{'VENT','ILM','LAT','MED'});
-
-currgrp=zeros(size(dinput.suid));
-ismember(squeeze(sig.reg(:,5,:)),leadgrp_ccfid);
 
 
+% currgrp=zeros(size(dinput.suid));
+lead_sel=ismember(squeeze(dinput.reg(:,5,1)),leadgrp_ccfid);
+follow_sel=ismember(squeeze(dinput.reg(:,5,2)),followgrp_ccfid);
 
-
+out=struct();
+out.suid=dinput.suid(lead_sel & follow_sel,:);
+out.sess=dinput.sess(lead_sel & follow_sel);
+out.reg=dinput.reg(lead_sel & follow_sel,:,:);
+out.waveid=dinput.waveid(lead_sel & follow_sel,:);
 
 end
 
