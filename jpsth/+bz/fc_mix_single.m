@@ -481,23 +481,6 @@ function fc_rate_mix_simple(sel_meta,leadgrp,followgrp)
 sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
 pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
 
-% congrusel=pct.su_pairs.get_congru(sig.waveid);
-% mix_olf_sel_sig=ismember(sig.waveid(:,1),1:4) & ismember(sig.waveid(:,2),5:6) & congrusel;
-% olf_mix_sel_sig=ismember(sig.waveid(:,2),1:4) & ismember(sig.waveid(:,1),5:6) & congrusel;
-% mix_dur_sel_sig=ismember(sig.waveid(:,1),1:4) & ismember(sig.waveid(:,2),7:8) & congrusel;
-% dur_mix_sel_sig=ismember(sig.waveid(:,2),1:4) & ismember(sig.waveid(:,1),7:8) & congrusel;
-%
-% congrusel=pct.su_pairs.get_congru(pair.waveid);
-% mix_olf_sel_pair=ismember(pair.waveid(:,1),1:4) & ismember(pair.waveid(:,2),5:6) & congrusel;
-% olf_mix_sel_pair=ismember(pair.waveid(:,2),1:4) & ismember(pair.waveid(:,1),5:6) & congrusel;
-% mix_dur_sel_pair=ismember(pair.waveid(:,1),1:4) & ismember(pair.waveid(:,2),7:8) & congrusel;
-% dur_mix_sel_pair=ismember(pair.waveid(:,2),1:4) & ismember(pair.waveid(:,1),7:8) & congrusel;
-%
-% nnz(mix_olf_sel_sig)./nnz(mix_olf_sel_pair)
-% nnz(olf_mix_sel_sig)./nnz(olf_mix_sel_pair)
-% nnz(mix_dur_sel_sig)./nnz(mix_dur_sel_pair)
-% nnz(dur_mix_sel_sig)./nnz(dur_mix_sel_pair)
-
 [inhibit_sig,inhibit_pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',true);
 inhibit_sig=bz.join_fc_waveid(inhibit_sig,sel_meta.wave_id);
 inhibit_pair=bz.join_fc_waveid(inhibit_pair,sel_meta.wave_id);
@@ -542,10 +525,10 @@ inhibit_o2m_count=[inhibit_s1_out.a2c_c2a(2,1:2);...
     inhibit_s2_out.a2c_c2a(2,1:2);...
     inhibit_s2_out.b2c_c2b(2,1:2)];
 
-m2m_count=[s1_out.a2b_b2a(:,1:2);...
-    s2_out.a2b_b2a(:,1:2)];
-inhibit_m2m_count=[inhibit_s1_out.a2b_b2a(:,1:2);...
-    inhibit_s2_out.a2b_b2a(:,1:2)];
+% m2m_count=[s1_out.a2b_b2a(:,1:2);...
+%     s2_out.a2b_b2a(:,1:2)];
+% inhibit_m2m_count=[inhibit_s1_out.a2b_b2a(:,1:2);...
+%     inhibit_s2_out.a2b_b2a(:,1:2)];
 
 if false % global cross mix sig, pair, currently not in use
     sig_mix_N=nnz(all(ismember(sig.waveid,1:4),2) & sig.waveid(:,1)~=sig.waveid(:,2));
@@ -554,22 +537,22 @@ if false % global cross mix sig, pair, currently not in use
     inhibit_sig_mix_N=nnz(all(ismember(inhibit_sig.waveid,1:4),2) & inhibit_sig.waveid(:,1)~=inhibit_sig.waveid(:,2));
     inhibit_pair_mix_N=nnz(all(ismember(inhibit_pair.waveid,1:4),2) & inhibit_pair.waveid(:,1)~=inhibit_pair.waveid(:,2));
 end
+
 count_sum=[sum(m2o_count);...
     sum(o2m_count);...
-    sum(m2m_count);...
+%     sum(m2m_count);...
 %     sig_mix_N,pair_mix_N;...
     sum(inhibit_m2o_count);...
-    sum(inhibit_o2m_count);...
+    sum(inhibit_o2m_count)];%;...
 %     inhibit_sig_mix_N,inhibit_pair_mix_N];
-    sum(inhibit_m2m_count)];
+%     sum(inhibit_m2m_count)];
+
 p_m_o=[];
-for bias=[0,3]
+for bias=[0,2]
     [~,~,p]=crosstab([zeros(count_sum(1+bias,2),1);...
-        ones(count_sum(2+bias,2),1);...
-        2*ones(count_sum(3+bias,2),1)],...
-        [1:count_sum(1+bias,2)>count_sum(1+bias,1),... % isequal(1:count_sum(1,2)>count_sum(1,1),(1:count_sum(1,2))>count_sum(1,1))
-    1:count_sum(2+bias,2)>count_sum(2+bias,1),...
-    1:count_sum(3+bias,2)>count_sum(3+bias,1)]);
+        ones(count_sum(2+bias,2),1)],...
+        [1:count_sum(1+bias,2)>count_sum(1+bias,1),...
+    1:count_sum(2+bias,2)>count_sum(2+bias,1)]);
     p_m_o=[p_m_o;p];
 end
 
@@ -580,8 +563,8 @@ figure('Color','w')
 tiledlayout(1,3)
 nexttile()
 hold on
-bh=bar([mohat(1:3).';mohat(4:6).']);
-errorbar([bh.XEndPoints],[bh.YEndPoints],moci([1 4 2 5 3 6],1),moci([1 4 2 5 3 6],2),'k.')
+bh=bar([mohat(1:2).';mohat(3:4).']);
+errorbar([bh.XEndPoints],[bh.YEndPoints],moci([1 3 2 4],1),moci([1 3 2 4],2),'k.')
 set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
 if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
     set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
@@ -608,36 +591,32 @@ inhibit_d2m_count=[inhibit_d3_out.a2c_c2a(2,1:2);...
     inhibit_d6_out.a2c_c2a(2,1:2);...
     inhibit_d6_out.b2c_c2b(2,1:2)];
 
-m2m_d_count=[d3_out.a2b_b2a(:,1:2);d6_out.a2b_b2a(:,1:2)];
-inhibit_m2m_d_count=[inhibit_d3_out.a2b_b2a(:,1:2);...
-    inhibit_d6_out.a2b_b2a(:,1:2)];
+% m2m_d_count=[d3_out.a2b_b2a(:,1:2);d6_out.a2b_b2a(:,1:2)];
+% inhibit_m2m_d_count=[inhibit_d3_out.a2b_b2a(:,1:2);...
+%     inhibit_d6_out.a2b_b2a(:,1:2)];
 
 d_count_sum=[sum(m2d_count);...
     sum(d2m_count);...
-    sum(m2m_d_count);...
     sum(inhibit_m2d_count);...
-    sum(inhibit_d2m_count);...
-    sum(inhibit_m2m_d_count)];
+    sum(inhibit_d2m_count)];
 
 [mdhat,mdci]=binofit(d_count_sum(:,1),d_count_sum(:,2));
 mdci=mdci-mdhat;
 
 p_m_d=[];
-for bias=[0,3]
+for bias=[0,2]
     [~,~,p]=crosstab([zeros(d_count_sum(1+bias,2),1);...
-        ones(d_count_sum(2+bias,2),1);...
-        2*ones(d_count_sum(3+bias,2),1)],...
+        ones(d_count_sum(2+bias,2),1)],...
         [1:d_count_sum(1+bias,2)>d_count_sum(1+bias,1),... % isequal(1:count_sum(1,2)>count_sum(1,1),(1:count_sum(1,2))>count_sum(1,1))
-    1:d_count_sum(2+bias,2)>d_count_sum(2+bias,1),...
-    1:d_count_sum(3+bias,2)>d_count_sum(3+bias,1)]);
+    1:d_count_sum(2+bias,2)>d_count_sum(2+bias,1)]);
     p_m_d=[p_m_d;p];
 end
 
 % figure('Color','w')
 nexttile()
 hold on
-bh=bar([mdhat(1:3).';mdhat(4:6).']);
-errorbar([bh.XEndPoints],[bh.YEndPoints],mdci([1 4 2 5 3 6],1),mdci([1 4 2 5 3 6],2),'k.')
+bh=bar([mdhat(1:2).';mdhat(3:4).']);
+errorbar([bh.XEndPoints],[bh.YEndPoints],mdci([1 3 2 4],1),mdci([1 3 2 4],2),'k.')
 set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
 if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
     set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
