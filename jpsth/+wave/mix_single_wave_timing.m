@@ -110,39 +110,17 @@ xlabel('Time (s)')
 legend([oh,dh,mh],{'Olfactory','Duration','Mixed'},'Location','northoutside','Orientation','horizontal')
 
 
-%% region-wise
-
-fc_stats=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps); % produce two figures
-    %mix<>olf
-    
-    %mix<>dur
-    %olf<>dur
-
-
-
-
-
-
-
-if false
-    olf_sel=strcmp(com_meta.reg_tree(4,:),'OLF');
-    asso_sel=ismember(com_meta.reg_tree(5,:),{'PL','ILA','ACA','ORB','AI'});
-    th_sel=ismember(com_meta.reg_tree(5,:),{'VENT','ILM','LAT','MED'});
-
-
-end
-
 
 
 %%
-olf_com_per_reg=struct();
-[olf_com_per_reg.collection,olf_com_per_reg.com_meta]=wave.per_region_COM(...
-    com_map,'sel_type','olf');
-% [mean/media,reg,depth,count,std/iqr]
-
-depth_sel=cell2mat(olf_com_per_reg.collection(:,3))==5 ...
-    & ~ismissing(olf_com_per_reg.collection(:,2));
-sortrows(olf_com_per_reg.collection(depth_sel,:),1)
+% olf_com_per_reg=struct();
+% [olf_com_per_reg.collection,olf_com_per_reg.com_meta]=wave.per_region_COM(...
+%     com_map,'sel_type','olf');
+% % [mean/media,reg,depth,count,std/iqr]
+% 
+% depth_sel=cell2mat(olf_com_per_reg.collection(:,3))==5 ...
+%     & ~ismissing(olf_com_per_reg.collection(:,2));
+% sortrows(olf_com_per_reg.collection(depth_sel,:),1)
 %%
 
 

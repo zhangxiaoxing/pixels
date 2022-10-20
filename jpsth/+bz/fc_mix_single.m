@@ -3,18 +3,49 @@ global_init;
 meta=ephys.util.load_meta('skip_stats',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
-
-
-fc_rate_mix_simple(wrs_mux_meta)
-
-olfgrp={'AON','TT','DP','PIR'};
-pfcgrp={'PL','ILA','ACA','ORB','AI'};
-thsgrp={'VENT','ILM','LAT','MED'};
-
-fc_rate_mix_simple(wrs_mux_meta,olfgrp,olfgrp)
-
 %%
 FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
+%%
+fc_rate_mix_simple(wrs_mux_meta)
+if false
+olfgrp=struct('tag','OLF','lst',{{'AON','TT','DP','PIR'}});
+pfcgrp=struct('tag','PFC','lst',{{'PL','ILA','ACA','ORB','AI'}});
+thsgrp=struct('tag','THS','lst',{{'VENT','ILM','LAT','MED'}});
+
+fc_rate_mix_simple(wrs_mux_meta,olfgrp,olfgrp)
+fc_rate_mix_simple(wrs_mux_meta,pfcgrp,pfcgrp)
+fc_rate_mix_simple(wrs_mux_meta,thsgrp,thsgrp)
+
+fc_rate_mix_simple(wrs_mux_meta,olfgrp,pfcgrp)
+fc_rate_mix_simple(wrs_mux_meta,pfcgrp,thsgrp)
+fc_rate_mix_simple(wrs_mux_meta,olfgrp,thsgrp)
+end
+[olf_com_per_reg.collection,olf_com_per_reg.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','olf');
+depth_sel=cell2mat(olf_com_per_reg.collection(:,3))==5 ...
+    & ~ismissing(olf_com_per_reg.collection(:,2));
+reg_tcom=sortrows(olf_com_per_reg.collection(depth_sel,:),1);
+
+subtotal=sum([reg_tcom{:,4}]);
+cumu_cnt=arrayfun(@(x) sum([reg_tcom{1:x,4}]),1:size(reg_tcom,1));
+[min1_3,min1_3id]=min(abs(cumu_cnt-subtotal./3));
+[min2_3,min2_3id]=min(abs(cumu_cnt-2.*subtotal./3));
+
+earlygrp=struct('tag','early groups','lst',{reg_tcom(1:min1_3id,2)});
+midgrp=struct('tag','middle groups','lst',{reg_tcom((min1_3id+1):min2_3id,2)});
+lategrp=struct('tag','late groups','lst',{reg_tcom((min2_3id+1):end,2)});
+
+fc_rate_mix_simple(wrs_mux_meta,earlygrp,earlygrp)
+fc_rate_mix_simple(wrs_mux_meta,midgrp,midgrp)
+fc_rate_mix_simple(wrs_mux_meta,lategrp,lategrp)
+
+fc_rate_mix_simple(wrs_mux_meta,earlygrp,midgrp)
+fc_rate_mix_simple(wrs_mux_meta,midgrp,lategrp)
+fc_rate_mix_simple(wrs_mux_meta,earlygrp,lategrp)
+
+
+
+%%
 
 function FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
 %% timing
@@ -472,23 +503,13 @@ inhibit_sig=bz.join_fc_waveid(inhibit_sig,sel_meta.wave_id);
 inhibit_pair=bz.join_fc_waveid(inhibit_pair,sel_meta.wave_id);
 
 if exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp)
-% sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
-% pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
-    sig=reg_group(sig,leadgrp,followgrp);
-    pair=reg_group(pair,leadgrp,followgrp);
-    inhibit_sig=reg_group(inhibit_sig,leadgrp,followgrp);
-    inhibit_pair=reg_group(inhibit_pair,leadgrp,followgrp);
+    sig=reg_group(sig,leadgrp.lst,followgrp.lst);
+    pair=reg_group(pair,leadgrp.lst,followgrp.lst);
+    inhibit_sig=reg_group(inhibit_sig,leadgrp.lst,followgrp.lst);
+    inhibit_pair=reg_group(inhibit_pair,leadgrp.lst,followgrp.lst);
 end
 
 
-%TODO region - grouped
-
-%     olf_sel=strcmp(com_meta.reg_tree(4,:),'OLF');
-%     asso_sel=ismember(com_meta.reg_tree(5,:),{'PL','ILA','ACA','ORB','AI'});
-%     th_sel=ismember(com_meta.reg_tree(5,:),{'VENT','ILM','LAT','MED'});
-
-
-% sumratio=@(x) sum(x(:,1))./sum(x(:,2));
 %% olfactory
 % s1d3,s1d6,s1
 s1_out=triplet_stats(sig,pair,1,2,5);
@@ -561,7 +582,10 @@ nexttile()
 hold on
 bh=bar([mohat(1:3).';mohat(4:6).']);
 errorbar([bh.XEndPoints],[bh.YEndPoints],moci([1 4 2 5 3 6],1),moci([1 4 2 5 3 6],2),'k.')
-set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5,'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
+    set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
+end
 ylabel('F.C. rate (%)')
 legend(bh,{'Mixed to olf','Olf. to mixed','Mixed to mixed'},'Location','northoutside','Orientation','horizontal')
 title(sprintf('%.3f, ',p_m_o))
@@ -614,7 +638,10 @@ nexttile()
 hold on
 bh=bar([mdhat(1:3).';mdhat(4:6).']);
 errorbar([bh.XEndPoints],[bh.YEndPoints],mdci([1 4 2 5 3 6],1),mdci([1 4 2 5 3 6],2),'k.')
-set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5,'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
+    set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
+end
 ylabel('F.C. rate (%)')
 legend(bh,{'Mixed to Dur.','Dur. to mixed','Mixed to mixed'},'Location','northoutside','Orientation','horizontal')
 title(sprintf('%.3f, ',p_m_d))
@@ -659,11 +686,17 @@ errorbar([bh.XEndPoints],[bh.YEndPoints],...
     odci([1 3 2 4],1).'-[bh.YEndPoints],...
     odci([1 3 2 4],2).'-[bh.YEndPoints],...
     'k.');
-set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5,'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
+if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
+    set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
+end
 ylabel('F.C. rate (%)')
 legend(bh,{'Olf. to Dur.','Dur. to Olf.'},'Location','northoutside','Orientation','horizontal')
 title(sprintf('%.3f, ',p_o_d))
 
+if exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp)
+    sgtitle([leadgrp.tag,' ',followgrp.tag])
+end
 end
 
 function out=triplet_stats(sig,pair,a,b,c)
