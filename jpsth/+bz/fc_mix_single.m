@@ -20,6 +20,8 @@ fc_rate_mix_simple(wrs_mux_meta,olfgrp,pfcgrp)
 fc_rate_mix_simple(wrs_mux_meta,pfcgrp,thsgrp)
 fc_rate_mix_simple(wrs_mux_meta,olfgrp,thsgrp)
 end
+
+
 [olf_com_per_reg.collection,olf_com_per_reg.com_meta]=wave.per_region_COM(...
     com_map,'sel_type','olf');
 depth_sel=cell2mat(olf_com_per_reg.collection(:,3))==5 ...
@@ -28,20 +30,31 @@ reg_tcom=sortrows(olf_com_per_reg.collection(depth_sel,:),1);
 
 subtotal=sum([reg_tcom{:,4}]);
 cumu_cnt=arrayfun(@(x) sum([reg_tcom{1:x,4}]),1:size(reg_tcom,1));
+
+%% 3 zones
 [min1_3,min1_3id]=min(abs(cumu_cnt-subtotal./3));
 [min2_3,min2_3id]=min(abs(cumu_cnt-2.*subtotal./3));
 
-earlygrp=struct('tag','early groups','lst',{reg_tcom(1:min1_3id,2)});
-midgrp=struct('tag','middle groups','lst',{reg_tcom((min1_3id+1):min2_3id,2)});
-lategrp=struct('tag','late groups','lst',{reg_tcom((min2_3id+1):end,2)});
+early3grp=struct('tag','early groups','lst',{reg_tcom(1:min1_3id,2)});
+mid3grp=struct('tag','middle groups','lst',{reg_tcom((min1_3id+1):min2_3id,2)});
+late3grp=struct('tag','late groups','lst',{reg_tcom((min2_3id+1):end,2)});
 
-fc_rate_mix_simple(wrs_mux_meta,earlygrp,earlygrp)
-fc_rate_mix_simple(wrs_mux_meta,midgrp,midgrp)
-fc_rate_mix_simple(wrs_mux_meta,lategrp,lategrp)
+fc_rate_mix_simple(wrs_mux_meta,early3grp,early3grp)
+fc_rate_mix_simple(wrs_mux_meta,mid3grp,mid3grp)
+fc_rate_mix_simple(wrs_mux_meta,late3grp,late3grp)
 
-fc_rate_mix_simple(wrs_mux_meta,earlygrp,midgrp)
-fc_rate_mix_simple(wrs_mux_meta,midgrp,lategrp)
-fc_rate_mix_simple(wrs_mux_meta,earlygrp,lategrp)
+fc_rate_mix_simple(wrs_mux_meta,early3grp,mid3grp)
+fc_rate_mix_simple(wrs_mux_meta,mid3grp,late3grp)
+fc_rate_mix_simple(wrs_mux_meta,early3grp,late3grp)
+%% 2 zones
+[~,half_idx]=min(abs(cumu_cnt-subtotal./2));
+
+early2grp=struct('tag','early groups','lst',{reg_tcom(1:half_idx,2)});
+late2grp=struct('tag','late groups','lst',{reg_tcom((half_idx+1):end,2)});
+
+fc_rate_mix_simple(wrs_mux_meta,early2grp,early2grp)
+fc_rate_mix_simple(wrs_mux_meta,late2grp,late2grp)
+fc_rate_mix_simple(wrs_mux_meta,early2grp,late2grp)
 
 
 
@@ -566,7 +579,9 @@ hold on
 bh=bar([mohat(1:2).';mohat(3:4).']);
 errorbar([bh.XEndPoints],[bh.YEndPoints],moci([1 3 2 4],1),moci([1 3 2 4],2),'k.')
 set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
-if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
+if exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp)
+    set(gca(),'YLim',[0,0.025],'YTick',0:0.005:0.025,'YTickLabel',0:0.5:2.5);
+else
     set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
 end
 ylabel('F.C. rate (%)')
@@ -618,7 +633,9 @@ hold on
 bh=bar([mdhat(1:2).';mdhat(3:4).']);
 errorbar([bh.XEndPoints],[bh.YEndPoints],mdci([1 3 2 4],1),mdci([1 3 2 4],2),'k.')
 set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
-if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
+if exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp)
+    set(gca(),'YLim',[0,0.025],'YTick',0:0.005:0.025,'YTickLabel',0:0.5:2.5);
+else
     set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
 end
 ylabel('F.C. rate (%)')
@@ -666,7 +683,9 @@ errorbar([bh.XEndPoints],[bh.YEndPoints],...
     odci([1 3 2 4],2).'-[bh.YEndPoints],...
     'k.');
 set(gca(),'XTick',1:2,'XTickLabel',{'Excitatory','Inhibitory'})
-if ~(exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp))
+if exist("leadgrp","var") && exist("followgrp","var") && ~isempty(leadgrp) && ~isempty(followgrp)
+    set(gca(),'YLim',[0,0.025],'YTick',0:0.005:0.025,'YTickLabel',0:0.5:2.5);
+else
     set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
 end
 ylabel('F.C. rate (%)')

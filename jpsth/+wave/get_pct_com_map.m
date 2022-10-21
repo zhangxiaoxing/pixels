@@ -7,6 +7,7 @@ arguments
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
     opt.band_width (1,1) double {mustBeMember(opt.band_width,1:2)} = 1
+    opt.delay (1,1) double {mustBeMember(opt.delay,[-1,3,6])} = -1 % -1 denotes both 3s and 6s
 end
 
 %TODO proper declaration
