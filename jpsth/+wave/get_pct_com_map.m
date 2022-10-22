@@ -128,29 +128,50 @@ pct_meta_=pct_meta;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
+    if isfield(opt,'delay')
+        if opt.delay==-1
+            ffn=["cs1d3","cs2d3","cs1d6","cs2d6"];
+            raw_bin=17:40;
+            extract_bin=1:12;
+        elseif opt.delay==3
+            ffn=["cs1d3","cs2d3"];
+            raw_bin=17:28;
+            extract_bin=1:12;
+        elseif opt.delay==6
+            ffn=["cs1d6","cs2d6"];
+            raw_bin=17:40;
+            extract_bin=1:24;
+        else
+            error('Error delay duration')
+        end
+    end
+
     for su=reshape(msel,1,[])
         classmm=[];
-        for ff=["cs1d3","cs2d3","cs1d6","cs2d6"]
+        for ff=ffn
             ffmat=squeeze(fr(trls.(ff),su,:));
-            classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
+            classmm=cat(1,classmm,mean(ffmat(:,raw_bin),1));
         end
-        basemm=mean([classmm(:,1:12)],'all');
-        S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
+        basemm=mean([classmm(:,extract_bin)],'all');
+        S=max(([classmm(:,extract_bin)]-basemm),[],'all');
 
         classnn=(classmm-basemm)./S;
-        [~,typeidx]=ismember("c"+type,["cs1d3","cs2d3","cs1d6","cs2d6"]);
-        mm_pref=classnn(typeidx,1:12);
+        [~,typeidx]=ismember("c"+type,ffn);
+        mm_pref=classnn(typeidx,extract_bin);
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
             keyboard();
             continue
         else
-            com=sum((1:12).*mm_pref)./sum(mm_pref);
+            com=sum((extract_bin).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
         end
 
         if opt.curve
+            if isfield(opt,'delay') && opt.delay~=-1
+                error('parameter combination not supported')
+            end
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
             S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
             classnn=(classmm-basemm)./S;
