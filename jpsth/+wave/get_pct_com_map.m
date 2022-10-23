@@ -128,22 +128,24 @@ pct_meta_=pct_meta;
 end
 
 function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
-    if isfield(opt,'delay')
-        if opt.delay==-1
-            ffn=["cs1d3","cs2d3","cs1d6","cs2d6"];
-            raw_bin=17:40;
-            extract_bin=1:12;
-        elseif opt.delay==3
-            ffn=["cs1d3","cs2d3"];
-            raw_bin=17:28;
-            extract_bin=1:12;
-        elseif opt.delay==6
-            ffn=["cs1d6","cs2d6"];
-            raw_bin=17:40;
-            extract_bin=1:24;
-        else
-            error('Error delay duration')
-        end
+    if ~isfield(opt,'delay')
+        opt.delay=-1;
+    end
+
+    if opt.delay==-1
+        ffn=["cs1d3","cs2d3","cs1d6","cs2d6"];
+        raw_bin=17:40;
+        extract_bin=1:12;
+    elseif opt.delay==3
+        ffn=["cs1d3","cs2d3"];
+        raw_bin=17:28;
+        extract_bin=1:12;
+    elseif opt.delay==6
+        ffn=["cs1d6","cs2d6"];
+        raw_bin=17:40;
+        extract_bin=1:24;
+    else
+        error('Error delay duration')
     end
 
     for su=reshape(msel,1,[])
@@ -204,27 +206,54 @@ end
 
 function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
 
+    if ~isfield(opt,'delay')
+        opt.delay=-1;
+    end
+
+    if opt.delay==-1
+        ffn=["cs1d3","cs2d3","cs1d6","cs2d6"];
+        raw_bin=17:40;
+        extract_bin=1:12;
+        s1row=[1 3];
+        s2row=[2 4];
+    elseif opt.delay==3
+        ffn=["cs1d3","cs2d3"];
+        raw_bin=17:28;
+        extract_bin=1:12;
+        s1row=1;
+        s2row=2;
+    elseif opt.delay==6
+        ffn=["cs1d6","cs2d6"];
+        raw_bin=17:40;
+        extract_bin=1:24;
+        s1row=1;
+        s2row=2;
+    else
+        error('Error delay duration')
+    end
+
+
     for su=reshape(msel,1,[])
         classmm=[];
-        for ff=["cs1d3","cs2d3","cs1d6","cs2d6"]
+        for ff=ffn
             ffmat=squeeze(fr(trls.(ff),su,:));
-            classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
+            classmm=cat(1,classmm,mean(ffmat(:,raw_bin),1));
         end
-        basemm=mean([classmm(:,1:12)],'all');
-        S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
+        basemm=mean([classmm(:,extract_bin)],'all');
+        S=max(([classmm(:,extract_bin)]-basemm),[],'all');% removed abs
         classnn=(classmm-basemm)./S;
         
-        if contains(type,'s1')
-            mm_pref=mean(classnn([1,3],1:12));
+        if contains(type,'s1') % TODO
+            mm_pref=mean(classnn(s1row,extract_bin));
         else
-            mm_pref=mean(classnn([2 4],1:12));
+            mm_pref=mean(classnn(s2row,extract_bin));
         end
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             keyboard();
             continue
         else
-            com=sum((1:12).*mm_pref)./sum(mm_pref);
+            com=sum(extract_bin.*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
         end
         
@@ -258,31 +287,56 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
 end
 
 function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
-    for su=reshape(msel,1,[])
+
+for su=reshape(msel,1,[])
         classmm=[];
         for ff=["cs1d3","cs2d3","cs1d6","cs2d6"]
             ffmat=squeeze(fr(trls.(ff),su,:));
             classmm=cat(1,classmm,mean(ffmat(:,17:40),1));
         end
-        basemm=mean([classmm(:,1:12)],'all');
-        S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
-        classnn=(classmm-basemm)./S;
+        if isfield(opt,'delay') && ismember(opt.delay,[3 6])
+            % 3s 6s com
+            basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
+            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+            classnn=(classmm-basemm)./S;
+            % does this work if trial-pref mismatch?
+            if contains(type,'d3')
+                ppref=mean(classnn(1:2,1:12));
+                ppref(ppref<0)=0;
+                if any(ppref>0)
+                    com=sum((1:12).*ppref)./sum(ppref);
+                    com_str.(sess).(type).com(suid(su))=com;
+                end
+            else
+                ppref=mean(classnn(3:4,:));
+                ppref(ppref<0)=0;
+                if any(ppref>0)
+                    com=sum((1:24).*ppref)./sum(ppref);
+                    com_str.(sess).(type).com(suid(su))=com;
+                end
+            end
 
-        if contains(type,'d3')
-            mm_pref=mean(classnn(1:2,1:12));
         else
-            mm_pref=mean(classnn(3:4,1:12));
+            % joint-3s-6s TCOM
+            basemm=mean([classmm(:,1:12)],'all');
+            S=max(([classmm(:,1:12)]-basemm),[],'all');% removed abs
+            classnn=(classmm-basemm)./S;
+
+            if contains(type,'d3')
+                mm_pref=mean(classnn(1:2,1:12));
+            else
+                mm_pref=mean(classnn(3:4,1:12));
+            end
+            mm_pref(mm_pref<0)=0;
+            if ~any(mm_pref>0)
+                disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
+                keyboard();
+                continue
+            else
+                com=sum((1:12).*mm_pref)./sum(mm_pref);
+                com_str.(sess).(type).com(suid(su))=com;
+            end
         end
-        mm_pref(mm_pref<0)=0;
-        if ~any(mm_pref>0)
-            disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
-            keyboard();
-            continue
-        else
-            com=sum((1:12).*mm_pref)./sum(mm_pref);
-            com_str.(sess).(type).com(suid(su))=com;
-        end
-        
         if opt.curve
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
             S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
