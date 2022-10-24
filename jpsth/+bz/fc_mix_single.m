@@ -27,7 +27,6 @@ end
 depth_sel=cell2mat(olf_com_per_reg.collection(:,3))==5 ...
     & ~ismissing(olf_com_per_reg.collection(:,2));
 reg_tcom=sortrows(olf_com_per_reg.collection(depth_sel,:),1);
-
 subtotal=sum([reg_tcom{:,4}]);
 cumu_cnt=arrayfun(@(x) sum([reg_tcom{1:x,4}]),1:size(reg_tcom,1));
 
@@ -35,9 +34,9 @@ cumu_cnt=arrayfun(@(x) sum([reg_tcom{1:x,4}]),1:size(reg_tcom,1));
 [min1_3,min1_3id]=min(abs(cumu_cnt-subtotal./3));
 [min2_3,min2_3id]=min(abs(cumu_cnt-2.*subtotal./3));
 
-early3grp=struct('tag','early groups','lst',{reg_tcom(1:min1_3id,2)});
-mid3grp=struct('tag','middle groups','lst',{reg_tcom((min1_3id+1):min2_3id,2)});
-late3grp=struct('tag','late groups','lst',{reg_tcom((min2_3id+1):end,2)});
+early3grp=struct('tag','early 3 groups','lst',{reg_tcom(1:min1_3id,2)});
+mid3grp=struct('tag','middle 3 groups','lst',{reg_tcom((min1_3id+1):min2_3id,2)});
+late3grp=struct('tag','late 3 groups','lst',{reg_tcom((min2_3id+1):end,2)});
 
 fc_rate_mix_simple(wrs_mux_meta,early3grp,early3grp)
 fc_rate_mix_simple(wrs_mux_meta,mid3grp,mid3grp)
@@ -49,8 +48,8 @@ fc_rate_mix_simple(wrs_mux_meta,early3grp,late3grp)
 %% 2 zones
 [~,half_idx]=min(abs(cumu_cnt-subtotal./2));
 
-early2grp=struct('tag','early groups','lst',{reg_tcom(1:half_idx,2)});
-late2grp=struct('tag','late groups','lst',{reg_tcom((half_idx+1):end,2)});
+early2grp=struct('tag','early 2 groups','lst',{reg_tcom(1:half_idx,2)});
+late2grp=struct('tag','late 2 groups','lst',{reg_tcom((half_idx+1):end,2)});
 
 fc_rate_mix_simple(wrs_mux_meta,early2grp,early2grp)
 fc_rate_mix_simple(wrs_mux_meta,late2grp,late2grp)

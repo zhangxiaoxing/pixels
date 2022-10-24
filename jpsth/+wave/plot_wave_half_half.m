@@ -70,7 +70,7 @@ subplot(1,4,subidx);
 hold on
 colormap('turbo');
 gk = fspecial('gaussian', [3 3], 1);
-imagesc(conv2(imdata,gk,'same'),[-1 1])
+imagesc(conv2(imdata,gk,'same'),[0 1])
 if exist('comdata','var') && ~isempty(comdata)
     scatter(comdata,1:numel(comdata),2,'o','MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
 end
