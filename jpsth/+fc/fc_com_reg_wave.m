@@ -81,7 +81,7 @@ end
 barcnt=[];
 barmm=[];
 barci=[];
-if true %forward and reverse
+if false %forward and reverse
     for typeIdx=1:3
         sel_tcom_map=tcom_maps_rearr{typeIdx};
 
