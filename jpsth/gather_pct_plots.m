@@ -62,7 +62,7 @@ end
 reshape(find(any(out.p_mux(:,1:2)<0.002,2)),1,[]);
 
 for ii=[3770,5818]%reshape(find(any(wrs_mux_meta.p_mux(:,1:2)<0.003,2) & median(wrs_mux_meta.class_fr,[2 3])>2.5 & median(wrs_mux_meta.class_fr,[2 3])<40),1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
         sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", dur");
 %         exportgraphics(scfh,sprintf('SC/SCDUR%5d.png',ii),'ContentType','image');

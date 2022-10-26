@@ -9,7 +9,8 @@ arguments
     opt.dim (1,1) double = 2
     opt.xlim_sec (1,2) double = [-1,7]
     opt.xlim_bin (1,2) double = [4.5,36.5]
-    opt.skip_single_model (1,1) logical = true
+    opt.skip_single_modal (1,1) logical = true
+    opt.skip_fill (1,1) logical = false % do NOT plot variance (i.e. S.E.M) in psth
 end
 % close all
 set(groot,'defaultTextFontSize',10);
@@ -34,9 +35,14 @@ for ii=reshape(metaidx,1,[])
         continue
     end
 
-
-    fh=figure('Color','w','Position',[32,32,1280,720]);
-    tiledlayout(2,5)
+    if opt.skip_single_modal
+        fh=figure('Color','w','Position',[32,32,480,720]);
+        tiledlayout(4,1)
+    else
+        fh=figure('Color','w','Position',[32,32,1280,720]);
+        tiledlayout(2,5)
+    end
+    
 
     %% raster
     if ~opt.skip_raster
@@ -58,8 +64,11 @@ for ii=reshape(metaidx,1,[])
         s1d6p=s1d6t(max(floor(numel(s1d6t)./2)-3,1):min(floor(numel(s1d6t)./2)+4,numel(s1d6t)));
 
         %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-        nexttile(5) %d3, s1 vs s2
+        if opt.skip_single_modal
+            nexttile(1) %d3, s1 vs s2
+        else
+            nexttile(5) %d3, s1 vs s2
+        end
         hold on
 
         pidx=1;
@@ -74,7 +83,18 @@ for ii=reshape(metaidx,1,[])
             plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'r-')
             pidx=pidx+1;
         end
-        pidx=pidx+2;
+        if opt.skip_single_modal
+            line([0,1,4;0,1,4],[0,0,0;20,20,20],'LineStyle','--','Color','k')
+            xlim(opt.xlim_sec)
+            set(gca,'XTick',-1:8,'XTickLabel',-2:7)
+
+            nexttile(2) %d3, s1 vs s2
+            pidx=1;
+            hold on
+        else
+            pidx=pidx+2;
+        end
+        
         for ti=reshape(s2d6p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
             plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'b-')
@@ -86,15 +106,17 @@ for ii=reshape(metaidx,1,[])
             plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'m-')
             pidx=pidx+1;
         end
-
-        line([0,0,1,1,4,7;0,0,1,1,4,7],[0,20,0,20,0,20;20,40,20,40,20,40],'LineStyle','--','Color','k')
-
+        if opt.skip_single_modal
+            line([0,1,7;0,1,7],[0,0,0;20,20,20],'LineStyle','--','Color','k')
+        else
+            line([0,0,1,1,4,7;0,0,1,1,4,7],[0,20,0,20,0,20;20,40,20,40,20,40],'LineStyle','--','Color','k')
+        end
         xlim(opt.xlim_sec)
         set(gca,'XTick',-1:8,'XTickLabel',-2:7)
 
         %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-        if ~opt.skip_single_model
+        if ~opt.skip_single_modal
             nexttile(1) %d3, s1 vs s2
             hold on
 
@@ -184,7 +206,7 @@ for ii=reshape(metaidx,1,[])
         end
     end
     %%
-    if ~opt.skip_single_model
+    if ~opt.skip_single_modal
         ax3=nexttile(6);
         hold on
         s1d3c=squeeze(fr(s1d3t,suid==su_meta.allcid(ii),5:44));
@@ -287,7 +309,12 @@ for ii=reshape(metaidx,1,[])
         %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
         arrayfun(@(x) set(x,'YLim',[min([ax3.YLim,ax6.YLim].'),max([ax3.YLim,ax6.YLim]).']),[ax3,ax6,axs1,axs2]);
     end
-    axs2=nexttile(10);
+    if opt.skip_single_modal
+        axs2=nexttile(3,[2,1]);
+    else
+        axs2=nexttile(10);
+    end
+
     hold on
     s1d3c=squeeze(fr(s1d3t,suid==su_meta.allcid(ii),5:44));
     s1d6c=squeeze(fr(s1d6t,suid==su_meta.allcid(ii),5:44));
@@ -301,18 +328,18 @@ for ii=reshape(metaidx,1,[])
     s2d6ci=[-1;1]*std(s2d6c)./sqrt(size(s2d6c,1)).'+mean(s2d6c);
     
 %     pd3=@(x) x(1:24);
+    if ~opt.skip_fill
+        fill([1:24,fliplr(1:24)],[smooth(s1d3ci(1,1:24),5);flip(smooth(s1d3ci(2,1:24),5))],'r','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smooth(s1d6ci(1,:),5);flip(smooth(s1d6ci(2,:),5))],'m','EdgeColor','none','FaceAlpha',0.1);
+    
+        fill([1:24,fliplr(1:24)],[smooth(s2d3ci(1,1:24),5);flip(smooth(s2d3ci(2,1:24),5))],'k','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smooth(s2d6ci(1,:),5);flip(smooth(s2d6ci(2,:),5))],'b','EdgeColor','none','FaceAlpha',0.1);
+    end
+    plot(smooth(mean(s1d3c(:,1:24)),5),'-','Color','r','LineWidth',1)
+    plot(smooth(mean(s1d6c),5),'-','Color','m','LineWidth',1)
 
-    fill([1:24,fliplr(1:24)],[smooth(s1d3ci(1,1:24),5);flip(smooth(s1d3ci(2,1:24),5))],'r','EdgeColor','none','FaceAlpha',0.1);
-    fill([1:40,fliplr(1:40)],[smooth(s1d6ci(1,:),5);flip(smooth(s1d6ci(2,:),5))],'m','EdgeColor','none','FaceAlpha',0.1);
-
-    fill([1:24,fliplr(1:24)],[smooth(s2d3ci(1,1:24),5);flip(smooth(s2d3ci(2,1:24),5))],'k','EdgeColor','none','FaceAlpha',0.1);
-    fill([1:40,fliplr(1:40)],[smooth(s2d6ci(1,:),5);flip(smooth(s2d6ci(2,:),5))],'b','EdgeColor','none','FaceAlpha',0.1);
-
-    plot(smooth(mean(s1d3c(:,1:24)),5),'-','Color','r')
-    plot(smooth(mean(s1d6c),5),'-','Color','m')
-
-    plot(smooth(mean(s2d3c(:,1:24)),5),'-','Color','k')
-    plot(smooth(mean(s2d6c),5),'-','Color','b')
+    plot(smooth(mean(s2d3c(:,1:24)),5),'-','Color','k','LineWidth',1)
+    plot(smooth(mean(s2d6c),5),'-','Color','b','LineWidth',1)
 
 
     title('4 conditions')

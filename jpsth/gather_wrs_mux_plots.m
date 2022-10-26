@@ -7,6 +7,7 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
 tcom_maps=cell(1,3);
+
 % map_cells: mixed_map,olf_map,dur_map
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 for typeidx=1:3
@@ -18,6 +19,60 @@ for typeidx=1:3
     [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
     tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
 end
+
+
+%% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+% mix same bin>>>>>>>>>>>>>>>>>>>>>>>>>
+for bb=1:3
+    [mxd,dd]=maxk(abs(eff_meta.cohen_d_dur(:,bb)),600);
+    [mxo,oo]=maxk(abs(eff_meta.cohen_d_olf(:,bb)),600);
+
+    idx=intersect(dd,oo);
+    for ii=reshape(idx,1,[])
+        scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
+        if ~isempty(scfh)
+            sgtitle(scfh,"Bin #"+num2str(bb)+", SU #"+num2str(ii)+", mixed");
+            keyboard();
+        end
+    end
+end
+%<<<<<<<<<<<<<<<<<<<<<<
+%>>>>mix, alternate bin>>>>>>>>>>>>>>>>>>>>>>>
+
+[mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur),[],2),1000);
+[mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),1000);
+
+idx=intersect(dd,oo);
+for ii=reshape(idx,1,[])
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
+    if ~isempty(scfh)
+        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", mixed");
+        keyboard();
+    end
+end
+% olf only ====================
+[mxd,dd]=mink(max(abs(eff_meta.cohen_d_dur),[],2),500);
+[mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),500);
+idx=intersect(oo,dd);
+for ii=reshape(idx,1,[])
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
+    if ~isempty(scfh)
+        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", olf");
+        keyboard();
+    end
+end
+% dur only ====================
+reshape(find(any(out.p_mux(:,1:2)<0.002,2)),1,[]);
+
+for ii=[3770,5818]%reshape(find(any(wrs_mux_meta.p_mux(:,1:2)<0.003,2) & median(wrs_mux_meta.class_fr,[2 3])>2.5 & median(wrs_mux_meta.class_fr,[2 3])<40),1,[])
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
+    if ~isempty(scfh)
+        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", dur");
+%         exportgraphics(scfh,sprintf('SC/SCDUR%5d.png',ii),'ContentType','image');
+        
+    end
+end
+
 
 %% TODO wave-half-half
 

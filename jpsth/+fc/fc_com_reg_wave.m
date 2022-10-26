@@ -21,7 +21,7 @@ for sii=reshape(usess,1,[]) %iterate through sessions
         com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).com.values(num2cell(suid(susel)))); % out put is nx2 in dim
     end
     fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];
-    %==================================================sess=====================suid=======COM_context1=====COM_context2=====ccfid===========waveid======
+    %==================================================1sess=====================23suid======45COM_context1===67COM_context2===89ccfid=====waveid======
 end
 
 congrusel=pct.su_pairs.get_congru(fc_com_pvsst_stats(:,10:11));
@@ -134,6 +134,8 @@ else% same and diff % TODO
         typesel=typesel_mat(:,typeIdx);
         %     reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
         fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
+        % TODO region-averaged latency
+
         same_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,8)==fc_com_pvsst_stats(fini_sel & typesel,9) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
         diff_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,6)~=fc_com_pvsst_stats(fini_sel & typesel,7) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
         
