@@ -22,34 +22,29 @@ end
 
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-% mix same bin>>>>>>>>>>>>>>>>>>>>>>>>>
-for bb=1:3
-    [mxd,dd]=maxk(abs(eff_meta.cohen_d_dur(:,bb)),600);
-    [mxo,oo]=maxk(abs(eff_meta.cohen_d_olf(:,bb)),600);
-
-    idx=intersect(dd,oo);
-    for ii=reshape(idx,1,[])
-        scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
-        if ~isempty(scfh)
-            sgtitle(scfh,"Bin #"+num2str(bb)+", SU #"+num2str(ii)+", mixed");
-            keyboard();
-        end
-    end
-end
-%<<<<<<<<<<<<<<<<<<<<<<
-%>>>>mix, alternate bin>>>>>>>>>>>>>>>>>>>>>>>
-
-[mxd,dd]=maxk(max(abs(eff_meta.cohen_d_dur),[],2),1000);
-[mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),1000);
-
-idx=intersect(dd,oo);
+% olf >>>>>>>>>>>>>>>>>>>>>>>>>
+% #510
+idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
 for ii=reshape(idx,1,[])
     scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
     if ~isempty(scfh)
-        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", mixed");
+        sgtitle(scfh, "SU #"+num2str(ii)+", OLF");
         keyboard();
     end
 end
+
+%<<<<<<<<<<<<<<<<<<<<<<
+%>>>>dur >>>>>>>>>>>>>>>>>>>>>>>
+
+idx=find(ismember(wrs_mux_meta.wave_id,7:8) & any(wrs_mux_meta.p_dur(:,1:2)<1e-3,2));
+for ii=reshape(idx,1,[])
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
+    if ~isempty(scfh)
+        sgtitle(scfh, "SU #"+num2str(ii)+", DUR");
+        keyboard();
+    end
+end
+
 % olf only ====================
 [mxd,dd]=mink(max(abs(eff_meta.cohen_d_dur),[],2),500);
 [mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),500);

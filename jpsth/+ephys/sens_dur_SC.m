@@ -329,17 +329,17 @@ for ii=reshape(metaidx,1,[])
     
 %     pd3=@(x) x(1:24);
     if ~opt.skip_fill
-        fill([1:24,fliplr(1:24)],[smooth(s1d3ci(1,1:24),5);flip(smooth(s1d3ci(2,1:24),5))],'r','EdgeColor','none','FaceAlpha',0.1);
-        fill([1:40,fliplr(1:40)],[smooth(s1d6ci(1,:),5);flip(smooth(s1d6ci(2,:),5))],'m','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:24,fliplr(1:24)],[smoothdata(s1d3ci(1,1:24),'movmean',5),flip(smoothdata(s1d3ci(2,1:24),'movmean',5))],'r','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smoothdata(s1d6ci(1,:),'movmean',5),flip(smoothdata(s1d6ci(2,:),'movmean',5))],'m','EdgeColor','none','FaceAlpha',0.1);
     
-        fill([1:24,fliplr(1:24)],[smooth(s2d3ci(1,1:24),5);flip(smooth(s2d3ci(2,1:24),5))],'k','EdgeColor','none','FaceAlpha',0.1);
-        fill([1:40,fliplr(1:40)],[smooth(s2d6ci(1,:),5);flip(smooth(s2d6ci(2,:),5))],'b','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:24,fliplr(1:24)],[smoothdata(s2d3ci(1,1:24),'movmean',5),flip(smoothdata(s2d3ci(2,1:24),'movmean',5))],'k','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smoothdata(s2d6ci(1,:),'movmean',5),flip(smoothdata(s2d6ci(2,:),'movmean',5))],'b','EdgeColor','none','FaceAlpha',0.1);
     end
-    plot(smooth(mean(s1d3c(:,1:24)),5),'-','Color','r','LineWidth',1)
-    plot(smooth(mean(s1d6c),5),'-','Color','m','LineWidth',1)
+    plot(smoothdata(mean(s1d3c(:,1:24)),'movmean',5),'-','Color','r','LineWidth',1)
+    plot(smoothdata(mean(s1d6c),'movmean',5),'-','Color','m','LineWidth',1)
 
-    plot(smooth(mean(s2d3c(:,1:24)),5),'-','Color','k','LineWidth',1)
-    plot(smooth(mean(s2d6c),5),'-','Color','b','LineWidth',1)
+    plot(smoothdata(mean(s2d3c(:,1:24)),'movmean',5),'-','Color','k','LineWidth',1)
+    plot(smoothdata(mean(s2d6c),'movmean',5),'-','Color','b','LineWidth',1)
 
 
     title('4 conditions')
