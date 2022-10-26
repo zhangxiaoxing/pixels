@@ -151,8 +151,14 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
 
         if opt.curve
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
-            classnn=(classmm-basemm)./S;
+            if false % scale in function, gaussian smooth on plot
+                S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+                classnn=(classmm-basemm)./S;
+            else % smooth before scale, skip smooth when plot
+                class_sm=(smoothdata(classmm,2,'gaussian',9)-basemm);
+                S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
+                classnn=class_sm./S;
+            end
             for typeidx=1:4
                 cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                 if typeidx<3
@@ -207,10 +213,15 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
         end
         
         if opt.curve
-
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
-            classnn=(classmm-basemm)./S;
+            if false
+                S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+                classnn=(classmm-basemm)./S;
+            else % smooth before scale, skip smooth when plot
+                class_sm=(smoothdata(classmm,2,'gaussian',9)-basemm);
+                S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
+                classnn=class_sm./S;
+            end
 
             for typeidx=1:4
                 cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
@@ -263,8 +274,14 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
         
         if opt.curve
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-            S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
-            classnn=(classmm-basemm)./S;
+            if false
+                S=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+                classnn=(classmm-basemm)./S;
+            else
+                class_sm=(smoothdata(classmm,2,'gaussian',9)-basemm);
+                S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
+                classnn=class_sm./S;
+            end
             for typeidx=1:4
                 cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                 if typeidx<3

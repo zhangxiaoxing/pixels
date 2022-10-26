@@ -116,9 +116,12 @@ arguments
 end
 
 colormap(opt.cmap);
-gk = fspecial('gaussian', [3 3], 1);
-imagesc(conv2(imdata,gk,'same'),opt.scale)
-
+if false
+    gk = fspecial('gaussian', [3 3], 1);
+    imagesc(conv2(imdata,gk,'same'),opt.scale)
+else
+    imagesc(imdata,opt.scale)
+end
 if size(imdata,2)>20
     set(gca(),'XTick',[0.5,20.5],'XTickLabel',[0,5]);
     xline(12.5,'--w','LineWidth',1);
