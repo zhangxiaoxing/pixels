@@ -36,8 +36,8 @@ for ii=reshape(metaidx,1,[])
     end
 
     if opt.skip_single_modal
-        fh=figure('Color','w','Position',[32,32,480,720]);
-        tiledlayout(4,1)
+        fh=figure('Color','w','Position',[32,32,800,300]);
+        tiledlayout(1,3)
     else
         fh=figure('Color','w','Position',[32,32,1280,720]);
         tiledlayout(2,5)
@@ -74,13 +74,13 @@ for ii=reshape(metaidx,1,[])
         pidx=1;
         for ti=reshape(s2d3p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti & FT_SPIKE.time{1}<4);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'c-')
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'-','Color',[0.5,0.5,0.48]) %previous color 'c'
             pidx=pidx+1;
         end
         pidx=pidx+2;
         for ti=reshape(s1d3p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti & FT_SPIKE.time{1}<4);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'r-')
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'r','Color',[0.5,0.48,0.48])
             pidx=pidx+1;
         end
         if opt.skip_single_modal
@@ -97,13 +97,13 @@ for ii=reshape(metaidx,1,[])
         
         for ti=reshape(s2d6p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'b-')
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'b','Color',[0.48,0.48,0.5])
             pidx=pidx+1;
         end
         pidx=pidx+2;
         for ti=reshape(s1d6p,1,[])
             ts=FT_SPIKE.time{1}(FT_SPIKE.trial{1}==ti);
-            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'m-')
+            plot(repmat(ts,2,1),repmat([pidx+0.1;pidx+0.9],1,numel(ts)),'m','Color',[0.5,0.48,0.5])
             pidx=pidx+1;
         end
         if opt.skip_single_modal
@@ -310,7 +310,7 @@ for ii=reshape(metaidx,1,[])
         arrayfun(@(x) set(x,'YLim',[min([ax3.YLim,ax6.YLim].'),max([ax3.YLim,ax6.YLim]).']),[ax3,ax6,axs1,axs2]);
     end
     if opt.skip_single_modal
-        axs2=nexttile(3,[2,1]);
+        axs2=nexttile(3);
     else
         axs2=nexttile(10);
     end
@@ -329,17 +329,17 @@ for ii=reshape(metaidx,1,[])
     
 %     pd3=@(x) x(1:24);
     if ~opt.skip_fill
-        fill([1:24,fliplr(1:24)],[smoothdata(s1d3ci(1,1:24),'movmean',5),flip(smoothdata(s1d3ci(2,1:24),'movmean',5))],'r','EdgeColor','none','FaceAlpha',0.1);
-        fill([1:40,fliplr(1:40)],[smoothdata(s1d6ci(1,:),'movmean',5),flip(smoothdata(s1d6ci(2,:),'movmean',5))],'m','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:24,fliplr(1:24)],[smoothdata(s1d3ci(1,1:24),'sgolay',5),flip(smoothdata(s1d3ci(2,1:24),'sgolay',5))],'r','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smoothdata(s1d6ci(1,:),'sgolay',5),flip(smoothdata(s1d6ci(2,:),'sgolay',5))],'m','EdgeColor','none','FaceAlpha',0.1);
     
-        fill([1:24,fliplr(1:24)],[smoothdata(s2d3ci(1,1:24),'movmean',5),flip(smoothdata(s2d3ci(2,1:24),'movmean',5))],'k','EdgeColor','none','FaceAlpha',0.1);
-        fill([1:40,fliplr(1:40)],[smoothdata(s2d6ci(1,:),'movmean',5),flip(smoothdata(s2d6ci(2,:),'movmean',5))],'b','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:24,fliplr(1:24)],[smoothdata(s2d3ci(1,1:24),'sgolay',5),flip(smoothdata(s2d3ci(2,1:24),'sgolay',5))],'k','EdgeColor','none','FaceAlpha',0.1);
+        fill([1:40,fliplr(1:40)],[smoothdata(s2d6ci(1,:),'sgolay',5),flip(smoothdata(s2d6ci(2,:),'sgolay',5))],'b','EdgeColor','none','FaceAlpha',0.1);
     end
-    plot(smoothdata(mean(s1d3c(:,1:24)),'movmean',5),'-','Color','r','LineWidth',1)
-    plot(smoothdata(mean(s1d6c),'movmean',5),'-','Color','m','LineWidth',1)
+    plot(smoothdata(mean(s1d3c(:,1:24)),'sgolay',5),'-','Color','r','LineWidth',1)
+    plot(smoothdata(mean(s1d6c),'sgolay',5),'-','Color','m','LineWidth',1)
 
-    plot(smoothdata(mean(s2d3c(:,1:24)),'movmean',5),'-','Color','k','LineWidth',1)
-    plot(smoothdata(mean(s2d6c),'movmean',5),'-','Color','b','LineWidth',1)
+    plot(smoothdata(mean(s2d3c(:,1:24)),'sgolay',5),'-','Color','k','LineWidth',1)
+    plot(smoothdata(mean(s2d6c),'sgolay',5),'-','Color','b','LineWidth',1)
 
 
     title('4 conditions')

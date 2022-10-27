@@ -24,53 +24,79 @@ end
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % olf >>>>>>>>>>>>>>>>>>>>>>>>>
 % #510
-idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
+% idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
+idx=[510];
 for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
         sgtitle(scfh, "SU #"+num2str(ii)+", OLF");
-        keyboard();
+%         keyboard();
     end
 end
 
 %<<<<<<<<<<<<<<<<<<<<<<
 %>>>>dur >>>>>>>>>>>>>>>>>>>>>>>
-
-idx=find(ismember(wrs_mux_meta.wave_id,7:8) & any(wrs_mux_meta.p_dur(:,1:2)<1e-3,2));
+% idx=find(ismember(wrs_mux_meta.wave_id,7:8) & any(wrs_mux_meta.p_dur<1e-4,2));
+idx=[2617];
 for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
-    if ~isempty(scfh)
-        sgtitle(scfh, "SU #"+num2str(ii)+", DUR");
-        keyboard();
-    end
-end
-
-% olf only ====================
-[mxd,dd]=mink(max(abs(eff_meta.cohen_d_dur),[],2),500);
-[mxo,oo]=maxk(max(abs(eff_meta.cohen_d_olf),[],2),500);
-idx=intersect(oo,dd);
-for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false);%
-    if ~isempty(scfh)
-        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", olf");
-        keyboard();
-    end
-end
-% dur only ====================
-reshape(find(any(out.p_mux(:,1:2)<0.002,2)),1,[]);
-
-for ii=[3770,5818]%reshape(find(any(wrs_mux_meta.p_mux(:,1:2)<0.003,2) & median(wrs_mux_meta.class_fr,[2 3])>2.5 & median(wrs_mux_meta.class_fr,[2 3])<40),1,[])
     scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
-        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", dur");
-%         exportgraphics(scfh,sprintf('SC/SCDUR%5d.png',ii),'ContentType','image');
-        
+        sgtitle(scfh, "SU #"+num2str(ii)+", DUR");
+        if false
+            exportgraphics(scfh,fullfile("SC","dur"+num2str(ii)+".png"));
+            close(scfh);
+        else
+%             keyboard()
+        end
     end
 end
+
+% mux ====================
+% idx=find(ismember(wrs_mux_meta.wave_id,1:4) & any(wrs_mux_meta.p_mux(:,1:2)<1e-2,2));
+idx=[5818 23639];
+for ii=reshape(idx,1,[])
+    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
+    if ~isempty(scfh)
+        sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", mux");
+        if false
+            exportgraphics(scfh,fullfile("SC","mux"+num2str(ii)+".png"));
+            close(scfh);
+        else
+%             keyboard()
+        end
+    end
+end
+
+
+% %% svm decoding
+% [fh,olf_dec_olf]=wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100);
+% [fh,dur_dec_dur]=wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','cool','new_data',true,'calc_dec',true,'rpt',100);
+% 
+% %% cross decoding
+% wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','parula','cross',true,'new_data',true,'calc_dec',true)
+% title('Rank by odor-encoding, decoding duration')
+% exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
+% wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','cool','cross',true,'new_data',true,'calc_dec',true)
+% title('Rank by duration-encoding, decoding odor')
+% exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
+
+%% correct error decoding >>>>>>>>>>>>>>>>>
+if false
+    odor4odor=pct.pct_decoding_correct_error(wrs_mux_meta,5:6,'lblidx',5,'n_su',50);% odor
+    dur4odor=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',5,'n_su',50);% odor
+    mux4odor=pct.pct_decoding_correct_error(wrs_mux_meta,1:4,'lblidx',5,'n_su',50);% odor
+
+    odor4dur=pct.pct_decoding_correct_error(wrs_mux_meta,5:6,'lblidx',8,'n_su',50);% dur
+    dur4dur=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',8,'n_su',50);% dur
+    mux4dur=pct.pct_decoding_correct_error(wrs_mux_meta,1:4,'lblidx',8,'n_su',50);% dur
+    save('corr_err_wrs_mux_decoding.mat','odor4odor','dur4odor','mux4odor','odor4dur','dur4dur','mux4dur');
+else
+    load('corr_err_wrs_mux_decoding.mat','odor4odor','dur4odor','mux4odor','odor4dur','dur4dur','mux4dur');
+end
+fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
 
 
 %% TODO wave-half-half
-
 fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'multi, sort by 6s, expanded')
 fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
