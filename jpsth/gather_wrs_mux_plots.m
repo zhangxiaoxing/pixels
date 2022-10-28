@@ -103,6 +103,11 @@ for ii=1:rpt
     [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'rnd_half',true);
     com_halfs(ii,:)={com_map_h1,com_map_h2};
 end
+blame=vcs.blame();
+save(fn,'com_halfs','blame')
+
+wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
+stats_half_half_fh=wave.COM_half_half(sens_meta);
 
 
 %%
