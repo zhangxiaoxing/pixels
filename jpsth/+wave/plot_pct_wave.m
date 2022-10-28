@@ -111,7 +111,7 @@ arguments
     imdata (:,:) double
     opt.scale (1,2) double = [-1,1]
     opt.title (1,:) char = []
-    opt.cmap (1,:) char = 'turbo'
+    opt.cmap (1,:) char = 'bone'
     opt.xlim (1,1) double {mustBeMember(opt.xlim,[3 6])} = 6
 end
 

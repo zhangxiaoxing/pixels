@@ -97,6 +97,15 @@ fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,
 
 
 %% TODO wave-half-half
+rpt=2;
+com_halfs=cell(rpt,2);
+for ii=1:rpt
+    [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'rnd_half',true);
+    com_halfs(ii,:)={com_map_h1,com_map_h2};
+end
+
+
+%%
 fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'sort_by',6,'scale',[0,1]);
 sgtitle(gcf(),'multi, sort by 6s, expanded')
 fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
