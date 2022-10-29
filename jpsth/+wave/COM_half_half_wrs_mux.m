@@ -53,10 +53,18 @@ stats=[];
 for rpti=1:size(com_halfs)
     com_1h=com_halfs{rpti,1};
     com_2h=com_halfs{rpti,2};
-    for fn=reshape(fieldnames(com_map),1,[])
-        fs=fn{1};
-        s1key=num2cell(intersect(cell2mat(com_map.(fs).c1a.keys),intersect(cell2mat(com_map.(fs).c1b.keys),cell2mat(com_map.(fs).c1e.keys))));
-        s2key=num2cell(intersect(cell2mat(com_map.(fs).c2a.keys),intersect(cell2mat(com_map.(fs).c2b.keys),cell2mat(com_map.(fs).c2e.keys))));
+    sesses=reshape(intersect(fieldnames(com_1h),fieldnames(com_2h)),1,[]);
+    for sess=sesses
+        fs=sess{1};
+        %% olf, dur, mix
+        for stype=["olf_s1","olf_s2"]
+            if isfield(com_1h.(fs),stype) && isfield(com_2h.(fs),stype)
+                sukeys=num2cell(intersect(com_1h.(fs).(stype).com.keys,com_1h.(fs).(stype).keys)); % TODO possible intersect error trials 
+            end
+            s2key=num2cell(intersect(cell2mat(com_map.(fs).c2a.keys),intersect(cell2mat(com_map.(fs).c2b.keys),cell2mat(com_map.(fs).c2e.keys))));
+        end
+
+
         if isempty(s1key) || isempty(s2key)
             continue
         end
