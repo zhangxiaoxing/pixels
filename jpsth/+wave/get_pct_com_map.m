@@ -26,6 +26,9 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
 
     homedir=ephys.util.getHomedir('type','raw');
     com_str=struct();
+    if opt.rnd_half
+        com_str_h2=struct();
+    end
 
     pct_sel=struct();
 
@@ -66,20 +69,28 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
             mcid1=meta.allcid(sesssel & pct_sel.(ff));
             [~,msel1]=ismember(mcid1,suid);
 
+            if isempty(msel1)
+                continue
+            end
+
             com_str.(['s',num2str(sessid)]).(ff).com=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com3=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com6=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com4plot=containers.Map('KeyType','int32','ValueType','any');
+            if opt.curve && ~ opt.rnd_half
+                for cc=["s1d3","s2d3","s1d6","s2d6"]
+                    com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+                end
+            end
 
-            for cc=["s1d3","s2d3","s1d6","s2d6"]
-                com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
-            end
-            
-            if isempty(msel1)
-                continue
-            end
-%             assert(~opt.rnd_half,'Random half-half not implemented yet')
+            %             assert(~opt.rnd_half,'Random half-half not implemented yet')
             if opt.rnd_half
+
+                com_str_h2.(['s',num2str(sessid)]).(ff).com=containers.Map('KeyType','int32','ValueType','any');
+                com_str_h2.(['s',num2str(sessid)]).(ff).com3=containers.Map('KeyType','int32','ValueType','any');
+                com_str_h2.(['s',num2str(sessid)]).(ff).com6=containers.Map('KeyType','int32','ValueType','any');
+                com_str_h2.(['s',num2str(sessid)]).(ff).com4plot=containers.Map('KeyType','int32','ValueType','any');
+    
                 fns=fieldnames(trl);
                 h1trl=struct();
                 h2trl=struct();
@@ -89,13 +100,15 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
                 end
                 if ismember(ff,["s1d3","s2d3","s1d6","s2d6"])
                     com_str=per_su_process(sess,suid,msel1,fr,h1trl,com_str,ff,opt);
-                    com_str_h2=per_su_process(sess,suid,msel1,fr,h2trl,com_str,ff,opt);
+                    com_str_h2=per_su_process(sess,suid,msel1,fr,h2trl,com_str_h2,ff,opt);
                 elseif ismember(ff,["olf_s1","olf_s2"])
+                    opt.currhalf=1;
                     com_str=per_su_process_olf(sess,suid,msel1,fr,h1trl,com_str,ff,opt);
-                    com_str_h2=per_su_process_olf(sess,suid,msel1,fr,h2trl,com_str,ff,opt);
+                    opt.currhalf=2;
+                    com_str_h2=per_su_process_olf(sess,suid,msel1,fr,h2trl,com_str_h2,ff,opt);
                 else
                     com_str=per_su_process_dur(sess,suid,msel1,fr,h1trl,com_str,ff,opt);
-                    com_str_h2=per_su_process_dur(sess,suid,msel1,fr,h2trl,com_str,ff,opt);
+                    com_str_h2=per_su_process_dur(sess,suid,msel1,fr,h2trl,com_str_h2,ff,opt);
                 end
             else
                 if ismember(ff,["s1d3","s2d3","s1d6","s2d6"])
@@ -139,7 +152,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
             com_str.(sess).(type).com(suid(su))=com;
         end
 
-%         if opt.curve
+
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
              % scale in function, gaussian smooth on plot
                 SR=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
@@ -148,15 +161,16 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                 class_sm=(smoothdata(classmm,2,'sgolay',5)-basemm);
                 S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
                 classnn=class_sm./S;
-            
-            for typeidx=1:4
-                cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
-                if typeidx<3
-                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
-                else
-                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                if opt.curve && ~opt.rnd_half
+                    for typeidx=1:4
+                        cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
+                        if typeidx<3
+                            com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+                        else
+                            com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                        end
+                    end
                 end
-            end
             if contains(type,'d3')
                 com_str.(sess).(type).com4plot(suid(su))=com;
                 if contains(type,'s1')
@@ -215,7 +229,8 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
         end
-        
+%         disp({sess,su,opt.currhalf,com})
+
 %         if opt.curve
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
 %             if false
@@ -226,16 +241,16 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
                 S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
                 classnn=class_sm./S;
 %             end
-
-            for typeidx=1:4
-                cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
-                if typeidx<3
-                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
-                else
-                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+            if opt.curve && ~opt.rnd_half
+                for typeidx=1:4
+                    cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
+                    if typeidx<3
+                        com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+                    else
+                        com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                    end
                 end
             end
-
             if contains(type,'s1')
                 ppref=classnnR(1,1:12);
             else
@@ -301,12 +316,14 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
                 S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
                 classnn=class_sm./S;
 %             end
-            for typeidx=1:4
-                cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
-                if typeidx<3
-                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
-                else
-                    com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+            if opt.curve && ~opt.rnd_half
+                for typeidx=1:4
+                    cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
+                    if typeidx<3
+                        com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,1:12);
+                    else
+                        com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
+                    end
                 end
             end
 
