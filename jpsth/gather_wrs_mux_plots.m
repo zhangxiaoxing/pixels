@@ -97,14 +97,14 @@ fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,
 
 
 %% TODO wave-half-half
-rpt=2;
+rpt=100;
 com_halfs=cell(rpt,2);
 for ii=1:rpt
     [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'rnd_half',true);
     com_halfs(ii,:)={com_map_h1,com_map_h2};
 end
 blame=vcs.blame();
-save(fn,'com_halfs','blame')
+save(sprintf('com_halfs_%d.mat',rpt),'com_halfs','blame')
 
 wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
 stats_half_half_fh=wave.COM_half_half(sens_meta);
@@ -175,7 +175,7 @@ end
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps)
+fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(wrs_mux_meta);
 fh4.fig.Children.Subtitle.String='Excitatory';

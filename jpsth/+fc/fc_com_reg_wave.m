@@ -167,72 +167,75 @@ else% same and diff % TODO
     end
 end
 
-figure('Color','w','Position',[100,100,720,235])
-tiledlayout(1,3)
+fh=figure('Color','w','Position',[100,100,720,235]);
+tiledlayout(1,4)
 %TODO: region-defined panels-> selectivity defined panels
 for ii=1:3
     titles={'Olf.','Dur.','Mixed'};
     nexttile()
     hold on
-    bh=bar(1:3,[barmm(ii,[1 3 5]);barmm(ii,[2 4 6])],'grouped');
+    bh=bar(1:3,[barmm(ii,[1 5 3]);barmm(ii,[2 6 4])],'grouped');
     %TODO update
-%     errorbar([bh.XEndPoints],[bh.YEndPoints],...
-%         [barci(ii,1);1-barci(:,1+ii)]-[bh.YEndPoints].',...
-%         [barci(ii,2+ii);1-barci(:,2+ii)]-[bh.YEndPoints].','k.')
-%         [barci(ii,[1 3]),1-barci(ii,[1 3])]-[bh.YEndPoints],...
-%         [barci(ii,[2 4]),1-barci(ii,[2 4])]-[bh.YEndPoints],'k.')
-    ylim([0,0.8])
+    errorbar([bh.XEndPoints],[bh.YEndPoints],...
+        [barci(ii,[1 5 3]),1-barci(ii,[1 5 3])]-[bh.YEndPoints],...
+        [barci(ii,[2 6 4]),1-barci(ii,[2 6 4])]-[bh.YEndPoints],'k.')
+    ylim([0,0.75])
     yline(0.5,'k--')
-    set(gca(),'XTick',1:3,'XTickLabel',{'Within','FC wave','reg-wave'},...
+    set(gca(),'XTick',1:3,'XTickLabel',{'Within','Reg-wave','FC-wave'},...
         'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
     title(titles{ii});
+    xlim([0.5,2.5])
     %         subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
 end
 
 disp(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
 
 disp("type idx:1, cross reg. condition:1, binocdf each reg.condition:3")
+binocdfp=nan(3,3);
 for typeidx=1:3
     [~,~,chi2p(typeidx)]=crosstab([zeros(barcnt(typeidx,2),1);...
-        ones(barcnt(typeidx,4),1)],...
+        ones(barcnt(typeidx,6),1)],...
         [(1:barcnt(typeidx,2))>barcnt(typeidx,1),...
-        (1:barcnt(typeidx,4))>barcnt(typeidx,3)]);
+        (1:barcnt(typeidx,6))>barcnt(typeidx,5)]);
 
     binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
-    binocdfp=[2*binocdf(binomin(1,2),barcnt(typeidx,2),0.5),...
+    binocdfp(typeidx,:)=[2*binocdf(binomin(1,2),barcnt(typeidx,2),0.5),...
+        2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5),...
         2*binocdf(binomin(3,4),barcnt(typeidx,4),0.5)];
-    disp([typeidx,chi2p(typeidx),binocdfp]);
+%     disp([typeidx,chi2p(typeidx),binocdfp]);
 end
-sgtitle(sprintf('%.3f',chi2p));
+sgtitle(sprintf('%.3f, ',chi2p));
+ephys.util.figtable(fh,nexttile(4),binocdfp,'title','same|regwave|fcwave')
 
-[fwdhat, fwdci]=binofit(barcnt(:,4),sum(barcnt(:,[4 6]),2));
-[revhat, revci]=binofit(barcnt(:,6),sum(barcnt(:,[4 6]),2)); %not really necessary
+if false %alternative plot, same stats
+    [fwdhat, fwdci]=binofit(barcnt(:,4),sum(barcnt(:,[4 6]),2));
+    [revhat, revci]=binofit(barcnt(:,6),sum(barcnt(:,[4 6]),2)); %not really necessary
 
-bcdfp=[binocdf(min(barcnt(1,4),barcnt(1,6)),sum(barcnt(1,[4,6]),'all'),0.5).*2;...
-    binocdf(min(barcnt(2,4),barcnt(2,6)),sum(barcnt(2,[4,6]),'all'),0.5).*2;...
-    binocdf(min(barcnt(3,4),barcnt(3,6)),sum(barcnt(3,[4,6]),'all'),0.5).*2];
+    bcdfp=[binocdf(min(barcnt(1,4),barcnt(1,6)),sum(barcnt(1,[4,6]),'all'),0.5).*2;...
+        binocdf(min(barcnt(2,4),barcnt(2,6)),sum(barcnt(2,[4,6]),'all'),0.5).*2;...
+        binocdf(min(barcnt(3,4),barcnt(3,6)),sum(barcnt(3,[4,6]),'all'),0.5).*2];
 
-%%
-figure() % FC rate along wave direction
-hold on
-% bh=bar([fwdhat,revhat]);
-% errorbar([bh.XEndPoints],[bh.YEndPoints],...
-%     [fwdci(:,1);revci(:,1)].'-[bh.YEndPoints],...
-%     [fwdci(:,2);revci(:,2)].'-[bh.YEndPoints],...
-%     'k.');
-bh=bar(fwdhat,'FaceColor','w','EdgeColor','k');
-errorbar([bh.XEndPoints],[bh.YEndPoints],...
-    fwdci(:,1).'-[bh.YEndPoints],...
-    fwdci(:,2).'-[bh.YEndPoints],...
-    'k.');
-yline(0.5,'k:');
-ylabel('Proportion of F.C (%)')
-set(gca(),'YLim',[0,0.75],'YTick',0:0.25:0.75,'YTickLabel',0:25:75,...
-    'XTick',1:3,'XTickLabel',{'Olf.','Dur.','Mixed'})
-% legend(bh,{'Leading- to following reg.','Following- to leading reg.'},...
-%     'Location','northoutside','Orientation','horizontal');
-title(sprintf('%.3f,',bcdfp));
-
+    %%
+    figure() % FC rate along wave direction
+    hold on
+    % bh=bar([fwdhat,revhat]);
+    % errorbar([bh.XEndPoints],[bh.YEndPoints],...
+    %     [fwdci(:,1);revci(:,1)].'-[bh.YEndPoints],...
+    %     [fwdci(:,2);revci(:,2)].'-[bh.YEndPoints],...
+    %     'k.');
+    bh=bar(fwdhat,'FaceColor','w','EdgeColor','k');
+    errorbar([bh.XEndPoints],[bh.YEndPoints],...
+        fwdci(:,1).'-[bh.YEndPoints],...
+        fwdci(:,2).'-[bh.YEndPoints],...
+        'k.');
+    yline(0.5,'k:');
+    ylabel('Proportion of F.C (%)')
+    set(gca(),'YLim',[0,0.75],'YTick',0:0.25:0.75,'YTickLabel',0:25:75,...
+        'XTick',1:3,'XTickLabel',{'Olf.','Dur.','Mixed'})
+    % legend(bh,{'Leading- to following reg.','Following- to leading reg.'},...
+    %     'Location','northoutside','Orientation','horizontal');
+    title(sprintf('%.3f,',bcdfp));
+end
 
 end
 
