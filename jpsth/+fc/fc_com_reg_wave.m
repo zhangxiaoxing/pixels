@@ -16,30 +16,32 @@ for sii=reshape(usess,1,[]) %iterate through sessions
 
     com_sess_pct=nan(size(suid));
     for ff=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
-        sukeys=com_map.(['s',num2str(sii)]).(ff).com.keys(); % prefered SUid
-        susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
-        com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).com.values(num2cell(suid(susel)))); % out put is nx2 in dim
+        if isfield(com_map.(['s',num2str(sii)]),ff)
+            sukeys=com_map.(['s',num2str(sii)]).(ff).com.keys(); % prefered SUid
+            susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
+            com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).com.values(num2cell(suid(susel)))); % out put is nx2 in dim
+        end
     end
     fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];
     %==================================================1sess=====================23suid======45COM_context1===67COM_context2===89ccfid=====waveid======
 end
 
 congrusel=pct.su_pairs.get_congru(fc_com_pvsst_stats(:,10:11));
-incongsel=pct.su_pairs.get_incongru(fc_com_pvsst_stats(:,10:11));
+% incongsel=pct.su_pairs.get_incongru(fc_com_pvsst_stats(:,10:11));
 mixed_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);
 olf_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);
 dur_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);
-typesel_mat=[olf_congru,dur_congru,mixed_congru,incongsel];
-tcom_maps_rearr=tcom_maps([2,3,1,2]);
+typesel_mat=[olf_congru,dur_congru,mixed_congru];
+tcom_maps_rearr=tcom_maps([2,3,1]);
 
 if false
-    colors={'r','b','k','m'};
-    titles={'Olfactory','Duration','Multiplexed','Incongru-OLF-gradient'};
+    colors={'r','b','k'};
+    titles={'Olfactory','Duration','Multiplexed'};
     % regional wave timing selectivity dependent >>>>>>>>>>>>>>>>
     figure('Color','w','Position',[100,100,1024,235])
 
-    tiledlayout(1,4)
-    for typeIdx=1:4
+    tiledlayout(1,3)
+    for typeIdx=1:3
         nexttile();
         hold on
 
@@ -95,7 +97,7 @@ if false %forward and reverse
         fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing;
         fini_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
         typesel=typesel_mat(:,typeIdx);
-        %     reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
+        reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
         fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
         same_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,8)==fc_com_pvsst_stats(fini_sel & typesel,9) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
         wave_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,6)<fc_com_pvsst_stats(fini_sel & typesel,7) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
@@ -106,6 +108,8 @@ if false %forward and reverse
         [wave_hat,wave_ci]=binofit(nnz(fc_latency>0 & wave_reg_sel),nnz(wave_reg_sel));
         % anti-reg-wave dir
         [rev_hat,rev_ci]=binofit(nnz(fc_latency>0 & reverse_reg_sel),nnz(reverse_reg_sel));
+        % different grouped by regional per-wave timing
+%         [reg_wave_hat,reg_wave_ci]=binofit(nnz(reg_latency>0 & reverse_reg_sel),nnz(reverse_reg_sel));
         barcnt=[barcnt;...
             nnz(fc_latency>0 & same_reg_sel),...
             nnz(same_reg_sel),...
@@ -132,7 +136,8 @@ else% same and diff % TODO
         fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing ;
         fini_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
         typesel=typesel_mat(:,typeIdx);
-        %     reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
+
+        reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
         fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
         % TODO region-averaged latency
 
@@ -143,18 +148,22 @@ else% same and diff % TODO
         [same_hat,same_ci]=binofit(nnz(fc_latency>0 & same_reg_sel),nnz(same_reg_sel));
         % reg-wave dir
         [diff_hat,diff_ci]=binofit(nnz(fc_latency>0 & diff_reg_sel),nnz(diff_reg_sel));
-        
+        [diff_reg_hat,diff_reg_ci]=binofit(nnz(reg_latency>0 & diff_reg_sel),nnz(diff_reg_sel));
 
-        barcnt=[barcnt;...
+       barcnt=[barcnt;...
             nnz(fc_latency>0 & same_reg_sel),...
             nnz(same_reg_sel),...
             nnz(fc_latency>0 & diff_reg_sel),...
-            nnz(diff_reg_sel)];
+            nnz(diff_reg_sel),...
+            nnz(reg_latency>0 & diff_reg_sel),...
+            nnz(diff_reg_sel)...
+            ];
         barmm=[barmm;...
             same_hat,1-same_hat,...
-            diff_hat,1-diff_hat...
+            diff_hat,1-diff_hat,...
+            diff_reg_hat,1-diff_reg_hat,...
             ];
-        barci=[barci;same_ci,diff_ci];
+        barci=[barci;same_ci,diff_ci,diff_reg_ci];
     end
 end
 
@@ -165,13 +174,16 @@ for ii=1:3
     titles={'Olf.','Dur.','Mixed'};
     nexttile()
     hold on
-    bh=bar(1:2,[barmm(ii,[1,3]);barmm(ii,[2,4])].','grouped');
-    errorbar([bh.XEndPoints],[bh.YEndPoints],...
-        [barci(ii,[1 3]),1-barci(ii,[1 3])]-[bh.YEndPoints],...
-        [barci(ii,[2 4]),1-barci(ii,[2 4])]-[bh.YEndPoints],'k.')
+    bh=bar(1:3,[barmm(ii,[1 3 5]);barmm(ii,[2 4 6])],'grouped');
+    %TODO update
+%     errorbar([bh.XEndPoints],[bh.YEndPoints],...
+%         [barci(ii,1);1-barci(:,1+ii)]-[bh.YEndPoints].',...
+%         [barci(ii,2+ii);1-barci(:,2+ii)]-[bh.YEndPoints].','k.')
+%         [barci(ii,[1 3]),1-barci(ii,[1 3])]-[bh.YEndPoints],...
+%         [barci(ii,[2 4]),1-barci(ii,[2 4])]-[bh.YEndPoints],'k.')
     ylim([0,0.8])
     yline(0.5,'k--')
-    set(gca(),'XTick',1:3,'XTickLabel',{'Within','wave','anti'},...
+    set(gca(),'XTick',1:3,'XTickLabel',{'Within','FC wave','reg-wave'},...
         'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
     title(titles{ii});
     %         subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));

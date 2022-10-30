@@ -42,10 +42,12 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
                     ffs=["dur_d3","dur_d6"];
             end
             for ff=ffs
-                suid=com_map.(sess{si}).(ff).com.keys().';
-                sucom=com_map.(sess{si}).(ff).com.values().';
-                [~,loc]=ismember(uint16(cell2mat(suid)),allcid);
-                com_meta=[com_meta;num2cell(sid*ones(size(suid))),suid,sucom,allreg(:,loc).'];
+                if isfield(com_map.(sess{si}),ff)
+                    suid=com_map.(sess{si}).(ff).com.keys().';
+                    sucom=com_map.(sess{si}).(ff).com.values().';
+                    [~,loc]=ismember(uint16(cell2mat(suid)),allcid);
+                    com_meta=[com_meta;num2cell(sid*ones(size(suid))),suid,sucom,allreg(:,loc).'];
+                end
             end
         else
             if isfield(com_map.(sess{si}),'c1')
