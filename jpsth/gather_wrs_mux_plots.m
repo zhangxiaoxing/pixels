@@ -176,6 +176,9 @@ end
 
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
+% separate wave timing cdf
+wave.mix_single_wave_timing
+
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(wrs_mux_meta);
 fh4.fig.Children.Subtitle.String='Excitatory';
