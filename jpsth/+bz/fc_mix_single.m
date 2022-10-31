@@ -5,7 +5,7 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
 %%
-fc_rate_mix_simple(wrs_mux_meta)
+fc_rate_mix_simple(wrs_mux_meta,'condense_plot',true)
 
 %%
 FC_TCOM(wrs_mux_meta,com_map,tcom_maps)
@@ -650,8 +650,9 @@ if opt.condense_plot
         set(gca(),'YLim',[0,0.015],'YTick',0:0.005:0.015,'YTickLabel',0:0.5:1.5);
     end
     ylabel('F.C. rate (%)')
+    keyboard()
 %     legend(bh,{'Mixed to olf','Olf. to mixed','Mixed to mixed'},'Location','northoutside','Orientation','horizontal')
-%     title(sprintf('%.3f, ',p_m_o))
+    title(sprintf('%.3f, ',p_m_o(1),p_m_d(1),p_o_d(1)))
 
 else
     figure('Color','w')

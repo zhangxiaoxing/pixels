@@ -174,22 +174,24 @@ end
 
 if opt.condense_plot
     fh=figure('Color','w','Position',[100,100,720,235]);
-%     for ii=1:3
-        titles={'Olf.','Dur.','Mixed'};
-        hold on
-        bh=bar(1:3,barmm(:,5:6),'stacked    ');
-        %TODO update
-        errorbar([bh.XEndPoints],[bh.YEndPoints],...
-            [barci(ii,[1 5 3]),1-barci(ii,[1 5 3])]-[bh.YEndPoints],...
-            [barci(ii,[2 6 4]),1-barci(ii,[2 6 4])]-[bh.YEndPoints],'k.')
-        ylim([0,0.75])
-        yline(0.5,'k--')
-        set(gca(),'XTick',1:3,'XTickLabel',{'Within','Reg-wave','FC-wave'},...
-            'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
-        title(titles{ii});
-        xlim([0.5,2.5])
-        %         subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
-%     end
+    tiledlayout(1,3);
+    nexttile(1,[1,2])
+    hold on
+    bh=bar(1:3,barmm(:,5:6),'grouped');
+    errorbar([bh.XEndPoints],[bh.YEndPoints],...
+        [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
+        [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
+    ylim([0,0.75])
+    yline(0.5,'k--')
+    set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Mixed'},...
+        'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
+    xlim([0.5,3.5])
+    binocdfp=nan(1,3);
+    for typeidx=1:3
+        binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
+        binocdfp(typeidx)=2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5);
+    end
+    ephys.util.figtable(fh,nexttile(3),binocdfp,'title','binocdf-p')
 else
     fh=figure('Color','w','Position',[100,100,720,235]);
     tiledlayout(1,4)
