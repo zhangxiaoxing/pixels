@@ -12,7 +12,7 @@ fh=figure('Color','w','Position',[32,32,275,235]);
 hold on
 boxplot(reshape(r_olf_dur_mux,1,[]),gg);
 ylabel('TCOM Pearson''s r')
-set(gca(),'XTick',1:4,'XTickLabel',{'OLF','DUR','Mux','Shuffle'});
+set(gca(),'XTick',1:4,'XTickLabel',{'OLF','DUR','Mux','Shuffle'},'YTick',0:0.5:1);
 yline(0,'-k')
 xlim([0.5,4.5]);
 ylim([-0.1,1])

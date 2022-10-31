@@ -3,7 +3,7 @@ arguments
     opt.datetime (1,1) logical = true
     opt.tag (1,:) char = ''
     opt.close (1,1) logical = false
-    opt.fn (1,:) char = 'pct_decoding.pdf'
+    opt.fn (1,:) char = 'C:\Users\Libra\OneDrive\Neupix\pct_decoding.pdf'
 end
 
 if exist(opt.fn,"file")
@@ -34,4 +34,4 @@ for hc=reshape(fhandles,1,[])
         close(hc)
     end
 end
-
+fprintf(['[\bUpdated file ',replace(opt.fn,'\','/'),']\b\n'])

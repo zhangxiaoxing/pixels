@@ -68,11 +68,12 @@ end
 function plotOne(subidx,imdata,comdata)
 subplot(1,4,subidx);
 hold on
-colormap('turbo');
+% colormap('turbo');
+colormap('gray');
 gk = fspecial('gaussian', [3 3], 1);
 imagesc(conv2(imdata,gk,'same'),[0 1])
 if exist('comdata','var') && ~isempty(comdata)
-    scatter(comdata,1:numel(comdata),2,'o','MarkerFaceColor','k','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+    scatter(comdata,1:numel(comdata),4,'o','MarkerFaceColor','r','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
 end
 set(gca(),'XTick',[0.5,20.5],'XTickLabel',[0,5]);
 colorbar();

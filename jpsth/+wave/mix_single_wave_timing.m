@@ -55,12 +55,12 @@ if strcmp(opt.com_delay,'com6')
     xlim([0.5,3.5])
     set(gca(),'YTick',0:4:24,'YTickLabel',0:6,...
         'XTick',1:3,'XTickLabel',{'Olf','Dur','Mix'})
-    ylim([0,12])
+    ylim([0,14])
 else
     xlim([0.5,3.5])
     set(gca(),'YTick',0:2:12,'YTickLabel',0:0.5:3,...
         'XTick',1:3,'XTickLabel',{'Olf','Dur','Mix'})
-    ylim([0,8])
+    ylim([0,10])
 end
 ylabel('Wave-specific mean TCOM (s)')
 [bh.FaceColor]=deal('r','b','w');
