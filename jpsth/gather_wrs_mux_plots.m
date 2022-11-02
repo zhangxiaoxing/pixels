@@ -177,11 +177,7 @@ end
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
 
-
-inter_meta.sens_only=ismember(wrs_mux_meta.wave_id,5:6);
-inter_meta.dur_only=ismember(wrs_mux_meta.wave_id,7:8);
-inter_meta.mixed=ismember(wrs_mux_meta.wave_id,1:4);
-inter_wave_fh=bz.inter_wave_ext_bars(inter_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
+inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
 
 bz.inter_wave_ext_bars()
 %% FIG 3 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

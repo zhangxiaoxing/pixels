@@ -4,6 +4,7 @@ arguments
     opt.onepath (1,:) char = '' % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
+    opt.err (1,1) logical = false %u stats in error trials
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
     opt.band_width (1,1) double {mustBeMember(opt.band_width,1:2)} = 1
@@ -12,6 +13,7 @@ end
 %TODO proper declaration
 persistent com_str opt_ pct_meta_
 
+assert(opt.rnd_half && opt.err, 'Unable to handle 2Fold CV and error trial in same run')
 if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,pct_meta) 
     meta=ephys.util.load_meta('skip_stats',true);
     if strlength(opt.onepath)==0
@@ -53,17 +55,19 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
 
-        trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
-%         trl.es1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,10)==0);
-        trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
-%         trl.es2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,10)==0);
-        trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
-%         trl.es1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,10)==0);
-        trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
-%         trl.es2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,10)==0);
+        if opt.err
+            trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,10)==0);
+            trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,10)==0);
+            trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,10)==0);
+            trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,10)==0);
+        else
+            trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
+            trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
+            trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
+            trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
+        end
 
         sess=['s',num2str(sessid)];
-
 
         for ff=["s1d3","s2d3","s1d6","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
             mcid1=meta.allcid(sesssel & pct_sel.(ff));
