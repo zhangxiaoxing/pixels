@@ -13,7 +13,7 @@ end
 %TODO proper declaration
 persistent com_str opt_ pct_meta_
 
-assert(opt.rnd_half && opt.err, 'Unable to handle 2Fold CV and error trial in same run')
+assert(~(opt.rnd_half && opt.err), 'Unable to handle 2Fold CV and error trial in same run')
 if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,pct_meta) 
     meta=ephys.util.load_meta('skip_stats',true);
     if strlength(opt.onepath)==0
@@ -60,6 +60,9 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
             trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,10)==0);
             trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,10)==0);
             trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,10)==0);
+            if min([numel(trl.cs1d3);numel(trl.cs2d3);numel(trl.cs1d6);numel(trl.cs2d6)],[],'all')<2
+                continue
+            end
         else
             trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
             trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
@@ -81,7 +84,7 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
             com_str.(['s',num2str(sessid)]).(ff).com3=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com6=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com4plot=containers.Map('KeyType','int32','ValueType','any');
-            if opt.curve && ~ opt.rnd_half
+            if opt.curve && ~opt.rnd_half
                 for cc=["s1d3","s2d3","s1d6","s2d6"]
                     com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
                 end
@@ -147,7 +150,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
-            if ~opt.rnd_half
+            if ~opt.rnd_half && ~opt.err
                 keyboard();
             end
             continue
@@ -225,7 +228,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
         end
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
-            if ~opt.rnd_half
+            if ~opt.rnd_half && ~opt.err
                 keyboard();
             end
             continue
@@ -301,7 +304,7 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
         mm_pref(mm_pref<0)=0;
         if ~any(mm_pref>0)
             disp(strjoin({sess,num2str(suid(su)),char(type),'PEAK mismatch, TCOM set to -1'},','))
-            if ~opt.rnd_half
+            if ~opt.rnd_half && ~opt.err
                 keyboard();
             end
             continue

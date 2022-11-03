@@ -97,15 +97,22 @@ fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,
 
 
 %% TODO wave-half-half
-rpt=100;
-com_halfs=cell(rpt,2);
-for ii=1:rpt
-    [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'rnd_half',true);
-    com_halfs(ii,:)={com_map_h1,com_map_h2};
+if false
+    rpt=100;
+    com_halfs=cell(rpt,2);
+    for ii=1:rpt
+        [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'rnd_half',true);
+        com_halfs(ii,:)={com_map_h1,com_map_h2};
+    end
+    blame=vcs.blame();
+    save(sprintf('com_halfs_%d.mat',rpt),'com_halfs','blame')
 end
-blame=vcs.blame();
-save(sprintf('com_halfs_%d.mat',rpt),'com_halfs','blame')
+if false
+    com_map_err=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'err',true);
+    blame=vcs.blame();
+    save('com_error.mat','com_map_err','blame');
 
+end
 wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
 stats_half_half_fh=wave.COM_half_half(sens_meta);
 

@@ -3,6 +3,7 @@ arguments
     opt.filename (1,:) char = 'com_halfs_100.mat'
     opt.plot (1,1) logical = true
 end
+
 fstr=load(opt.filename);
 r_olf_dur_mux=stats_file(fstr.com_halfs);
 
