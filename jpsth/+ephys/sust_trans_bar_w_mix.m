@@ -1,5 +1,3 @@
-% Not operational yet
-% TODO 
 function fh=sust_trans_bar_w_mix(sel_meta)
 meta=ephys.util.load_meta('skip_stats',true);
 
@@ -45,7 +43,5 @@ set(gca(),'XTick',1:3,'XTickLabel',{'Olf.','Dur.','Mixed'},'FontSize',10,'YTick'
 % text(1,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[1 3]))),'Rotation',90,'FontSize',10)
 % text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]))),'Rotation',90,'FontSize',10)
 % text(max(xlim()),max(ylim()),num2str(numel(meta.mem_type)),'HorizontalAlignment','right','VerticalAlignment','top')
-
-% exportgraphics(fh,'sust_trans_fraction.pdf');
 
 end

@@ -2,7 +2,7 @@
 global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
-% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true);
+wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
@@ -111,7 +111,6 @@ if false
     com_map_err=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'err',true);
     blame=vcs.blame();
     save('com_error.mat','com_map_err','blame');
-
 end
 wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
 stats_half_half_fh=wave.COM_half_half(sens_meta);

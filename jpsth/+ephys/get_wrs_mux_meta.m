@@ -5,8 +5,9 @@ arguments
     opt.load_file (1,1) logical = true
     opt.save_file (1,1) logical = false
     opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
-    opt.uneven_duration (1,1) logical = false % use all 6-sec delay
     opt.merge_mux (1,1) logical = true
+    opt.extend6s (1,1) logical = true
+    opt.plot_venn (1,1) logical = false
 end
 
 persistent out opt_
@@ -19,6 +20,9 @@ if isempty(out) || ~isequaln(opt,opt_)
         homedir=ephys.util.getHomedir('type','raw');
         sesskeys=cell2mat(sessmap.keys());
         [out.pref_id,out.p_mux,out.p_olf,out.p_dur,out.class_fr]=deal([]);
+        if opt.extend6s
+            [out.pref_id6,out.p_olf6,out.p_dur,out.class_fr6]=deal([]);
+        end
         for sessid=sesskeys
             disp(sessid);
             fpath=fullfile(homedir,sessmap(sessid),"FR_All_1000.hdf5");
@@ -43,33 +47,57 @@ if isempty(out) || ~isequaln(opt,opt_)
                     class_cell={s1d3fr,s1d6fr,s2d3fr,s2d6fr};
                     class_mm=cellfun(@(x) mean(x),class_cell);
                     class_fr(1,:,bin-4)=class_mm;
-                    [~,binpref]=max(class_mm);
-                    
-                    if false%opt.permutation
-                        wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),bin3s);
-                        wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),bin6s);
-                    else
-                        % determine multimodal
-                        otherid=setdiff(1:4,binpref);
-                        pref_id(bin-4)=binpref;
-                        ppmux(bin-4)=max(arrayfun(@(x) ranksum(class_cell{binpref},class_cell{x}),otherid));
-                        % determine monomodal
-                        ppolf(bin-4)=ranksum(cell2mat(class_cell(1:2).'),cell2mat(class_cell(3:4).'));
-                        ppdur(bin-4)=ranksum(cell2mat(class_cell([1,3]).'),cell2mat(class_cell([2,4]).'));
+                    [~,binpref]=max(class_mm);  % highest condition
 
-                    end
+                    %                     if false%opt.permutation
+                    %                         wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),bin3s);
+                    %                         wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),bin6s);
+                    %                     else
+                    % determine multimodal
+                    otherid=setdiff(1:4,binpref);
+                    pref_id(bin-4)=binpref;
+                    ppmux(bin-4)=max(arrayfun(@(x) ranksum(class_cell{binpref},class_cell{x}),otherid));
+                    % determine monomodal
+                    ppolf(bin-4)=ranksum(cell2mat(class_cell(1:2).'),cell2mat(class_cell(3:4).'));
+                    ppdur(bin-4)=ranksum(cell2mat(class_cell([1,3]).'),cell2mat(class_cell([2,4]).'));
+                    %                     end
                 end
                 out.pref_id=[out.pref_id;pref_id];
                 out.p_mux=[out.p_mux;ppmux];
                 out.p_olf=[out.p_olf;ppolf];
                 out.p_dur=[out.p_dur;ppdur];
                 out.class_fr=[out.class_fr;class_fr];
+                if opt.extend6s
+                    ppolf6=nan(1,3);
+                    for bin=8:10
+                        % highest condition
+                        s1d6fr=fr(d6sel & s1sel,suidx,bin);
+                        s2d6fr=fr(d6sel & s2sel,suidx,bin);
+                        class_cell={-1,s1d6fr,-1,s2d6fr};
+                        class_mm=cellfun(@(x) mean(x),class_cell);
+                        class_fr6(1,:,bin-7)=class_mm;
+                        [~,binpref]=max(class_mm);  % highest condition
+
+                        %                         if false%opt.permutation
+                        %                             wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),bin3s);
+                        %                             wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),bin6s);
+                        %                         else
+                        % determine monomodal
+                        pref_id6(bin-7)=binpref;
+                        ppolf6(bin-7)=ranksum(cell2mat(class_cell(2).'),cell2mat(class_cell(4).'));
+                        %                         end
+                    end
+                    out.pref_id6=[out.pref_id;pref_id];
+                    out.p_olf6=[out.p_olf;ppolf];
+                    out.class_fr6=[out.class_fr;class_fr];
+                end
             end
+        end
+        m=any(out.p_mux<0.05,2);
+        o=any(out.p_olf<0.05,2);
+        d=any(out.p_dur<0.05,2);
 
-            m=any(out.p_mux<0.05,2);
-            o=any(out.p_olf<0.05,2);
-            d=any(out.p_dur<0.05,2);
-
+        if opt.plot_venn
             sel_mat=[m & ~o & ~d,...
                 ~m & o & ~d,...
                 ~m & ~o & d,...
@@ -78,9 +106,9 @@ if isempty(out) || ~isequaln(opt,opt_)
                 ~m & o & d,...
                 m & o & d...
                 ];
+            figure('Position',[100,100,300,300])
+            [fh,vs]=lib.venn(sum(sel_mat));
         end
-        figure('Position',[100,100,300,300])
-        [fh,vs]=lib.venn(sum(sel_mat));
 
         wave_id=zeros(size(m,1),1)-1;
         [~,midx]=min(out.p_mux,[],2);
@@ -94,7 +122,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         wave_id(m)=arrayfun(@(x) out.pref_id(x,midx(x)),find(m));
         wave_id(o & ~m & ~d)=arrayfun(@(x) class2olf(out.pref_id(x,oidx(x))),find(o & ~m & ~d));
         wave_id(~o & ~m & d)=arrayfun(@(x) class2dur(out.pref_id(x,didx(x))),find(~o & ~m & d));
-        
+
         if opt.merge_mux
             wave_id(o & ~m & d)=arrayfun(@(x) out.pref_id(x,midx(x)),find(o & ~m & d));
         end
