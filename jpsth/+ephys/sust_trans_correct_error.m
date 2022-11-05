@@ -1,126 +1,151 @@
-function sust_trans_correct_error(type,opt)
+% TODO migrate to wrs_mux data set
+% major revision 20221104
+function sust_trans_correct_error(sel_meta,type,opt)
 arguments
+    sel_meta
     type (1,:) char {mustBeMember(type,{'Sustained','Transient'})} = 'Sustained'
     opt.single_bin (1,1) logical = true
     opt.bin (1,1) double {mustBeInRange(opt.bin,1,6),mustBeInteger} = 1
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
-    opt.ctx_only (1,1) logical = false
     opt.plot_showcase (1,1) logical = false
 end
 set(groot,'defaultTextFontSize',10);
-meta=ephys.util.load_meta();
+sumeta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 stats=struct();
 if opt.plot_scatter
     figure('Color','w','Position',[100,100,400,400]);
     hold on;
 end
 
-fidx=1;
-colors={'r','b'};
-if strcmp(type,'Sustained')
-    types=[1,3];
-else
-    types=[2,4];
-end
-for onetype=types
-    if opt.ctx_only
-        typesel=find(meta.mem_type==onetype & strcmp(meta.reg_tree(2,:),'CTX') & ~strcmp(meta.reg_tree(5,:),''));
-    else
-        typesel=find(meta.mem_type==onetype);
-    end
-    if strcmp(type,'Transient')
-        if opt.single_bin
-            subsel=meta.per_bin(opt.bin,typesel)~=0;
-            typesel=typesel(subsel);
-            %         else
-            %             typesel=typesel(1:50:numel(typesel));
-        end
-    end
+% should be selective types, i.e. olf, dur, mux
+types={1:4,5:6,7:8};
+
+pref_trls={{'s1d3'};{'s1d6'};{'s2d3'};{'s2d3'};{'s1d3','s1d6'};{'s2d3','s2d6'};{'s1d3','s2d3'};{'s1d6','s2d6'}};
+
+for typeIdx=1:numel(types)
+    coding_sel=ismember(sel_meta.wave_id,types{typeIdx});
+    usess=unique(sumeta.sess(coding_sel));
+
+    % sust | transient selection previous version
+
     homedir=ephys.util.getHomedir('type','raw');
-    idx=1;
     stats.(sprintf('type%d',onetype))=nan(0,4);
     stats.(sprintf('type%d_pertrial',onetype))=cell(0,4);
-    for ii=typesel
-        fpath=fullfile(homedir,meta.allpath{ii},'FR_All_1000.hdf5');
+    
+    for sessIdx=reshape(usess,1,[])
+        dpath=ephys.sessid2path(sessIdx);
+        fpath=fullfile(homedir,dpath,'FR_All_1000.hdf5');
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         fr=h5read(fpath,'/FR_All');
-        if opt.single_bin
-            bins=opt.bin+4;
-            %             if meta.per_bin(6,ii)==0
-            %                 continue
-            %             end
-        else
-            bins=find(meta.per_bin(:,ii)~=0)+4;
-        end
-        if nnz(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6)==0 ...
-                ||nnz(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6)==0
-            continue
-        end
+        
+        trl.es1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,10)==0);
+        trl.es2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,10)==0);
+        trl.es1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,10)==0);
+        trl.es2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,10)==0);
 
-        cs1=mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6,suid==meta.allcid(ii),bins),3);
-        cs2=mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6,suid==meta.allcid(ii),bins),3);
-        es1=mean(fr(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6,suid==meta.allcid(ii),bins),3);
-        es2=mean(fr(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6,suid==meta.allcid(ii),bins),3);
+        trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
+        trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
+        trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
+        trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
 
-        delaymm=mean([mean(cs1),mean(cs2)]);
-        delaystd=std([cs1;cs2]);
-        if delaystd==0, continue;  end
-
-        cs1=(cs1-delaymm)./delaystd;
-        cs2=(cs2-delaymm)./delaystd;
-        es1=(es1-delaymm)./delaystd;
-        es2=(es2-delaymm)./delaystd;
-
-        %         if onetype==2 && mean(cs1)<mean(cs2),keyboard;end
-        if opt.plot_showcase
-            if min(cellfun(@(x) numel(x),{cs1,cs2,es1,es2}))<10
+        if min([numel(trl.cs1d3);numel(trl.cs2d3);numel(trl.cs1d6);numel(trl.cs2d6);...
+                numel(trl.es1d3);numel(trl.es2d3);numel(trl.es1d6);numel(trl.es2d6)],[],'all')<2
                 continue
-            end
-            [~,~,~,AUCC]=perfcurve([zeros(size(cs1));ones(size(cs2))],[cs1;cs2],0);
-            [~,~,~,AUCE]=perfcurve([zeros(size(es1));ones(size(es2))],[es1;es2],0);
-
-            if abs(AUCC-0.5)>0.30 && abs(AUCE-0.5)<0.15
-                figure()
-                subplot(1,3,1)
-                hold on
-                cs1c=squeeze(mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1,2]));
-                cs2c=squeeze(mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1 2]));
-                es1c=squeeze(mean(fr(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1 2]));
-                es2c=squeeze(mean(fr(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6,suid==meta.allcid(ii),3:10),[1 2]));
-
-                plot(cs1c,'-r')
-                plot(cs2c,'-b')
-                plot(es1c,':r')
-                plot(es2c,':b')
-                xline(1.5,'--k')
-
-
-                subplot(1,3,2)
-                hold on
-                histogram(cs1,-3:0.3:3,'FaceColor','r','FaceAlpha',0.4)
-                histogram(cs2,-3:0.3:3,'FaceColor','b','FaceAlpha',0.4)
-                subplot(1,3,3)
-                hold on
-                histogram(es1,-3:0.3:3,'FaceColor','r','FaceAlpha',0.4)
-                histogram(es2,-3:0.3:3,'FaceColor','b','FaceAlpha',0.4)
-                sgtitle(ii);
-                keyboard()
-            end
         end
 
-        if opt.plot_scatter
-            ch(fidx)=scatter(mean(cs1),mean(cs2),36,colors{fidx},'MarkerFaceColor',colors{fidx},'MarkerFaceAlpha',0.8,'MarkerEdgeColor','none');
-            eh=scatter(mean(es1),mean(es2),16,'k','MarkerFaceColor','k','MarkerFaceAlpha',0.2,'MarkerEdgeColor','none');
-            plot([mean(cs1),mean(es1)],[mean(cs2),mean(es2)],':','LineWidth',0.5,'Color',colors{fidx});
-        end
-        stats.(sprintf('type%d',onetype))(idx,:)=[mean(cs1),mean(cs2),mean(es1),mean(es2)];
-        stats.(sprintf('type%d_pertrial',onetype))(idx,:)={cs1,cs2,es1,es2};
-        idx=idx+1;
-    end
-    fidx=fidx+1;
+        % TODO find selective bin?
+        % bins=find(sumeta.per_bin(:,ii)~=0)+4;
+        bins=5:7;
+        sessuid=sumeta.allcid(sumeta.sess==sessIdx & coding_sel);
+        waveids=sel_meta.wave_id(sumeta.sess==sessIdx);
+        [~,su_pos]=ismember(sessuid,suid);
+        for suidx=reshape(su_pos,1,[])
+            su_waveid=waveids(suidx);
+            su_pref_trls=pref_trls{su_waveid};
+            pref_bins=[];
+            for trlfn=reshape(fieldnames(trl),1,[])
+            % mean fr in selective bins
+            % correct
+            % preferred
+            trlType=char(trlfn);
+            if startsWith(trlType,'c') &&
+            
+                pref_bins=[pref_bins;fr(trl.(['c',su_pref_trls{classIdx}]),suidx,bins)];
+            
+
+            % nonpreferred
+
+            % error
+            % preferred
+            % nonpreferred
+
+
+            cs1=mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
+            cs2=mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
+            es1=mean(fr(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
+            es2=mean(fr(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
+
+            delaymm=mean([mean(cs1),mean(cs2)]);
+            delaystd=std([cs1;cs2]);
+            if delaystd==0, continue;  end
+
+            cs1=(cs1-delaymm)./delaystd;
+            cs2=(cs2-delaymm)./delaystd;
+            es1=(es1-delaymm)./delaystd;
+            es2=(es2-delaymm)./delaystd;
+
+            stats.(sprintf('type%d',onetype))(idx,:)=[mean(cs1),mean(cs2),mean(es1),mean(es2)];
+            stats.(sprintf('type%d_pertrial',onetype))(idx,:)={cs1,cs2,es1,es2};
+
+            %         if onetype==2 && mean(cs1)<mean(cs2),keyboard;end
+            if opt.plot_showcase % perfcurve
+                if min(cellfun(@(x) numel(x),{cs1,cs2,es1,es2}))<10
+                    continue
+                end
+                [~,~,~,AUCC]=perfcurve([zeros(size(cs1));ones(size(cs2))],[cs1;cs2],0);
+                [~,~,~,AUCE]=perfcurve([zeros(size(es1));ones(size(es2))],[es1;es2],0); 
+
+                if abs(AUCC-0.5)>0.30 && abs(AUCE-0.5)<0.15
+                    figure()
+                    subplot(1,3,1)
+                    hold on
+                    cs1c=squeeze(mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6,suid==sumeta.allcid(ii),3:10),[1,2]));
+                    cs2c=squeeze(mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6,suid==sumeta.allcid(ii),3:10),[1 2]));
+                    es1c=squeeze(mean(fr(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6,suid==sumeta.allcid(ii),3:10),[1 2]));
+                    es2c=squeeze(mean(fr(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6,suid==sumeta.allcid(ii),3:10),[1 2]));
+
+                    plot(cs1c,'-r')
+                    plot(cs2c,'-b')
+                    plot(es1c,':r')
+                    plot(es2c,':b')
+                    xline(1.5,'--k')
+
+
+                    subplot(1,3,2)
+                    hold on
+                    histogram(cs1,-3:0.3:3,'FaceColor','r','FaceAlpha',0.4)
+                    histogram(cs2,-3:0.3:3,'FaceColor','b','FaceAlpha',0.4)
+                    subplot(1,3,3)
+                    hold on
+                    histogram(es1,-3:0.3:3,'FaceColor','r','FaceAlpha',0.4)
+                    histogram(es2,-3:0.3:3,'FaceColor','b','FaceAlpha',0.4)
+                    sgtitle(ii);
+                    keyboard()
+                end
+            end
+
+            %         if opt.plot_scatter
+            %             ch(fidx)=scatter(mean(cs1),mean(cs2),36,colors{fidx},'MarkerFaceColor',colors{fidx},'MarkerFaceAlpha',0.8,'MarkerEdgeColor','none');
+            %             eh=scatter(mean(es1),mean(es2),16,'k','MarkerFaceColor','k','MarkerFaceAlpha',0.2,'MarkerEdgeColor','none');
+            %             plot([mean(cs1),mean(es1)],[mean(cs2),mean(es2)],':','LineWidth',0.5,'Color',colors{fidx});
+            %         end
+
+
+        end % per su
+    end % per sessend
 end
 if opt.plot_scatter
     plot([-10,10],[-10,10],'--k')

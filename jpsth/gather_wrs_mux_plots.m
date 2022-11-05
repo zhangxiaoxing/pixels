@@ -2,7 +2,7 @@
 global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
-wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'merge_mux',true,'extend6s',true);
+% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
