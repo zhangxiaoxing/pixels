@@ -133,7 +133,7 @@ ch(3).YLim=[0,0.6];
 
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,corr_log_log, ...
     'range','grey','data_type','pct-frac','stats_type','percentile',...
-    'feat_tag',{'Mixed','Olfactory','Duration'},'corr2',true,'plot2',true);
+    'feat_tag',{'Mixed','Olfactory','Duration'},'corr2',false,'plot2',false);
 
 
 %% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

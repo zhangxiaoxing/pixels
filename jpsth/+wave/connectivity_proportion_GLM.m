@@ -104,7 +104,7 @@ for featii=1:numel(map_cells) % both, either, summed
 %             end
             
 %             s_list=s_list([1:5,end-4:end],:);
-            s_list=s_list([1:2,end-1:end],:);
+%             s_list=s_list([1:2,end-1:end],:);
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
             xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
 

@@ -1,6 +1,6 @@
 % TODO migrate to wrs_mux data set
 % major revision 20221104
-function sust_trans_correct_error(sel_meta,type,opt)
+function stats=sust_trans_correct_error(sel_meta,type,opt)
 arguments
     sel_meta
     type (1,:) char {mustBeMember(type,{'Sustained','Transient'})} = 'Sustained'
@@ -21,18 +21,19 @@ end
 
 % should be selective types, i.e. olf, dur, mux
 types={1:4,5:6,7:8};
-
+type_desc={'mix','olf','dur'};
 pref_trls={{'s1d3'};{'s1d6'};{'s2d3'};{'s2d3'};{'s1d3','s1d6'};{'s2d3','s2d6'};{'s1d3','s2d3'};{'s1d6','s2d6'}};
 
 for typeIdx=1:numel(types)
+
     coding_sel=ismember(sel_meta.wave_id,types{typeIdx});
     usess=unique(sumeta.sess(coding_sel));
 
     % sust | transient selection previous version
 
     homedir=ephys.util.getHomedir('type','raw');
-    stats.(sprintf('type%d',onetype))=nan(0,4);
-    stats.(sprintf('type%d_pertrial',onetype))=cell(0,4);
+    stats.(type_desc{typeIdx})=nan(0,2);
+%     stats.(sprintf('type%d_pertrial',onetype))=cell(0,4); %skip for now
     
     for sessIdx=reshape(usess,1,[])
         dpath=ephys.sessid2path(sessIdx);
@@ -65,40 +66,39 @@ for typeIdx=1:numel(types)
         for suidx=reshape(su_pos,1,[])
             su_waveid=waveids(suidx);
             su_pref_trls=pref_trls{su_waveid};
-            pref_bins=[];
+            [cpref,cnonpref,epref,enonpref]=deal([]);
             for trlfn=reshape(fieldnames(trl),1,[])
-            % mean fr in selective bins
-            % correct
-            % preferred
-            trlType=char(trlfn);
-            if startsWith(trlType,'c') &&
-            
-                pref_bins=[pref_bins;fr(trl.(['c',su_pref_trls{classIdx}]),suidx,bins)];
-            
+                % mean fr in selective bins
 
-            % nonpreferred
+                trlType=char(trlfn);
+                if startsWith(trlType,'c')
+                    if ismember(replace(trlType,'c',''),su_pref_trls) %preferred correct
+                        cpref=[cpref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                    else
+                        cnonpref=[cnonpref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                    end
+                else
+                    if ismember(replace(trlType,'e',''),su_pref_trls) %preferred error
+                        epref=[epref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                    else %nonpreferred error
+                        enonpref=[enonpref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                    end
+                end
+            end
 
-            % error
-            % preferred
-            % nonpreferred
-
-
-            cs1=mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==4 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
-            cs2=mean(fr(trials(:,9)~=0 & trials(:,10)~=0 &trials(:,5)==8 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
-            es1=mean(fr(trials(:,10)==0 &trials(:,5)==4 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
-            es2=mean(fr(trials(:,10)==0 &trials(:,5)==8 & trials(:,8)==6,suid==sumeta.allcid(ii),bins),3);
-
-            delaymm=mean([mean(cs1),mean(cs2)]);
-            delaystd=std([cs1;cs2]);
+            delaymm=mean([mean(cpref),mean(cnonpref)]);
+            delaystd=std([cpref;cnonpref]);
             if delaystd==0, continue;  end
 
-            cs1=(cs1-delaymm)./delaystd;
-            cs2=(cs2-delaymm)./delaystd;
-            es1=(es1-delaymm)./delaystd;
-            es2=(es2-delaymm)./delaystd;
+            zcpref=(mean(cpref)-delaymm)./delaystd;
+%             zcnonpref=(mean(cnonpref)-delaymm)./delaystd; not necessary
+            zepref=(mean(epref)-delaymm)./delaystd;
+%             es2=(es2-delaymm)./delaystd;
 
-            stats.(sprintf('type%d',onetype))(idx,:)=[mean(cs1),mean(cs2),mean(es1),mean(es2)];
-            stats.(sprintf('type%d_pertrial',onetype))(idx,:)={cs1,cs2,es1,es2};
+            stats.(type_desc{typeIdx})=[stats.(type_desc{typeIdx});zcpref,zepref];
+%             % skip for now
+%             stats.(sprintf('type%d_pertrial',onetype))(idx,:)={cs1,cs2,es1,es2};
+
 
             %         if onetype==2 && mean(cs1)<mean(cs2),keyboard;end
             if opt.plot_showcase % perfcurve
@@ -147,6 +147,7 @@ for typeIdx=1:numel(types)
         end % per su
     end % per sessend
 end
+
 if opt.plot_scatter
     plot([-10,10],[-10,10],'--k')
     xlim([-2,2]);
