@@ -57,6 +57,9 @@ for featii=1:numel(map_cells) % both, either, summed
             allen_density=sink_src_mat(ii,idx4corr);
             if nnz(allen_density~=0)<10
                 continue
+            elseif ~ismember(idmap.ccfid2reg(sink_ccfid(ii)),map_regs)
+                disp("skipped region without ephys: "+string(idmap.ccfid2reg(sink_ccfid(ii))));
+                continue
             end
             glmxmat=[glmxmat;allen_density];
             glmxmeta=[glmxmeta;1,ii,sink_ccfid(ii)];
@@ -67,9 +70,13 @@ for featii=1:numel(map_cells) % both, either, summed
     for ii=1:numel(src_ccfid)
         allen_density=sink_src_mat(idx4corr,ii); % from one alternating target, to idx4corr
         if nnz(allen_density~=0)<8
-            disp(src_ccfid)
+            disp(ii)
+            continue
+        elseif ~ismember(idmap.ccfid2reg(src_ccfid(ii)),map_regs)
+            disp("skipped region without ephys: "+string(idmap.ccfid2reg(src_ccfid(ii))));
             continue
         end
+        
         glmxmat=[glmxmat;allen_density.'];
         glmxmeta=[glmxmeta;2,ii,src_ccfid(ii)];
     end
@@ -89,45 +96,44 @@ for featii=1:numel(map_cells) % both, either, summed
                     [r,p]=corr(reshape(log10(glmxmat(regii,vsel)),[],1),...
                         reshape(feat_prop(vsel),[],1),'type','Pearson');
             end
-            
             one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
             %====================================^^^1^^^^^^2^^^^^^3^^^^^^^^^^^4,5,6^^^^^^^^^^^^^7^8^^
         end
 %         save('one_reg_corr_list.mat','one_reg_corr_list')
 
-        %
         if opt.plot1 % plot one-region: coding proportion correlation bars
-            s_list=sortrows(one_reg_corr_list(one_reg_corr_list(:,1)==featii & one_reg_corr_list(:,2)==epochii,:),7,'descend');
-            %                 s_list=s_list(isfinite(s_list(:,7)),:);
-%             if opt.skip_efferent
-%                 s_list=s_list(s_list(:,4)==2,:);
-%             end
-            
-%             s_list=s_list([1:5,end-4:end],:);
+            s_list=sortrows(one_reg_corr_list(one_reg_corr_list(:,1)==featii & one_reg_corr_list(:,2)==epochii,:),7,'ascend');
 %             s_list=s_list([1:2,end-1:end],:);
+           
             xlbl=idmap.ccfid2reg.values(num2cell(s_list(:,6)));
             xlbl=cellfun(@(x) x{1}, xlbl,'UniformOutput',false);
 
-            fh.(sprintf('feat%d',featii))=figure('Color','w','Position',[32,32,650,700]);
+            fh.(sprintf('feat%d',featii))=figure('Color','w','Position',[32,32,800,800]);
             tiledlayout(4,2);
-%             nexttile(4,[1,2]) % GLM bar
-            nexttile(5)
+
+            nexttile(5,[1,2])
             hold on
             %                 bhto=bar(find(s_list(:,4)==1),s_list(s_list(:,4)==1,7),0.6,'white');
             %                 bhfrom=bar(find(s_list(:,4)==2),s_list(s_list(:,4)==2,7),0.6,'black');
-            bh=bar(s_list(:,7),0.8,'FaceColor','flat','Horizontal','on');
+            bh=bar(s_list(:,7),0.8,'FaceColor','flat','Horizontal','off');
             bh.CData(s_list(:,4)==1,:)=repmat([0.5,0.5,0.5],nnz(s_list(:,4)==1),1);
             bh.CData(s_list(:,4)==2,:)=repmat([0,0,0],nnz(s_list(:,4)==2),1);
-            xlabel('Connectivity-coding proportion correlation (Pearson''s r)')
-            set(gca(),'YTick',1:size(s_list,1),'YTickLabel',xlbl,'YDir','reverse');
+            ylabel('Connectivity-coding proportion correlation (Pearson''s r)')
+            set(gca(),'XTick',1:size(s_list,1),'XTickLabel',xlbl,'XTickLabelRotation',90);
             if isfield(opt,'feat_tag') && ~isempty(opt.feat_tag)
                 title(opt.feat_tag(featii));
             else
                 title(sprintf('epoch%d-feature%d',epochii,featii))
             end
-            xlim([-1,1]);
-            %                 legend([bhto,bhfrom],{'Connectivity to this region','Connectivity from this region'})
-%             exportgraphics(fh.bar1,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
+            ylim([-1,1]);
+
+            for rr=1:numel(xlbl)
+                c=ephys.getRegColor(xlbl{rr},'large_area',true);
+                text(rr,1,xlbl{rr},'HorizontalAlignment','center','VerticalAlignment','bottom','Color',c,'Rotation',90)
+            end            
+            
+            %   legend([bhto,bhfrom],{'Connectivity to this region','Connectivity from this region'})
+            %   exportgraphics(fh.bar1,sprintf('frac_allen_mdls_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
 
 %             nexttile(1,[1,3])
             nexttile(1,[2,1]) % positive max
@@ -138,12 +144,26 @@ for featii=1:numel(map_cells) % both, either, summed
                 scatter(glmxmat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
                 text(glmxmat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
             end
+
+
             xlabel('Projection density (px/px)');
             ylabel('Regional averaged feature index')
             if strcmp(corr_type,'PearsonLinearLog')
                 set(gca,'XScale','log','YScale','linear')
+                coord=[log10(glmxmat(glmidx,:).'),feat_prop];
+                coord(:,3)=1;
+                regres=coord(:,[1,3])\coord(:,2);
+                xx=minmax(glmxmat(glmidx,:));
+                yy=log10(xx).*regres(1)+regres(2);
+                plot(xx,yy,'--k');
             else
                 set(gca,'XScale','log','YScale','log')
+                coord=log10([glmxmat(glmidx,:).',feat_prop]);
+                coord(:,3)=1;
+                regres=coord(:,[1,3])\coord(:,2);
+                xx=minmax(glmxmat(glmidx,:));
+                yy=10.^(log10(xx).*regres(1)+regres(2));
+                plot(xx,yy,'--k');
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
 
@@ -159,12 +179,24 @@ for featii=1:numel(map_cells) % both, either, summed
             ylabel('Regional averaged feature index')
             if strcmp(corr_type,'PearsonLinearLog')
                 set(gca,'XScale','log','YScale','linear')
+                coord=[log10(glmxmat(glmidx,:).'),feat_prop];
+                coord(:,3)=1;
+                regres=coord(:,[1,3])\coord(:,2);
+                xx=minmax(glmxmat(glmidx,:));
+                yy=log10(xx).*regres(1)+regres(2);
+                plot(xx,yy,'--k');
             else
                 set(gca,'XScale','log','YScale','log')
+                coord=log10([glmxmat(glmidx,:).',feat_prop]);
+                coord(:,3)=1;
+                regres=coord(:,[1,3])\coord(:,2);
+                xx=minmax(glmxmat(glmidx,:));
+                yy=10.^(log10(xx).*regres(1)+regres(2));
+                plot(xx,yy,'--k');
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(end,7),s_list(end,8)));
 
-            th=nexttile(6,[2,1]); % data table
+            th=nexttile(7,[1,2]); % data table
             tbl=cell(0);
             if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
                 tbl=[tbl;'Stats';opt.stats_type];

@@ -10,6 +10,7 @@ arguments
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.min_su (1,1) double = 20
     opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'mixed','olf','dur'})}
+    opt.com_field (1,:) char {mustBeMember(opt.com_field,{'com','com3','com6'})}='com'
 end
 
 if opt.min_su==20
@@ -32,37 +33,24 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
         sid=str2double(replace(sess{si},'s',''));
         allcid=meta.allcid(meta.sess==sid);
         allreg=meta.reg_tree(:,meta.sess==sid);
-        if isfield(opt,'sel_type')
-            switch opt.sel_type
-                case 'mixed'
-                    ffs=["s1d3","s1d6","s2d3","s2d6"];
-                case 'olf'
-                    ffs=["olf_s1","olf_s2"];
-                case 'dur'
-                    ffs=["dur_d3","dur_d6"];
-            end
-            for ff=ffs
-                if isfield(com_map.(sess{si}),ff)
-                    suid=com_map.(sess{si}).(ff).com.keys().';
-                    sucom=com_map.(sess{si}).(ff).com.values().';
-                    [~,loc]=ismember(uint16(cell2mat(suid)),allcid);
-                    com_meta=[com_meta;num2cell(sid*ones(size(suid))),suid,sucom,allreg(:,loc).'];
-                end
-            end
-        else
-            if isfield(com_map.(sess{si}),'c1')
-                s1id=cell2mat(com_map.(sess{si}).c1.keys()).';
-                s1com=cell2mat(com_map.(sess{si}).c1.values()).';
-                [~,locs1]=ismember(uint16(rem(s1id,100000)),allcid);
-                com_meta=[com_meta;num2cell([sid*ones(size(s1id)),double(s1id),s1com]),allreg(:,locs1).'];
-            end
-            if isfield(com_map.(sess{si}),'c2')
-                s2id=cell2mat(com_map.(sess{si}).c2.keys()).';
-                s2com=cell2mat(com_map.(sess{si}).c2.values()).';
-                [~,locs2]=ismember(uint16(rem(s2id,100000)),allcid);
-                com_meta=[com_meta;num2cell([sid*ones(size(s2id)),double(s2id),s2com]),allreg(:,locs2).'];
+       
+        switch opt.sel_type
+            case 'mixed'
+                ffs=["s1d3","s1d6","s2d3","s2d6"];
+            case 'olf'
+                ffs=["olf_s1","olf_s2"];
+            case 'dur'
+                ffs=["dur_d3","dur_d6"];
+        end
+        for ff=ffs
+            if isfield(com_map.(sess{si}),ff)
+                suid=com_map.(sess{si}).(ff).(opt.com_field).keys().';
+                sucom=com_map.(sess{si}).(ff).(opt.com_field).values().';
+                [~,loc]=ismember(uint16(cell2mat(suid)),allcid);
+                com_meta=[com_meta;num2cell(sid*ones(size(suid))),suid,sucom,allreg(:,loc).'];
             end
         end
+
     end
 
 
