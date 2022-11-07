@@ -1,11 +1,9 @@
 % TODO migrate to wrs_mux data set
 % major revision 20221104
-function stats=sust_trans_correct_error(sel_meta,type,opt)
+function stats=sust_trans_correct_error(sel_meta,opt)
 arguments
     sel_meta
-    type (1,:) char {mustBeMember(type,{'Sustained','Transient'})} = 'Sustained'
     opt.single_bin (1,1) logical = true
-    opt.bin (1,1) double {mustBeInRange(opt.bin,1,6),mustBeInteger} = 1
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
@@ -32,8 +30,20 @@ for typeIdx=1:numel(types)
     % sust | transient selection previous version
 
     homedir=ephys.util.getHomedir('type','raw');
-    stats.(type_desc{typeIdx})=nan(0,2);
+    [stats.(type_desc{typeIdx}).sust,stats.(type_desc{typeIdx}).transient]=deal(nan(0,2));
 %     stats.(sprintf('type%d_pertrial',onetype))=cell(0,4); %skip for now
+    switch typeIdx
+        case 1
+            sust_sel=(all(sel_meta.p_mux<0.05,2) | all(sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2))...
+                & ismember(sel_meta.wave_id,1:4);
+            sig_bins=sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05;
+        case 2
+            sust_sel=all(sel_meta.p_olf<0.05,2) & ismember(sel_meta.wave_id,5:6);
+            sig_bins=sel_meta.p_olf<0.05;
+        case 3
+            sust_sel=all(sel_meta.p_olf<0.05,2) & ismember(sel_meta.wave_id,7:8);
+            sig_bins=sel_meta.p_dur<0.05;
+    end
     
     for sessIdx=reshape(usess,1,[])
         dpath=ephys.sessid2path(sessIdx);
@@ -57,15 +67,21 @@ for typeIdx=1:numel(types)
                 continue
         end
 
-        % TODO find selective bin?
-        % bins=find(sumeta.per_bin(:,ii)~=0)+4;
-        bins=5:7;
-        sessuid=sumeta.allcid(sumeta.sess==sessIdx & coding_sel);
-        waveids=sel_meta.wave_id(sumeta.sess==sessIdx);
+        sess_sel=sumeta.sess==sessIdx;
+        sessuid=sumeta.allcid(sess_sel & coding_sel);
+        waveids=sel_meta.wave_id(sess_sel);
+        sess_sust=sust_sel(sess_sel);
+        sess_sig_bins=sig_bins(sess_sel,:);
         [~,su_pos]=ismember(sessuid,suid);
         for suidx=reshape(su_pos,1,[])
             su_waveid=waveids(suidx);
             su_pref_trls=pref_trls{su_waveid};
+            if sess_sust(su_pos)
+                bins=5:7;
+            else
+                bins=find(sess_sig_bins(suidx,:))+4;
+            end
+
             [cpref,cnonpref,epref,enonpref]=deal([]);
             for trlfn=reshape(fieldnames(trl),1,[])
                 % mean fr in selective bins
@@ -94,8 +110,12 @@ for typeIdx=1:numel(types)
 %             zcnonpref=(mean(cnonpref)-delaymm)./delaystd; not necessary
             zepref=(mean(epref)-delaymm)./delaystd;
 %             es2=(es2-delaymm)./delaystd;
+            if sess_sust(suidx)
+                stats.(type_desc{typeIdx}).sust=[stats.(type_desc{typeIdx}).sust;zcpref,zepref];
+            else
+                stats.(type_desc{typeIdx}).transient=[stats.(type_desc{typeIdx}).transient;zcpref,zepref];
+            end
 
-            stats.(type_desc{typeIdx})=[stats.(type_desc{typeIdx});zcpref,zepref];
 %             % skip for now
 %             stats.(sprintf('type%d_pertrial',onetype))(idx,:)={cs1,cs2,es1,es2};
 
@@ -160,31 +180,38 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-    fh=figure('Color','w','Position',[100,100,750,176]);
-    subplot(1,3,1);
-    hold on;
-    ph=histogram([stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2)],-2:0.1:2,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
-    nph=histogram([stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)],-2:0.1:2,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
-    xline(nanmean([stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2)]),'--r','LineWidth',1);
-    xline(nanmean([stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)]),'--k','LineWidth',1)
-    xlim([-1.5,1.5]);
-    title('Correct trials')
-    xlabel('Normalized FR (Z-Score)');
-    ylabel('Probability')
-    text(max(xlim()),max(ylim()),num2str(numel(ph.Data)),'HorizontalAlignment','right','VerticalAlignment','top');
+    stats.olf.sust=stats.olf.sust(stats.olf.sust(:,1)>0,:);
+    stats.olf.transient=stats.olf.transient(stats.olf.transient(:,1)>0,:);
 
-    %error trial
-    subplot(1,3,2);
+    fh=figure('Color','w','Position',[100,100,750,225]);
+    tiledlayout(1,2)
+    nexttile(1)
     hold on;
-    ph=histogram([stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',types(2)))(:,4)],-2:0.1:2,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
-    nph=histogram([stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)],-2:0.1:2,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
-    xline(nanmean([stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',types(2)))(:,4)]),'--r','LineWidth',1)
-    xline(nanmean([stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)]),'--k','LineWidth',1)
-    xlim([-1.5,1.5]);
-    title('Error trials');
-    legend([ph,nph],{'Prefered','Non-prefered'});
+    ch=histogram(stats.olf.sust(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
+    eh=histogram(stats.olf.sust(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
+    xline(mean(stats.olf.sust(:,1)),'--r','LineWidth',1);
+    xline(mean(stats.olf.sust(:,2)),'--k','LineWidth',1);
+    xlim([-0.7,1]);
+    title('Sustained')
     xlabel('Normalized FR (Z-Score)');
     ylabel('Probability')
+    text(max(xlim()),max(ylim()),num2str(size(stats.olf.sust,1)),'HorizontalAlignment','right','VerticalAlignment','top');
+    [~,p]=ttest2(stats.olf.sust(:,1),stats.olf.sust(:,2));
+    text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');    
+
+    nexttile(2)
+    hold on;
+    ch=histogram(stats.olf.transient(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
+    eh=histogram(stats.olf.transient(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
+    xline(mean(stats.olf.transient(:,1)),'--r','LineWidth',1);
+    xline(mean(stats.olf.transient(:,2)),'--k','LineWidth',1);
+    xlim([-0.7,1]);
+    title('Transient')
+    xlabel('Normalized FR (Z-Score)');
+    ylabel('Probability')
+    text(max(xlim()),max(ylim()),num2str(size(stats.olf.transient,1)),'HorizontalAlignment','right','VerticalAlignment','top');
+    [~,p]=ttest2(stats.olf.transient(:,1),stats.olf.transient(:,2));
+    text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
 
     %auc
     onecolumn=size(stats.(sprintf('type%d',types(1))),1)+size(stats.(sprintf('type%d',types(2))),1);
@@ -199,12 +226,12 @@ if opt.plot_per_su
         'Location','southeast');
     xlabel('False positive rate (fpr)');
     ylabel('True positive rate (tpr)');
-    if opt.single_bin
-        sgtitle(sprintf('%s averaged cross-trial bin %d',type,opt.bin));
-    else
-        sgtitle(sprintf('%s averaged cross-trial',type));
-    end
-    exportgraphics(fh,sprintf('%s_cross_trial_bin%d.pdf',type,opt.bin),'ContentType','vector');
+%     if opt.single_bin
+%         sgtitle(sprintf('%s averaged cross-trial bin %d',type,opt.bin));
+%     else
+%         sgtitle(sprintf('%s averaged cross-trial',type));
+%     end
+%     exportgraphics(fh,sprintf('%s_cross_trial_bin%d.pdf',type,opt.bin),'ContentType','vector');
 end
 
 %Per trial

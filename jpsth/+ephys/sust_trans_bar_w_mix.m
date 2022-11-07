@@ -13,8 +13,8 @@ sust_dur_sel=all(sel_meta.p_dur<0.05,2) & all_dur_sel;
 trans_dur_sel=all_dur_sel & ~sust_dur_sel;
 
 all_mix_sel=ismember(sel_meta.wave_id,1:4);
-sust_mix_sel=(all(sel_meta.p_mux<0.05,2) & all_mix_sel) ...
-    |(all(sel_meta.p_olf<0.05,2) & all(sel_meta.p_dur<0.05,2) &all_mix_sel);
+sust_mix_sel=(all(sel_meta.p_mux<0.05,2)  ...
+    |all(sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2)) & all_mix_sel;
 trans_mix_sel=all_mix_sel & ~sust_mix_sel;
 
 tot=numel(sel_meta.wave_id);
