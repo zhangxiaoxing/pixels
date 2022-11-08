@@ -30,7 +30,7 @@ for typeIdx=1:numel(types)
     % sust | transient selection previous version
 
     homedir=ephys.util.getHomedir('type','raw');
-    [stats.(type_desc{typeIdx}).sust,stats.(type_desc{typeIdx}).transient]=deal(nan(0,2));
+    [stats.(type_desc{typeIdx}).sust,stats.(type_desc{typeIdx}).transient]=deal(nan(0,4));
 %     stats.(sprintf('type%d_pertrial',onetype))=cell(0,4); %skip for now
     switch typeIdx
         case 1
@@ -107,13 +107,13 @@ for typeIdx=1:numel(types)
             if delaystd==0, continue;  end
 
             zcpref=(mean(cpref)-delaymm)./delaystd;
-%             zcnonpref=(mean(cnonpref)-delaymm)./delaystd; not necessary
+            zcnonpref=(mean(cnonpref)-delaymm)./delaystd; % for AUC curve maybe not necessary
             zepref=(mean(epref)-delaymm)./delaystd;
-%             es2=(es2-delaymm)./delaystd;
+            zenonpref=(mean(enonpref)-delaymm)./delaystd;
             if sess_sust(suidx)
-                stats.(type_desc{typeIdx}).sust=[stats.(type_desc{typeIdx}).sust;zcpref,zepref];
+                stats.(type_desc{typeIdx}).sust=[stats.(type_desc{typeIdx}).sust;zcpref,zepref,zcnonpref,zenonpref];
             else
-                stats.(type_desc{typeIdx}).transient=[stats.(type_desc{typeIdx}).transient;zcpref,zepref];
+                stats.(type_desc{typeIdx}).transient=[stats.(type_desc{typeIdx}).transient;zcpref,zepref,zcnonpref,zenonpref];
             end
 
 %             % skip for now
@@ -180,52 +180,55 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-    stats.olf.sust=stats.olf.sust(stats.olf.sust(:,1)>0,:);
-    stats.olf.transient=stats.olf.transient(stats.olf.transient(:,1)>0,:);
+    for ff=["olf","mix","dur"]
+        keyboard()
+        stats.(ff).sust=stats.(ff).sust(stats.(ff).sust(:,1)>0,:);
+        stats.(ff).transient=stats.(ff).transient(stats.(ff).transient(:,1)>0,:);
 
-    fh=figure('Color','w','Position',[100,100,750,225]);
-    tiledlayout(1,2)
-    nexttile(1)
-    hold on;
-    ch=histogram(stats.olf.sust(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
-    eh=histogram(stats.olf.sust(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
-    xline(mean(stats.olf.sust(:,1)),'--r','LineWidth',1);
-    xline(mean(stats.olf.sust(:,2)),'--k','LineWidth',1);
-    xlim([-0.7,1]);
-    title('Sustained')
-    xlabel('Normalized FR (Z-Score)');
-    ylabel('Probability')
-    text(max(xlim()),max(ylim()),num2str(size(stats.olf.sust,1)),'HorizontalAlignment','right','VerticalAlignment','top');
-    [~,p]=ttest2(stats.olf.sust(:,1),stats.olf.sust(:,2));
-    text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');    
+        fh=figure('Color','w','Position',[100,100,750,225]);
+        tiledlayout(1,3)
+        nexttile(1)
+        hold on;
+        ch=histogram(stats.(ff).sust(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
+        eh=histogram(stats.(ff).sust(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
+        xline(mean(stats.(ff).sust(:,1)),'--r','LineWidth',1);
+        xline(mean(stats.(ff).sust(:,2)),'--k','LineWidth',1);
+        xlim([-0.7,1]);
+        title('Sustained')
+        xlabel('Normalized FR (Z-Score)');
+        ylabel('Probability')
+        text(max(xlim()),max(ylim()),num2str(size(stats.(ff).sust,1)),'HorizontalAlignment','right','VerticalAlignment','top');
+        [~,p]=ttest2(stats.(ff).sust(:,1),stats.(ff).sust(:,2));
+        text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
 
-    nexttile(2)
-    hold on;
-    ch=histogram(stats.olf.transient(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
-    eh=histogram(stats.olf.transient(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
-    xline(mean(stats.olf.transient(:,1)),'--r','LineWidth',1);
-    xline(mean(stats.olf.transient(:,2)),'--k','LineWidth',1);
-    xlim([-0.7,1]);
-    title('Transient')
-    xlabel('Normalized FR (Z-Score)');
-    ylabel('Probability')
-    text(max(xlim()),max(ylim()),num2str(size(stats.olf.transient,1)),'HorizontalAlignment','right','VerticalAlignment','top');
-    [~,p]=ttest2(stats.olf.transient(:,1),stats.olf.transient(:,2));
-    text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
+        nexttile(2)
+        hold on;
+        ch=histogram(stats.(ff).transient(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
+        eh=histogram(stats.(ff).transient(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
+        xline(mean(stats.(ff).transient(:,1)),'--r','LineWidth',1);
+        xline(mean(stats.(ff).transient(:,2)),'--k','LineWidth',1);
+        xlim([-0.7,1]);
+        title('Transient')
+        xlabel('Normalized FR (Z-Score)');
+        ylabel('Probability')
+        text(max(xlim()),max(ylim()),num2str(size(stats.(ff).transient,1)),'HorizontalAlignment','right','VerticalAlignment','top');
+        [~,p]=ttest2(stats.(ff).transient(:,1),stats.(ff).transient(:,2));
+        text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
 
-    %auc
-    onecolumn=size(stats.(sprintf('type%d',types(1))),1)+size(stats.(sprintf('type%d',types(2))),1);
-    [xc,yc,~,aucc]=perfcurve((1:2*onecolumn)>onecolumn,[stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2);stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)],0);
-    [xe,ye,~,auce]=perfcurve((1:2*onecolumn)>onecolumn,[stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',types(2)))(:,4);stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)],0);
-    subplot(1,3,3);
-    hold on;
-    hc=plot(xc,yc,'-r','LineWidth',1);
-    he=plot(xe,ye,'-k','LineWidth',1);
-    legend([hc,he],{sprintf('Correct trials AUC=%0.3f',aucc),...
-        sprintf('Error trials AUC=%0.3f',auce)},...
-        'Location','southeast');
-    xlabel('False positive rate (fpr)');
-    ylabel('True positive rate (tpr)');
+        %auc
+%         onecolumn=size(stats.(sprintf('type%d',types(1))),1)+size(stats.(sprintf('type%d',types(2))),1);
+%         [xc,yc,~,aucc]=perfcurve((1:2*onecolumn)>onecolumn,[stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2);stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)],0);
+%         [xe,ye,~,auce]=perfcurve((1:2*onecolumn)>onecolumn,[stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',types(2)))(:,4);stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)],0);
+%         subplot(1,3,3);
+%         hold on;
+%         hc=plot(xc,yc,'-r','LineWidth',1);
+%         he=plot(xe,ye,'-k','LineWidth',1);
+%         legend([hc,he],{sprintf('Correct trials AUC=%0.3f',aucc),...
+%             sprintf('Error trials AUC=%0.3f',auce)},...
+%             'Location','southeast');
+%         xlabel('False positive rate (fpr)');
+%         ylabel('True positive rate (tpr)');
+    end
 %     if opt.single_bin
 %         sgtitle(sprintf('%s averaged cross-trial bin %d',type,opt.bin));
 %     else

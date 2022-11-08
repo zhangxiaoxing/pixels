@@ -254,8 +254,8 @@ for featii=1:numel(map_cells) % both, either, summed
             fh.(sprintf('feat%d_2f',featii))=figure('Color','w','Position',[32,32,400,600]);
             tiledlayout(3,1)
             nexttile(3);
-            bar(sqrt(mdlid_rsq_AICC(1:4,2)),'Horizontal','on','FaceColor','k')
-            set(gca(),'YDir','reverse','YTick',1:4,'YTickLabel',ytk(1:4))
+            bar(sqrt(mdlid_rsq_AICC(1:10,2)),'Horizontal','on','FaceColor','k')
+            set(gca(),'YDir','reverse','YTick',1:10,'YTickLabel',ytk(1:10))
             xlabel('Person''s r')
             xlim([0,1])
             title(sprintf('selectivity %d - epoch %d',featii,epochii));
