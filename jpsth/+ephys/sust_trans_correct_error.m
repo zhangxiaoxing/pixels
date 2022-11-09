@@ -180,8 +180,7 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-    for ff=["olf","mix","dur"]
-        keyboard()
+    for ff=["olf","mix"] % not enough number for duration-sustained
         stats.(ff).sust=stats.(ff).sust(stats.(ff).sust(:,1)>0,:);
         stats.(ff).transient=stats.(ff).transient(stats.(ff).transient(:,1)>0,:);
 
@@ -215,26 +214,41 @@ if opt.plot_per_su
         [~,p]=ttest2(stats.(ff).transient(:,1),stats.(ff).transient(:,2));
         text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
 
-        %auc
-%         onecolumn=size(stats.(sprintf('type%d',types(1))),1)+size(stats.(sprintf('type%d',types(2))),1);
-%         [xc,yc,~,aucc]=perfcurve((1:2*onecolumn)>onecolumn,[stats.(sprintf('type%d',types(1)))(:,1);stats.(sprintf('type%d',types(2)))(:,2);stats.(sprintf('type%d',types(1)))(:,2);stats.(sprintf('type%d',types(2)))(:,1)],0);
-%         [xe,ye,~,auce]=perfcurve((1:2*onecolumn)>onecolumn,[stats.(sprintf('type%d',types(1)))(:,3);stats.(sprintf('type%d',types(2)))(:,4);stats.(sprintf('type%d',types(1)))(:,4);stats.(sprintf('type%d',types(2)))(:,3)],0);
-%         subplot(1,3,3);
-%         hold on;
-%         hc=plot(xc,yc,'-r','LineWidth',1);
-%         he=plot(xe,ye,'-k','LineWidth',1);
-%         legend([hc,he],{sprintf('Correct trials AUC=%0.3f',aucc),...
-%             sprintf('Error trials AUC=%0.3f',auce)},...
-%             'Location','southeast');
-%         xlabel('False positive rate (fpr)');
-%         ylabel('True positive rate (tpr)');
+        %sust auc
+        [xsc,ysc,~,aucsc]=perfcurve(...
+            (1:2*size(stats.(ff).sust,1))>size(stats.(ff).sust,1),...
+            reshape(stats.(ff).sust(:,[1 3]),[],1),0);
+        [xse,yse,~,aucse]=perfcurve(...
+            (1:2*size(stats.(ff).sust,1))>size(stats.(ff).sust,1),...
+            reshape(stats.(ff).sust(:,[2 4]),[],1),0);
+    
+        %trans auc
+        [xtc,ytc,~,auctc]=perfcurve(...
+            (1:2*size(stats.(ff).transient,1))>size(stats.(ff).transient,1),...
+            reshape(stats.(ff).transient(:,[1 3]),[],1),0);
+        [xte,yte,~,aucte]=perfcurve(...
+            (1:2*size(stats.(ff).transient,1))>size(stats.(ff).transient,1),...
+            reshape(stats.(ff).transient(:,[2 4]),[],1),0);
+        
+        nexttile(3);
+        hold on;
+        hsc=plot(xsc,ysc,'-r','LineWidth',1);
+        hse=plot(xse,yse,'-b','LineWidth',1);
+        htc=plot(xtc,ytc,'-m','LineWidth',1);
+        hte=plot(xte,yte,'-k','LineWidth',1);
+        cl=plot([0,1],[0,1],'--','Color',[0.5,0.5,0.5]);
+        
+        legend([hsc,hse,htc,hte,cl],...
+            {sprintf('Sustained, correct, AUC=%0.3f',aucsc),...
+            sprintf('Sustained, error, AUC=%0.3f',aucse),...
+            sprintf('Transient, correct, AUC=%0.3f',auctc),...
+            sprintf('Transient, error, AUC=%0.3f',aucte),...
+            'Chance level'},...
+            'Location','southeast');
+        xlabel('False positive rate (fpr)');
+        ylabel('True positive rate (tpr)');
+        title(ff)
     end
-%     if opt.single_bin
-%         sgtitle(sprintf('%s averaged cross-trial bin %d',type,opt.bin));
-%     else
-%         sgtitle(sprintf('%s averaged cross-trial',type));
-%     end
-%     exportgraphics(fh,sprintf('%s_cross_trial_bin%d.pdf',type,opt.bin),'ContentType','vector');
 end
 
 %Per trial
