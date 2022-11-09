@@ -15,20 +15,19 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
 
     fl=dir(fullfile('fccoding','fc_coding_*.mat')); % data source jpsth\+bz\+fccoding\fc_coding_one_sess.m
     % {suids(fci,:),fwd_fc,fwd_fc-mean(fwd_shift,2),fwd_shift,rev_fc,rev_fc-mean(rev_shift,2),rev_shift}
-    [metas,stats]=deal([]);
+    stats=struct();
+    [metas,stats.lbl1,stats.lbl2,stats.e1,stats.e2]=deal([]);
     for fi=1:numel(fl)
-        %     disp(fi);
+
         fstr=load(fullfile(fl(fi).folder,fl(fi).name));
         sess=fstr.onesess.fidx;
-        % mapping FCSP to FC-meta
         sesssel=sig.sess==sess;
         waveids=sig.waveid(sesssel,:);
         congrusel=pct.su_pairs.get_congru(waveids); %TODO incongruent
-        
-%         ids=sig.suid(sesssel,:);
-%         regs=squeeze(sig.reg(sesssel,5,:));
+
+        regs=squeeze(sig.reg(sesssel,5,:));
 %         roots=squeeze(sig.reg(sesssel,1,:));
-        % 
+% 
         switch opt.type
             case 'olf'
                 fcIdces=find(congrusel & all(ismember(waveids,1:6),2));
@@ -44,6 +43,12 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
             continue
         end
 
+        lbl1_indices=randsample(find(lbl1sel),opt.correct_trials);
+        lbl2_indices=randsample(find(lbl2sel),opt.correct_trials);
+        e1_indices=randsample(find(e1sel),opt.error_trials);
+        e2_indices=randsample(find(e2sel),opt.error_trials);
+
+
         if opt.shuffle
             pool=randsample([lbl1sel;lbl2sel],numel(lbl1sel)*2);
             lbl1sel=pool(1:numel(lbl1sel));
@@ -51,25 +56,20 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
         end
             
         for fci=reshape(fcIdces,1,[]) %fc idx
-%             suid1=fstr.onesess.fc{fci,1}(1);
-%             suid2=fstr.onesess.fc{fci,1}(2);
-%             fcsel=ids(:,1)==suid1 & ids(:,2)==suid2;%map to meta
-%             mem=waveids(fcsel,:); % TODO: waveid
+            suids=reshape(fstr.onesess.fc{fci,1},1,[]);
+            mem=waveids(fci,:); % TODO: waveid
 %             root=roots(fcsel,:);
-%             reg=regs(fcsel,:);
+            reg=regs(fci,:);
             %TODO member of grey-regions, if needed
 %             if any(isempty(reg)) || any(reg==0,'all') || ~all(root==567,'all'), continue;end
-            pertrl=fstr.onesess.fc{fci,stat_idx}>0;
-            metas=[metas;sess,suid1,suid2,mem,reg];
-            stats=[stats;mean(fstr.onesess.fc{fci,stat_idx}(lbl1sel)),mean(fstr.onesess.fc{fci,stat_idx}(lbl2sel)),...%1,2
-                mean(fstr.onesess.fc{fci,stat_idx}(e1sel)),mean(fstr.onesess.fc{fci,stat_idx}(e2sel)),... %3,4
-                nnz(pertrl(lbl1sel))/nnz(lbl1sel),nnz(pertrl(lbl2sel))/nnz(lbl2sel)];%5,6
-
-            %TODO:per-trial, label, fcsp
-        
-
+%             pertrl=fstr.onesess.fc{fci,stat_idx}>0;
+            metas=[metas;sess,suids,mem,reg];
+            stats.lbl1=[stats.lbl1,fstr.onesess.fc{fci,stat_idx}(lbl1_indices)];
+            stats.lbl2=[stats.lbl2,fstr.onesess.fc{fci,stat_idx}(lbl2_indices)];
+            stats.e1=[stats.e1,fstr.onesess.fc{fci,stat_idx}(e1_indices)];
+            stats.e2=[stats.e2,fstr.onesess.fc{fci,stat_idx}(e2_indices)];
         end
-        disp(size(metas,1));
+%         disp(size(metas,1));
     end
     metas_=metas;
     stats_=stats;
