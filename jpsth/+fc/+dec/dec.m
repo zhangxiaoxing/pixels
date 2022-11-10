@@ -4,6 +4,7 @@ arguments
     opt.decoder (1,:) char {mustBeMember(opt.decoder,{'SVM','LDA','NB'})} = 'SVM'
     opt.svmcost (1,1) double = 1
     opt.varsel (1,1) logical = false
+    opt.foldN (1,1) double = 2
 end
 
 s1=decdata.s1;
@@ -16,7 +17,7 @@ bins=size(s1,3);
 trlN=size(s1,2);
 trlE=size(e1,2);
 rpts=size(s1,4);
-cv=cvpartition(trlN,'KFold',2);
+cv=cvpartition(trlN,'KFold',opt.foldN);
 y=[zeros(trlN,1);ones(trlN,1)];
 
 out=struct();
@@ -51,7 +52,7 @@ for rpt=1:rpts
                 SVMM=fitcsvm(Xkf,ykf,'KernelFunction','linear','Standardize',false,'Cost',[0,opt.svmcost;opt.svmcost,0]);
                 modelPredict=SVMM.predict(XTkf);
             elseif strcmp(opt.decoder,'LDA')
-                LDAM=fitcdiscr(Xkf,ykf);
+                LDAM=fitcdiscr(Xkf,ykf,'DiscrimType','pseudolinear');
                 modelPredict=LDAM.predict(XTkf);
             elseif strcmp(opt.decoder,'NB')
                 NBM=fitcnb(Xkf,ykf);
@@ -63,8 +64,11 @@ for rpt=1:rpts
 
             out.cvcorr{bin}=cat(1,out.cvcorr{bin},cvresult);
             out.shufcorr{bin}=cat(1,out.shufcorr{bin},cvshufresult);
-
-            cv_err_result=SVMM.predict([e1(:,:,bin,rpt).';e2(:,:,bin,rpt).'])==((1:2*trlE)>trlE).';
+            if strcmp(opt.decoder,'SVM')
+                cv_err_result=SVMM.predict([e1(:,:,bin,rpt).';e2(:,:,bin,rpt).'])==((1:2*trlE)>trlE).';
+            elseif strcmp(opt.decoder,'LDA')
+                cv_err_result=LDAM.predict([e1(:,:,bin,rpt).';e2(:,:,bin,rpt).'])==((1:2*trlE)>trlE).';
+            end
             out.errcorr{bin}=cat(1,out.errcorr{bin},cv_err_result);
         end
     end

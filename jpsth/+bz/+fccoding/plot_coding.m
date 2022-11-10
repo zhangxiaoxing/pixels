@@ -9,14 +9,84 @@ arguments
     opt.wave_dir (1,1) logical = false
 end
 
-persistent metas stats per_trial_norm
-
 % [~,~,ratiomap]=ref.get_pv_sst();
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-load('OBM1Map.mat','OBM1map')
+% load('OBM1Map.mat','OBM1map')
 
 % {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
 % congru, incongru, nonmem
+
+if opt.plot_svm
+    dtype='olf';
+    nfc_grp=[10 50 100 250 500 750 1000];
+
+    NTRIAL=20;
+    NERR=2;
+    NRPT=100;
+    dec_result=struct();
+    % resample trials
+    stats_all=cell(1,NRPT/5);
+    for ii=1:NRPT/5
+        [~,stats_all{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype); % olfactory duration mix
+        % TODO normalize
+    end
+    S=max(cell2mat(cellfun(@(x) max([x.lbl1;x.lbl2]).',stats_all,'UniformOutput',false)),[],2).';
+    S(S==0)=1;
+
+
+    for N_pair=nfc_grp
+        [decdata.s1,decdata.s2]=deal(nan(N_pair,NTRIAL,1,NRPT));
+        [decdata.e1,decdata.e2]=deal(nan(N_pair,NERR,1,NRPT));
+%             result=cell(1,3);
+        % congru, incong, nonmem
+        % TODO wave direction
+
+        % TODO multiple types of pairs, i.e. congru, in congru ,same
+        % region, different region etc.
+        %         for midx=1:numel(mtypes)
+        for rpt=1:NRPT
+            ridx=ceil(rpt/5);
+            stats=stats_all{ridx};
+            for ff=reshape(fieldnames(stats),1,[])
+                stats.(char(ff))=stats.(char(ff))./repmat(S,size(stats.(char(ff)),1),1);
+            end
+            fc_perm=randsample(size(stats.lbl1,2),N_pair);
+            decdata.s1(:,:,1,rpt)=stats.lbl1(:,fc_perm).';
+            decdata.s2(:,:,1,rpt)=stats.lbl2(:,fc_perm).';
+            decdata.e1(:,:,1,rpt)=stats.e1(:,fc_perm).';
+            decdata.e2(:,:,1,rpt)=stats.e2(:,fc_perm).';
+        end
+        result=fc.dec.dec(decdata,'decoder','SVM','svmcost',1);
+        %         end % TODO multiple pair types
+        dec_result.(sprintf('FC%d',N_pair))=result;
+    end
+
+
+    fh=figure('Color','w','Position',[100,100,235,235]);
+    hold on;
+
+    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('FC%d',x)).shufcorr{1},nfc_grp,'UniformOutput',false));
+    [mm,cim]=binofit(sum(cvmat),repmat(size(cvmat,1),1,size(cvmat,2)));
+    phe=plot(nfc_grp,mm,'-k');
+    fill([nfc_grp,fliplr(nfc_grp)],[cim(:,1);flip(cim(:,2))],'k','EdgeColor','none','FaceAlpha',0.1);
+
+    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('FC%d',x)).errcorr{1},nfc_grp,'UniformOutput',false));
+    [mm,cim]=binofit(sum(cvmat),repmat(size(cvmat,1),1,size(cvmat,2)));
+    phe=plot(nfc_grp,mm,'-b');
+    fill([nfc_grp,fliplr(nfc_grp)],[cim(:,1);flip(cim(:,2))],'b','EdgeColor','none','FaceAlpha',0.1);
+    
+    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('FC%d',x)).cvcorr{1},nfc_grp,'UniformOutput',false));
+    [mm,cim]=binofit(sum(cvmat),repmat(size(cvmat,1),1,size(cvmat,2)));
+    phc=plot(nfc_grp,mm,'-r');
+    fill([nfc_grp,fliplr(nfc_grp)],[cim(:,1);flip(cim(:,2))],'r','EdgeColor','none','FaceAlpha',0.1);
+
+    ylabel('Classification accuracy');
+    xlabel('Number of FC pairs');
+    title(dtype)
+    ylim([0.4,1])
+
+
+end
 
 if opt.plot_trial_frac
     [metas,stats,~]=bz.fccoding.get_fc_coding(pct_meta,'no_jitter',false); 
@@ -38,7 +108,9 @@ if opt.plot_trial_frac
     exportgraphics(fh,'FC_appearance.pdf')
 end
 
-if opt.plot_fwd_rev
+
+
+if opt.plot_fwd_rev % probably broken as of 22.11.10
     [metas,stats,fwd_rev]=bz.fccoding.get_fc_coding('no_jitter',false);
     congrus1=ismember(metas(:,4),1:2) & ismember(metas(:,5),1:2) & all(~ismissing(stats),2);
     congrus2=ismember(metas(:,4),3:4) & ismember(metas(:,5),3:4) & all(~ismissing(stats),2);
@@ -54,9 +126,8 @@ if opt.plot_fwd_rev
     exportgraphics(fh,'FC_appearance.pdf')
 end
 
-
-if opt.plot_coding_idx
-    [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',true);
+if opt.plot_coding_idx % TODO might work with minor updates
+    [metas,stats]=bz.fccoding.get_fc_coding('no_jitter',true);
     out_same=plot_one('same',metas,stats,idmap,OBM1map,false);
     out_h2l=plot_one('h2l',metas,stats,idmap,OBM1map,false);
     out_l2h=plot_one('l2h',metas,stats,idmap,OBM1map,false);
@@ -82,106 +153,6 @@ if opt.plot_coding_idx
     exportgraphics(fh,'FC_coding_hier.pdf')
     keyboard()
 end
-
-if opt.plot_svm
-    if isempty(metas) ||isempty(per_trial_norm)
-        [metas,~,~,per_trial]=bz.fccoding.get_fc_coding(sel_meta,'no_jitter',true,'per_trial',true);
-
-        %normalize
-        [centt,stdd]=deal(nan(size(per_trial(:,1))));
-        per_trial_norm=cell(size(per_trial(:,1:2)));
-        for ii=1:numel(centt)
-            [N,centt(ii),stdd(ii)]=normalize([per_trial{ii,1};per_trial{ii,2}]);
-            per_trial_norm{ii,1}=N(1:numel(per_trial{ii,1}));
-            per_trial_norm{ii,2}=N(numel(per_trial{ii,1})+1:end);
-            per_trial_norm{ii,3}=normalize(per_trial{ii,3},'center',centt(ii),'scale',stdd(ii));
-            per_trial_norm{ii,4}=normalize(per_trial{ii,4},'center',centt(ii),'scale',stdd(ii));
-        end
-    end
-
-    congrusel=all(ismember(metas(:,4:5),[1,5]),2) | all(ismember(metas(:,4:5),[3,5]),2) ...
-        | all(ismember(metas(:,4:5),[2,6]),2) | all(ismember(metas(:,4:5),[4,6]),2);
-    if opt.wave_dir
-
-        repreg=cat(3,repmat(metas(:,6),1,6),repmat(metas(:,7),1,6));
-        [~,sig_same,sig_h2l,sig_l2h]=bz.util.diff_at_level(repreg,'hierarchy',true,'hiermap','AON','descend',true);
-        mtypes={congrusel & sig_l2h(:,5),...
-            congrusel & sig_h2l(:,5),...
-            congrusel & sig_same(:,5),...
-            any(ismember(metas(:,4:5),[1,3,5]),2) & any(ismember(metas(:,4:5),[2,4,6]),2),...
-            all(metas(:,4:5)==0,2)};
-
-        nsu_grp=10:10:30;
-    else
-        mtypes={congrusel,...
-            any(ismember(metas(:,4:5),[1,3,5]),2) & any(ismember(metas(:,4:5),[2,4,6]),2),...
-            all(metas(:,4:5)==0,2)};
-        nsu_grp=25:25:100;
-    end
-
-
-    NTRIAL=40;
-    NERR=5;
-    NRPT=50;
-    dec_result=struct();
-    
-    for NSU=nsu_grp
-        [decdata.s1,decdata.s2]=deal(nan(NSU,NTRIAL,1,NRPT));
-        [decdata.e1,decdata.e2]=deal(nan(NSU,NERR,1,NRPT));
-
-        result=cell(1,3);
-        % congru, incong, nonmem
-        % TODO wave direction
-
-        for midx=1:numel(mtypes)
-            su_sel=find(min(cellfun(@(x) size(x,1),per_trial_norm(:,1:2)),[],2)>NTRIAL & mtypes{midx} & centt>1 & stdd>0 & min(cellfun(@(x) size(x,1),per_trial(:,3:4)),[],2)>NERR);
-            disp([midx,numel(su_sel)]);
-            for rpt=1:NRPT
-                su_perm=randsample(su_sel,NSU);
-                decdata.s1(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,1},NTRIAL),su_perm,'UniformOutput',false).').';
-                decdata.s2(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,2},NTRIAL),su_perm,'UniformOutput',false).').';
-                decdata.e1(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,3},NERR),su_perm,'UniformOutput',false).').';
-                decdata.e2(:,:,1,rpt)=cell2mat(arrayfun(@(x) randsample(per_trial_norm{x,4},NERR),su_perm,'UniformOutput',false).').';
-            end
-            if midx==1
-                result{midx}=fc.dec.dec(decdata,'decoder','SVM','svmcost',1);
-            else
-                result{midx}=fc.dec.dec(decdata,'decoder','SVM','svmcost',1);
-            end
-        end
-        dec_result.(sprintf('SU%d',NSU))=result;
-    end
-    
-    
-    colors={'r','b','k','c','m'};
-    fh=figure('Color','w','Position',[100,100,235,235]);
-    hold on;
-    for mi=1:1:numel(mtypes)
-        cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.cvcorr{1},nsu_grp,'UniformOutput',false));
-        mm=mean(cvmat).*100;
-        cim=bootci(500,@(x) mean(x).*100,cvmat);
-        ph(mi)=plot(nsu_grp,mm,strjoin({'-',colors{mi}},''));
-        fill([nsu_grp,fliplr(nsu_grp)],[cim(1,:),fliplr(cim(2,:))],colors{mi},'EdgeColor','none','FaceAlpha',0.1);
-    end
-    
-    cvmat=cell2mat(arrayfun(@(x) dec_result.(sprintf('SU%d',x)){mi}.errcorr{1},nsu_grp,'UniformOutput',false));
-    mm=mean(cvmat).*100;
-    cim=bootci(500,@(x) mean(x).*100,cvmat);
-    ph(numel(mtypes)+1)=plot(nsu_grp,mm,'--r');
-    fill([nsu_grp,fliplr(nsu_grp)],[cim(1,:),fliplr(cim(2,:))],'r','EdgeColor','none','FaceAlpha',0.1);
-
-    ylabel('Odor classification accuracy');
-    xlabel('Number of FC pairs');
-    %     xlim([50,100])
-    if opt.wave_dir
-        legend(ph,{'Upward','Downward','Same-region','Diff-mem','Nonmemory','(Error trial)'},Location="northoutside");
-    else
-        legend(ph,{'Same memory','Diff. memory','Nonmemory','(Error trial)'},Location="northoutside");
-    end
-%     exportgraphics(fh,'FC_coding_SVM.pdf')
-end
-
-
 
 if opt.plot_coding_idx_shuf
     [metas,stats,~]=bz.fccoding.get_fc_coding('no_jitter',true,'shuffle',false);

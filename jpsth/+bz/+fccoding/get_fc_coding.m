@@ -5,10 +5,11 @@ arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'olf','dur','mix'})} = 'olf'
     opt.correct_trials (1,1) double = 20
     opt.error_trials (1,1) double = 2
+    opt.force_update (1,1) logical = true
 end
 persistent metas_ stats_ opt_
 
-if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
+if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt) || opt.force_update
     stat_idx=2; % 3 if deduce jitter
     sig=bz.load_sig_sums_conn_file();
     sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
@@ -26,8 +27,8 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
         congrusel=pct.su_pairs.get_congru(waveids); %TODO incongruent
 
         regs=squeeze(sig.reg(sesssel,5,:));
-%         roots=squeeze(sig.reg(sesssel,1,:));
-% 
+        %         roots=squeeze(sig.reg(sesssel,1,:));
+        %
         switch opt.type
             case 'olf'
                 fcIdces=find(congrusel & all(ismember(waveids,1:6),2));
@@ -35,6 +36,12 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
                 lbl2sel=fstr.onesess.trials(:,5)==8 & ismember(fstr.onesess.trials(:,8),[3 6]) & all(fstr.onesess.trials(:,9:10),2);
                 e1sel=fstr.onesess.trials(:,5)==4 & ismember(fstr.onesess.trials(:,8),[3 6]) & fstr.onesess.trials(:,10)==0;
                 e2sel=fstr.onesess.trials(:,5)==8 & ismember(fstr.onesess.trials(:,8),[3 6]) & fstr.onesess.trials(:,10)==0;
+            case 'dur'
+                fcIdces=find(congrusel & all(ismember(waveids,[1:4,7:8]),2));
+                lbl1sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==3 & all(fstr.onesess.trials(:,9:10),2);
+                lbl2sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==6 & all(fstr.onesess.trials(:,9:10),2);
+                e1sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==3 & fstr.onesess.trials(:,10)==0;
+                e2sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==6 & fstr.onesess.trials(:,10)==0;
         end
         
 
@@ -47,7 +54,6 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt)
         lbl2_indices=randsample(find(lbl2sel),opt.correct_trials);
         e1_indices=randsample(find(e1sel),opt.error_trials);
         e2_indices=randsample(find(e2sel),opt.error_trials);
-
 
         if opt.shuffle
             pool=randsample([lbl1sel;lbl2sel],numel(lbl1sel)*2);
