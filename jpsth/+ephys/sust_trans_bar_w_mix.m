@@ -7,6 +7,10 @@ meta=ephys.util.load_meta('skip_stats',true);
 all_olf_sel=ismember(sel_meta.wave_id,5:6);
 sust_olf_sel=all(sel_meta.p_olf<0.05,2) & all_olf_sel;
 trans_olf_sel=all_olf_sel & ~sust_olf_sel;
+% extend to 6s
+sust_olf_sel6=all(sel_meta.p_olf<0.05,2) & all(sel_meta.p_olf6<0.05,2) & all_olf_sel;
+trans_olf_sel6=all_olf_sel & ~sust_olf_sel6;
+
 
 all_dur_sel=ismember(sel_meta.wave_id,7:8);
 sust_dur_sel=all(sel_meta.p_dur<0.05,2) & all_dur_sel;
@@ -16,6 +20,11 @@ all_mix_sel=ismember(sel_meta.wave_id,1:4);
 sust_mix_sel=(all(sel_meta.p_mux<0.05,2)  ...
     |all(sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2)) & all_mix_sel;
 trans_mix_sel=all_mix_sel & ~sust_mix_sel;
+
+sust_mix_sel6=(all(sel_meta.p_mux<0.05,2)  ...
+    |all(sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2))...
+    & all(sel_meta.p_olf6<0.05,2) & all_mix_sel;
+trans_mix_sel6=all_mix_sel & ~sust_mix_sel6;
 
 tot=numel(sel_meta.wave_id);
 
@@ -40,8 +49,30 @@ errorbar(bh(2).XEndPoints,bh(2).YEndPoints,[trans_olf_ci(1),trans_dur_ci(1),tran
     [trans_olf_ci(2),trans_dur_ci(2),trans_mix_ci(2)]-bh(2).YEndPoints,'k.');
 ylabel('Fraction of all neurons (%)')
 set(gca(),'XTick',1:3,'XTickLabel',{'Olf.','Dur.','Mixed'},'FontSize',10,'YTick',0:0.05:0.25,'YTickLabel',0:5:25)
+title('First 3s')
 % text(1,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[1 3]))),'Rotation',90,'FontSize',10)
 % text(2,mean(ylim()),num2str(nnz(ismember(meta.mem_type,[2 4]))),'Rotation',90,'FontSize',10)
 % text(max(xlim()),max(ylim()),num2str(numel(meta.mem_type)),'HorizontalAlignment','right','VerticalAlignment','top')
+
+
+[sust_olf_hat6,sust_olf_ci6]=binofit(nnz(sust_olf_sel6),tot);
+[trans_olf_hat6,trans_olf_ci6]=binofit(nnz(trans_olf_sel6),tot);
+
+[sust_mix_hat6,sust_mix_ci6]=binofit(nnz(sust_mix_sel6),tot);
+[trans_mix_hat6,trans_mix_ci6]=binofit(nnz(trans_mix_sel6),tot);
+
+fh=figure('Color','w');
+hold on
+bh=bar([sust_olf_hat6,trans_olf_hat6;sust_mix_hat6,trans_mix_hat6],1,'grouped');
+bh(1).FaceColor='k';
+bh(2).FaceColor='w';
+
+errorbar(bh(1).XEndPoints,bh(1).YEndPoints,[sust_olf_ci6(1),sust_mix_ci6(1)]-bh(1).YEndPoints,...
+    [sust_olf_ci6(2),sust_mix_ci6(2)]-bh(1).YEndPoints,'k.');
+errorbar(bh(2).XEndPoints,bh(2).YEndPoints,[trans_olf_ci6(1),trans_mix_ci6(1)]-bh(2).YEndPoints,...
+    [trans_olf_ci6(2),trans_mix_ci6(2)]-bh(2).YEndPoints,'k.');
+ylabel('Fraction of all neurons (%)')
+set(gca(),'XTick',1:2,'XTickLabel',{'Olf.','Mixed'},'FontSize',10,'YTick',0:0.05:0.25,'YTickLabel',0:5:25)
+title('Extends to 6s')
 
 end

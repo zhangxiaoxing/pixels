@@ -2,28 +2,14 @@
 global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
-% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'merge_mux',true,'extend6s',true);
+% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
 
-tcom_maps=cell(1,3);
 
 % map_cells: mixed_map,olf_map,dur_map
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',type);
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom.(type).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
-    tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
-end
-
-
 tcom3_maps=cell(1,3);
-% map_cells: mixed_map,olf_map,dur_map
-% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
     [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
@@ -33,6 +19,22 @@ for typeidx=1:3
     [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
     tcom3_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
 end
+
+
+
+if false %mixed 3s and 6s data, obsolete
+    tcom_maps=cell(1,3);
+    for typeidx=1:3
+        type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+        [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
+            com_map,'sel_type',type);
+        ureg=intersect(ephys.getGreyRegs('range','grey'),...
+            fcom.(type).collection(:,2));
+        [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
+        tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+    end
+end
+
 
 
 
@@ -109,6 +111,10 @@ else
     load('corr_err_wrs_mux_decoding.mat','odor4odor','dur4odor','mux4odor','odor4dur','dur4dur','mux4dur');
 end
 fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
+
+fh=ephys.sust_trans_bar_w_mix(wrs_mux_meta);
+fh=ephys.sust_trans_correct_error(wrs_mux_meta);
+
 
 
 %% TODO wave-half-half

@@ -3,7 +3,7 @@
 function stats=sust_trans_correct_error(sel_meta,opt)
 arguments
     sel_meta
-    opt.single_bin (1,1) logical = true
+%     opt.single_bin (1,1) logical = true
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
@@ -20,9 +20,14 @@ end
 % should be selective types, i.e. olf, dur, mux
 types={1:4,5:6,7:8};
 type_desc={'mix','olf','dur'};
-pref_trls={{'s1d3'};{'s1d6'};{'s2d3'};{'s2d3'};{'s1d3','s1d6'};{'s2d3','s2d6'};{'s1d3','s2d3'};{'s1d6','s2d6'}};
+pref_trls={{'s1d3'};{'s1d6'};{'s2d3'};{'s2d6'};{'s1d3','s1d6'};{'s2d3','s2d6'};{'s1d3','s2d3'};{'s1d6','s2d6'}};
 
-for typeIdx=1:numel(types)
+[olf_sw,dur_sw,mux_sw]=get_switched(sel_meta);
+sel_meta.wave_id(olf_sw | dur_sw | mux_sw)=-1;
+sel_meta.wave_id(...
+    ismember(sel_meta.wave_id,1:4) & ~any(sel_meta.p_mux<0.05,2))=-1;
+
+for typeIdx=2%1:numel(types)
 
     coding_sel=ismember(sel_meta.wave_id,types{typeIdx});
     usess=unique(sumeta.sess(coding_sel));
@@ -32,11 +37,12 @@ for typeIdx=1:numel(types)
     homedir=ephys.util.getHomedir('type','raw');
     [stats.(type_desc{typeIdx}).sust,stats.(type_desc{typeIdx}).transient]=deal(nan(0,4));
 %     stats.(sprintf('type%d_pertrial',onetype))=cell(0,4); %skip for now
+
+
     switch typeIdx
         case 1
-            sust_sel=(all(sel_meta.p_mux<0.05,2) | all(sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2))...
-                & ismember(sel_meta.wave_id,1:4);
-            sig_bins=sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05;
+            sust_sel=all(sel_meta.p_mux<0.05,2) & ismember(sel_meta.wave_id,1:4);
+            sig_bins=sel_meta.p_mux<0.05;
         case 2
             sust_sel=all(sel_meta.p_olf<0.05,2) & ismember(sel_meta.wave_id,5:6);
             sig_bins=sel_meta.p_olf<0.05;
@@ -76,7 +82,7 @@ for typeIdx=1:numel(types)
         for suidx=reshape(su_pos,1,[])
             su_waveid=waveids(suidx);
             su_pref_trls=pref_trls{su_waveid};
-            if sess_sust(su_pos)
+            if sess_sust(suidx)
                 bins=5:7;
             else
                 bins=find(sess_sig_bins(suidx,:))+4;
@@ -89,32 +95,36 @@ for typeIdx=1:numel(types)
                 trlType=char(trlfn);
                 if startsWith(trlType,'c')
                     if ismember(replace(trlType,'c',''),su_pref_trls) %preferred correct
-                        cpref=[cpref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                        cpref=[cpref;squeeze(fr(trl.(trlType),suidx,bins))];
                     else
-                        cnonpref=[cnonpref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                        cnonpref=[cnonpref;squeeze(fr(trl.(trlType),suidx,bins))];
                     end
                 else
                     if ismember(replace(trlType,'e',''),su_pref_trls) %preferred error
-                        epref=[epref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                        epref=[epref;squeeze(fr(trl.(trlType),suidx,bins))];
                     else %nonpreferred error
-                        enonpref=[enonpref;reshape(fr(trl.(trlType),suidx,bins),[],1)];
+                        enonpref=[enonpref;squeeze(fr(trl.(trlType),suidx,bins))];
                     end
                 end
             end
 
-            delaymm=mean([mean(cpref),mean(cnonpref)]);
-            delaystd=std([cpref;cnonpref]);
+            delaymm=mean([mean(cpref,"all"),mean(cnonpref,"all")]);
+            delaystd=std([cpref(:);cnonpref(:)]);
             if delaystd==0, continue;  end
 
-            zcpref=(mean(cpref)-delaymm)./delaystd;
-            zcnonpref=(mean(cnonpref)-delaymm)./delaystd; % for AUC curve maybe not necessary
-            zepref=(mean(epref)-delaymm)./delaystd;
-            zenonpref=(mean(enonpref)-delaymm)./delaystd;
+            zcpref=(mean(cpref(:))-delaymm)./delaystd;
+            if zcpref<0
+                keyboard()
+            end
+            zcnonpref=(mean(cnonpref(:))-delaymm)./delaystd; % for AUC curve maybe not necessary
+            zepref=(mean(epref(:))-delaymm)./delaystd;
+            zenonpref=(mean(enonpref(:))-delaymm)./delaystd;
             if sess_sust(suidx)
                 stats.(type_desc{typeIdx}).sust=[stats.(type_desc{typeIdx}).sust;zcpref,zepref,zcnonpref,zenonpref];
             else
                 stats.(type_desc{typeIdx}).transient=[stats.(type_desc{typeIdx}).transient;zcpref,zepref,zcnonpref,zenonpref];
             end
+            
 
 %             % skip for now
 %             stats.(sprintf('type%d_pertrial',onetype))(idx,:)={cs1,cs2,es1,es2};
@@ -180,19 +190,29 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-    for ff=["olf","mix"] % not enough number for duration-sustained
-        stats.(ff).sust=stats.(ff).sust(stats.(ff).sust(:,1)>0,:);
-        stats.(ff).transient=stats.(ff).transient(stats.(ff).transient(:,1)>0,:);
+    for ff="olf"%["olf","mix"] % not enough number for mix and duration-sustained
+%         stats.(ff).sust=stats.(ff).sust(stats.(ff).sust(:,1)>0,:);
+%         stats.(ff).transient=stats.(ff).transient(stats.(ff).transient(:,1)>0,:);
 
         fh=figure('Color','w','Position',[100,100,750,225]);
         tiledlayout(1,3)
         nexttile(1)
         hold on;
-        ch=histogram(stats.(ff).sust(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
-        eh=histogram(stats.(ff).sust(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
-        xline(mean(stats.(ff).sust(:,1)),'--r','LineWidth',1);
-        xline(mean(stats.(ff).sust(:,2)),'--k','LineWidth',1);
-        xlim([-0.7,1]);
+
+%         ch=histogram(stats.(ff).sust(:,1),-1:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
+%         eh=histogram(stats.(ff).sust(:,2),-1:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
+%         cnh=histogram(stats.(ff).sust(:,3),-1:0.1:1,'Normalization','probability','FaceColor','c','FaceAlpha',0.4);
+%         enh=histogram(stats.(ff).sust(:,4),-1:0.1:1,'Normalization','probability','FaceColor','b','FaceAlpha',0.4);
+
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).sust(:,1),-1:0.1:1,'Normalization','probability'),'-r','LineWidth',1);
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).sust(:,2),-1:0.1:1,'Normalization','probability'),':r','LineWidth',1);
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).sust(:,3),-1:0.1:1,'Normalization','probability'),'-k','LineWidth',1);
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).sust(:,4),-1:0.1:1,'Normalization','probability'),':k','LineWidth',1);
+
+        xline(mean(stats.(ff).sust(:,1)),'-r','LineWidth',1);
+        xline(mean(stats.(ff).sust(:,2)),':r','LineWidth',1);
+        xlim([-1,1]);
+        ylim([0,0.5]);
         title('Sustained')
         xlabel('Normalized FR (Z-Score)');
         ylabel('Probability')
@@ -202,11 +222,20 @@ if opt.plot_per_su
 
         nexttile(2)
         hold on;
-        ch=histogram(stats.(ff).transient(:,1),-0.7:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
-        eh=histogram(stats.(ff).transient(:,2),-0.7:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
-        xline(mean(stats.(ff).transient(:,1)),'--r','LineWidth',1);
-        xline(mean(stats.(ff).transient(:,2)),'--k','LineWidth',1);
-        xlim([-0.7,1]);
+%         ch=histogram(stats.(ff).transient(:,1),-1:0.1:1,'Normalization','probability','FaceColor','r','FaceAlpha',0.4);
+%         eh=histogram(stats.(ff).transient(:,2),-1:0.1:1,'Normalization','probability','FaceColor','k','FaceAlpha',0.4);
+%         cnh=histogram(stats.(ff).transient(:,3),-1:0.1:1,'Normalization','probability','FaceColor','c','FaceAlpha',0.4);
+%         enh=histogram(stats.(ff).transient(:,4),-1:0.1:1,'Normalization','probability','FaceColor','b','FaceAlpha',0.4);
+
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).transient(:,1),-1:0.1:1,'Normalization','probability'),'-r','LineWidth',1);
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).transient(:,2),-1:0.1:1,'Normalization','probability'),':r','LineWidth',1);
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).transient(:,3),-1:0.1:1,'Normalization','probability'),'-k','LineWidth',1);
+        plot((-1:0.1:0.9)+0.05,histcounts(stats.(ff).transient(:,4),-1:0.1:1,'Normalization','probability'),':k','LineWidth',1);
+
+        xline(mean(stats.(ff).transient(:,1)),'-r','LineWidth',1);
+        xline(mean(stats.(ff).transient(:,2)),':r','LineWidth',1);
+        xlim([-1,1]);
+        ylim([0,0.5]);
         title('Transient')
         xlabel('Normalized FR (Z-Score)');
         ylabel('Probability')
@@ -345,4 +374,42 @@ scores=[data{3};data{4}];
 mmy=splitapply(@(x) mean(x), ye, G);
 out.ye=interp1(uxe,mmy,xq);
 
+end
+
+function [olf_sw,dur_sw,mux_sw]=get_switched(wrs_mux_meta)
+otypesel=(ismember(wrs_mux_meta.wave_id,5:6));
+omask=wrs_mux_meta.p_olf<0.05;
+omask(~otypesel,:)=0;
+omasked=wrs_mux_meta.pref_id.*(omask);
+% olf_switched:bool
+olf_sw=any(ismember(omasked,1:2),2) & any(ismember(omasked,3:4),2);
+
+
+dtypesel=(ismember(wrs_mux_meta.wave_id,7:8));
+dmask=wrs_mux_meta.p_dur<0.05;
+dmask(~dtypesel,:)=0;
+dmasked=wrs_mux_meta.pref_id.*(dmask);
+% dur_switched:bool
+dur_sw=any(ismember(dmasked,[1 3]),2) & any(ismember(dmasked,[2 4]),2);
+
+% >>>>>>>>>>> different type of mux switched >>>>>>>>>>>>>>>>>>>>>>>
+mtypesel=(ismember(wrs_mux_meta.wave_id,1:4));
+mmmask=(wrs_mux_meta.p_mux<0.05);
+mmmask(~mtypesel,:)=0;
+mmmasked=wrs_mux_meta.pref_id.*(mmmask);
+mm_switched_sel=arrayfun(@(x)numel(unique(mmmasked(x,:)))-any(mmmasked(x,:)==0),1:size(mmmasked,1))>1;
+
+omtypesel=(ismember(wrs_mux_meta.wave_id,1:4));
+ommask=wrs_mux_meta.p_olf<0.05;
+ommask(~omtypesel,:)=0;
+ommasked=wrs_mux_meta.pref_id.*(ommask);
+om_switched_sel=any(ismember(ommasked,1:2),2) & any(ismember(ommasked,3:4),2);
+
+dmtypesel=(ismember(wrs_mux_meta.wave_id,1:4));
+dmmask=wrs_mux_meta.p_dur<0.05;
+dmmask(~dmtypesel,:)=0;
+dmmasked=wrs_mux_meta.pref_id.*(dmmask);
+dm_switched_sel=any(ismember(dmmasked,[1 3]),2) & any(ismember(dmmasked,[2 4]),2);
+% mux_switched:bool
+mux_sw=(dm_switched_sel | mm_switched_sel.' | om_switched_sel);
 end

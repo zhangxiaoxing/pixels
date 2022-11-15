@@ -40,7 +40,7 @@ for src_id in avail_inj:
 
     pm = mcc.get_projection_matrix(experiment_ids = one_src_exp_ids,
                                    projection_structure_ids = avail_target,
-                                   hemisphere_ids= [3], # right hemisphere, ipsilateral
+                                   hemisphere_ids= [3], # both hemisphere
                                    parameter = 'projection_density')
     column_labels = [ c['label'] for c in pm['columns'] ]
     one_src_matrix = pm['matrix']

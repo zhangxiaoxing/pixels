@@ -38,7 +38,7 @@ if __name__=='__main__':
 
     pm = mcc.get_projection_matrix(experiment_ids = mob_exp_ids,
                                    projection_structure_ids = ctx_targets,
-                                   hemisphere_ids= [3], # right hemisphere, ipsilateral
+                                   hemisphere_ids= [3], # both hemisphere
                                    parameter = 'projection_density')
 
     column_labels = [ c['label'] for c in pm['columns'] ]
@@ -57,7 +57,7 @@ if __name__=='__main__':
         mop_exp_ids=[exp['id'] for exp in mop_exp]
         pm = mcc.get_projection_matrix(experiment_ids = mop_exp_ids,
                                        projection_structure_ids = [mop['id']],
-                                       hemisphere_ids= [3], # right hemisphere, ipsilateral
+                                       hemisphere_ids= [3], # both hemisphere
                                        parameter = 'projection_density')
         mop_matrix.append(np.median(pm['matrix']))
         mop_src.append(src)
