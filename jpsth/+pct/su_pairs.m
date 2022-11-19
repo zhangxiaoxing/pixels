@@ -4,12 +4,30 @@ classdef su_pairs
             nonmem=any(waveid==0,2);
         end
 
-        function congru=get_congru(waveid)
-            congru=(waveid(:,1)==waveid(:,2) & waveid(:,1)>0)...
-                | (ismember(waveid(:,1),1:2) & waveid(:,2)==5) | (ismember(waveid(:,2),1:2) & waveid(:,1)==5)...
-                | (ismember(waveid(:,1),3:4) & waveid(:,2)==6) | (ismember(waveid(:,2),3:4) & waveid(:,1)==6)...
-                | (ismember(waveid(:,1),[1,3]) & waveid(:,2)==7) | (ismember(waveid(:,2),[1,3]) & waveid(:,1)==7)...
-                | (ismember(waveid(:,1),[2,4]) & waveid(:,2)==8) | (ismember(waveid(:,2),[2,4]) & waveid(:,1)==8);
+        function congru=get_congru(waveid,opt)
+            arguments
+                waveid (:,2) double
+                opt.asym_congru (1,1) logical = false
+                opt.strict_mix (1,1) logical = false
+            end
+
+            congrumix=(waveid(:,1)==waveid(:,2) & waveid(:,1)>0);
+            if opt.strict_mix
+                congru=congrumix;
+            elseif opt.asym_congru
+                congru_single_mix=(ismember(waveid(:,1),1:2) & waveid(:,2)==5)...
+                    | (ismember(waveid(:,1),3:4) & waveid(:,2)==6)...
+                    | (ismember(waveid(:,1),[1,3]) & waveid(:,2)==7)...
+                    | (ismember(waveid(:,1),[2,4]) & waveid(:,2)==8);
+                congru=congrumix | congru_single_mix;
+            else
+                congru_single_mix=(ismember(waveid(:,1),1:2) & waveid(:,2)==5) | (ismember(waveid(:,2),1:2) & waveid(:,1)==5)...
+                    | (ismember(waveid(:,1),3:4) & waveid(:,2)==6) | (ismember(waveid(:,2),3:4) & waveid(:,1)==6)...
+                    | (ismember(waveid(:,1),[1,3]) & waveid(:,2)==7) | (ismember(waveid(:,2),[1,3]) & waveid(:,1)==7)...
+                    | (ismember(waveid(:,1),[2,4]) & waveid(:,2)==8) | (ismember(waveid(:,2),[2,4]) & waveid(:,1)==8);
+                congru=congrumix | congru_single_mix;
+            end
+
         end
 
         function incong=get_incongru(waveid)

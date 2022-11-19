@@ -22,12 +22,12 @@ types={1:4,5:6,7:8};
 type_desc={'mix','olf','dur'};
 pref_trls={{'s1d3'};{'s1d6'};{'s2d3'};{'s2d6'};{'s1d3','s1d6'};{'s2d3','s2d6'};{'s1d3','s2d3'};{'s1d6','s2d6'}};
 
-[olf_sw,dur_sw,mux_sw]=get_switched(sel_meta);
+[olf_sw,dur_sw,mux_sw]=ephys.get_switched(sel_meta);
 sel_meta.wave_id(olf_sw | dur_sw | mux_sw)=-1;
-sel_meta.wave_id(...
-    ismember(sel_meta.wave_id,1:4) & ~any(sel_meta.p_mux<0.05,2))=-1;
+% sel_meta.wave_id(...
+%     ismember(sel_meta.wave_id,1:4) & ~any(sel_meta.p_mux<0.05,2))=-1;
 
-for typeIdx=2%1:numel(types)
+for typeIdx=1:2%1:numel(types)
 
     coding_sel=ismember(sel_meta.wave_id,types{typeIdx});
     usess=unique(sumeta.sess(coding_sel));
@@ -41,8 +41,9 @@ for typeIdx=2%1:numel(types)
 
     switch typeIdx
         case 1
-            sust_sel=all(sel_meta.p_mux<0.05,2) & ismember(sel_meta.wave_id,1:4);
-            sig_bins=sel_meta.p_mux<0.05;
+            sust_sel=all(sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2)...
+                & ismember(sel_meta.wave_id,1:4);
+            sig_bins=sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05;
         case 2
             sust_sel=all(sel_meta.p_olf<0.05,2) & ismember(sel_meta.wave_id,5:6);
             sig_bins=sel_meta.p_olf<0.05;
@@ -113,7 +114,7 @@ for typeIdx=2%1:numel(types)
             if delaystd==0, continue;  end
 
             zcpref=(mean(cpref(:))-delaymm)./delaystd;
-            if zcpref<0
+            if zcpref<0 && typeIdx==2
                 keyboard()
             end
             zcnonpref=(mean(cnonpref(:))-delaymm)./delaystd; % for AUC curve maybe not necessary
@@ -190,7 +191,7 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-    for ff="olf"%["olf","mix"] % not enough number for mix and duration-sustained
+    for ff=["olf","mix"] % not enough number for mix and duration-sustained
 %         stats.(ff).sust=stats.(ff).sust(stats.(ff).sust(:,1)>0,:);
 %         stats.(ff).transient=stats.(ff).transient(stats.(ff).transient(:,1)>0,:);
 
@@ -376,40 +377,3 @@ out.ye=interp1(uxe,mmy,xq);
 
 end
 
-function [olf_sw,dur_sw,mux_sw]=get_switched(wrs_mux_meta)
-otypesel=(ismember(wrs_mux_meta.wave_id,5:6));
-omask=wrs_mux_meta.p_olf<0.05;
-omask(~otypesel,:)=0;
-omasked=wrs_mux_meta.pref_id.*(omask);
-% olf_switched:bool
-olf_sw=any(ismember(omasked,1:2),2) & any(ismember(omasked,3:4),2);
-
-
-dtypesel=(ismember(wrs_mux_meta.wave_id,7:8));
-dmask=wrs_mux_meta.p_dur<0.05;
-dmask(~dtypesel,:)=0;
-dmasked=wrs_mux_meta.pref_id.*(dmask);
-% dur_switched:bool
-dur_sw=any(ismember(dmasked,[1 3]),2) & any(ismember(dmasked,[2 4]),2);
-
-% >>>>>>>>>>> different type of mux switched >>>>>>>>>>>>>>>>>>>>>>>
-mtypesel=(ismember(wrs_mux_meta.wave_id,1:4));
-mmmask=(wrs_mux_meta.p_mux<0.05);
-mmmask(~mtypesel,:)=0;
-mmmasked=wrs_mux_meta.pref_id.*(mmmask);
-mm_switched_sel=arrayfun(@(x)numel(unique(mmmasked(x,:)))-any(mmmasked(x,:)==0),1:size(mmmasked,1))>1;
-
-omtypesel=(ismember(wrs_mux_meta.wave_id,1:4));
-ommask=wrs_mux_meta.p_olf<0.05;
-ommask(~omtypesel,:)=0;
-ommasked=wrs_mux_meta.pref_id.*(ommask);
-om_switched_sel=any(ismember(ommasked,1:2),2) & any(ismember(ommasked,3:4),2);
-
-dmtypesel=(ismember(wrs_mux_meta.wave_id,1:4));
-dmmask=wrs_mux_meta.p_dur<0.05;
-dmmask(~dmtypesel,:)=0;
-dmmasked=wrs_mux_meta.pref_id.*(dmmask);
-dm_switched_sel=any(ismember(dmmasked,[1 3]),2) & any(ismember(dmmasked,[2 4]),2);
-% mux_switched:bool
-mux_sw=(dm_switched_sel | mm_switched_sel.' | om_switched_sel);
-end

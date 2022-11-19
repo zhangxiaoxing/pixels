@@ -4,6 +4,7 @@ arguments
     opt.min_pair_per_session (1,1) double = 20
     opt.per_sess (1,1) logical = false
     opt.inhibit (1,1) logical = false
+    opt.asym_congru (1,1) logical = false
 end
 % selstr=load('perm_sens.mat','sens_meta');
 
@@ -20,8 +21,8 @@ pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 % [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
 fh.fig=figure('Color','w','Position',[100,100,500,235]);
 tiledlayout(1,2)
-fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
-fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess);
+fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru);
+fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru);
 sgtitle('same-reg, cross-reg')
 %% single-mixed % separated into own code. 
 % statsMixed(sig,pair)
@@ -254,14 +255,14 @@ end
 
 
 
-function ax=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess)
+function ax=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru)
 % [fromhat,tohat,fromsem,tosem]=deal(nan(5,1));
 
 nonmem_sig=pct.su_pairs.get_nonmem(sig.waveid);
 nonmem_pair=pct.su_pairs.get_nonmem(pair.waveid);
 
-congru_sig=pct.su_pairs.get_congru(sig.waveid);
-congru_pair=pct.su_pairs.get_congru(pair.waveid);
+congru_sig=pct.su_pairs.get_congru(sig.waveid,'asym_congru',asym_congru);
+congru_pair=pct.su_pairs.get_congru(pair.waveid,'asym_congru',asym_congru);
 
 incong_sig=pct.su_pairs.get_incongru(sig.waveid);
 incong_pair=pct.su_pairs.get_incongru(pair.waveid);

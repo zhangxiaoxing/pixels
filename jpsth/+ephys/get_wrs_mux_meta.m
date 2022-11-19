@@ -7,6 +7,7 @@ arguments
     opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
     opt.merge_mux (1,1) logical = true
     opt.extend6s (1,1) logical = true
+    opt.tag_ext6s_mem (1,1) logical = false
     opt.plot_venn (1,1) logical = false
 end
 
@@ -21,7 +22,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         sesskeys=cell2mat(sessmap.keys());
         [out.m_pref_id,out.o_pref_id,out.d_pref_id,out.p_mux,out.p_olf,out.p_dur,out.class_fr]=deal([]);
         if opt.extend6s
-            [out.m_pref_id6,out.p_olf6,out.p_dur,out.class_fr6]=deal([]);
+            [out.m_pref_id6,out.p_olf6,out.class_fr6]=deal([]);
         end
         for sessid=sesskeys
             disp(sessid);
@@ -61,10 +62,7 @@ if isempty(out) || ~isequaln(opt,opt_)
                         bindpref=8;
                     end
 
-                    %                     if false%opt.permutation
-                    %                         wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),bin3s);
-                    %                         wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),bin6s);
-                    %                     else
+
                     % determine multimodal
                     otherid=setdiff(1:4,binmpref);
                     mpref_id(bin-4)=binmpref;
@@ -97,10 +95,6 @@ if isempty(out) || ~isequaln(opt,opt_)
                         class_fr6(1,:,bin-7)=class_mm;
                         [~,binmpref]=max(class_mm);  % highest condition
 
-                        %                         if false%opt.permutation
-                        %                             wrs_p_d3(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d3sel & s1sel,suidx,x),fr(d3sel & s2sel,suidx,x),opt.perm_repeat),bin3s);
-                        %                             wrs_p_d6(suidx,:)=arrayfun(@(x) permutation_test_1d(fr(d6sel & s1sel,suidx,x),fr(d6sel & s2sel,suidx,x),opt.perm_repeat),bin6s);
-                        %                         else
                         % determine monomodal
                         pref_id6(bin-7)=binmpref;
                         ppolf6(bin-7)=ranksum(cell2mat(class_cell(2).'),cell2mat(class_cell(4).'));
@@ -150,7 +144,14 @@ if isempty(out) || ~isequaln(opt,opt_)
             save('wrs_mux_meta.mat','wrs_mux_meta');
         end
     end
+
+    if opt.tag_ext6s_mem
+        ext_sel=out.wave_id==0 & any(out.p_olf6<0.05,2);
+        out.wave_id(ext_sel)=-1;
+    end
 end
+
+
 opt_=opt;
 out_=out;
 end

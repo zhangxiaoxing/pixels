@@ -9,7 +9,7 @@ arguments
     opt.delay (1,1) double {mustBeMember(opt.delay,[3,6])} % DPA delay duration
     opt.sens_cue (1,1) double {mustBeMember(opt.sens_cue,[4,8])} % olfactory cue for duration selection
     opt.plot_COM_scheme (1,1) logical = false % for TCOM illustration
-    opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
+%     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
 
 end

@@ -8,6 +8,7 @@ arguments
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
     opt.band_width (1,1) double {mustBeMember(opt.band_width,1:2)} = 1
+    opt.early_smooth (1,1) logical = true
 end
 
 %TODO proper declaration
@@ -47,6 +48,9 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
     pct_sel.dur_d6=pct_meta.wave_id==8;
 
     for sessid=reshape(usess,1,[])
+%         if sessid==11
+%             keyboard()
+%         end
         fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
         sesssel=meta.sess==sessid;
         if ~any(sesssel), continue;end
@@ -165,9 +169,13 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                 SR=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
                 classnnR=(classmm-basemm)./SR;
              % smooth before scale, skip smooth when plot
-                class_sm=(smoothdata(classmm,2,'sgolay',5)-basemm);
-                S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
-                classnn=class_sm./S;
+                if opt.early_smooth
+                    class_sm=(smoothdata(classmm,2,'sgolay',5)-basemm);
+                    S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
+                    classnn=class_sm./S;
+                else
+                    classnn=classnnR;
+                end
                 if opt.curve && ~opt.rnd_half
                     for typeidx=1:4
                         cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
@@ -240,14 +248,17 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
 
 %         if opt.curve
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-%             if false
-                SR=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
-                classnnR=(classmm-basemm)./SR;
-%             else % smooth before scale, skip smooth when plot
+
+            SR=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+            classnnR=(classmm-basemm)./SR;
+         % smooth before scale, skip smooth when plot
+            if opt.early_smooth
                 class_sm=(smoothdata(classmm,2,'sgolay',5)-basemm);
                 S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
                 classnn=class_sm./S;
-%             end
+            else
+                classnn=classnnR;
+            end
             if opt.curve && ~opt.rnd_half
                 for typeidx=1:4
                     cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
@@ -315,14 +326,15 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
         
 %         if opt.curve
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
-%             if false
-                SR=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
-                classnnR=(classmm-basemm)./SR;
-%             else
+            SR=max(([classmm(:,1:12);classmm(3:4,13:24)]-basemm),[],'all');% removed abs
+            classnnR=(classmm-basemm)./SR;
+            if opt.early_smooth
                 class_sm=(smoothdata(classmm,2,'sgolay',5)-basemm);
                 S=max(([class_sm(:,1:12);class_sm(3:4,13:24)]),[],'all');% removed abs
                 classnn=class_sm./S;
-%             end
+            else
+                classnn=classnnR;
+            end
             if opt.curve && ~opt.rnd_half
                 for typeidx=1:4
                     cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));

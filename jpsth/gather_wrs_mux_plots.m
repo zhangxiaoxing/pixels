@@ -4,7 +4,7 @@ meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
 
 % map_cells: mixed_map,olf_map,dur_map
@@ -17,10 +17,22 @@ for typeidx=1:3
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
         fcom.(type).collection(:,2));
     [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
-    tcom3_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+    tcom3_maps{typeidx}=containers.Map(...
+        ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
 end
 
 
+tcom6_maps=cell(1,3);
+for typeidx=1:3
+    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
+        com_map,'sel_type',type,'com_field','com6');
+    ureg=intersect(ephys.getGreyRegs('range','grey'),...
+        fcom.(type).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
+    tcom6_maps{typeidx}=containers.Map(...
+        ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+end
 
 if false %mixed 3s and 6s data, obsolete
     tcom_maps=cell(1,3);
@@ -117,7 +129,7 @@ fh=ephys.sust_trans_correct_error(wrs_mux_meta);
 
 
 
-%% TODO wave-half-half
+%% wave-half-half
 if false
     rpt=100;
     com_halfs=cell(rpt,2);
@@ -137,11 +149,13 @@ wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
 stats_half_half_fh=wave.COM_half_half(sens_meta);
 
 
-%%
-fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'sort_by',6,'scale',[0,1]);
-sgtitle(gcf(),'multi, sort by 6s, expanded')
-fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'comb_set',2,'sort_by',6,'scale',[0,1]);
-sgtitle(gcf(),'single-mod, sort by 6s, expanded')
+%% wave 
+for hbound=0.7
+    fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'flex_sort',true,'scale',[0,hbound],'gauss2d',true);
+    sgtitle(gcf(),"multi, 0:"+num2str(hbound));
+    fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'comb_set',2,'flex_sort',true,'scale',[0,hbound],'gauss2d',true);
+    sgtitle(gcf(),"single-mod 0:"+num2str(hbound))
+end
 
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -158,13 +172,18 @@ mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,corr_log_log, ...
 
 
 %% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+if false
 % 3s delay trials and 6s delay trials early 3s
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM','stats_type','wrs-mux','feat_tag',{'Mixed','Olfactory','Duration'});
+end
 % 3s delay trials only
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom3_maps,corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM3','stats_type','wrs-mux3','feat_tag',{'Mixed','Olfactory','Duration'});
 
+% 6s delay trials only
+mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom6_maps,corr_ln_log, ...
+    'range','grey','data_type','wrs-mux-TCOM6','stats_type','wrs-mux6','feat_tag',{'Mixed','Olfactory','Duration'});
 
 
 

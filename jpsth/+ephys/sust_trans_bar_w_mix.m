@@ -1,6 +1,16 @@
-function fh=sust_trans_bar_w_mix(sel_meta)
-meta=ephys.util.load_meta('skip_stats',true);
-
+function fh=sust_trans_bar_w_mix(sel_meta,opt)
+arguments
+    sel_meta
+    opt.exclude_switched (1,1) logical = true
+end
+% meta=ephys.util.load_meta('skip_stats',true);
+if opt.exclude_switched
+    [olf_sw,dur_sw,mux_sw]=ephys.get_switched(sel_meta);
+    sw_sel=olf_sw|dur_sw|mux_sw;
+    sel_meta.wave_id(sw_sel)=-1;
+else
+    [olf_sw,dur_sw,mux_sw]=deal(false);
+end
 % for fn=reshape(fieldnames(sel_meta),1,[])
 %     meta.(fn{1})=sel_meta.(fn{1});
 % end
@@ -74,5 +84,10 @@ errorbar(bh(2).XEndPoints,bh(2).YEndPoints,[trans_olf_ci6(1),trans_mix_ci6(1)]-b
 ylabel('Fraction of all neurons (%)')
 set(gca(),'XTick',1:2,'XTickLabel',{'Olf.','Mixed'},'FontSize',10,'YTick',0:0.05:0.25,'YTickLabel',0:5:25)
 title('Extends to 6s')
+
+disp({'sust','trans','switch','sust6','trans6'})
+disp({"olf",[nnz(sust_olf_sel),nnz(trans_olf_sel),nnz(olf_sw),nnz(sust_olf_sel6),nnz(trans_olf_sel6)]})
+disp({"dur",[nnz(sust_dur_sel),nnz(trans_dur_sel),nnz(dur_sw)]})
+disp({"mix",[nnz(sust_mix_sel),nnz(trans_mix_sel),nnz(mux_sw),nnz(sust_mix_sel6),nnz(trans_mix_sel6)]})
 
 end

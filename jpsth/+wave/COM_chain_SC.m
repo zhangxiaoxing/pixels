@@ -1,11 +1,11 @@
 function COM_chain_SC(opt)
 arguments
-    opt.strict (1,1) logical = true %strict FC criteria
-%     opt.min_diff (1,1)
-    opt.screen (1,1) logical = true
+    opt.strict (1,1) logical = false %strict FC criteria
+    opt.batch (1,1) logical = true
 end
-load('sums_conn.mat','sums_conn_str');
-meta_str=ephys.util.load_meta('type','neupix');
+% load('sums_conn.mat','sums_conn_str');
+[sig,~]=bz.load_sig_sums_conn_file('pair',false);
+meta_str=ephys.util.load_meta('skip_stats',true);
 % warning('partial iteration for illustration')
 figidx=1;
 gk = fspecial('gaussian', [3 3], 1);
@@ -133,7 +133,7 @@ for fidx=1:numel(sums_conn_str)
                         ylabel('Normalized firing rate [0,1]');
                     end
                     sgtitle(sprintf('fidx %d chain %d-%d',fidx,ii,pp));
-                    if opt.screen
+                    if opt.batch
                         exportgraphics(fh,sprintf('SC\\SCB%05d.png',figidx),'Resolution',300);
 %                         keyboard()
                     else
