@@ -124,6 +124,7 @@ else
 end
 fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
 
+%% Figure 2
 fh=ephys.sust_trans_bar_w_mix(wrs_mux_meta);
 fh=ephys.sust_trans_correct_error(wrs_mux_meta);
 

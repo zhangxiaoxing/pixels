@@ -1,10 +1,12 @@
 %idces from hebb_pattern_showcase.m
 if ~exist('rings','var')
-    addpath(fullfile('npy-matlab-master','npy-matlab'))
-    addpath('fieldtrip-20200320')
-    ft_defaults
+
+% integrated import routine      
+%     addpath(fullfile('npy-matlab-master','npy-matlab'))
+%     addpath('fieldtrip-20200320')
+%     ft_defaults
+
     load rings.mat
-    load 114_sorted_file_path.mat
     delay=6;
     if isunix
         cd('~/pixels/jpsth')

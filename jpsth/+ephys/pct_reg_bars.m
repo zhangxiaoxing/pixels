@@ -86,9 +86,16 @@ end
 if strcmp(opt.xyscale{2},'log')
     yydata=log10(yydata);
 end
+
 [r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
 
+coord=[xxdata,yydata];
+coord(:,3)=1;
+regres=coord(:,[1,3])\coord(:,2);
+xx=minmax(xxdata.');
+yy=10.^(xx.*regres(1)+regres(2));
+plot(10.^xx,yy,'--k');
 
 %==============================================================
 nexttile(6);
@@ -113,6 +120,14 @@ end
 [r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
 
+coord=[xxdata,yydata];
+coord(:,3)=1;
+regres=coord(:,[1,3])\coord(:,2);
+xx=minmax(xxdata.');
+yy=10.^(xx.*regres(1)+regres(2));
+plot(10.^xx,yy,'--k');
+
+
 %==============================================================
 nexttile(7);
 hold on
@@ -135,7 +150,12 @@ if strcmp(opt.xyscale{2},'log')
 end
 [r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
-
+coord=[xxdata,yydata];
+coord(:,3)=1;
+regres=coord(:,[1,3])\coord(:,2);
+xx=minmax(xxdata.');
+yy=10.^(xx.*regres(1)+regres(2));
+plot(10.^xx,yy,'--k');
 
 
 %             exportgraphics(fh.corr1,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
