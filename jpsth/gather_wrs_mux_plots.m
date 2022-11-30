@@ -1,4 +1,5 @@
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+keyboard()
 global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
@@ -12,26 +13,26 @@ com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 tcom3_maps=cell(1,3);
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
+    [fcom3.(type).collection,fcom3.(type).com_meta]=wave.per_region_COM(...
         com_map,'sel_type',type,'com_field','com3');
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom.(type).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
+        fcom3.(type).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom3.(type).collection(:,2));
     tcom3_maps{typeidx}=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+        ureg,num2cell(cellfun(@(x) x/4, fcom3.(type).collection(tcidx,1))));
 end
 
 
 tcom6_maps=cell(1,3);
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
+    [fcom6.(type).collection,fcom6.(type).com_meta]=wave.per_region_COM(...
         com_map,'sel_type',type,'com_field','com6');
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom.(type).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
+        fcom6.(type).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom6.(type).collection(:,2));
     tcom6_maps{typeidx}=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
+        ureg,num2cell(cellfun(@(x) x/4, fcom6.(type).collection(tcidx,1))));
 end
 
 if false %mixed 3s and 6s data, obsolete
@@ -124,6 +125,43 @@ else
 end
 fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
 
+%% duration switch trial v continuation trial
+mix4durSWT=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',8,'n_su',50,'switch_trial',true);% dur
+[~,~,pdur]=crosstab((1:2000)>1000,...
+    [mix4durSWT.dur.c_result_50su;mix4durSWT.dur.cs_result_50su]);
+[swmm_dur,swci_dur]=binofit([nnz(mix4durSWT.dur.c_result_50su),nnz(mix4durSWT.dur.cs_result_50su)],...
+    [numel(mix4durSWT.dur.cs_result_50su),numel(mix4durSWT.dur.c_result_50su)]);
+
+mix2olfSWT=pct.pct_decoding_correct_error(wrs_mux_meta,5:6,'lblidx',5,'n_su',50,'switch_trial',true);% dur
+[~,~,polf]=crosstab((1:2000)>1000,...
+    [mix2olfSWT.olf.c_result_50su;mix2olfSWT.olf.cs_result_50su]);
+[swmm_olf,swci_olf]=binofit([nnz(mix2olfSWT.olf.c_result_50su),nnz(mix2olfSWT.olf.cs_result_50su)],...
+    [numel(mix2olfSWT.olf.cs_result_50su),numel(mix2olfSWT.olf.c_result_50su)]);
+
+% % dur4durSWT=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',8,'n_su',50,'switch_trial',true);% dur
+% [~,~,pdur]=crosstab((1:2000)>1000,...
+%     [dur4durSWT.dur.c_result_50su;dur4durSWT.dur.cs_result_50su]);
+
+figure()
+hold on
+bh=bar([swmm_olf;swmm_dur]);
+errorbar([bh.XEndPoints],[bh.YEndPoints],...
+    [swci_olf(1,1),swci_dur(1,1),swci_olf(2,1),swci_dur(2,1)]-[bh.YEndPoints],...
+    [swci_olf(1,2),swci_dur(1,2),swci_olf(2,2),swci_dur(2,2)]-[bh.YEndPoints],'k.')
+bh(1).FaceColor='w';
+bh(2).FaceColor='k';
+
+ylim([0.5,1])
+
+set(gca(),'XTick',1:2,'XTickLabel',{'Olf.','Dur.'},'YTick',0.5:0.25:1,'YTickLabel',50:25:100)
+legend(bh,{'Continuing trials','Switch trials'})
+ylabel('Classification accuracy')
+
+title(sprintf('w/o mix, %.3f, %.3f',polf,pdur))
+
+%<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
 %% Figure 2
 fh=ephys.sust_trans_bar_w_mix(wrs_mux_meta);
 fh=ephys.sust_trans_correct_error(wrs_mux_meta);
@@ -202,23 +240,33 @@ dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom3_maps(3),corr_ln_log, .
 % 
 
 %% TCOM and proportion correlation
-pct_tcom_fh=struct();
+pct_tcom_fh3=struct();
+pct_tcom_fh6=struct();
 for typeidx=1:3
     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    conn_reg=subsref(["EPd","AON","SS"],struct(type='()',subs={{typeidx}}));
+    conn_reg=subsref(["AON","AON","PIR"],struct(type='()',subs={{typeidx}}));
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom.(type).collection(:,2));
+        fcom3.(type).collection(:,2));
     ffrac.collection=...
         [num2cell(cellfun(@(x) x(1),map_cells{typeidx}.values(ureg))),...
         ureg,...
         num2cell(ones(numel(ureg),1)*5),...
         num2cell(cellfun(@(x) x(3),map_cells{typeidx}.values(ureg)))];
 
-    [pct_tcom_fh,t]=wave.per_region_COM_frac(...
-        fcom.(type),ffrac,...
+    [pct_tcom_fh3,t3]=wave.per_region_COM_frac(...
+        fcom3.(type),ffrac,...
         'hier_reg',conn_reg,...
         'corr',gather_config.corr_type,...
         'sel_type',type);
+    sgtitle(pct_tcom_fh3,type+" 3sec")
+    
+    [pct_tcom_fh6,t6]=wave.per_region_COM_frac(...
+        fcom6.(type),ffrac,...
+        'hier_reg',conn_reg,...
+        'corr',gather_config.corr_type,...
+        'sel_type',type);
+    sgtitle(pct_tcom_fh6,type+" 6sec")
+
 end
 
 
@@ -247,8 +295,10 @@ fh4.fig.Children.Subtitle.String='Excitatory';
 fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
 fh4i.fig.Children.Subtitle.String='Inhibitory';
 bz.conn_prob_spatial_dist(sig,pair);
-%% TODO: FC_Decoding
-% K:\code\jpsth\+bz\+fccoding\plot_coding.m
+%% FC_Decoding
+% bz.fccoding.plot_coding(wrs_mux_meta)
+bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
+bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
 
 %% FC_TCOM_hierachy
 % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');

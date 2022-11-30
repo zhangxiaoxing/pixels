@@ -2,10 +2,11 @@ function [metas,stats]=get_fc_coding(sel_meta,opt)
 arguments
     sel_meta
     opt.shuffle (1,1) logical = false
-    opt.type (1,:) char {mustBeMember(opt.type,{'olf','dur','mix'})} = 'olf'
+    opt.type (1,:) char {mustBeMember(opt.type,{'olf','dur'})} = 'olf'
     opt.correct_trials (1,1) double = 20
     opt.error_trials (1,1) double = 2
     opt.force_update (1,1) logical = true
+    opt.incong (1,1) logical = false
 end
 persistent metas_ stats_ opt_
 
@@ -24,20 +25,29 @@ if isempty(metas_) || isempty(stats_) || ~isequaln(opt_,opt) || opt.force_update
         sess=fstr.onesess.fidx;
         sesssel=sig.sess==sess;
         waveids=sig.waveid(sesssel,:);
-        congrusel=pct.su_pairs.get_congru(waveids); %TODO incongruent
 
         regs=squeeze(sig.reg(sesssel,5,:));
         %         roots=squeeze(sig.reg(sesssel,1,:));
         %
         switch opt.type
             case 'olf'
-                fcIdces=find(congrusel & all(ismember(waveids,1:6),2));
+                if opt.incong
+                    fcIdces=find(pct.su_pairs.get_incongru(waveids)); 
+                else
+                    congrusel=pct.su_pairs.get_congru(waveids); 
+                    fcIdces=find(congrusel & all(ismember(waveids,1:6),2));
+                end
                 lbl1sel=fstr.onesess.trials(:,5)==4 & ismember(fstr.onesess.trials(:,8),[3 6]) & all(fstr.onesess.trials(:,9:10),2);
                 lbl2sel=fstr.onesess.trials(:,5)==8 & ismember(fstr.onesess.trials(:,8),[3 6]) & all(fstr.onesess.trials(:,9:10),2);
                 e1sel=fstr.onesess.trials(:,5)==4 & ismember(fstr.onesess.trials(:,8),[3 6]) & fstr.onesess.trials(:,10)==0;
                 e2sel=fstr.onesess.trials(:,5)==8 & ismember(fstr.onesess.trials(:,8),[3 6]) & fstr.onesess.trials(:,10)==0;
             case 'dur'
-                fcIdces=find(congrusel & all(ismember(waveids,[1:4,7:8]),2));
+                if opt.incong
+                    fcIdces=find(pct.su_pairs.get_incongru(waveids));
+                else
+                    congrusel=pct.su_pairs.get_congru(waveids);
+                    fcIdces=find(congrusel & all(ismember(waveids,[1:4,7:8]),2));
+                end
                 lbl1sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==3 & all(fstr.onesess.trials(:,9:10),2);
                 lbl2sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==6 & all(fstr.onesess.trials(:,9:10),2);
                 e1sel=ismember(fstr.onesess.trials(:,5),[4 8]) & fstr.onesess.trials(:,8)==3 & fstr.onesess.trials(:,10)==0;

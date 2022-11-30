@@ -7,6 +7,8 @@ arguments
     opt.plot_coding_idx_shuf (1,1) logical = false
     opt.plot_svm (1,1) logical = true
     opt.wave_dir (1,1) logical = false
+    opt.dtype (1,:) char {mustBeMember(opt.dtype,{'olf','dur'})} ='olf'
+    opt.nrpt (1,1) double = 100
 end
 
 % [~,~,ratiomap]=ref.get_pv_sst();
@@ -17,26 +19,30 @@ idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 % congru, incongru, nonmem
 
 if opt.plot_svm
-    dtype='olf';
+    dtype=opt.dtype;
     nfc_grp=[10 50 100 250 500 750 1000];
 
     NTRIAL=20;
     NERR=2;
-    NRPT=100;
+    NRPT=opt.nrpt;
     dec_result=struct();
     % resample trials
     stats_all=cell(1,NRPT/5);
     for ii=1:NRPT/5
         [~,stats_all{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype); % olfactory duration mix
-        % TODO normalize
+        [~,stats_incong{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype,'incong',true); % olfactory duration mix
+        
     end
     S=max(cell2mat(cellfun(@(x) max([x.lbl1;x.lbl2]).',stats_all,'UniformOutput',false)),[],2).';
     S(S==0)=1;
 
+    Sinc=max(cell2mat(cellfun(@(x) max([x.lbl1;x.lbl2]).',stats_incong,'UniformOutput',false)),[],2).';
+    Sinc(Sinc==0)=1;
+
 
     for N_pair=nfc_grp
-        [decdata.s1,decdata.s2]=deal(nan(N_pair,NTRIAL,1,NRPT));
-        [decdata.e1,decdata.e2]=deal(nan(N_pair,NERR,1,NRPT));
+        [decdata.s1,decdata.s2,incongdata.s1,incongdata.s2]=deal(nan(N_pair,NTRIAL,1,NRPT));
+        [decdata.e1,decdata.e2,incongdata.e1,incongdata.e2]=deal(nan(N_pair,NERR,1,NRPT));
 %             result=cell(1,3);
         % congru, incong, nonmem
         % TODO wave direction
@@ -47,18 +53,28 @@ if opt.plot_svm
         for rpt=1:NRPT
             ridx=ceil(rpt/5);
             stats=stats_all{ridx};
+            incong=stats_incong{ridx};
             for ff=reshape(fieldnames(stats),1,[])
                 stats.(char(ff))=stats.(char(ff))./repmat(S,size(stats.(char(ff)),1),1);
+                incong.(char(ff))=incong.(char(ff))./repmat(Sinc,size(incong.(char(ff)),1),1);
             end
             fc_perm=randsample(size(stats.lbl1,2),N_pair);
             decdata.s1(:,:,1,rpt)=stats.lbl1(:,fc_perm).';
             decdata.s2(:,:,1,rpt)=stats.lbl2(:,fc_perm).';
             decdata.e1(:,:,1,rpt)=stats.e1(:,fc_perm).';
             decdata.e2(:,:,1,rpt)=stats.e2(:,fc_perm).';
+
+            fc_perm=randsample(size(incong.lbl1,2),N_pair);
+            incongdata.s1(:,:,1,rpt)=incong.lbl1(:,fc_perm).';
+            incongdata.s2(:,:,1,rpt)=incong.lbl2(:,fc_perm).';
+            incongdata.e1(:,:,1,rpt)=incong.e1(:,fc_perm).';
+            incongdata.e2(:,:,1,rpt)=incong.e2(:,fc_perm).';
         end
         result=fc.dec.dec(decdata,'decoder','SVM','svmcost',1);
+        inc_result=fc.dec.dec(incongdata,'decoder','SVM','svmcost',1);
         %         end % TODO multiple pair types
         dec_result.(sprintf('FC%d',N_pair))=result;
+        incong_result.(sprintf('FC%d',N_pair))=inc_result;
     end
 
 
@@ -79,6 +95,13 @@ if opt.plot_svm
     [mm,cim]=binofit(sum(cvmat),repmat(size(cvmat,1),1,size(cvmat,2)));
     phc=plot(nfc_grp,mm,'-r');
     fill([nfc_grp,fliplr(nfc_grp)],[cim(:,1);flip(cim(:,2))],'r','EdgeColor','none','FaceAlpha',0.1);
+
+    % incongru
+    cvmat=cell2mat(arrayfun(@(x) incong_result.(sprintf('FC%d',x)).cvcorr{1},nfc_grp,'UniformOutput',false));
+    [mm,cim]=binofit(sum(cvmat),repmat(size(cvmat,1),1,size(cvmat,2)));
+    phi=plot(nfc_grp,mm,'-m');
+    fill([nfc_grp,fliplr(nfc_grp)],[cim(:,1);flip(cim(:,2))],'m','EdgeColor','none','FaceAlpha',0.1);
+
 
     ylabel('Classification accuracy');
     xlabel('Number of FC pairs');

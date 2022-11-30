@@ -58,14 +58,16 @@ if opt.frac_COM
         end
     end
     coord(:,3)=1;
-    regres=coord(:,[1,3])\coord(:,2);
-    plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     xlabel(sprintf('Regional proportion of %s neuron',opt.sel_type));
     ylabel('Regional averaged TCOM (s)')
     if strcmp(opt.corr,'Pearson') && strcmp(opt.density_scale,'log')
         vsel=coord(:,1)>0;
         [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type',opt.corr);
+        regres=[log10(coord(:,1)),coord(:,3)]\coord(:,2);
+        plot(xlim(),log10(xlim()).*regres(1)+regres(2),'--k');
     else
+        regres=coord(:,[1,3])\coord(:,2);
+        plot(xlim(),xlim().*regres(1)+regres(2),'--k');
         [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
     end
     set(gca(),'XScale',opt.density_scale);
@@ -107,7 +109,7 @@ if opt.COM_PVSST
 %         xlim([1.4,2.0]);
 %         set(gca(),'XTick',1.2:0.2:2.0);
 %     end
-%     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
+    plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     
     xlabel('PV/(PV+SST) interneuron ratio')
     ylabel('Regional averaged TCOM (s)')
@@ -149,7 +151,6 @@ if opt.COM_hieridx
     ylabel('Regional averaged TCOM (s)')
 
     coord(:,3)=1;
-    regres=coord(:,[1,3])\coord(:,2);
 %     if opt.delay==6
 %         ylim([2.4,3.3]);
 %         set(gca(),'YTick',2.5:0.5:3.5);
@@ -157,22 +158,33 @@ if opt.COM_hieridx
 %         ylim([1.4,2.0]);
 %         set(gca(),'YTick',1.2:0.2:2.0);
 %     end
-%     plot(xlim(),xlim().*regres(1)+regres(2),'--k');
 
     set(gca(),'XScale','log')
 %     xlim([-7,7])
     if strcmp(opt.corr,'Pearson')
         vsel=coord(:,1)>0;
-        [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type',opt.corr);
+        [r,p]=corr(log10(coord(vsel,1)),coord(vsel,2),'type','Pearson');
+        regres=[log10(coord(:,1)),coord(:,3)]\coord(:,2);
+        plot(minmax(coord(:,1).'),log10(minmax(coord(:,1).')).*regres(1)+regres(2),'--k');
+
+%         tt=[log10(coord(:,1)),coord(:,2),coord(:,3)];
+%         figure()
+%         hold on
+%         scatter(tt(:,1),tt(:,2))
+%         regres=tt(:,[1,3])\tt(:,2);
+% %         polyfit(tt(:,1),tt(:,2),1)
+%         set(gca(),'XScale','linear','YScale','linear')
+%         plot(minmax(tt(:,1).'),minmax(tt(:,1).')*regres(1)+regres(2),'--k')
+
     else
         [r,p]=corr(coord(:,1),coord(:,2),'type',opt.corr);
+        regres=coord(:,[1,3])\coord(:,2);
+        plot(xlim(),xlim().*regres(1)+regres(2),'--k');
     end
     text(max(xlim()),max(ylim()),sprintf('r = %.3f, p = %.3f',r,p),'HorizontalAlignment','right','VerticalAlignment','top');
     if opt.export
         exportgraphics(fh,sprintf('per_region_COM_SMI_%s.pdf',opt.sel_type));
     end
-
-
 end
 
 
