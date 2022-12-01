@@ -126,38 +126,8 @@ end
 fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
 
 %% duration switch trial v continuation trial
-mix4durSWT=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',8,'n_su',50,'switch_trial',true);% dur
-[~,~,pdur]=crosstab((1:2000)>1000,...
-    [mix4durSWT.dur.c_result_50su;mix4durSWT.dur.cs_result_50su]);
-[swmm_dur,swci_dur]=binofit([nnz(mix4durSWT.dur.c_result_50su),nnz(mix4durSWT.dur.cs_result_50su)],...
-    [numel(mix4durSWT.dur.cs_result_50su),numel(mix4durSWT.dur.c_result_50su)]);
-
-mix2olfSWT=pct.pct_decoding_correct_error(wrs_mux_meta,5:6,'lblidx',5,'n_su',50,'switch_trial',true);% dur
-[~,~,polf]=crosstab((1:2000)>1000,...
-    [mix2olfSWT.olf.c_result_50su;mix2olfSWT.olf.cs_result_50su]);
-[swmm_olf,swci_olf]=binofit([nnz(mix2olfSWT.olf.c_result_50su),nnz(mix2olfSWT.olf.cs_result_50su)],...
-    [numel(mix2olfSWT.olf.cs_result_50su),numel(mix2olfSWT.olf.c_result_50su)]);
-
-% % dur4durSWT=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',8,'n_su',50,'switch_trial',true);% dur
-% [~,~,pdur]=crosstab((1:2000)>1000,...
-%     [dur4durSWT.dur.c_result_50su;dur4durSWT.dur.cs_result_50su]);
-
-figure()
-hold on
-bh=bar([swmm_olf;swmm_dur]);
-errorbar([bh.XEndPoints],[bh.YEndPoints],...
-    [swci_olf(1,1),swci_dur(1,1),swci_olf(2,1),swci_dur(2,1)]-[bh.YEndPoints],...
-    [swci_olf(1,2),swci_dur(1,2),swci_olf(2,2),swci_dur(2,2)]-[bh.YEndPoints],'k.')
-bh(1).FaceColor='w';
-bh(2).FaceColor='k';
-
-ylim([0.5,1])
-
-set(gca(),'XTick',1:2,'XTickLabel',{'Olf.','Dur.'},'YTick',0.5:0.25:1,'YTickLabel',50:25:100)
-legend(bh,{'Continuing trials','Switch trials'})
-ylabel('Classification accuracy')
-
-title(sprintf('w/o mix, %.3f, %.3f',polf,pdur))
+ephys.plot_switch_cont_decoding(wrs_mux_meta,"merge_both",true)
+ephys.plot_switch_cont_decoding(wrs_mux_meta,"merge_both",false)
 
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -275,19 +245,20 @@ end
 %% TODO: COM_CHAIN
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
-[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
 
-inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
-
-bz.inter_wave_ext_bars()
 %% FIG 3 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-
+% [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+% fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
+if false
+    inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
+    %skipped for current manuscript
+end
+% bz.inter_wave_ext_bars()
 
 % separate wave timing cdf
-wave.mix_single_wave_timing
+% wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(wrs_mux_meta);
@@ -295,10 +266,8 @@ fh4.fig.Children.Subtitle.String='Excitatory';
 fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
 fh4i.fig.Children.Subtitle.String='Inhibitory';
 bz.conn_prob_spatial_dist(sig,pair);
-%% FC_Decoding
-% bz.fccoding.plot_coding(wrs_mux_meta)
-bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
-bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
+%% TODO: FC_Decoding
+% K:\code\jpsth\+bz\+fccoding\plot_coding.m
 
 %% FC_TCOM_hierachy
 % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
