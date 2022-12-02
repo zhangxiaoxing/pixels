@@ -51,58 +51,72 @@ pair_diff_reg_sel=all(ismember(pair.reg(:,1,:),[343,567]),3) ...
 
 %% congru to, congru from, incongru to, incongru from.
 stay_samereg=[nnz(sig_same_reg_sel & sig.waveid(:,1)==15 & sig.waveid(:,2)==15),nnz(pair_same_reg_sel &pair.waveid(:,1)==15 & pair.waveid(:,2)==15);...
-nnz(sig_same_reg_sel & sig.waveid(:,1)==16 & sig.waveid(:,2)==16),nnz(pair_same_reg_sel &pair.waveid(:,1)==16 & pair.waveid(:,2)==16)];
+    nnz(sig_same_reg_sel & sig.waveid(:,1)==16 & sig.waveid(:,2)==16),nnz(pair_same_reg_sel &pair.waveid(:,1)==16 & pair.waveid(:,2)==16)];
 
 disapp_samereg=[nnz(sig_same_reg_sel & sig.waveid(:,1)==25 & sig.waveid(:,2)==25),nnz(pair_same_reg_sel &pair.waveid(:,1)==25 & pair.waveid(:,2)==25);...
-nnz(sig_same_reg_sel & sig.waveid(:,1)==26 & sig.waveid(:,2)==26),nnz(pair_same_reg_sel &pair.waveid(:,1)==26 & pair.waveid(:,2)==26)];
+    nnz(sig_same_reg_sel & sig.waveid(:,1)==26 & sig.waveid(:,2)==26),nnz(pair_same_reg_sel &pair.waveid(:,1)==26 & pair.waveid(:,2)==26)];
 
-[cong_same_hat,cong_same_ci]=binofit(sum(stay_samereg(:,1)),sum(stay_samereg(:,2)))
+[stay_same_hat,stay_same_ci]=binofit(sum(stay_samereg(:,1)),sum(stay_samereg(:,2)))
 [disapp_same_hat,disapp_same_ci]=binofit(sum(disapp_samereg(:,1)),sum(disapp_samereg(:,2)))
 
 [~,~,psame]=crosstab([zeros(sum(stay_samereg(:,2)),1);ones(sum(disapp_samereg(:,2)),1)],...
     [1:sum(stay_samereg(:,2))>sum(stay_samereg(:,1)),1:sum(disapp_samereg(:,2))>sum(disapp_samereg(:,1))])
-%========================
+
+% ========================
+
 stay_diffreg=[nnz(sig_diff_reg_sel & sig.waveid(:,1)==15 & sig.waveid(:,2)==15),nnz(pair_diff_reg_sel &pair.waveid(:,1)==15 & pair.waveid(:,2)==15);...
-nnz(sig_diff_reg_sel & sig.waveid(:,1)==16 & sig.waveid(:,2)==16),nnz(pair_diff_reg_sel &pair.waveid(:,1)==16 & pair.waveid(:,2)==16)];
+    nnz(sig_diff_reg_sel & sig.waveid(:,1)==16 & sig.waveid(:,2)==16),nnz(pair_diff_reg_sel &pair.waveid(:,1)==16 & pair.waveid(:,2)==16)];
 
 disapp_diffreg=[nnz(sig_diff_reg_sel & sig.waveid(:,1)==25 & sig.waveid(:,2)==25),nnz(pair_diff_reg_sel &pair.waveid(:,1)==25 & pair.waveid(:,2)==25);...
-nnz(sig_diff_reg_sel & sig.waveid(:,1)==26 & sig.waveid(:,2)==26),nnz(pair_diff_reg_sel &pair.waveid(:,1)==26 & pair.waveid(:,2)==26)];
+    nnz(sig_diff_reg_sel & sig.waveid(:,1)==26 & sig.waveid(:,2)==26),nnz(pair_diff_reg_sel &pair.waveid(:,1)==26 & pair.waveid(:,2)==26)];
 
-[cong_diff_hat,cong_diff_ci]=binofit(sum(stay_diffreg(:,1)),sum(stay_diffreg(:,2)))
+[stay_diff_hat,stay_diff_ci]=binofit(sum(stay_diffreg(:,1)),sum(stay_diffreg(:,2)))
 [disapp_diff_hat,disapp_diff_ci]=binofit(sum(disapp_diffreg(:,1)),sum(disapp_diffreg(:,2)))
 
 [~,~,pdiff]=crosstab([zeros(sum(stay_diffreg(:,2)),1);ones(sum(disapp_diffreg(:,2)),1)],...
     [1:sum(stay_diffreg(:,2))>sum(stay_diffreg(:,1)),1:sum(disapp_diffreg(:,2))>sum(disapp_diffreg(:,1))])
 
+% ==============================
+figure()
+hold on
+bh=bar([stay_same_hat,disapp_same_hat;stay_diff_hat,disapp_diff_hat]);
+bh(1).FaceColor='w';
+bh(2).FaceColor='k';
+errorbar([bh.XEndPoints],[bh.YEndPoints],...
+    [stay_same_ci(1),stay_diff_ci(1),disapp_same_ci(1),disapp_diff_ci(1)]-[bh.YEndPoints],...
+    [stay_same_ci(2),stay_diff_ci(2),disapp_same_ci(2),disapp_diff_ci(2)]-[bh.YEndPoints],'k.')
+set(gca(),'XTick',1:2,'XTickLabel',{'Same reg.','Cross reg.'},'YTick',0:0.01:0.03,'YTickLabel',0:1:3)
+legend(bh,{'Wave-stay','Wave-disappear'});
+ylabel('FC rate (%)')
+title(sprintf('%.3f, %.3f',psame,pdiff));
 
-%<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-% merge all odor neuron
-% from; to;
+if false
+    %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    % merge all odor neuron
+    % from; to;
 
-stay_samereg=[nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==15),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==15);...
-nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==16),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==16)];
+    stay_samereg=[nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==15),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==15);...
+        nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==16),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==16)];
 
-disapp_samereg=[nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==25),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==25);...
-nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==26),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==26)];
+    disapp_samereg=[nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==25),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==25);...
+        nnz(sig_same_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==26),nnz(pair_same_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==26)];
 
-[cong_same_hat,cong_same_ci]=binofit(sum(stay_samereg(:,1)),sum(stay_samereg(:,2)))
-[disapp_same_hat,disapp_same_ci]=binofit(sum(disapp_samereg(:,1)),sum(disapp_samereg(:,2)))
+    [cong_same_hat,cong_same_ci]=binofit(sum(stay_samereg(:,1)),sum(stay_samereg(:,2)))
+    [disapp_same_hat,disapp_same_ci]=binofit(sum(disapp_samereg(:,1)),sum(disapp_samereg(:,2)))
 
-[~,~,psame]=crosstab([zeros(sum(stay_samereg(:,2)),1);ones(sum(disapp_samereg(:,2)),1)],...
-    [1:sum(stay_samereg(:,2))>sum(stay_samereg(:,1)),1:sum(disapp_samereg(:,2))>sum(disapp_samereg(:,1))])
-%========================
-stay_diffreg=[nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==15),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==15);...
-nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==16),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==16)];
+    [~,~,psame]=crosstab([zeros(sum(stay_samereg(:,2)),1);ones(sum(disapp_samereg(:,2)),1)],...
+        [1:sum(stay_samereg(:,2))>sum(stay_samereg(:,1)),1:sum(disapp_samereg(:,2))>sum(disapp_samereg(:,1))])
+    %========================
+    stay_diffreg=[nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==15),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==15);...
+        nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==16),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==16)];
 
-disapp_diffreg=[nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==25),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==25);...
-nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==26),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==26)];
+    disapp_diffreg=[nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==5 & sig.waveid(:,2)==25),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==5 & pair.waveid(:,2)==25);...
+        nnz(sig_diff_reg_sel & sig_generic.waveid(:,1)==6 & sig.waveid(:,2)==26),nnz(pair_diff_reg_sel &pair_generic.waveid(:,1)==6 & pair.waveid(:,2)==26)];
 
-[cong_diff_hat,cong_diff_ci]=binofit(sum(stay_diffreg(:,1)),sum(stay_diffreg(:,2)))
-[disapp_diff_hat,disapp_diff_ci]=binofit(sum(disapp_diffreg(:,1)),sum(disapp_diffreg(:,2)))
+    [stay_diff_hat,stay_diff_ci]=binofit(sum(stay_diffreg(:,1)),sum(stay_diffreg(:,2)))
+    [disapp_diff_hat,disapp_diff_ci]=binofit(sum(disapp_diffreg(:,1)),sum(disapp_diffreg(:,2)))
 
-[~,~,pdiff]=crosstab([zeros(sum(stay_diffreg(:,2)),1);ones(sum(disapp_diffreg(:,2)),1)],...
-    [1:sum(stay_diffreg(:,2))>sum(stay_diffreg(:,1)),1:sum(disapp_diffreg(:,2))>sum(disapp_diffreg(:,1))])
-
-
-
+    [~,~,pdiff]=crosstab([zeros(sum(stay_diffreg(:,2)),1);ones(sum(disapp_diffreg(:,2)),1)],...
+        [1:sum(stay_diffreg(:,2))>sum(stay_diffreg(:,1)),1:sum(disapp_diffreg(:,2))>sum(disapp_diffreg(:,1))])
+end
 

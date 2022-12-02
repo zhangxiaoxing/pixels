@@ -251,6 +251,9 @@ end
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 % fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
+
+fc.wave_stay_disappear(wrs_mux_meta)
+
 if false
     inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
     %skipped for current manuscript

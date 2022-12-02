@@ -1,3 +1,5 @@
+% fork and join method to run freq stats on all rings
+
 load(fullfile('bzdata','rings_bz.mat'),'rings');
 cnt=0;
 for sid=1:size(rings,1)

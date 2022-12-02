@@ -1,3 +1,7 @@
+% The distinction between the original shuffle approach and this one is
+% whether or not the FC rate difference of memory and non-memory neurons
+% should be taken into account. 
+
 function shufs=shuffle_conn_bz_alt(opt)
 arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive} = 2

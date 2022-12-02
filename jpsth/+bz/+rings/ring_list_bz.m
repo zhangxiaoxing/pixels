@@ -1,3 +1,5 @@
+% This method will generate a list that contains cyclic FCs. Regardless of
+% how frequently the associated structure appears in actual recordings. 
 function rings=ring_list_bz(opt)
 arguments
     opt.shufid {mustBeScalarOrEmpty} =[]
