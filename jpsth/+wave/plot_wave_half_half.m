@@ -58,7 +58,7 @@ end
 function fh=plot_multi(immata,immatb,immat_anti,TCOMa,TCOMb)
 [sortedTCOM,sortidx]=sort(TCOMa);
 normscale=max(abs([immata,immatb,immat_anti]),2);
-fh=figure('Color','w','Position',[32,32,1080,140]);
+fh=figure('Color','w','Position',[32,32,1000,150]);
 plotOne(1,immata(sortidx,:)./normscale(sortidx).',sortedTCOM);
 plotOne(2,immatb(sortidx,:)./normscale(sortidx).',TCOMb(sortidx));
 shufidx=randsample(size(immatb,1),size(immatb,1));
@@ -68,12 +68,12 @@ end
 function plotOne(subidx,imdata,comdata)
 subplot(1,4,subidx);
 hold on
-% colormap('turbo');
-colormap('gray');
+colormap('turbo');
+% colormap('gray');
 gk = fspecial('gaussian', [3 3], 1);
 imagesc(conv2(imdata,gk,'same'),[0 1])
 if exist('comdata','var') && ~isempty(comdata)
-    scatter(comdata,1:numel(comdata),4,'o','MarkerFaceColor','r','MarkerFaceAlpha',0.5,'MarkerEdgeColor','none');
+    scatter(comdata,1:numel(comdata),4,'o','MarkerFaceColor','k','MarkerFaceAlpha',1,'MarkerEdgeColor','w');
 end
 set(gca(),'XTick',[0.5,20.5],'XTickLabel',[0,5]);
 colorbar();
