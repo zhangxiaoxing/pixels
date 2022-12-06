@@ -1,3 +1,5 @@
+% The preferred shuffle method as of 2022.12.05
+
 % The distinction between the original shuffle approach and this one is
 % whether or not the FC rate difference of memory and non-memory neurons
 % should be taken into account. 
@@ -12,7 +14,11 @@ shufs=cell(opt.rpt,1);
 parfor rpt=1:opt.rpt
     shufs{rpt}=shuffle_conn_onerpt(rpt);
 end
-save('bz_ring_shufs.mat','shufs')
+blame=vcs.blame();
+blame.author_tag=['shuffled （structural) connection data for further loop analysis,' ...
+    ' Not distinguishing F.C. rate between memory and non-memory neurons' ...
+    ' and brain areas '];
+save('bz_ring_shufs.mat','shufs','blame')
 end
 
 function shuf=shuffle_conn_onerpt(rptid,opt)
@@ -26,10 +32,11 @@ end
 shuf=struct();
 shuf_list=[];
 % cnt=[];
-[sig,pair]=bz.load_sig_pair('pair',true);
+global_init;
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 
-sig_reg_sel=all(squeeze(sig.reg(:,2,:)==688),2);
-pair_reg_sel=all(squeeze(pair.reg(:,2,:)==688),2) & pair.suid(:,1)<pair.suid(:,2);
+sig_reg_sel=all(ismember(sig.reg(:,1,:),[343,567]),3);
+pair_reg_sel=all(ismember(pair.reg(:,1,:),[343,567]),3);
 
 usess=unique(sig.sess);
 %per session
@@ -44,12 +51,12 @@ for si=1:numel(usess)
     shuf_list=[shuf_list;randsample(find(pair_curr_sel),curr_cnt)];
 end
 
-for fi=["suid","sess","mem_type"]
+for fi=["suid","sess"]
     shuf.(fi)=pair.(fi)(shuf_list,:);
 end
 shuf.reg=pair.reg(shuf_list,:,:);
+% random switch direction
 toswitch=randsample(numel(shuf_list),floor(numel(shuf_list)./2));
 shuf.suid(toswitch,:)=shuf.suid(toswitch,[2,1]);
-shuf.mem_type(toswitch,:)=shuf.mem_type(toswitch,[2,1]);
 shuf.reg(toswitch,:,:)=shuf.reg(toswitch,:,[2,1]);
 end

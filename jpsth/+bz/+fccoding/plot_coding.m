@@ -20,7 +20,7 @@ idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
 if opt.plot_svm
     dtype=opt.dtype;
-    nfc_grp=[10 50 100 250 500 750 1000];
+    nfc_grp=[10 50 100 200 300 400 500];
 
     NTRIAL=20;
     NERR=2;
@@ -77,6 +77,8 @@ if opt.plot_svm
         incong_result.(sprintf('FC%d',N_pair))=inc_result;
     end
 
+    assignin('base','dec_result',dec_result)
+    warning('decoding data variable dec_result exported to base work space')
 
     fh=figure('Color','w','Position',[100,100,235,235]);
     hold on;
@@ -103,10 +105,12 @@ if opt.plot_svm
     fill([nfc_grp,fliplr(nfc_grp)],[cim(:,1);flip(cim(:,2))],'m','EdgeColor','none','FaceAlpha',0.1);
 
 
-    ylabel('Classification accuracy');
+    ylabel('Classification accuracy (%)');
     xlabel('Number of FC pairs');
     title(dtype)
     ylim([0.4,1])
+    xlim([0,500])
+    set(gca(),'YTick',0.5:0.25:1,'YTickLabel',50:25:100)
 
 
 end
