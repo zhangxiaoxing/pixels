@@ -9,7 +9,7 @@ arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive} = 2
     opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 2
 end
-parpool(opt.poolsize)
+poolo=parpool(opt.poolsize);
 shufs=cell(opt.rpt,1);
 parfor rpt=1:opt.rpt
     shufs{rpt}=shuffle_conn_onerpt(rpt);
@@ -19,6 +19,7 @@ blame.author_tag=['shuffled （structural) connection data for further loop anal
     ' Not distinguishing F.C. rate between memory and non-memory neurons' ...
     ' and brain areas '];
 save('bz_ring_shufs.mat','shufs','blame')
+delete(poolo);
 end
 
 function shuf=shuffle_conn_onerpt(rptid,opt)

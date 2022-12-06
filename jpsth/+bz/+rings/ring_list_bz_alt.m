@@ -1,28 +1,33 @@
-function rings=ring_list_bz_alt(opt)
+function out=ring_list_bz_alt(opt)
 arguments
-    opt.shuf (1,1) logical = false
     opt.poolsize (1,1) double = 2
 end
-%bzthres=250;  %TODO filter by spike number % not really necessary when using full-length data
+    [sig,~]=bz.load_sig_sums_conn_file('pair',false);
+    sig_reg_sel=all(ismember(sig.reg(:,1,:),[343,567]),3);
 
-if ~opt.shuf
-    [sig,~]=bz.load_sig_pair();
+    sig.sess=sig.sess(sig_reg_sel);
+    sig.reg=sig.reg(sig_reg_sel,:,:);
+    sig.suid=sig.suid(sig_reg_sel,:);
     rings=onerpt(sig);
-    fname='rings_bz.mat';
-    save(fullfile('bzdata',fname),'rings');
-else
+
     load('bz_ring_shufs.mat','shufs')
     rings_shuf=cell(size(shufs,1),1);
-    parpool(opt.poolsize);
-    parfor rpt=1:size(shufs,1)
+    poolo=parpool(opt.poolsize);
+    parfor rpt=1:2%size(shufs,1)
         fprintf('Shuf %d\n',rpt);
         rings_shuf{rpt}=onerpt(shufs{rpt});
     end
-    fname='rings_bz_shuf.mat';
-    save(fullfile('bzdata',fname),'rings_shuf');
-end
+    blame=vcs.blame();
+    blame.tag='ring count actual vs shuffle';
+    fname='rings_bz_vs_shuf.mat';
+    save(fullfile('bzdata',fname),'rings_shuf','rings','blame');
+    delete(poolo);
+    out=struct();
+    out.rings=rings;
+    out.rings_shuf=rings_shuf;
 end
 function rings=onerpt(sig)
+
 rings=cell(max(sig.sess),3);
 for sess=1:max(sig.sess)
     disp(sess);
