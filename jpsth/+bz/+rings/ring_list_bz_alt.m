@@ -1,3 +1,5 @@
+% Preferred method as of 22.12.06
+
 function out=ring_list_bz_alt(opt)
 arguments
     opt.poolsize (1,1) double = 2
@@ -13,7 +15,7 @@ end
     load('bz_ring_shufs.mat','shufs')
     rings_shuf=cell(size(shufs,1),1);
     poolo=parpool(opt.poolsize);
-    parfor rpt=1:2%size(shufs,1)
+    parfor rpt=1:size(shufs,1)
         fprintf('Shuf %d\n',rpt);
         rings_shuf{rpt}=onerpt(shufs{rpt});
     end

@@ -1,3 +1,4 @@
+% deprecated as of 22.12.05
 % 3onlyS1:1,3onlyS2:2,6onlyS1:3,6onlyS2:4,bothS1:5,bothS2:6,nonmem:0,switch,etc:-1,
 % require early and 6_late_half:-2
 function out=get_wave_id(meta,opt)

@@ -62,7 +62,7 @@ for rsize=1:3
             sessmap=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
         end
         curr_waveid=cell2mat(sessmap.values(num2cell(one_rsize{ridx,3})));
-        rwid=ring_wave_type(curr_waveid);
+        rwid=bz.rings.ring_wave_type(curr_waveid);
         rfreq_str=one_rsize{ridx,5};
         per_ring_hist.(rwid)=per_ring_hist.(rwid)+histcounts((rfreq_str.durs)./30,edges); % spkTS unit, i.e. 1/30 ms
     end
@@ -77,25 +77,3 @@ plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
 set(gca(),'YScale','log')
 xlabel('Time (ms)')
 ylabel('Probability')
-
-
-function out=ring_wave_type(in)
-if all(ismember(in,[1 5 7]),'all') ...
-        || all(ismember(in,[2 5 8]),'all') ...
-        || all(ismember(in,[3 6 7]),'all') ...
-        || all(ismember(in,[4 6 8]),'all')
-    out='congru';
-elseif all(in==0,"all")
-    out='nonmem';
-elseif (any(in==5,"all") && any(in==6,"all")) ...
-        ||(any(in==7,"all") && any(in==8,"all")) ...
-        ||(any(ismember(in,1:2),"all") && any(in==6,"all")) ...
-        ||(any(ismember(in,3:4),"all") && any(in==5,"all")) ...
-        ||(any(ismember(in,[1 3]),"all") && any(in==8,"all")) ...
-        ||(any(ismember(in,[2 4]),"all") && any(in==7,"all")) ...
-        ||(any(in==1,"all")+any(in==2,"all")+any(in==3,"all")+any(in==4,"all")>1)
-    out='incongru';
-else
-    out='others';
-end
-end
