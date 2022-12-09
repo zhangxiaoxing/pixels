@@ -31,27 +31,53 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 % tag ring spks with trial type, trial time
 
 % histogram of loop activity duration
-mm_dur=cell(1,3);
+if false
+    mm_dur=[];
 
-for rsize=1:3
-    one_rsize=sums_all{rsize};
-    for ridx=1:size(one_rsize,1)
-        rfreq_str=one_rsize{ridx,5};
-        mm_dur{rsize}=[mm_dur{rsize};mean(rfreq_str.durs)./30]; % spkTS unit, i.e. 1/30 ms
+    for rsize=1:3
+        one_rsize=sums_all{rsize};
+        for ridx=1:size(one_rsize,1)
+            rfreq_str=one_rsize{ridx,5};
+            mm_dur=[mm_dur;mean(rfreq_str.durs)./30]; % spkTS unit, i.e. 1/30 ms
+        end
     end
+
+    xx=5:10:195;
+    edges=0:10:200;
+    figure()
+    hold on
+    plot(xx,histcounts(mm_dur,edges));
+    set(gca(),'YScale','log')
+    xlabel('Time (ms)')
+    ylabel('Probability')
+
+
+    return
+
+    mm_dur=cell(1,3);
+
+    for rsize=1:3
+        one_rsize=sums_all{rsize};
+        for ridx=1:size(one_rsize,1)
+            rfreq_str=one_rsize{ridx,5};
+            mm_dur{rsize}=[mm_dur{rsize};mean(rfreq_str.durs)./30]; % spkTS unit, i.e. 1/30 ms
+        end
+    end
+
+    xx=5:10:195;
+    edges=0:10:200;
+    figure()
+    hold on
+    h3=plot(xx,histcounts(mm_dur{1},edges),'k');
+    h4=plot(xx,histcounts(mm_dur{2},edges),'b');
+    h5=plot(xx,histcounts(mm_dur{3},edges),'r');
+    legend([h3,h4,h5],{'3-Neuron','4-Neuron','5-Neuron'})
+    set(gca(),'YScale','log')
 end
-
-xx=5:10:95;
-edges=0:10:100;
-figure()
-hold on
-plot(xx,histcounts(mm_dur{1},edges));
-plot(xx,histcounts(mm_dur{2},edges))
-plot(xx,histcounts(mm_dur{3},edges))
-
-edges=0:10:200;
+curr_sess=-1;
+edges=[0:1:10,20:10:200];
 per_ring_hist=struct();
-[per_ring_hist.congru,per_ring_hist.incongru,per_ring_hist.nonmem,per_ring_hist.others]=deal(zeros(1,20));
+[per_ring_hist.congru,per_ring_hist.incongru,per_ring_hist.nonmem,per_ring_hist.others]=deal(zeros(1,29));
 for rsize=1:3
     one_rsize=sums_all{rsize};
     for ridx=1:size(one_rsize,1)
@@ -68,12 +94,28 @@ for rsize=1:3
     end
 end
 
-xx=5:10:195;
+%%
+load('sums_conn.mat','sums_conn_str');
+qcmat=cell2mat({sums_conn_str.qc}.');
+fwhm_all=qcmat(:,2)./30;
+fcxx=0:0.8:17;
+fcyy=histcounts(fwhm_all,fcxx);
+fciqr=prctile(fwhm_all,[25,50,75]);
+%%
+
+xx=[0.5:1:9.5,15:10:195];
 figure()
 hold on
-plot(xx,per_ring_hist.congru./sum(per_ring_hist.congru,'all'),'-r');
-plot(xx,per_ring_hist.incongru./sum(per_ring_hist.incongru,'all'),'-b');
-plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
-set(gca(),'YScale','log')
+% plot(xx,per_ring_hist.congru./sum(per_ring_hist.congru,'all'),'-r');
+% plot(xx,per_ring_hist.incongru./sum(per_ring_hist.incongru,'all'),'-b');
+% plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
+count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
+plot(xx,count_sum./sum(count_sum,'all'),'-r');
+plot(0.4:0.8:16.6,fcyy./sum(fcyy,'all'),'-k');
+% 
+% xline(fciqr(2),'k-')
+% xline(fciqr(2),'k--')
+set(gca(),'YScale','log','XScale','log')
+xlim([0.5,200])
 xlabel('Time (ms)')
 ylabel('Probability')

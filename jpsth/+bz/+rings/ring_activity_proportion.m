@@ -4,7 +4,6 @@ if ~exist('pstats3','var') || ~exist('pstats4','var') || ~exist('pstats5','var')
 %         load('loops_proportion_stats_3.mat','pstats3');
 %         load('loops_proportion_stats_4.mat','pstats4');
         load('loops_proportion_stats_all.mat','pstats3','pstats4','pstats5','mstats3','mstats4','mstats5');
-
     else
         if ~exist('sums_all','var')
             load(fullfile('bzdata','sums_ring_stats_all.mat'));
@@ -181,10 +180,10 @@ for sessid=usess.'
         for in_ring_pos=1:numel(cids) % TODO, 1:rsize
             one_ring_sel=spkID==cids(in_ring_pos);
             per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
-            ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
+            ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]); % TS, ring_id
         end
         ts_id=sortrows(ts_id,1);
-        ts_id=[ts_id,rstats{ri,5}.tags];
+        ts_id=[ts_id,rstats{ri,5}.tags]; % join TS, ring tag
 
         for cidx=1:numel(rstats{ri,3})
             cid=rstats{ri,3}(cidx);

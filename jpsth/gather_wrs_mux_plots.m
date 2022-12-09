@@ -126,8 +126,9 @@ end
 fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
 
 %% duration switch trial v continuation trial
-ephys.plot_switch_cont_decoding(wrs_mux_meta,"merge_both",true)
-ephys.plot_switch_cont_decoding(wrs_mux_meta,"merge_both",false)
+ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'olf')
+ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'dur')
+ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'mix')
 
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -270,7 +271,8 @@ fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
 fh4i.fig.Children.Subtitle.String='Inhibitory';
 bz.conn_prob_spatial_dist(sig,pair);
 %% TODO: FC_Decoding
-% K:\code\jpsth\+bz\+fccoding\plot_coding.m
+bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
+bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 
 %% FC_TCOM_hierachy
 % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
@@ -281,8 +283,13 @@ bz.conn_prob_spatial_dist(sig,pair);
 
 
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
+
+%% loops
+bz.rings.rings_wave_dynamic
+
+
 %% exports
 
-close all
-% savefig(fhandles,sprintf('Ranksum1%s.fig',gather_config.fnsuffix));
+
+
 
