@@ -367,4 +367,3 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
 %         end
     end
 end
-

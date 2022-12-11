@@ -1,32 +1,14 @@
-load('bzdata\sums_ring_stats_all.mat')
 % ring in wave
+load('bzdata\sums_ring_stats_all.mat')
+
+% TODO optional global filter to remove spikes outside delay
 
 % classify rings based on su-waveid combination
 % --link ring su to meta-su
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
-% wid_all=cell(1,3);
-% ring_congru_idx=cell(1,3);
-% for rsize=1:3
-%     one_rsize=sums_all{rsize};
-%     curr_sess=-1;
-%     for ridx=1:size(one_rsize,1)
-%         if curr_sess~=one_rsize{ridx,1}
-%             curr_sess=one_rsize{ridx,1};
-%             sesscid=su_meta.allcid(su_meta.sess==curr_sess);
-%             sesswaveid=wrs_mux_meta.wave_id(su_meta.sess==curr_sess);
-%             % update per session suid-wave map
-%             sessmap=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
-%         end
-%         curr_waveid=cell2mat(sessmap.values(num2cell(one_rsize{ridx,3})));
-%         wid_all{rsize}{ridx}=curr_waveid;
-%         ring_congru_idx{rsize}{ridx}=ring_wave_type(curr_waveid);
-%     end
-% end
-
 % --link ring to wave-combination congru|incongru|nonmem
-
 
 % tag ring spks with trial type, trial time
 

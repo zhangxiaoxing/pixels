@@ -8,9 +8,11 @@ if all(ismember(in,[1 5]),'all') ...
         || all(ismember(in,[3 7]),'all') ...
         || all(ismember(in,[4 8]),'all')
     out='congru';
-    if all(ismember(in,1:6))
+    if any(ismember(in,1:4),'all')
+        sel='both';
+   elseif all(ismember(in,1:6),'all')
         sel='olf';
-    elseif all(ismember(in,[1:4,7:8]))
+    elseif all(ismember(in,[1:4,7:8]),'all')
         sel='dur';
     else
         keyboard();

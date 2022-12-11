@@ -1,4 +1,4 @@
-%idces from hebb_pattern_showcase.m
+ed%idces from hebb_pattern_showcase.m
 if ~exist('rings','var')
     if isunix
         addpath(fullfile('npy-matlab-master','npy-matlab'))
