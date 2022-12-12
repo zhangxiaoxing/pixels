@@ -8,7 +8,7 @@ pstats=struct();
 
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-% TODO region-TCOM-map
+
 for rsize=3:5
     rstats=cell(0,10);
     one_rsize=sums_all{rsize-2};
