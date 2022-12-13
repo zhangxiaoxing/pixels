@@ -47,7 +47,7 @@ for rsize=3:5
                             su_tcom3(ii)=sess_su_com_map.dur_d3.com3(one_rsize{ridx,3}(ii));
                     end
                 end
-                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(end)>su_tcom3(1)];
+                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(1)>su_tcom3(end)];
                 cong_dir.both3=[cong_dir.both3;rsize,mean(dir_congru3,'all')];
             elseif ~any(ismember(curr_waveid,[1 3 7]),"all") % 6s
                 su_tcom6=nan(size(curr_waveid));
@@ -65,7 +65,7 @@ for rsize=3:5
                             su_tcom6(ii)=sess_su_com_map.dur_d6.com6(one_rsize{ridx,3}(ii));
                     end
                 end
-                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(end)>su_tcom6(1)];
+                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(1)>su_tcom6(end)];
                 cong_dir.both6=[cong_dir.both6;rsize,mean(dir_congru6,'all')];
             else
                 keyboard();
@@ -76,21 +76,21 @@ for rsize=3:5
                     cell2mat(sess_su_com_map.olf_s1.com3.keys())),"all")
                 % 3s delay
                 su_tcom3=cell2mat(sess_su_com_map.olf_s1.com3.values(num2cell(one_rsize{ridx,3})));
-                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(end)>su_tcom3(1)];
+                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(1)>su_tcom3(end)];
                 cong_dir.olf3=[cong_dir.olf3;rsize,mean(dir_congru3,'all')];
                 % 6s delay
                 su_tcom6=cell2mat(sess_su_com_map.olf_s1.com6.values(num2cell(one_rsize{ridx,3})));
-                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(end)>su_tcom6(1)];
+                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(1)>su_tcom6(end)];
                 cong_dir.olf6=[cong_dir.olf6;rsize,mean(dir_congru6,'all')];
             elseif all(ismember(one_rsize{ridx,3},...
                     cell2mat(sess_su_com_map.olf_s2.com3.keys())),"all")
                 % 3s delay
                 su_tcom3=cell2mat(sess_su_com_map.olf_s2.com3.values(num2cell(one_rsize{ridx,3})));
-                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(end)>su_tcom3(1)];
+                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(1)>su_tcom3(end)];
                 cong_dir.olf3=[cong_dir.olf3;rsize,mean(dir_congru3,'all')];
                 % 6s delay]
                 su_tcom6=cell2mat(sess_su_com_map.olf_s2.com6.values(num2cell(one_rsize{ridx,3})));
-                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(end)>su_tcom6(1)];
+                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(1)>su_tcom6(end)];
                 cong_dir.olf6=[cong_dir.olf6;rsize,mean(dir_congru6,'all')];
             else
                 keyboard();
@@ -100,13 +100,13 @@ for rsize=3:5
                     cell2mat(sess_su_com_map.dur_d3.com3.keys())),"all")
                 % 3s delay
                 su_tcom3=cell2mat(sess_su_com_map.dur_d3.com3.values(num2cell(one_rsize{ridx,3})));
-                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(end)>su_tcom3(1)];
+                dir_congru3=[arrayfun(@(x) su_tcom3(x)>su_tcom3(x-1),2:rsize),su_tcom3(1)>su_tcom3(end)];
                 cong_dir.dur3=[cong_dir.dur3;rsize,mean(dir_congru3,'all')];
             elseif all(ismember(one_rsize{ridx,3},...
                     cell2mat(sess_su_com_map.dur_d6.com3.keys())),"all")
                 % 6s delay
                 su_tcom6=cell2mat(sess_su_com_map.dur_d6.com6.values(num2cell(one_rsize{ridx,3})));
-                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(end)>su_tcom6(1)];
+                dir_congru6=[arrayfun(@(x) su_tcom6(x)>su_tcom6(x-1),2:rsize),su_tcom6(1)>su_tcom6(end)];
                 cong_dir.dur6=[cong_dir.dur6;rsize,mean(dir_congru6,'all')];
             else
                 keyboard();
@@ -114,6 +114,31 @@ for rsize=3:5
         end
     end
 end
+end
+
+function plot()
+figure()
+bar([mean(cong_dir.both3(:,2)),mean(cong_dir.both6(:,2)),mean(cong_dir.olf3(:,2)),mean(cong_dir.olf6(:,2))])
+yline(0.5,'k--')
+set(gca(),'XTick',1:4,'XTickLabel',{'Both-3s','Both-6s','Olf.-3s','Olf.-6s'},'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
+ylim([0,0.8])
+ylabel('Loop-order follows neuron-TCOM (%)')
+end
+
+function shuffle()
+
+rr=rand(10000,3);
+shuf3=[rr(:,2)>rr(:,1),rr(:,3)>rr(:,2),rr(:,1)>rr(:,3)];
+mean(shuf3,'all')
+
+rr=rand(10000,4);
+shuf4=[rr(:,2)>rr(:,1),rr(:,3)>rr(:,2),rr(:,4)>rr(:,3),rr(:,1)>rr(:,4)];
+mean(shuf4,'all')
+
+rr=rand(10000,5);
+shuf5=[rr(:,2)>rr(:,1),rr(:,3)>rr(:,2),rr(:,4)>rr(:,3),rr(:,5)>rr(:,4),rr(:,1)>rr(:,5)];
+mean(shuf5,'all')
+
 end
 
 function obsolete

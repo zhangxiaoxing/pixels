@@ -1,3 +1,5 @@
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+wrs_mux_meta=ephys.get_wrs_mux_meta();
 load(fullfile('bzdata','sums_ring_stats_all.mat'));
 rstats=cell(0,10);
 for rsize=3:5
@@ -28,15 +30,61 @@ for rsize=3:5
     end
 end
 
+rstats(:,10)=arrayfun(@(x) rstats{x,1}*100000+rstats{x,3},1:size(rstats,1),'UniformOutput',false);
+
 % olf pie
 olfsel=strcmp(rstats(:,9),'olf');
-tot=cell(0);
-for ii=reshape(find(olfsel),1,[])
-    tot=[tot,rstats{ii,8}];
+bothsel=strcmp(rstats(:,9),'both');
+olfreg=categorical([rstats{olfsel,8}]);
+bothreg=categorical([rstats{bothsel,8}]);
+
+uid=[rstats{olfsel,10}];
+[~,ia,~]=unique(uid);
+uid_olf_reg=olfreg(ia);
+
+uid=[rstats{bothsel,10}];
+[~,ia,~]=unique(uid);
+uid_both_reg=bothreg(ia);
+
+
+
+figure()
+tiledlayout(2,2)
+nexttile()
+ph=pie(olfreg);
+for hh=reshape(ph,1,[])
+    if isprop(hh,'EdgeColor')
+        hh.EdgeColor='none';
+    end
 end
+legend(categories(olfreg));
+title({'Olfactory','Sum of duplicates in loops'})
 
-unique(tot)
+nexttile()
+ph=pie(uid_olf_reg);
+for hh=reshape(ph,1,[])
+    if isprop(hh,'EdgeColor')
+        hh.EdgeColor='none';
+    end
+end
+title({'Olfactory','Unique neurons in loops'})
 
+nexttile()
+ph=pie(bothreg);
+for hh=reshape(ph,1,[])
+    if isprop(hh,'EdgeColor')
+        hh.EdgeColor='none';
+    end
+end
+legend(categories(bothreg));
+title({'Both-selective','Sum of duplicates in loops'})
 
-
+nexttile()
+ph=pie(uid_both_reg);
+for hh=reshape(ph,1,[])
+    if isprop(hh,'EdgeColor')
+        hh.EdgeColor='none';
+    end
+end
+title({'Both-selective','Unique neurons in loops'})
 
