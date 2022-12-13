@@ -88,3 +88,6 @@ for hh=reshape(ph,1,[])
 end
 title({'Both-selective','Unique neurons in loops'})
 
+function total_SU_count
+
+end

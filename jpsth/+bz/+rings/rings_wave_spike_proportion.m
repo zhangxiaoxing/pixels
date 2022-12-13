@@ -1,4 +1,4 @@
-function pstats=rings_wave_spike_proportion()
+function pstats=rings_wave_tcom(tcom3_maps,tcom6_maps)
 persistent sums_all
 if isempty(sums_all)
     load(fullfile('bzdata','sums_ring_stats_all.mat'));
@@ -8,7 +8,7 @@ pstats=struct();
 
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-% TODO region-TCOM-map
+
 for rsize=3:5
     rstats=cell(0,10);
     one_rsize=sums_all{rsize-2};
@@ -32,8 +32,8 @@ for rsize=3:5
             continue
         end
         [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
-        if ismember(rwid,{'congru','nonmem'})
-            rstats=[rstats;one_rsize(ridx,:),curr_waveid,{curr_reg},seltype,rwid];
+        if strcmp(rwid,'congru')
+            rstats=[rstats;one_rsize(ridx,:),curr_waveid,{curr_reg},seltype];
         end
     end
 
@@ -66,26 +66,28 @@ for rsize=3:5
                 ext_trl=repmat(-realmax,numel(rawts),1);
                 ext_trl(tspos)=ft_trl;
 
-                ts_id=cat(1,ts_id,[rawts,... % 1 timestamp
-                    repmat(cids(in_ring_pos),per_cid_spk_cnt(in_ring_pos),1),...  % 2 cluster id
-                    ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos,...  % 3 in ring-position
-                    ext_time,...  % 4 trial time
-                    ext_trl]); % 5 trial #
+                ts_id=cat(1,ts_id,[rawts,... % 1
+                    repmat(cids(in_ring_pos),per_cid_spk_cnt(in_ring_pos),1),...  % 2
+                    ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos,...  % 3
+                    ext_time,...  % 4
+                    ext_trl]); % 5
             end
             ts_id=sortrows(ts_id,1);
             ts_id=[ts_id,full(rstats{ri,5}.tags)]; % join TS, ring tag % 6
 
-            trl3=find(trials(:,8)==3 & ismember(trials(:,5),[4 8]) & all(trials(:,9:10)>0,2));
-            trl6=find(trials(:,8)==3 & ismember(trials(:,5),[4 8]) & all(trials(:,9:10)>0,2));
-            
-            
-            for trl=reshape(trl3,1,[])
-                tssel=ismember(ts_id(:,5),trl3) & ts_id(:,4)>=1 & ts_id(:,4)<4;
-                rsums3=ts_id(tssel,:);
-                tag=[rstats{ri,9},'3'];
-                pstats.(tag)=[pstats.(tag);{rsums3(:,4)},rstats(ri,8),{reg_tcom}];
+
+            [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
+
+            [~,sel_type_idx]=ismember(rstats(ri,9),{'both','olf','dur'});
+            if ~isempty(pref3)
+                if all(ismember(rstats{ri,8},tcom3_maps{sel_type_idx}.keys()),'all')
+                    reg_tcom=cell2mat(tcom3_maps{sel_type_idx}.values(rstats{ri,8}));
+                    tssel=ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4 & ts_id(:,6)~=0;
+                    rsums3=ts_id(tssel,:);
+                    tag=[rstats{ri,9},'3'];
+                    pstats.(tag)=[pstats.(tag);{rsums3(:,4)},rstats(ri,8),{reg_tcom}];
+                end
             end
-            
             if ~isempty(pref6)
                 if all(ismember(rstats{ri,8},tcom6_maps{sel_type_idx}.keys()),'all')
                     reg_tcom=cell2mat(tcom6_maps{sel_type_idx}.values(rstats{ri,8}));
@@ -100,20 +102,3 @@ for rsize=3:5
 end
 end
 
-function post_analysis()
-if false % overall descriptive
-    sum([size(pstats.both3,1);size(pstats.olf3,1);size(pstats.both6,1);size(pstats.olf6,1)])
-
-    nnz([cellfun(@(x) all(strcmp(x,'HIP'),'all'),pstats.both3(:,2));...
-        cellfun(@(x) all(strcmp(x,'HIP'),'all'),pstats.olf3(:,2));...
-        cellfun(@(x) all(strcmp(x,'HIP'),'all'),pstats.both6(:,2));...
-        cellfun(@(x) all(strcmp(x,'HIP'),'all'),pstats.olf6(:,2))])
-
-    nnz([cellfun(@(x) all(strcmp(x,'ORB'),'all'),pstats.both3(:,2));...
-        cellfun(@(x) all(strcmp(x,'ORB'),'all'),pstats.olf3(:,2));...
-        cellfun(@(x) all(strcmp(x,'ORB'),'all'),pstats.both6(:,2));...
-        cellfun(@(x) all(strcmp(x,'ORB'),'all'),pstats.olf6(:,2))])
-end
-
-
-end
