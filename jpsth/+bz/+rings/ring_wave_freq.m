@@ -1,6 +1,7 @@
 % calculate relative appearance frequence of rings vs shuffled control
+function ring_wave_freq(wrs_mux_meta)
 sums=bz.rings.rings_wave(wrs_mux_meta,'shufid',0);
-sums_shuf{rpt}=cell(10,1);
+sums_shuf=cell(10,1);
 for rpt=1:10
     sums_shuf{rpt}=bz.rings.rings_wave(wrs_mux_meta,'shufid',rpt);
 end
@@ -58,8 +59,4 @@ yline(1,'k:')
 ylabel('Z-Score')
 set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Duration'},'XTickLabelRotation',45,'YScale','log')
 
-
-
-
-
-
+end
