@@ -169,12 +169,14 @@ end
 
 function sum_stats(pstats)
 figure()
-tiledlayout(2,2)
+tiledlayout(2,3)
 one_panel(pstats.both6,6,'both, 6s')
 one_panel(pstats.olf6,6,'olf, 6s')
+one_panel([pstats.both6;pstats.olf6;pstats.dur6],6,'merged, 6s')
 % one_panel(pstats.olf6,6,'olf, 6s')
 one_panel(pstats.both3,3,'both, 3s')
 one_panel(pstats.olf3,3,'olf, 3s')
+one_panel([pstats.both3;pstats.olf3;pstats.dur3],3,'merged, 3s')
 % one_panel(pstats.olf3,3,'olf, 3s')
 end
 
@@ -184,7 +186,7 @@ if delay==6
 elseif delay==3
     loop_tcom=cellfun(@(x) sum(histcounts(x,1:0.25:4).*(1:12))./sum(histcounts(x,1:0.25:4))./4, one_stat(:,1));
 end
-su_tcom=cellfun(@(x) min(x,[],"all"), one_stat(:,2));
+su_tcom=cellfun(@(x) mean(x,"all"), one_stat(:,2));
 nexttile()
 hold on
 scatter(loop_tcom,su_tcom,16,'o','MarkerEdgeColor','none','MarkerFaceColor','r','MarkerFaceAlpha',0.25);

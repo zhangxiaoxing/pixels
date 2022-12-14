@@ -285,8 +285,11 @@ bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 
 %% loops
-bz.rings.rings_wave_dynamic
-
+% sums_all
+load(fullfile('bzdata','sums_ring_stats_all.mat'));
+bz.rings.rings_reg_pie(sums_all)
+bz.rings.rings_wave_dynamic(sums_all)
+bz.rings.rings_su_wave_tcom_corr(sums_all)
 
 %% exports
 

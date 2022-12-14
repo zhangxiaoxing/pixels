@@ -7,7 +7,7 @@
 function pstats=rings_wave_spike_proportion(sums_all,opt)
 arguments
     sums_all
-    opt.load_file (1,1) logical = true
+    opt.load_file (1,1) logical = false
 end
 % function cong_dir=rings_su_tcom_order(sums_all) % modified from
 % persistent sums_all
@@ -44,10 +44,10 @@ if ~opt.load_file
             if ~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem')
                 continue
             end
-            rstats=[rstats;one_rsize(ridx,:),curr_waveid,seltype,rsize];
+            rstats=[rstats;one_rsize(ridx,:),curr_waveid,seltype,rsize,rwid];
         end
     end
-
+    keyboard()
     rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
     usess=unique(cell2mat(rstats(:,1)));
 
@@ -127,9 +127,9 @@ function sum_stats(pstats)
 fns=fieldnames(pstats.congru);
 ratio=[];
 for fn=reshape(fns,1,[])
-    ratio=[ratio;mean(pstats.congru.(fn{1})(:,6))];
+    ratio=[ratio;mean(pstats.congru.(fn{1})(:,2))];
 end
-[max(ratio),mean(ratio),std(ratio)]
+[max(ratio),mean(ratio),std(ratio),std(ratio)./sqrt(numel(ratio))]
 end
 
 

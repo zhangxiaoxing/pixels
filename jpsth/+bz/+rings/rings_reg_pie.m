@@ -1,6 +1,6 @@
+function rings_reg_pie(sums_all)
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-load(fullfile('bzdata','sums_ring_stats_all.mat'));
 rstats=cell(0,10);
 for rsize=3:5
     one_rsize=sums_all{rsize-2};
@@ -87,7 +87,7 @@ for hh=reshape(ph,1,[])
     end
 end
 title({'Both-selective','Unique neurons in loops'})
-
+end
 function total_SU_count
 
 end

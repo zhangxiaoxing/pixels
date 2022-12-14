@@ -1,5 +1,7 @@
 function out=good_ccg(one_ccg)
-%adapted from jpsth\+ephys\+waveform\goodWaveform.m
+% adapted from jpsth\+ephys\+waveform\goodWaveform.m
+% everything related to time is biased by 250/30 ms, since ccg data is
+% symmetrical around 0ms
 arguments
     one_ccg (501,1) double {mustBeNonempty}
 end

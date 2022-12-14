@@ -1,6 +1,6 @@
 % ring in wave
-load('bzdata\sums_ring_stats_all.mat')
-
+% load('bzdata\sums_ring_stats_all.mat')
+function  rings_wave_dynamic(sums_all)
 % TODO optional global filter to remove spikes outside delay
 
 % classify rings based on su-waveid combination
@@ -78,9 +78,11 @@ end
 
 %%
 load('sums_conn.mat','sums_conn_str');
-qcmat=cell2mat({sums_conn_str.qc}.');
-fwhm_all=qcmat(:,2)./30;
-fcxx=0:0.8:17;
+qcmat=cell2mat({sums_conn_str.qc}.'); % from bz.sums_conn -> bz.goodccg
+fwhm_all=(qcmat(:,2)-250)./30; % offset left half of symmatric ccg
+fcxx=0:0.8:20;
+disp('F.C. mean, sd, sem')
+disp([mean(fwhm_all), std(fwhm_all), std(fwhm_all)./sqrt(numel(fwhm_all))])
 fcyy=histcounts(fwhm_all,fcxx);
 fciqr=prctile(fwhm_all,[25,50,75]);
 %%
@@ -93,11 +95,13 @@ hold on
 % plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
 count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
 plot(xx,count_sum./sum(count_sum,'all'),'-r');
-plot(0.4:0.8:16.6,fcyy./sum(fcyy,'all'),'-k');
-% 
+plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-k');
+%
 % xline(fciqr(2),'k-')
 % xline(fciqr(2),'k--')
 set(gca(),'YScale','log','XScale','log')
-xlim([0.5,200])
+xlim([0.3,200])
+ylim([1e-3,1])
 xlabel('Time (ms)')
 ylabel('Probability')
+end
