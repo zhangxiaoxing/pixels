@@ -4,6 +4,7 @@ arguments
     su_meta
     opt.pie (1,1) logical = true
     opt.bar (1,1) logical = true
+    opt.loopPerSU (1,1) logical = true
 end
 
 % su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
@@ -85,31 +86,38 @@ if opt.bar
     end
 end
 
-if opt.false  % loops per su, classed by region
-ddsets={uid_olf_within,uid_olf_within_reg;...
-    uid_olf_cross,uid_olf_cross_reg;...
-       uid_both_within,uid_both_within_reg;...
-       uid_both_cross,uid_both_cross_reg};
+if opt.loopPerSU  % loops per su, classed by region
+ddsets={id_olf_within,uid_olf_within,uid_olf_within_reg;...
+    id_olf_cross,uid_olf_cross,uid_olf_cross_reg;...
+       id_both_within,uid_both_within,uid_both_within_reg;...
+       id_both_cross,uid_both_cross,uid_both_cross_reg};
+lbls={{'Olfactory within region'};...
+    {'Olfactory cross region'};...
+    {'Both within region'};...
+    {'Both cross region'}};
 
     
     
     figure()
-    tiledlayout(2,4)
-    cnt=1;
-
-
-        ratios=[];
+    tiledlayout(2,2)
+    for didx=1:4
+        nexttile();
+        mean_occurance=[];
         for creg=loop_reg
-            reg_su_cnt=nnz(su_reg==creg);
-            dset_cnt=nnz(dset{1}==creg);
-            ratios=[ratios,dset_cnt./reg_su_cnt];
-            bar(ratios)
+            reg_sel=ddsets{didx,3}==creg;
+            if nnz(reg_sel)>0
+                uids=ddsets{didx,2}(reg_sel);
+                loops_cnt=nnz(ismember(ddsets{didx,1},uids));
+                mean_occurance=[mean_occurance;loops_cnt./nnz(reg_sel)];
+            else
+                mean_occurance=[mean_occurance;0];
+            end
         end
+        bar(mean_occurance)
         set(gca(),"XTick",1:11,"XTickLabel",loop_reg,"XTickLabelRotation",90)
-        ylabel('Occurance in loops per neuron')
-        title(lbls{cnt});
-        cnt=cnt+1;
-
+        ylabel('Occurance in loops per unique neuron')
+        title(lbls{didx});
+    end
 end
 
 end
