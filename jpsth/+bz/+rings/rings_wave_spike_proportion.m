@@ -24,7 +24,7 @@ if ~opt.load_file
     com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
     rstats=cell(0,11);
-    for rsize=3
+    for rsize=3:5
         one_rsize=sums_all{rsize-2};
         curr_sess=-1;
         for ridx=1:size(one_rsize,1)
@@ -47,7 +47,7 @@ if ~opt.load_file
             rstats=[rstats;one_rsize(ridx,:),curr_waveid,seltype,rsize,rwid];
         end
     end
-    keyboard()
+%     keyboard()
     rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
     usess=unique(cell2mat(rstats(:,1)));
 
@@ -124,12 +124,15 @@ end
 end
 
 function sum_stats(pstats)
-fns=fieldnames(pstats.congru);
+for target=["congru","nonmem"]
+fns=fieldnames(pstats.(target));
 ratio=[];
 for fn=reshape(fns,1,[])
-    ratio=[ratio;mean(pstats.congru.(fn{1})(:,2))];
+    ratio=[ratio;mean(pstats.(target).(fn{1})(:,2))];
 end
-[max(ratio),mean(ratio),std(ratio),std(ratio)./sqrt(numel(ratio))]
+disp(target+" max, mean, sd, sem")
+disp([max(ratio),nanmean(ratio),nanstd(ratio),nanstd(ratio)./sqrt(nnz(isfinite(ratio)))])
+end
 end
 
 
