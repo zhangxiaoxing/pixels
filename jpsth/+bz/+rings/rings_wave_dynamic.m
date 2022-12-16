@@ -86,6 +86,21 @@ disp([mean(fwhm_all), std(fwhm_all), std(fwhm_all)./sqrt(numel(fwhm_all))])
 fcyy=histcounts(fwhm_all,fcxx);
 fciqr=prctile(fwhm_all,[25,50,75]);
 %%
+bump3=[];
+bump6=[];
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+for fn=reshape(fieldnames(com_map),1,[])
+   for subfn=reshape(fieldnames(com_map.(fn{1})),1,[])
+       if isfield(com_map.(fn{1}).(subfn{1}),'fwhm3')
+           bump3=[bump3,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm3.values())];
+       end
+       if isfield(com_map.(fn{1}).(subfn{1}),'fwhm6')
+           bump6=[bump6,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm6.values())];
+       end
+   end
+end
+
+%%
 
 xx=[0.5:1:9.5,15:10:195];
 figure()

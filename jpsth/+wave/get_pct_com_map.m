@@ -88,6 +88,11 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
             com_str.(['s',num2str(sessid)]).(ff).com3=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com6=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).com4plot=containers.Map('KeyType','int32','ValueType','any');
+            
+            com_str.(['s',num2str(sessid)]).(ff).fwhm=containers.Map('KeyType','int32','ValueType','any');
+            com_str.(['s',num2str(sessid)]).(ff).fwhm3=containers.Map('KeyType','int32','ValueType','any');
+            com_str.(['s',num2str(sessid)]).(ff).fwhm6=containers.Map('KeyType','int32','ValueType','any');
+
             if opt.curve && ~opt.rnd_half
                 for cc=["s1d3","s2d3","s1d6","s2d6"]
                     com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
@@ -161,8 +166,8 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
+            com_str.(sess).(type).fwhm(suid(su))=mm_pref2fwhm(mm_pref,12);
         end
-
 
             basemm=mean([classmm(:,1:12);classmm(3:4,13:24)],'all');
              % scale in function, gaussian smooth on plot
@@ -197,6 +202,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                 if any(ppref>0)
                     com=sum((1:12).*ppref)./sum(ppref);
                     com_str.(sess).(type).com3(suid(su))=com;
+                    com_str.(sess).(type).fwhm3(suid(su))=mm_pref2fwhm(mm_pref,12);
                     com_str.(sess).(type).com4plot(suid(su))=com;
                 end
             else
@@ -209,6 +215,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                 if any(ppref>0)
                     com=sum((1:24).*ppref)./sum(ppref);
                     com_str.(sess).(type).com6(suid(su))=com;
+                    com_str.(sess).(type).fwhm6(suid(su))=mm_pref2fwhm(mm_pref,24);
                     com_str.(sess).(type).com4plot(suid(su))=com;
                 end
             end
@@ -243,6 +250,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
+            com_str.(sess).(type).fwhm(suid(su))=mm_pref2fwhm(mm_pref,12);
         end
 %         disp({sess,su,opt.currhalf,com})
 
@@ -278,6 +286,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
             if any(ppref>0)
                 com=sum((1:12).*ppref)./sum(ppref);
                 com_str.(sess).(type).com3(suid(su))=com;
+                com_str.(sess).(type).fwhm3(suid(su))=mm_pref2fwhm(mm_pref,12);
             end
 
 
@@ -290,6 +299,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
             if any(ppref>0)
                 com=sum((1:24).*ppref)./sum(ppref);
                 com_str.(sess).(type).com6(suid(su))=com;
+                com_str.(sess).(type).fwhm6(suid(su))=mm_pref2fwhm(mm_pref,24);
                 com_str.(sess).(type).com4plot(suid(su))=com;
             end
 %         end
@@ -322,6 +332,7 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
         else
             com=sum((1:12).*mm_pref)./sum(mm_pref);
             com_str.(sess).(type).com(suid(su))=com;
+            com_str.(sess).(type).fwhm(suid(su))=mm_pref2fwhm(mm_pref,12);
         end
         
 %         if opt.curve
@@ -353,6 +364,7 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
                     com=sum((1:12).*ppref)./sum(ppref);
                     com_str.(sess).(type).com4plot(suid(su))=com;
                     com_str.(sess).(type).com3(suid(su))=com;
+                    com_str.(sess).(type).fwhm3(suid(su))=mm_pref2fwhm(mm_pref,12);
                 end
             else
                 ppref=mean(classnnR(3:4,:));
@@ -361,9 +373,21 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
                     com=sum((1:24).*ppref)./sum(ppref);
                     com_str.(sess).(type).com4plot(suid(su))=com;
                     com_str.(sess).(type).com6(suid(su))=com;
+                    com_str.(sess).(type).fwhm6(suid(su))=mm_pref2fwhm(mm_pref,24);
                 end
             end
 
 %         end
     end
+end
+function fwhm=mm_pref2fwhm(mm_pref,rend)
+mm_pref=mm_pref./max(mm_pref,[],'all'); % TODO: interp1
+[~,xi]=max(mm_pref);
+lcross=find(mm_pref(1:xi)>0.5,1);
+rcross=find(mm_pref(xi:end)<0.5,1)+xi-1;
+if isempty(rcross)
+    rcross=rend+1;
+end
+fwhm=(rcross-lcross)*0.25;
+
 end
