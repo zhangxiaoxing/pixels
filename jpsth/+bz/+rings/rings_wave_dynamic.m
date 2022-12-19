@@ -100,6 +100,10 @@ for fn=reshape(fieldnames(com_map),1,[])
    end
 end
 
+bxx=0.125:0.25:6.25;
+bump3hist=histcounts(bump3,bxx,'Normalization','probability');
+bump6hist=histcounts(bump6,bxx,'Normalization','probability');
+
 %%
 
 xx=[0.5:1:9.5,15:10:195];
@@ -111,11 +115,14 @@ hold on
 count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
 plot(xx,count_sum./sum(count_sum,'all'),'-r');
 plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-k');
+plot((0.25:0.25:6).*1000,bump3hist,'-b')
+plot((0.25:0.25:6).*1000,bump6hist,'-c')
+
 %
 % xline(fciqr(2),'k-')
 % xline(fciqr(2),'k--')
 set(gca(),'YScale','log','XScale','log')
-xlim([0.3,200])
+xlim([0.3,6000])
 ylim([1e-3,1])
 xlabel('Time (ms)')
 ylabel('Probability')

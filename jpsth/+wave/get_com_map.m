@@ -1,3 +1,5 @@
+% likely obsolete as of 22.12.18
+
 function com_str_=get_com_map(sel_meta,opt)
 arguments
     sel_meta  (1,1) struct
