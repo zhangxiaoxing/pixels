@@ -11,6 +11,7 @@ load('sums_conn.mat','sums_conn_str');
 % warning('partial iteration for illustration')
 chains=cell(0);
 for fidx=1:numel(sums_conn_str)
+    disp(fidx)
     % TODO update following code to reflect revised order
     ffpath=sums_conn_str(fidx).folder;
     dpath=regexp(ffpath,'(?<=SPKINFO[\\/]).*$','match','once');
@@ -38,38 +39,221 @@ for fidx=1:numel(sums_conn_str)
     if isempty(skey), continue;end
     % TODO: finish remaining waves
     % TODO: 3s 6s
-    com_fn=["com3","com6","com3","com6","com3","com6","com3","com6","com3","com6",];
-    wvtype=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s1","olf_s2","olf_s2","dur_d3","dur_d6"];
-    for jj=1:numel(wvtype)
-        if ~isfield(onecom.(skey{1}),wvtype(jj))
+    
+    for wvtype=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
+        if ~isfield(onecom.(skey{1}),wvtype)
             continue
         end
-        mapkeys=cell2mat(onecom.(skey{1}).(wvtype(jj)).(com_fn(jj)).keys()); %pre-selected transient selective su
-        typesel=all(ismember(int32(onecon),mapkeys),2);
-        if nnz(typesel)<3,continue;end
-        typesigcon=onecon(typesel,:);
-        con_com_prepost=arrayfun(@(x) onecom.(skey{1}).(wvtype(jj)).(com_fn(jj))(x),int32(typesigcon));
-        dirsel=con_com_prepost(:,2)>con_com_prepost(:,1); % Assuming 250ms bin
-        dirsigcon=typesigcon(dirsel,:);
-        upre=unique(dirsigcon(:,1)).';
-
-        for i=upre
-            onechain=cell(0);
-            cpre=i;
-            while true % first pass-through without unfolding all chains
-                newpair=dirsigcon(ismember(dirsigcon(:,1),cpre),:);
-                if isempty(newpair)
-                    if numel(onechain)>1
-                        chains(end+1,:)={sessid,wvtype(jj),com_fn(jj),onechain};
-                    end
-                    break
-                else
-                    onechain{end+1}={...
-                        newpair,...
-                        arrayfun(@(x) onecom.(skey{1}).(wvtype(jj)).(com_fn(jj))(x),newpair)};
-                    cpre=newpair(:,2);
+        switch wvtype
+            case "s1d3"
+                if ~isfield(onecom.(skey{1}),'olf_s1')
+                    onecom.(skey{1}).olf_s1=struct();
+                    onecom.(skey{1}).olf_s1.com3=containers.Map();
+                    onecom.(skey{1}).olf_s1.com6=containers.Map();
                 end
-            end
+                if ~isfield(onecom.(skey{1}),'dur_d3')
+                    onecom.(skey{1}).dur_d3=struct();
+                    onecom.(skey{1}).dur_d3.com3=containers.Map();
+                end
+% with olf                
+                mapkeys=[cell2mat(onecom.(skey{1}).s1d3.com3.keys()),...
+                    cell2mat(onecom.(skey{1}).olf_s1.com3.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s1d3.com3.values()),...
+                    cell2mat(onecom.(skey{1}).olf_s1.com3.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];
+
+% with dur
+                mapkeys=[cell2mat(onecom.(skey{1}).s1d3.com3.keys()),...
+                    cell2mat(onecom.(skey{1}).dur_d3.com3.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s1d3.com3.values()),...
+                    cell2mat(onecom.(skey{1}).dur_d3.com3.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];
+
+            case "s1d6"
+                if ~isfield(onecom.(skey{1}),'olf_s1')
+                    onecom.(skey{1}).olf_s1=struct();
+                    onecom.(skey{1}).olf_s1.com3=containers.Map();
+                    onecom.(skey{1}).olf_s1.com6=containers.Map();
+                end
+                if ~isfield(onecom.(skey{1}),'dur_d6')
+                    onecom.(skey{1}).dur_d6=struct();
+                    onecom.(skey{1}).dur_d6.com6=containers.Map();
+                end
+
+                mapkeys=[cell2mat(onecom.(skey{1}).s1d6.com6.keys()),...
+                    cell2mat(onecom.(skey{1}).olf_s1.com6.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s1d6.com6.values()),...
+                    cell2mat(onecom.(skey{1}).olf_s1.com6.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];                
+% with dur 
+                mapkeys=[cell2mat(onecom.(skey{1}).s1d6.com6.keys()),...
+                    cell2mat(onecom.(skey{1}).dur_d6.com6.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s1d6.com6.values()),...
+                    cell2mat(onecom.(skey{1}).dur_d6.com6.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];
+
+            case "s2d3"
+                if ~isfield(onecom.(skey{1}),'olf_s2')
+                    onecom.(skey{1}).olf_s2=struct();
+                    onecom.(skey{1}).olf_s2.com3=containers.Map();
+                    onecom.(skey{1}).olf_s2.com6=containers.Map();
+                end
+                if ~isfield(onecom.(skey{1}),'dur_d3')
+                    onecom.(skey{1}).dur_d3=struct();
+                    onecom.(skey{1}).dur_d3.com3=containers.Map();
+                end
+
+                mapkeys=[cell2mat(onecom.(skey{1}).s2d3.com3.keys()),...
+                    cell2mat(onecom.(skey{1}).olf_s2.com3.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s2d3.com3.values()),...
+                    cell2mat(onecom.(skey{1}).olf_s2.com3.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];
+% with dur
+                mapkeys=[cell2mat(onecom.(skey{1}).s2d3.com3.keys()),...
+                    cell2mat(onecom.(skey{1}).dur_d3.com3.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s2d3.com3.values()),...
+                    cell2mat(onecom.(skey{1}).dur_d3.com3.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];                
+
+            case "s2d6"
+
+                if ~isfield(onecom.(skey{1}),'olf_s2')
+                    onecom.(skey{1}).olf_s2=struct();
+                    onecom.(skey{1}).olf_s2.com3=containers.Map();
+                    onecom.(skey{1}).olf_s2.com6=containers.Map();
+                end
+                if ~isfield(onecom.(skey{1}),'dur_d6')
+                    onecom.(skey{1}).dur_d6=struct();
+                    onecom.(skey{1}).dur_d6.com6=containers.Map();
+                end
+
+                mapkeys=[cell2mat(onecom.(skey{1}).s2d6.com6.keys()),...
+                    cell2mat(onecom.(skey{1}).olf_s2.com6.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s2d6.com6.values()),...
+                    cell2mat(onecom.(skey{1}).olf_s2.com6.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];
+% with dur
+                mapkeys=[cell2mat(onecom.(skey{1}).s2d6.com6.keys()),...
+                    cell2mat(onecom.(skey{1}).dur_d6.com6.keys())];...; %pre-selected transient selective su
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                mapv=[cell2mat(onecom.(skey{1}).s2d6.com6.values()),...
+                    cell2mat(onecom.(skey{1}).dur_d6.com6.values())];
+                curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
+                sub_chain=chain_one(onecon,typesel,curr_com_map);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];
+
+            case "olf_s1"
+                mapkeys=cell2mat(onecom.(skey{1}).olf_s1.com3.keys());
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                sub_chain=chain_one(onecon,typesel,onecom.(skey{1}).olf_s1.com3);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];
+%                 if fidx==25
+%                     keyboard()
+%                 end
+                mapkeys=cell2mat(onecom.(skey{1}).olf_s1.com6.keys());
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                sub_chain=chain_one(onecon,typesel,onecom.(skey{1}).olf_s1.com6);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];
+            case "olf_s2"
+                mapkeys=cell2mat(onecom.(skey{1}).olf_s2.com3.keys());
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                sub_chain=chain_one(onecon,typesel,onecom.(skey{1}).olf_s2.com3);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];
+                mapkeys=cell2mat(onecom.(skey{1}).olf_s2.com6.keys());
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                sub_chain=chain_one(onecon,typesel,onecom.(skey{1}).olf_s2.com6);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];
+
+            case "dur_d3"
+                mapkeys=cell2mat(onecom.(skey{1}).dur_d3.com3.keys());
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                sub_chain=chain_one(onecon,typesel,onecom.(skey{1}).dur_d3.com3);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(3,numel(sub_chain),1)),...%duration
+                    sub_chain];
+            case "dur_d6"
+                mapkeys=cell2mat(onecom.(skey{1}).dur_d6.com6.keys());
+                typesel=all(ismember(int32(onecon),mapkeys),2);
+                sub_chain=chain_one(onecon,typesel,onecom.(skey{1}).dur_d6.com6);
+                chains=[chains;...
+                num2cell(repmat(sessid,numel(sub_chain),1)),...
+                    repmat({wvtype},numel(sub_chain),1),...
+                    num2cell(repmat(6,numel(sub_chain),1)),...%duration
+                    sub_chain];
+
+            otherwise
+                keyboard()
         end
     end
 end
@@ -87,7 +271,34 @@ for ii=1:size(chains,1)
 end
 end
     
+function chains=chain_one(onecon,typesel,curr_com_map)
+chains=cell(0);
+if nnz(typesel)<3,return;end
+typesigcon=onecon(typesel,:);
+con_com_prepost=cell2mat(curr_com_map.values(num2cell(int32(typesigcon))));
+dirsel=con_com_prepost(:,2)>con_com_prepost(:,1); % Assuming 250ms bin
+dirsigcon=typesigcon(dirsel,:);
+upre=unique(dirsigcon(:,1)).';
 
+for i=upre
+    onechain=cell(0);
+    cpre=i;
+    while true % first pass-through without unfolding all chains
+        newpair=dirsigcon(ismember(dirsigcon(:,1),cpre),:);
+        if isempty(newpair)
+            if numel(onechain)>1
+                chains=[chains;{onechain}];
+            end
+            break
+        else
+            onechain{end+1}={...
+                newpair,...
+                cell2mat(curr_com_map.values(num2cell(newpair)))};
+            cpre=newpair(:,2);
+        end
+    end
+end
+end
 
 function plotOneSC(chains)
 if false && numel(chains)>0
@@ -161,7 +372,7 @@ if false && numel(chains)>0
                 for mm=1:numel(suids)
                     plot((onecom.(skey{1}).(sprintf('%scurve',samp))(suids(mm))),...
                         '-','Color',cmap((mm-1)*deltac+1,:));
-                    xline(onecom.(skey{1}).(wvtype(jj))(suids(mm)),'--','Color',cmap((mm-1)*deltac+1,:));
+                    xline(onecom.(skey{1}).(wvtype)(suids(mm)),'--','Color',cmap((mm-1)*deltac+1,:));
                 end
                 set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6)
                 xlabel('Delay time (s)');
