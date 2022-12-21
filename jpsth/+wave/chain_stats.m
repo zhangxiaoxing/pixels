@@ -2,6 +2,8 @@
 % chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
 % blame=vcs.blame();
 % save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
+
+global_init;
 load('chains_mix.mat','chains_uf','chains_uf_rev');
 
 % Forward and reverse count
@@ -77,13 +79,17 @@ xlabel('Number of linked neuron')
 ylabel('Total occurance')
 title('Total number of linked WM-neuron-series')
 
-%% TODO: per-wave stats-per-region stats
+%% TODO: wave vs wave
+
+%% per-wave stats-per-region stats
+
+
 % repeated occurance
 chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
 
 olf_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["olf_s1","olf_s2"]);
 olf_uid=[chains_uf.uid{olf_sel}];
-[~,usel]=unique(olf_uid);
+[chain_olf_uid,usel]=unique(olf_uid);
 olf_reg=[chains_uf.reg{olf_sel}];
 olf_reg_cat=categorical(olf_reg);
 olf_u_reg_cat=categorical(olf_reg(usel));
@@ -91,7 +97,7 @@ olf_u_reg_cat=categorical(olf_reg(usel));
 
 both_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]);
 both_uid=[chains_uf.uid{both_sel}];
-[~,usel]=unique(both_uid);
+[chain_both_uid,usel]=unique(both_uid);
 both_reg=[chains_uf.reg{both_sel}];
 both_reg_cat=categorical(both_reg);
 both_u_reg_cat=categorical(both_reg(usel));
@@ -99,7 +105,7 @@ both_u_reg_cat=categorical(both_reg(usel));
 
 dur_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["dur_d3","dur_d6"]);
 dur_uid=[chains_uf.uid{dur_sel}];
-[~,usel]=unique(dur_uid);
+[chain_dur_uid,usel]=unique(dur_uid);
 dur_reg=[chains_uf.reg{dur_sel}];
 dur_reg_cat=categorical(dur_reg);
 dur_u_reg_cat=categorical(dur_reg(usel));
@@ -130,6 +136,34 @@ title("Both-selective unique neuron")
 %chain vs loop
 load(fullfile('bzdata','sums_ring_stats_all.mat'));
 rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
+
+lolf_sel=strcmp(rstats(:,9),'olf');
+loop_olf_uid=unique([rstats{lolf_sel,10}]);
+olf_shared=nnz(ismember(chain_olf_uid,loop_olf_uid));
+
+lboth_sel=strcmp(rstats(:,9),'both');
+loop_both_uid=unique([rstats{lboth_sel,10}]);
+both_shared=nnz(ismember(chain_both_uid,loop_both_uid));
+
+ldur_sel=strcmp(rstats(:,9),'dur');
+loop_dur_uid=unique([rstats{ldur_sel,10}]);
+dur_shared=nnz(ismember(chain_dur_uid,loop_dur_uid));
+
+figure()
+bh=bar([numel(chain_olf_uid)-olf_shared,olf_shared,numel(loop_olf_uid)-olf_shared;...
+    numel(chain_dur_uid)-olf_shared,dur_shared,numel(loop_dur_uid)-dur_shared;...
+    numel(chain_both_uid)-olf_shared,both_shared,numel(loop_both_uid)-both_shared],...
+    'stacked');
+bh(1).FaceColor='b';
+bh(2).FaceColor='m';
+bh(3).FaceColor='r';
+legend(bh,{'Linked series only','Shared','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',12)
+ylim([0,1800])
+xlim([0.5,3.5])
+ylabel('Number of neurons (out of 24667)')
+set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Both'},'XTickLabelRotation',30,'YTick',0:400:1600,'FontSize',12)
+
+
 
 % to shuffle ratio
 
