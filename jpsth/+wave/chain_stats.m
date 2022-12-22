@@ -6,33 +6,16 @@
 global_init;
 load('chains_mix.mat','chains_uf','chains_uf_rev');
 
-% Forward and reverse count
-if false
-    len=cellfun(@(x) numel(x),chains_uf.cids);
-    len_rev=cellfun(@(x) numel(x),chains_uf_rev.cids);
-
-    len_hist=histcounts(len,2.5:1:12.5);
-    len_rev_hist=histcounts(len_rev,2.5:1:12.5);
-
-    xx=3:12;
-
-    figure()
-    hold on;
-    fwdh=plot(xx,len_hist,'r-');
-    revh=plot(xx,len_rev_hist,'k-');
-    legend([fwdh,revh],{'Wave direction','Anti-wave direction'});
-    xlabel('Number of linked neuron')
-    ylabel('Total occurance')
-end
-
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
 % wave.COM_chain_shuf(wrs_mux_meta);
 load('chains_shuf.mat','shuf_chains')
-% TODO match region in recording data
+
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-[chains_uf.reg,chains_uf_rev.reg]=deal(cell(size(chains_uf.cids)));
-[chains_uf.reg_sel,chains_rev.reg_sel]=deal(false(size(chains_uf.cids)));
+chains_uf.reg=cell(size(chains_uf.cids));
+chains_uf_rev.reg=cell(size(chains_uf_rev.cids));
+chains_uf.reg_sel=false(size(chains_uf.cids));
+chains_uf_rev.reg_sel=false(size(chains_uf_rev.cids));
 greys=ephys.getGreyRegs('range','grey');
 
 for sess=reshape(unique(chains_uf.sess),1,[])
@@ -58,6 +41,11 @@ end %sess
 countbin=2.5:12.5;
 data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel)),countbin);
 data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel)),countbin);
+if false
+    load('chains_nonmem.mat','nonmem_chains')
+    nonmem_hist=histcounts(cellfun(@(x) numel(x),nonmem_chains.cids),countbin);
+end
+
 shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
 for shufid=1:numel(shuf_chains)
     shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids),countbin);    
@@ -73,13 +61,66 @@ fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor'
 datah=plot(pxx,data_hist,'-r');
 revh=plot(pxx,data_rev_hist,'-b');
 shufh=plot(pxx,shufmm,'-k');
+if true
+    nonmemh=plot(pxx,nonmem_hist,'-','Color',[0.5,0.5,0.5]);
+    legend([datah,revh,nonmemh,shufh],...
+        {'Wave-consistent','Wave-inconsistent','Non-memory','Shuffled wave-consistent'});
 
-legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'});
+else
+    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'});
+end
+
 xlabel('Number of linked neuron')
 ylabel('Total occurance')
 title('Total number of linked WM-neuron-series')
 
-%% TODO: wave vs wave
+%% wave vs wave, 3s vs 6s
+countbin=2.5:12.5;
+%mix 3s, mix6s, olf 3s, olf 6s, dur 3s, dur 6s
+wavetype={{'olf_s1','olf_s2'},{'dur_d3'},{'s1d3','s2d3'},...
+    {'olf_s1','olf_s2'},{'dur_d6'},{'s1d6','s2d6'}};
+durs=[3,3,3,6,6,6];
+ttls={'Olfactory, 3s','Duration, 3s','Both, 3s','Olfactory, 6s','Duration, 6s','Both, 6s'};
+figure()
+tiledlayout(2,3);
+pxx=3:12;
+
+for chartIdx=1:6
+    datasel=ismember(chains_uf.wave,wavetype{chartIdx}) & chains_uf.dur==durs(chartIdx);
+    data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel & datasel)),countbin);
+
+    data_rev_sel=ismember(chains_uf_rev.wave,wavetype{chartIdx}) & chains_uf_rev.dur==durs(chartIdx);
+    data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel & data_rev_sel)),countbin);
+
+    shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
+    for shufid=1:numel(shuf_chains)
+        shuf_sel=ismember(shuf_chains{shufid}.wave,wavetype{chartIdx}) ...
+            & shuf_chains{shufid}.dur==durs(chartIdx);
+        shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids(shuf_sel)),countbin);
+    end
+
+    shufmm=mean(shuf_hist);
+    shufsd=std(shuf_hist);
+
+    nexttile;
+    hold on
+    fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
+    datah=plot(pxx,data_hist,'-r');
+    revh=plot(pxx,data_rev_hist,'-b');
+    shufh=plot(pxx,shufmm,'-k');
+    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'});
+
+    xlim([3,11])
+    xlabel('Number neuron in wave-link')
+    ylabel('Total occurance')
+    title(ttls{chartIdx});
+end
+
+
+
+
+
+
 
 %% per-wave stats-per-region stats
 
@@ -163,11 +204,10 @@ xlim([0.5,3.5])
 ylabel('Number of neurons (out of 24667)')
 set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Both'},'XTickLabelRotation',30,'YTick',0:400:1600,'FontSize',12)
 
-
-
-% to shuffle ratio
-
-
+%% non-mem
+% load('chains_nonmem.mat','nonmem_chains')
+% countbin=2.5:12.5;
+% data_hist=histcounts(cellfun(@(x) numel(x),nonmem_chains.cids),countbin);
 
 
 

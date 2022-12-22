@@ -3,7 +3,8 @@ arguments
     wave_meta
     com_map
     tcom_maps
-    opt.condense_plot (1,1) logical = true
+    opt.condense_plot (1,1) logical = false
+    opt.omit_reg_wave (1,1) logical = true
 end
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
@@ -196,21 +197,23 @@ else
     fh=figure('Color','w','Position',[100,100,720,235]);
     tiledlayout(1,4)
     %TODO: region-defined panels-> selectivity defined panels
+    titles={'Olf.','Dur.','Mixed'};
     for ii=1:3
-        titles={'Olf.','Dur.','Mixed'};
         nexttile()
         hold on
-        bh=bar(1:3,[barmm(ii,[1 5 3]);barmm(ii,[2 6 4])],'grouped');
+        bh=bar(1:3,[barmm(ii,[1 3 5]);barmm(ii,[2 4 6])],'grouped');
         %TODO update
         errorbar([bh.XEndPoints],[bh.YEndPoints],...
-            [barci(ii,[1 5 3]),1-barci(ii,[1 5 3])]-[bh.YEndPoints],...
-            [barci(ii,[2 6 4]),1-barci(ii,[2 6 4])]-[bh.YEndPoints],'k.')
+            [barci(ii,[1 3 5]),1-barci(ii,[1 3 6])]-[bh.YEndPoints],...
+            [barci(ii,[2 4 6]),1-barci(ii,[2 4 6])]-[bh.YEndPoints],'k.')
         ylim([0,0.75])
         yline(0.5,'k--')
-        set(gca(),'XTick',1:3,'XTickLabel',{'Within','Reg-wave','FC-wave'},...
+        set(gca(),'XTick',1:3,'XTickLabel',{'Within','Cross','Reg-wave'},...
             'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
         title(titles{ii});
-        xlim([0.5,2.5])
+        if opt.omit_reg_wave
+            xlim([0.5,2.5])
+        end
         %         subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
     end
 
@@ -222,16 +225,16 @@ else
         [~,~,chi2p(typeidx)]=crosstab([zeros(barcnt(typeidx,2),1);...
             ones(barcnt(typeidx,6),1)],...
             [(1:barcnt(typeidx,2))>barcnt(typeidx,1),...
-            (1:barcnt(typeidx,6))>barcnt(typeidx,5)]);
+            (1:barcnt(typeidx,4))>barcnt(typeidx,3)]);
 
         binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
         binocdfp(typeidx,:)=[2*binocdf(binomin(1,2),barcnt(typeidx,2),0.5),...
-            2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5),...
-            2*binocdf(binomin(3,4),barcnt(typeidx,4),0.5)];
+            2*binocdf(binomin(3,4),barcnt(typeidx,4),0.5),...
+            2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5)];
         %     disp([typeidx,chi2p(typeidx),binocdfp]);
     end
     sgtitle(sprintf('%.3f, ',chi2p));
-    ephys.util.figtable(fh,nexttile(4),binocdfp,'title','same|regwave|fcwave')
+    ephys.util.figtable(fh,nexttile(4),binocdfp,'title','same|fcwave|regwave')
 
 end
 

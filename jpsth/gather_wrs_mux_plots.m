@@ -251,7 +251,7 @@ end
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-% fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom_maps);
+fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps);
 
 fc.wave_stay_disappear(wrs_mux_meta)
 
@@ -265,12 +265,12 @@ end
 % wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
-fh4=bz.inter_wave_pct(wrs_mux_meta);
+fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem
 fh4.fig.Children.Subtitle.String='Excitatory';
 fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
 fh4i.fig.Children.Subtitle.String='Inhibitory';
 bz.conn_prob_spatial_dist(sig,pair);
-%% TODO: FC_Decoding
+%% FC_Decoding
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 
@@ -286,7 +286,7 @@ bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 
 %% loops
 % sums_all
-bz.rings.ring_wave_freq(wrs_mux_meta);
+bz.rings.ring_wave_freq(wrs_mux_meta); 
 load(fullfile('bzdata','sums_ring_stats_all.mat'));
 % bz.rings.rings_reg_pie(sums_all)
 bz.rings.loop_occurance_per_reg_su(sums_all,su_meta);
