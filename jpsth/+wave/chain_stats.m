@@ -77,49 +77,49 @@ title('Total number of linked WM-neuron-series')
 %% wave vs wave, 3s vs 6s
 countbin=2.5:12.5;
 %mix 3s, mix6s, olf 3s, olf 6s, dur 3s, dur 6s
-wavetype={{'olf_s1','olf_s2'},{'dur_d3'},{'s1d3','s2d3'},...
+wavetype={{'olf_s1','olf_s2'},{'dur_d3'},{'s1d3','s2d3'};...
     {'olf_s1','olf_s2'},{'dur_d6'},{'s1d6','s2d6'}};
-durs=[3,3,3,6,6,6];
-ttls={'Olfactory, 3s','Duration, 3s','Both, 3s','Olfactory, 6s','Duration, 6s','Both, 6s'};
+durs=[3,3,3;6,6,6];
+% ttls={'Olfactory, 3s','Duration, 3s','Both, 3s','Olfactory, 6s','Duration, 6s','Both, 6s'};
 figure()
-tiledlayout(2,3);
+tiledlayout(1,3);
 pxx=3:12;
 
-for chartIdx=1:6
-    datasel=ismember(chains_uf.wave,wavetype{chartIdx}) & chains_uf.dur==durs(chartIdx);
-    data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel & datasel)),countbin);
-
-    data_rev_sel=ismember(chains_uf_rev.wave,wavetype{chartIdx}) & chains_uf_rev.dur==durs(chartIdx);
-    data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel & data_rev_sel)),countbin);
-
-    shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
-    for shufid=1:numel(shuf_chains)
-        shuf_sel=ismember(shuf_chains{shufid}.wave,wavetype{chartIdx}) ...
-            & shuf_chains{shufid}.dur==durs(chartIdx);
-        shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids(shuf_sel)),countbin);
-    end
-
-    shufmm=mean(shuf_hist);
-    shufsd=std(shuf_hist);
-
+lss={'--','-'};
+for chartIdx=1:3
     nexttile;
     hold on
-    fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
-    datah=plot(pxx,data_hist,'-r');
-    revh=plot(pxx,data_rev_hist,'-b');
-    shufh=plot(pxx,shufmm,'-k');
+    for durIdx=1:2
+        datasel=ismember(chains_uf.wave,wavetype{durIdx,chartIdx}) & chains_uf.dur==durs(durIdx,chartIdx);
+        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel & datasel)),countbin);
+
+        data_rev_sel=ismember(chains_uf_rev.wave,wavetype{durIdx,chartIdx}) & chains_uf_rev.dur==durs(durIdx,chartIdx);
+        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel & data_rev_sel)),countbin);
+
+        shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
+        for shufid=1:numel(shuf_chains)
+            shuf_sel=ismember(shuf_chains{shufid}.wave,wavetype{durIdx,chartIdx}) ...
+                & shuf_chains{shufid}.dur==durs(durIdx,chartIdx);
+            shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids(shuf_sel)),countbin);
+        end
+
+        shufmm=mean(shuf_hist);
+        shufsd=std(shuf_hist);
+
+        fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
+
+        datah=plot(pxx,data_hist,'r','LineStyle',lss{durIdx});
+        revh=plot(pxx,data_rev_hist,'b','LineStyle',lss{durIdx});
+        shufh=plot(pxx,shufmm,'k','LineStyle',lss{durIdx});
+    end
     legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'});
 
     xlim([3,11])
+    ylim([0,max(ylim())])
     xlabel('Number neuron in wave-link')
     ylabel('Total occurance')
-    title(ttls{chartIdx});
+%     title(ttls{chartIdx});
 end
-
-
-
-
-
 
 
 %% per-wave stats-per-region stats
@@ -215,4 +215,58 @@ set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Both'},'XTickLabelRo
 % TODO: per trial per spike align
 
 %% TODO: wave time correlation?
+chains_uf.reg_tcom=cell(size(chains_uf.reg));
+sel6=chains_uf.dur==6 & chains_uf.reg_sel;
+sel3=chains_uf.dur==3 & chains_uf.reg_sel;
+olf_sel=ismember(chains_uf.wave,{'olf_s1','olf_s2'});
+dur_sel=ismember(chains_uf.wave,{'dur_d3','dur_d6'});
+both_sel=ismember(chains_uf.wave,{'s1d3','s2d3','s1d6','s2d6'});
+%tcom_map:{mixed olf dur}
+
+inkey=cellfun(@(x) all(ismember(x,tcom6_maps{2}.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel6 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps{2}.values(x)),chains_uf.reg(sel6 & olf_sel & inkey),'UniformOutput',false);
+xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel6 & olf_sel & inkey),'UniformOutput',false));
+yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel6 & olf_sel & inkey),'UniformOutput',false));
+cross_sel=cellfun(@(x) numel(unique(x))>1,chains_uf.reg(sel6 & olf_sel & inkey));
+long_sel=cellfun(@(x) numel(x)>4,chains_uf.reg(sel6 & olf_sel & inkey));
+
+figure()
+hold on
+plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','-','Color',[0.49,0.5,0.51])
+plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','o','MarkerFaceColor','b','MarkerEdgeColor','none')
+plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','o','MarkerFaceColor','r','MarkerEdgeColor','none')
+
+inkey=cellfun(@(x) all(ismember(x,tcom6_maps{3}.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel6 & dur_sel & inkey)=cellfun(@(x) tcom6_maps{3}.values(x),chains_uf.reg(sel6 & dur_sel & inkey),'UniformOutput',false);
+
+inkey=cellfun(@(x) all(ismember(x,tcom6_maps{1}.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel6 & both_sel & inkey)=cellfun(@(x) tcom6_maps{1}.values(x),chains_uf.reg(sel6 & both_sel & inkey),'UniformOutput',false);
+
+
+inkey=cellfun(@(x) all(ismember(x,tcom3_maps{2}.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel3 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps{2}.values(x)),chains_uf.reg(sel3 & olf_sel & inkey),'UniformOutput',false);
+
+xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel3 & olf_sel & inkey),'UniformOutput',false));
+yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel3 & olf_sel & inkey),'UniformOutput',false));
+cross_sel=cellfun(@(x) numel(unique(x))>1,chains_uf.reg(sel3 & olf_sel & inkey));
+long_sel=cellfun(@(x) numel(x)>4,chains_uf.reg(sel3 & olf_sel & inkey));
+
+% figure()
+% hold on
+plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','--','Color',[0.49,0.5,0.51])
+plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','o','MarkerFaceColor','b','MarkerEdgeColor','none')
+plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','o','MarkerFaceColor','r','MarkerEdgeColor','none')
+
+
+
+inkey=cellfun(@(x) all(ismember(x,tcom3_maps{3}.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel3 & dur_sel & inkey)=cellfun(@(x) tcom3_maps{3}.values(x),chains_uf.reg(sel3 & dur_sel & inkey),'UniformOutput',false);
+
+inkey=cellfun(@(x) all(ismember(x,tcom3_maps{1}.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel3 & both_sel & inkey)=cellfun(@(x) tcom3_maps{1}.values(x),chains_uf.reg(sel3 & both_sel & inkey),'UniformOutput',false);
+
+
+
+
+
 
