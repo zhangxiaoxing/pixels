@@ -61,7 +61,7 @@ fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor'
 datah=plot(pxx,data_hist,'-r');
 revh=plot(pxx,data_rev_hist,'-b');
 shufh=plot(pxx,shufmm,'-k');
-if true
+if false
     nonmemh=plot(pxx,nonmem_hist,'-','Color',[0.5,0.5,0.5]);
     legend([datah,revh,nonmemh,shufh],...
         {'Wave-consistent','Wave-inconsistent','Non-memory','Shuffled wave-consistent'});
@@ -127,8 +127,9 @@ end
 
 % repeated occurance
 chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
+len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
 
-olf_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["olf_s1","olf_s2"]);
+olf_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel;
 olf_uid=[chains_uf.uid{olf_sel}];
 [chain_olf_uid,usel]=unique(olf_uid);
 olf_reg=[chains_uf.reg{olf_sel}];
@@ -136,7 +137,7 @@ olf_reg_cat=categorical(olf_reg);
 olf_u_reg_cat=categorical(olf_reg(usel));
 
 
-both_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]);
+both_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel;
 both_uid=[chains_uf.uid{both_sel}];
 [chain_both_uid,usel]=unique(both_uid);
 both_reg=[chains_uf.reg{both_sel}];
@@ -144,7 +145,7 @@ both_reg_cat=categorical(both_reg);
 both_u_reg_cat=categorical(both_reg(usel));
 
 
-dur_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["dur_d3","dur_d6"]);
+dur_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel;
 dur_uid=[chains_uf.uid{dur_sel}];
 [chain_dur_uid,usel]=unique(dur_uid);
 dur_reg=[chains_uf.reg{dur_sel}];
@@ -152,13 +153,15 @@ dur_reg_cat=categorical(dur_reg);
 dur_u_reg_cat=categorical(dur_reg(usel));
 
 figure()
-tiledlayout(2,3)
+tiledlayout(2,2)
 nexttile()
 olfh=pie(olf_reg_cat);
 title("Olfactory with repeats")
-nexttile()
-durh=pie(dur_reg_cat);
-title("Duration with repeats")
+if false
+    nexttile()
+    durh=pie(dur_reg_cat);
+    title("Duration with repeats")
+end
 nexttile()
 mixh=pie(both_reg_cat);
 title("Both-selective with repeats")
@@ -166,9 +169,11 @@ title("Both-selective with repeats")
 nexttile()
 olfh=pie(olf_u_reg_cat);
 title("Olfactory unique neuron")
-nexttile()
-durh=pie(dur_u_reg_cat);
-title("Duration unique neuron")
+if false
+    nexttile()
+    durh=pie(dur_u_reg_cat);
+    title("Duration unique neuron")
+end
 nexttile()
 mixh=pie(both_u_reg_cat);
 title("Both-selective unique neuron")
@@ -222,7 +227,7 @@ olf_sel=ismember(chains_uf.wave,{'olf_s1','olf_s2'});
 dur_sel=ismember(chains_uf.wave,{'dur_d3','dur_d6'});
 both_sel=ismember(chains_uf.wave,{'s1d3','s2d3','s1d6','s2d6'});
 %tcom_map:{mixed olf dur}
-
+%% olf 6
 inkey=cellfun(@(x) all(ismember(x,tcom6_maps{2}.keys()),'all'),chains_uf.reg);
 chains_uf.reg_tcom(sel6 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps{2}.values(x)),chains_uf.reg(sel6 & olf_sel & inkey),'UniformOutput',false);
 xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel6 & olf_sel & inkey),'UniformOutput',false));
@@ -233,16 +238,46 @@ long_sel=cellfun(@(x) numel(x)>4,chains_uf.reg(sel6 & olf_sel & inkey));
 figure()
 hold on
 plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','-','Color',[0.49,0.5,0.51])
-plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','o','MarkerFaceColor','b','MarkerEdgeColor','none')
-plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','o','MarkerFaceColor','r','MarkerEdgeColor','none')
+plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','x','MarkerFaceColor','k','MarkerEdgeColor','k')
+plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','v','MarkerFaceColor','k','MarkerEdgeColor','k')
+ylim([2,3])
+set(gca(),'YTick',2:0.5:3,'XTick',0:2:4)
+xlabel('Neuron wave-timing (s)')
+ylabel('Region wave-timing (s)')
+title('Olf, len>4, 6s')
 
+olf6_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,:),1,2)./4);
+
+
+%% dur 6
 inkey=cellfun(@(x) all(ismember(x,tcom6_maps{3}.keys()),'all'),chains_uf.reg);
 chains_uf.reg_tcom(sel6 & dur_sel & inkey)=cellfun(@(x) tcom6_maps{3}.values(x),chains_uf.reg(sel6 & dur_sel & inkey),'UniformOutput',false);
-
+%% both 6
 inkey=cellfun(@(x) all(ismember(x,tcom6_maps{1}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel6 & both_sel & inkey)=cellfun(@(x) tcom6_maps{1}.values(x),chains_uf.reg(sel6 & both_sel & inkey),'UniformOutput',false);
+chains_uf.reg_tcom(sel6 & both_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps{1}.values(x)),chains_uf.reg(sel6 & both_sel & inkey),'UniformOutput',false);
+
+xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel6 & both_sel & inkey),'UniformOutput',false));
+yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel6 & both_sel & inkey),'UniformOutput',false));
+cross_sel=cellfun(@(x) numel(unique(x))>1,chains_uf.reg(sel6 & both_sel & inkey));
+long_sel=cellfun(@(x) numel(x)>4,chains_uf.reg(sel6 & both_sel & inkey));
 
 
+figure()
+hold on
+plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','-','Color',[0.49,0.5,0.51])
+plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','x','MarkerFaceColor','k','MarkerEdgeColor','k')
+plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','v','MarkerFaceColor','k','MarkerEdgeColor','k')
+ylim([2.2,3])
+set(gca(),'YTick',2.2:0.4:3,'XTick',0:2:4)
+xlabel('Neuron wave-timing (s)')
+ylabel('Region wave-timing (s)')
+title('Both, len>4, 6s')
+
+mix6_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,:),1,2)./4);
+
+
+
+%% olf 3
 inkey=cellfun(@(x) all(ismember(x,tcom3_maps{2}.keys()),'all'),chains_uf.reg);
 chains_uf.reg_tcom(sel3 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps{2}.values(x)),chains_uf.reg(sel3 & olf_sel & inkey),'UniformOutput',false);
 
@@ -251,22 +286,83 @@ yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel3 & olf_sel & inke
 cross_sel=cellfun(@(x) numel(unique(x))>1,chains_uf.reg(sel3 & olf_sel & inkey));
 long_sel=cellfun(@(x) numel(x)>4,chains_uf.reg(sel3 & olf_sel & inkey));
 
-% figure()
-% hold on
-plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','--','Color',[0.49,0.5,0.51])
-plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','o','MarkerFaceColor','b','MarkerEdgeColor','none')
-plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','o','MarkerFaceColor','r','MarkerEdgeColor','none')
 
+figure()
+hold on
+plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','-','Color',[0.49,0.5,0.51])
+plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','x','MarkerFaceColor','k','MarkerEdgeColor','k')
+plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','v','MarkerFaceColor','k','MarkerEdgeColor','k')
+ylim([1.2,2])
+set(gca(),'YTick',1.2:0.4:2,'XTick',0:1:3)
+xlabel('Neuron wave-timing (s)')
+ylabel('Region wave-timing (s)')
+title('Olf, len>4, 3s')
 
+olf3_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,:),1,2)./4);
 
+%% dur 3
 inkey=cellfun(@(x) all(ismember(x,tcom3_maps{3}.keys()),'all'),chains_uf.reg);
 chains_uf.reg_tcom(sel3 & dur_sel & inkey)=cellfun(@(x) tcom3_maps{3}.values(x),chains_uf.reg(sel3 & dur_sel & inkey),'UniformOutput',false);
 
+%% both 3
 inkey=cellfun(@(x) all(ismember(x,tcom3_maps{1}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel3 & both_sel & inkey)=cellfun(@(x) tcom3_maps{1}.values(x),chains_uf.reg(sel3 & both_sel & inkey),'UniformOutput',false);
+chains_uf.reg_tcom(sel3 & both_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps{1}.values(x)),chains_uf.reg(sel3 & both_sel & inkey),'UniformOutput',false);
+
+xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel3 & both_sel & inkey),'UniformOutput',false));
+yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel3 & both_sel & inkey),'UniformOutput',false));
+cross_sel=cellfun(@(x) numel(unique(x))>1,chains_uf.reg(sel3 & both_sel & inkey));
+long_sel=cellfun(@(x) numel(x)>4,chains_uf.reg(sel3 & both_sel & inkey));
 
 
+figure()
+hold on
+plot((xxs(cross_sel & long_sel,:).')./4,yys(cross_sel & long_sel,:).','-','Color',[0.49,0.5,0.51])
+plot((xxs(cross_sel & long_sel,1).')./4,yys(cross_sel & long_sel,1).','x','MarkerFaceColor','k','MarkerEdgeColor','k')
+plot((xxs(cross_sel & long_sel,2).')./4,yys(cross_sel & long_sel,2).','v','MarkerFaceColor','k','MarkerEdgeColor','k')
+ylim([1.5,2.5])
+set(gca(),'YTick',1.5:0.5:2.5,'XTick',0:1:3)
+xlabel('Neuron wave-timing (s)')
+ylabel('Region wave-timing (s)')
+title('Both, len>4, 3s')
+mix3_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,:),1,2)./4);
 
+%% su tcom vs region tcom slop stats
 
+figure()
+hold on
+boxchart([zeros(size(olf3_slop));ones(size(olf6_slop));2.*ones(size(mix3_slop));3.*ones(size(mix6_slop))],...
+    [olf3_slop;olf6_slop;mix3_slop;mix6_slop],...
+    'MarkerStyle','none','Notch','on')
+yline(0,'-k')
+ylim([-0.6,0.6])
+set(gca(),'XTick',0:3,'XTickLabel',{'O3','O6','B3','B6'},'YTick',-0.5:0.5:0.5)
+ylabel('Neuron-region wave timing slope')
+
+%%
+olf_ratio=[];
+both_ratio=[];
+for rr=greys
+    su_cnt=nnz(strcmp(su_meta.reg_tree(5,:),rr));
+    chains_occur_olf=nnz(olf_reg_cat==rr);
+    chains_occur_both=nnz(both_reg_cat==rr);
+    olf_ratio=[olf_ratio;chains_occur_olf./su_cnt];
+    both_ratio=[both_ratio;chains_occur_both./su_cnt];
+end
+
+[olf_ratio,olf_srt]=sort(olf_ratio,'descend');
+[both_ratio,both_srt]=sort(both_ratio,'descend');
+
+figure()
+tiledlayout(1,2)
+nexttile()
+bar(olf_ratio(1:10))
+set(gca(),'XTick',1:10,'XTickLabel',greys(olf_srt(1:10)),'YScale','log','XTickLabelRotation',90);
+ylim([0.01,10]);
+ylabel('Occurance per neuron')
+nexttile()
+bar(both_ratio(1:10))
+set(gca(),'XTick',1:10,'XTickLabel',greys(both_srt(1:10)),'YScale','log','XTickLabelRotation',90);
+ylim([0.01,10]);
+ylabel('Occurance per neuron')
 
 

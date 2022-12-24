@@ -1,0 +1,11 @@
+wrs_mux_meta=ephys.get_wrs_mux_meta();
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+sig=bz.join_fc_waveid(sig,wrs_mux_meta.wave_id);
+pair=bz.join_fc_waveid(pair,wrs_mux_meta.wave_id);
+greys=ephys.getGreyRegs('range','grey');
+idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+greys_id=int32(cell2mat(idmap.reg2ccfid.values(greys)));
+sig_congrusel=pct.su_pairs.get_congru(sig.waveid);
+pair_congrusel=pct.su_pairs.get_congru(pair.waveid);
+sig_reg_sel=all(ismember(sig.reg(:,5,:),greys_id),3);
+pair_reg_sel=all(ismember(pair.reg(:,5,:),greys_id),3);

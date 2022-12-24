@@ -1,10 +1,11 @@
-function fc_com_pvsst_stats=fc_com_reg_wave(wave_meta,com_map,tcom_maps,opt)
+function [fc_com_pvsst_stats,fh]=fc_com_reg_wave(wave_meta,com_map,tcom_maps,opt)
 arguments
     wave_meta
     com_map
     tcom_maps
     opt.condense_plot (1,1) logical = false
     opt.omit_reg_wave (1,1) logical = true
+    opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
 end
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
@@ -21,11 +22,20 @@ for sii=reshape(usess,1,[]) %iterate through sessions
     regsess=squeeze(sig.reg(sesssel,5,:));
 
     com_sess_pct=nan(size(suid));
-    for ff=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
+    if opt.delay==6
+        ffs=["s1d6","s2d6","olf_s1","olf_s2","dur_d6"];
+        durkey='com6';
+    elseif opt.delay==3
+        ffs=["s1d3","s2d3","olf_s1","olf_s2","dur_d3"];
+        durkey='com3';
+    end
+
+
+    for ff=ffs
         if isfield(com_map.(['s',num2str(sii)]),ff)
-            sukeys=com_map.(['s',num2str(sii)]).(ff).com.keys(); % prefered SUid
+            sukeys=com_map.(['s',num2str(sii)]).(ff).(durkey).keys(); % prefered SUid
             susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
-            com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).com.values(num2cell(suid(susel)))); % out put is nx2 in dim
+            com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).(durkey).values(num2cell(suid(susel)))); % out put is nx2 in dim
         end
     end
     fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];
@@ -233,7 +243,7 @@ else
             2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5)];
         %     disp([typeidx,chi2p(typeidx),binocdfp]);
     end
-    sgtitle(sprintf('%.3f, ',chi2p));
+    sgtitle(sprintf('delay=%ds p=%.3f, %.3f, %.3f ',opt.delay,chi2p));
     ephys.util.figtable(fh,nexttile(4),binocdfp,'title','same|fcwave|regwave')
 
 end

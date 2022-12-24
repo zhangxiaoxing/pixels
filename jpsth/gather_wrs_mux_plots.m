@@ -35,21 +35,6 @@ for typeidx=1:3
         ureg,num2cell(cellfun(@(x) x/4, fcom6.(type).collection(tcidx,1))));
 end
 
-if false %mixed 3s and 6s data, obsolete
-    tcom_maps=cell(1,3);
-    for typeidx=1:3
-        type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-        [fcom.(type).collection,fcom.(type).com_meta]=wave.per_region_COM(...
-            com_map,'sel_type',type);
-        ureg=intersect(ephys.getGreyRegs('range','grey'),...
-            fcom.(type).collection(:,2));
-        [~,tcidx]=ismember(ureg,fcom.(type).collection(:,2));
-        tcom_maps{typeidx}=containers.Map(ureg,num2cell(cellfun(@(x) x/4, fcom.(type).collection(tcidx,1))));
-    end
-end
-
-
-
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % olf >>>>>>>>>>>>>>>>>>>>>>>>>
@@ -251,7 +236,8 @@ end
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps);
+[fcstats3,fh6]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',6);
+[fcstats3,fh3]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',3);
 
 fc.wave_stay_disappear(wrs_mux_meta)
 
