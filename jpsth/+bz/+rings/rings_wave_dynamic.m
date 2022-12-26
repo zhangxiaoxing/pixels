@@ -1,8 +1,9 @@
 % ring in wave
 % load('bzdata\sums_ring_stats_all.mat')
+% global_init();
 function  rings_wave_dynamic(sums_all)
 % TODO optional global filter to remove spikes outside delay
-
+global_init();
 % classify rings based on su-waveid combination
 % --link ring su to meta-su
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
@@ -113,10 +114,10 @@ hold on
 % plot(xx,per_ring_hist.incongru./sum(per_ring_hist.incongru,'all'),'-b');
 % plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
 count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
-plot(xx,count_sum./sum(count_sum,'all'),'-r');
-plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-k');
-plot((0.25:0.25:6).*1000,bump3hist,'-b')
-plot((0.25:0.25:6).*1000,bump6hist,'-c')
+looph=plot(xx,count_sum./sum(count_sum,'all'),'-r');
+fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-k');
+b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
+b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
 
 %
 % xline(fciqr(2),'k-')
@@ -126,4 +127,5 @@ xlim([0.3,6000])
 ylim([1e-3,1])
 xlabel('Time (ms)')
 ylabel('Probability')
+legend([fch,looph,b3h,b6h],{'FC','Loop','3s wave FWHM','6s wave FWHM'})
 end
