@@ -77,11 +77,23 @@ if opt.bar
             reg_su_cnt=nnz(su_reg==creg);
             dset_cnt=nnz(dset{1}==creg);
             ratios=[ratios,dset_cnt./reg_su_cnt];
-            bar(ratios)
         end
-        set(gca(),"XTick",1:11,"XTickLabel",loop_reg,"XTickLabelRotation",90)
+        [sratios,sidx]=sort(ratios,'descend','MissingPlacement','last');
+        if any(contains(lbls{cnt},'within'),'all')
+            bar(sratios(1:2))
+            set(gca(),"XTick",1:2,"XTickLabel",loop_reg(sidx(1:2)),...
+            "XTickLabelRotation",90,'YScale','log','YLim',[0.001,1])
+        else
+            bar(sratios(1:5))
+            set(gca(),"XTick",1:5,"XTickLabel",loop_reg(sidx(1:5)),...
+            "XTickLabelRotation",90,'YScale','log','YLim',[0.001,1])
+        end
+        xlim([0.25,5.75]);
+
         ylabel('Occurance in loops per neuron')
         title(lbls{cnt});
+
+
         cnt=cnt+1;
     end
 end

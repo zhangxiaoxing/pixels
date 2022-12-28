@@ -122,7 +122,7 @@ for chartIdx=1:3
 end
 
 
-%% per-wave stats-per-region stats
+%% per-wave stats-per-region stats pie chart
 
 
 % repeated occurance
@@ -219,7 +219,7 @@ set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Both'},'XTickLabelRo
 %% TODO: performance-correlation
 % TODO: per trial per spike align
 
-%% TODO: wave time correlation?
+%%  wave time correlation, region and neuron, an arrow for each chain
 chains_uf.reg_tcom=cell(size(chains_uf.reg));
 sel6=chains_uf.dur==6 & chains_uf.reg_sel;
 sel3=chains_uf.dur==3 & chains_uf.reg_sel;
@@ -338,7 +338,7 @@ ylim([-0.6,0.6])
 set(gca(),'XTick',0:3,'XTickLabel',{'O3','O6','B3','B6'},'YTick',-0.5:0.5:0.5)
 ylabel('Neuron-region wave timing slope')
 
-%%
+%% occurance of chain neuron per region neuron
 olf_ratio=[];
 both_ratio=[];
 for rr=greys

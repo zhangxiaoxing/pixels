@@ -279,6 +279,8 @@ bz.rings.loop_occurance_per_reg_su(sums_all,su_meta);
 bz.rings.rings_wave_dynamic(sums_all)
 bz.rings.rings_su_wave_tcom_corr(sums_all)
 
+%TODO: assembly time constant olf, both, 3s 6s
+
 %% chain
 wave.chain_stats;
 
