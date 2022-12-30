@@ -1,3 +1,4 @@
+ephys.util.dependency('ft',true,'buz',false); %data path and lib path dependency
 if ~exist('ring_meta','var')
     load('ring_meta.mat','ring_meta');
 end
@@ -40,6 +41,10 @@ for rsize=rsizes
                     disp([sessid,ri]);
                     ts_id=[];
                     cids=rmeta(ri,2:end);
+                    rsids=find(cell2mat(rstats(:,1))==sessid & all(ismember(cell2mat(rstats(:,3)),cids),2));
+                    if isempty(rsids)
+                        continue;
+                    end
                     per_cid_spk_cnt=cids;
                     for in_ring_pos=1:numel(cids) % TODO, 1:rsize
                         one_ring_sel=spkID==cids(in_ring_pos);
@@ -47,10 +52,7 @@ for rsize=rsizes
                         ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
                     end
                     ts_id=sortrows(ts_id,1);
-                    rsids=find(cell2mat(rstats(:,1))==sessid & all(ismember(cell2mat(rstats(:,3)),cids),2));
-                    if isempty(rsids)
-                        continue;
-                    end
+
                     for rsidi=1:numel(rsids)
                         rsid=rsids(rsidi);
                         ts_id=[ts_id,full(rstats{rsid,5}.tags)];
@@ -65,7 +67,6 @@ for rsize=rsizes
                         cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
                         cfg.trlunit='timestamps';
                         cfg.timestampspersecond=sps;
-                        ephys.util.dependency('ft',true,'buz',false); %data path and lib path dependency
                         FT_LOOPS=ft_spike_maketrials(cfg,FT_LOOPS);
                         FT_LOOPS.sessid=sessid;
                         loops_sums.(mtype).(sprintf('%s_%d',rtype,rsize)){end+1}=FT_LOOPS;
