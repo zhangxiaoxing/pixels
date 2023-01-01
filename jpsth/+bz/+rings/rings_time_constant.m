@@ -1,3 +1,6 @@
+% TODO: confirm inter-loop-transition with spkTS-cid-map
+% TODO: join selective and non-selective loops
+
 % We found that larger proportions of spikes were associated with 
 % such activity loops of same-memory neurons than that of non-memory
 % neurons (fig. Sx). For all the recorded neurons, we observed xx% of
@@ -21,7 +24,6 @@ if ~opt.load_file
 
     su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
     wrs_mux_meta=ephys.get_wrs_mux_meta();
-    com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
     rstats=cell(0,11);
     for rsize=3:5
@@ -33,7 +35,6 @@ if ~opt.load_file
                 sesscid=su_meta.allcid(su_meta.sess==curr_sess);
                 sesswaveid=wrs_mux_meta.wave_id(su_meta.sess==curr_sess);
                 sess_wave_map=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
-                sess_su_com_map=com_map.(['s',num2str(curr_sess)]);
             end
             curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize{ridx,3})));
             %         if (~all(ismember(curr_part,{'CH','BS'}),'all'))
@@ -113,7 +114,7 @@ if ~opt.load_file
 else
     load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats')
 end
-
+plotStats(pstats)
 end
 
 
@@ -123,17 +124,17 @@ sess=str2double(string(regexp(fn,'(?<=s)\d+(?=r.*)','match')));
 figure();pie(categorical(sess));
 waveid=[3 6];
 for sessid=33%[100,18,33]
-    sessfn=fn(sess==sessid);
+    sess_ring=fn(sess==sessid);
     su_per_region=cell(0);
-    for onefn=reshape(sessfn,1,[])
+    for onefn=reshape(sess_ring,1,[])
         if any(ismember(waveid,pstats.congru.(onefn{1}).rstats{4}),'all')
             su_per_region(end+1)=pstats.congru.(onefn{1}).rstats(3);
         end
     end
     usus=unique([su_per_region{:}]);
-%     sumap=nan(numel(sessfn),numel(usus));
+%     sumap=nan(numel(sess_ring),numel(usus));
     sumap=[];
-    for onefn=reshape(sessfn,1,[])
+    for onefn=reshape(sess_ring,1,[])
          sumap=[sumap;ismember(usus,pstats.congru.(onefn{1}).rstats{3})];
     end
     Z=linkage(sumap);
@@ -150,18 +151,18 @@ for sessid=33%[100,18,33]
     colormap('gray')
     set(gca,'YDir','normal')
     
-    trials=pstats.congru.(sessfn{1}).trials;
+    trials=pstats.congru.(sess_ring{1}).trials;
     if ismember(3,waveid)
         trial_sel=find(trials(:,5)==8 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
     elseif ismember(1,waveid)
         trial_sel=find(trials(:,5)==4 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
     end
-    ring_spikes=cell(0,numel(sessfn));
-    ring_cid=cell(0,numel(sessfn));
+    ring_spikes=cell(0,numel(sess_ring));
+    ring_cid=cell(0,numel(sess_ring));
     for t=reshape(trial_sel,1,[])
         onetrial=cell(1,0);
         onecid=cell(1,0);
-        for onefn=reshape(sessfn(outperm),1,[])
+        for onefn=reshape(sess_ring(outperm),1,[])
             ts_id=pstats.congru.(onefn{1}).ts_id();
             tsel=ts_id(:,5)==t & ts_id(:,6)~=0;
             time_trial={reshape(ts_id(tsel,4),1,[])};
@@ -218,16 +219,16 @@ for wid=1:4
     waveid=waveids{wid};
     for sessid=reshape(unique(sess),1,[])
         allsessfn=fn(sess==sessid);
-        sessfn=cell(0);
+        sess_ring=cell(0);
         for onefn=reshape(allsessfn,1,[])
             if all(ismember(pstats.congru.(onefn{1}).rstats{1,4},waveid),'all')
-                sessfn=[sessfn;onefn];
+                sess_ring=[sess_ring;onefn];
             end
         end
-        if size(sessfn,1)<2
+        if size(sess_ring,1)<2
             continue
         end
-        trials=pstats.congru.(sessfn{1}).trials;
+        trials=pstats.congru.(sess_ring{1}).trials;
         if ismember(3,waveid)
             trial_sel=find(trials(:,5)==8 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
         elseif ismember(1,waveid)
@@ -237,12 +238,12 @@ for wid=1:4
         elseif ismember(4,waveid)
             trial_sel=find(trials(:,5)==8 & trials(:,8)==6 & all(trials(:,9:10)>0,2));
         end
-        ring_spikes=cell(0,numel(sessfn));
-%         ring_cid=cell(0,numel(sessfn));
+        ring_spikes=cell(0,numel(sess_ring));
+%         ring_cid=cell(0,numel(sess_ring));
         for t=reshape(trial_sel,1,[])
             onetrial=cell(1,0);
 %             onecid=cell(1,0);
-            for onefn=reshape(sessfn,1,[])
+            for onefn=reshape(sess_ring,1,[])
                 ts_id=pstats.congru.(onefn{1}).ts_id();
                 tsel=ts_id(:,5)==t & ts_id(:,6)~=0;
                 time_trial={reshape(ts_id(tsel,4),1,[])};
@@ -295,16 +296,16 @@ for wid=1:4
     waveid=waveids{wid};
     for sessid=reshape(unique(sess),1,[])
         allsessfn=fn(sess==sessid);
-        sessfn=cell(0);
+        sess_ring=cell(0);
         for onefn=reshape(allsessfn,1,[])
             if all(ismember(pstats.congru.(onefn{1}).rstats{1,4},waveid),'all')
-                sessfn=[sessfn;onefn];
+                sess_ring=[sess_ring;onefn];
             end
         end
-        if size(sessfn,1)<2
+        if size(sess_ring,1)<2
             continue
         end
-        trials=pstats.congru.(sessfn{1}).trials;
+        trials=pstats.congru.(sess_ring{1}).trials;
         if ismember(3,waveid)
             trial_sel=find(trials(:,5)==8 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
         elseif ismember(1,waveid)
@@ -314,12 +315,12 @@ for wid=1:4
         elseif ismember(4,waveid)
             trial_sel=find(trials(:,5)==8 & trials(:,8)==6 & all(trials(:,9:10)>0,2));
         end
-        ring_spikes=cell(0,numel(sessfn));
-%         ring_cid=cell(0,numel(sessfn));
+        ring_spikes=cell(0,numel(sess_ring));
+%         ring_cid=cell(0,numel(sess_ring));
         for t=reshape(trial_sel,1,[])
             onetrial=cell(1,0);
 %             onecid=cell(1,0);
-            for onefn=reshape(sessfn,1,[])
+            for onefn=reshape(sess_ring,1,[])
                 ts_id=pstats.congru.(onefn{1}).ts_id();
                 tsel=ts_id(:,5)==t & ts_id(:,6)~=0;
                 time_trial={reshape(ts_id(tsel,4),1,[])};
