@@ -291,7 +291,7 @@ figure();histogram(expdd);
 
 %% statistics - alt
 stats=struct();
-waveids={[1 5],[2 5],[3 6],[4 6]};
+waveids={[1 5],[2 5],[3 6],[4 6],[1 7],[2 8],[3 7],[4 8]};
 for wid=1:4
     waveid=waveids{wid};
     for sessid=reshape(unique(sess),1,[])
