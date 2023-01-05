@@ -10,12 +10,14 @@ load('chains_mix.mat','chains_uf','chains_uf_rev');
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
 % wave.COM_chain_shuf(wrs_mux_meta);
 load('chains_shuf.mat','shuf_chains')
-
+%% region tag
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 chains_uf.reg=cell(size(chains_uf.cids));
-chains_uf_rev.reg=cell(size(chains_uf_rev.cids));
 chains_uf.reg_sel=false(size(chains_uf.cids));
-chains_uf_rev.reg_sel=false(size(chains_uf_rev.cids));
+if false
+    chains_uf_rev.reg=cell(size(chains_uf_rev.cids));
+    chains_uf_rev.reg_sel=false(size(chains_uf_rev.cids));
+end
 greys=ephys.getGreyRegs('range','grey');
 
 for sess=reshape(unique(chains_uf.sess),1,[])
@@ -28,11 +30,13 @@ for sess=reshape(unique(chains_uf.sess),1,[])
             chains_uf.reg_sel(cnid)=true;
         end
     end
-    for cnid=reshape(find(chains_uf_rev.sess==sess),1,[])
-        [~,supos]=ismember(chains_uf_rev.cids{cnid},sesscid);
-        chains_uf_rev.reg{cnid}=sessreg(supos);
-        if all(ismember(sessreg(supos),greys),'all')
-            chains_uf_rev.reg_sel(cnid)=true;
+    if false
+        for cnid=reshape(find(chains_uf_rev.sess==sess),1,[])
+            [~,supos]=ismember(chains_uf_rev.cids{cnid},sesscid);
+            chains_uf_rev.reg{cnid}=sessreg(supos);
+            if all(ismember(sessreg(supos),greys),'all')
+                chains_uf_rev.reg_sel(cnid)=true;
+            end
         end
     end
 end %sess
@@ -132,6 +136,7 @@ len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
 olf_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel;
 olf_uid=[chains_uf.uid{olf_sel}];
 [chain_olf_uid,usel]=unique(olf_uid);
+
 olf_reg=[chains_uf.reg{olf_sel}];
 olf_reg_cat=categorical(olf_reg);
 olf_u_reg_cat=categorical(olf_reg(usel));
@@ -186,28 +191,31 @@ rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
 lolf_sel=strcmp(rstats(:,9),'olf');
 loop_olf_uid=unique([rstats{lolf_sel,10}]);
 olf_shared=nnz(ismember(chain_olf_uid,loop_olf_uid));
+olf_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_meta.wave_id,5:6));
 
 lboth_sel=strcmp(rstats(:,9),'both');
 loop_both_uid=unique([rstats{lboth_sel,10}]);
 both_shared=nnz(ismember(chain_both_uid,loop_both_uid));
+both_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_meta.wave_id,1:4));
 
-ldur_sel=strcmp(rstats(:,9),'dur');
-loop_dur_uid=unique([rstats{ldur_sel,10}]);
-dur_shared=nnz(ismember(chain_dur_uid,loop_dur_uid));
+% skiped dur stats since no chain with lenth > 5 were recorded
+% ldur_sel=strcmp(rstats(:,9),'dur');
+% loop_dur_uid=unique([rstats{ldur_sel,10}]);
+% dur_shared=nnz(ismember(chain_dur_uid,loop_dur_uid));
+% dur_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_meta.wave_id,7:8));
 
 figure()
-bh=bar([numel(chain_olf_uid)-olf_shared,olf_shared,numel(loop_olf_uid)-olf_shared;...
-    numel(chain_dur_uid)-olf_shared,dur_shared,numel(loop_dur_uid)-dur_shared;...
-    numel(chain_both_uid)-olf_shared,both_shared,numel(loop_both_uid)-both_shared],...
+bh=bar([[numel(chain_olf_uid)-olf_shared,olf_shared,numel(loop_olf_uid)-olf_shared]./olf_su_total;...
+    [numel(chain_both_uid)-both_shared,both_shared,numel(loop_both_uid)-both_shared]./both_su_total],...
     'stacked');
-bh(1).FaceColor='b';
-bh(2).FaceColor='m';
-bh(3).FaceColor='r';
-legend(bh,{'Linked series only','Shared','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',12)
-ylim([0,1800])
-xlim([0.5,3.5])
-ylabel('Number of neurons (out of 24667)')
-set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Both'},'XTickLabelRotation',30,'YTick',0:400:1600,'FontSize',12)
+bh(1).FaceColor='w';
+bh(2).FaceColor=[0.5,0.5,0.5];
+bh(3).FaceColor='k';
+legend(bh,{'Chain only','Shared','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',10)
+ylim([0,0.3])
+xlim([0.5,2.5])
+ylabel('Proportion of selection neurons (%)')
+set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.1:0.3,'FontSize',10,'YTickLabel',0:10:30);
 
 %% non-mem
 % load('chains_nonmem.mat','nonmem_chains')
@@ -364,5 +372,9 @@ bar(both_ratio(1:10))
 set(gca(),'XTick',1:10,'XTickLabel',greys(both_srt(1:10)),'YScale','log','XTickLabelRotation',90);
 ylim([0.01,10]);
 ylabel('Occurance per neuron')
+
+
+%% showcase
+
 
 
