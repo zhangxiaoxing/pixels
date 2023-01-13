@@ -11,7 +11,7 @@ arguments
     opt.reverse (1,1) logical = false
 end
 % global_init
-load('sums_conn.mat','sums_conn_str');
+load('sums_conn_10.mat','sums_conn_str');
 % [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 % meta_str=ephys.util.load_meta('skip_stats',true);
 % warning('partial iteration for illustration')

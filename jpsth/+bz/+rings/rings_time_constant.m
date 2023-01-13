@@ -121,8 +121,9 @@ end
 function plotStats(pstats)
 fn=fieldnames(pstats.congru);
 sess=str2double(string(regexp(fn,'(?<=s)\d+(?=r.*)','match')));
-figure();pie(categorical(sess));
 waveid=[3 6];
+
+figure();pie(categorical(sess));
 for sessid=33%[100,18,33]
     sess_ring=fn(sess==sessid);
     su_per_region=cell(0);
@@ -214,83 +215,6 @@ end
 
 %% statistics
 stats=struct();
-waveids={[1 5],[2 5],[3 6],[4 6]};
-for wid=1:4
-    waveid=waveids{wid};
-    for sessid=reshape(unique(sess),1,[])
-        allsessfn=fn(sess==sessid);
-        sess_ring=cell(0);
-        for onefn=reshape(allsessfn,1,[])
-            if all(ismember(pstats.congru.(onefn{1}).rstats{1,4},waveid),'all')
-                sess_ring=[sess_ring;onefn];
-            end
-        end
-        if size(sess_ring,1)<2
-            continue
-        end
-        trials=pstats.congru.(sess_ring{1}).trials;
-        if ismember(3,waveid)
-            trial_sel=find(trials(:,5)==8 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
-        elseif ismember(1,waveid)
-            trial_sel=find(trials(:,5)==4 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
-        elseif ismember(2,waveid)
-            trial_sel=find(trials(:,5)==4 & trials(:,8)==6 & all(trials(:,9:10)>0,2));
-        elseif ismember(4,waveid)
-            trial_sel=find(trials(:,5)==8 & trials(:,8)==6 & all(trials(:,9:10)>0,2));
-        end
-        ring_spikes=cell(0,numel(sess_ring));
-%         ring_cid=cell(0,numel(sess_ring));
-        for t=reshape(trial_sel,1,[])
-            onetrial=cell(1,0);
-%             onecid=cell(1,0);
-            for onefn=reshape(sess_ring,1,[])
-                ts_id=pstats.congru.(onefn{1}).ts_id();
-                tsel=ts_id(:,5)==t & ts_id(:,6)~=0;
-                time_trial={reshape(ts_id(tsel,4),1,[])};
-%                 cid_trial={reshape(ts_id(tsel,2),1,[])};
-                onetrial(1,end+1)=time_trial;
-%                 onecid(1,end+1)=cid_trial;
-            end
-            ring_spikes=[ring_spikes;onetrial];
-%             ring_cid=[ring_cid;onecid];
-        end
-        sfn=sprintf('w%ds%d',wid,sessid);
-        stats.(sfn)=cell(0);
-        for tt=1:size(ring_spikes,1)
-            covered=zeros(1,3000);
-            for rridx=1:size(ring_spikes,2)
-                if isempty(ring_spikes{tt,rridx})
-                    continue
-                end
-                ts=ring_spikes{tt,rridx}-1;
-                for ii=2:numel(ts)
-                    if ts(ii)-ts(ii-1)<0.01
-                        onset=ceil(ts(ii-1)*1000);
-                        offset=ceil(ts(ii)*1000);
-                        covered(onset:offset)=1;
-                    end
-                end
-            end
-
-            edges = find(diff([0,covered,0]==1));
-            onset = edges(1:2:end-1);  % Start indices
-            run_length = edges(2:2:end)-onset;  % Consecutive ones counts
-            stats.(sfn)=[stats.(sfn),{reshape(run_length,1,[])}];
-        end
-
-        %    max([stats{:}])
-    end
-end
-
-C=struct2cell(stats).';
-expd=[C{:}];
-expdd=[expd{:}];
-figure();histogram(expdd);
-
-
-
-%% statistics - alt
-stats=struct();
 waveids={[1 5],[2 5],[3 6],[4 6],[1 7],[2 8],[3 7],[4 8]};
 for wid=1:4
     waveid=waveids{wid};
@@ -358,12 +282,15 @@ for wid=1:4
         %    max([stats{:}])
     end
 end
-
+blame=vcs.blame();
+save(fullfile('bzdata','hebbian_ring.mat'),'stats','blame')
 C=struct2cell(stats).';
 expd=[C{:}];
 expdd=[expd{:}];
-figure();histogram(expdd);
-
+figure();
+histogram(expdd,'Normalization','probability');
+set(gca(),'YScale','log','XScale','log')
+ylim([1e-3,1])
 end
 
 

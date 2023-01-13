@@ -106,7 +106,40 @@ bump3hist=histcounts(bump3,bxx,'Normalization','probability');
 bump6hist=histcounts(bump6,bxx,'Normalization','probability');
 
 %%
+load('chains_mix.mat','chains_uf');
+chains=chains_uf;
+clear chains_uf;
+wids=reshape(unique(chains.wave),1,[]);
+t_span=struct();
+for dur=3:3:6
+    for wid=wids
+        lsel=cellfun(@(x) numel(x)>4,chains.cids);
+        wsel=chains.wave==wid & chains.dur==dur;
+        dtcom=cellfun(@(x) x(end)-x(1),chains.tcoms(lsel & wsel));
+%         if ~isfield(t_span,wid+num2str(dur))
+%             t_span.(wid+num2str(dur))=[];
+%         end
+        if ~isempty(dtcom)
+            t_span.("d"+num2str(dur)).(wid)=dtcom;
+        end
+    end
+end
 
+cxx=0:200:6000;
+chist3=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3]*1000/4,cxx,'Normalization','probability');
+chist6=histcounts([t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','probability');
+
+
+%%
+
+hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
+C=struct2cell(hrstats.stats).';
+expd=[C{:}];
+expdd=[expd{:}];
+hrhist=histcounts(expdd,0:10:250,'Normalization','probability');
+
+
+%%
 xx=[0.5:1:9.5,15:10:195];
 figure()
 hold on
@@ -114,11 +147,16 @@ hold on
 % plot(xx,per_ring_hist.incongru./sum(per_ring_hist.incongru,'all'),'-b');
 % plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
 count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
-looph=plot(xx,count_sum./sum(count_sum,'all'),'-r');
-fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-k');
-b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
-b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
+looph=plot(xx,count_sum./sum(count_sum,'all'),'-kx');
+fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'--k.');
+% b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
+% b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
+c3h=plot(cxx(1:end-1)+100,chist3,'-k^');
+c6h=plot(cxx(1:end-1)+100,chist6,'-ko');
+hrh=plot(5:10:245,hrhist,'-.k+');
 
+xline(3000,'--k')
+xline(6000,'--k')
 %
 % xline(fciqr(2),'k-')
 % xline(fciqr(2),'k--')
@@ -127,5 +165,5 @@ xlim([0.3,6000])
 ylim([1e-3,1])
 xlabel('Time (ms)')
 ylabel('Probability')
-legend([fch,looph,b3h,b6h],{'FC','Loop','3s wave FWHM','6s wave FWHM'})
+legend([fch,looph,hrh,c3h,c6h],{'FC','Loop','Hebbian wave','3s chain-loop','6s chain-loop'})
 end

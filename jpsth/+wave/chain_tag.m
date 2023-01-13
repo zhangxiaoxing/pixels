@@ -4,7 +4,6 @@
 % chains=chains_uf;
 % clear chains_uf;
 
-
 function out=chain_tag(chains)
 arguments
     chains
@@ -66,9 +65,13 @@ for sessid=sesses
                 %
                 ts_id=sortrows(ts_id,1);
                 ch_tags=chain_one(ts_id(:,[1 3]),numel(chains.cids{cc}));
-                ts_id=[ts_id,ch_tags.tags]; % join TS, chain tag % 6
-
-                % TODO:output
+                if nnz(ch_tags.tags)>0
+                    keyboard();
+                    ts_id=[ts_id,ch_tags.tags]; % join TS, chain tag % 6
+                    outkey="s"+sessid+"c"+cc;
+                    out.("d"+duration).(wid).(outkey).ts_id=ts_id;
+                    out.("d"+duration).(wid).(outkey).meta={chains.cids(cc),chains.tcoms(cc)};
+                end
             end
         end
     end
@@ -143,7 +146,7 @@ while curr_pre_ptr<tsize
         curr_pre_ptr=curr_pre_ptr+1;
         continue;
     end %matching time window, assuming 30kHz
-    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1,'last'); %post unit
+    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1); %post unit
     if ~isempty(diff_post_ptr)
         %TODO temp list chain spk
         if isempty(curr_chain), curr_chain=curr_pre_ptr;end
@@ -151,14 +154,18 @@ while curr_pre_ptr<tsize
         curr_chain=vertcat(curr_chain,curr_pre_ptr);
     else
         if numel(curr_chain)==chain_len
+            keyboard();
             tags(curr_chain)=chain_idx;
             chain_idx=chain_idx+1;
+        elseif numel(curr_chain)>7
+            tags(curr_chain)=-chain_idx;
+            chain_idx=chain_idx+1;
         end
-        curr_chain=[];
-        curr_pre_ptr=curr_pre_ptr+1;
     end
+    curr_chain=[];
+    curr_pre_ptr=curr_pre_ptr+1;
 end
 
 out=struct();
-out.tags=sparse(tags);
+out.tags=tags;
 end

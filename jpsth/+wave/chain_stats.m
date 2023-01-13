@@ -1,4 +1,4 @@
-% chains_uf=wave.COM_chain(sel_meta);
+chains_uf=wave.COM_chain(sel_meta);
 % chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
 % blame=vcs.blame();
 % save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
