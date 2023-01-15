@@ -1,9 +1,10 @@
-chains_uf=wave.COM_chain(sel_meta);
+rev_stats=true;
+
+% chains_uf=wave.COM_chain(sel_meta);
 % chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
 % blame=vcs.blame();
 % save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
 
-global_init;
 load('chains_mix.mat','chains_uf','chains_uf_rev');
 
 % vs shuffle
@@ -11,14 +12,16 @@ load('chains_mix.mat','chains_uf','chains_uf_rev');
 % wave.COM_chain_shuf(wrs_mux_meta);
 load('chains_shuf.mat','shuf_chains')
 %% region tag
+global_init;
+greys=ephys.getGreyRegs('range','grey');
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 chains_uf.reg=cell(size(chains_uf.cids));
 chains_uf.reg_sel=false(size(chains_uf.cids));
-if false
+if rev_stats
     chains_uf_rev.reg=cell(size(chains_uf_rev.cids));
     chains_uf_rev.reg_sel=false(size(chains_uf_rev.cids));
 end
-greys=ephys.getGreyRegs('range','grey');
+
 
 for sess=reshape(unique(chains_uf.sess),1,[])
     sesscid=su_meta.allcid(su_meta.sess==sess);
@@ -30,7 +33,7 @@ for sess=reshape(unique(chains_uf.sess),1,[])
             chains_uf.reg_sel(cnid)=true;
         end
     end
-    if false
+    if rev_stats
         for cnid=reshape(find(chains_uf_rev.sess==sess),1,[])
             [~,supos]=ismember(chains_uf_rev.cids{cnid},sesscid);
             chains_uf_rev.reg{cnid}=sessreg(supos);

@@ -1,6 +1,5 @@
 % ring in wave
 % load('bzdata\sums_ring_stats_all.mat')
-% global_init();
 function  rings_wave_dynamic(sums_all)
 % TODO optional global filter to remove spikes outside delay
 global_init();
@@ -57,6 +56,8 @@ if false
     legend([h3,h4,h5],{'3-Neuron','4-Neuron','5-Neuron'})
     set(gca(),'YScale','log')
 end
+
+%% individual loops
 curr_sess=-1;
 edges=[0:1:10,20:10:200];
 per_ring_hist=struct();
@@ -77,7 +78,7 @@ for rsize=1:3
     end
 end
 
-%%
+%% individual FC
 load('sums_conn.mat','sums_conn_str');
 qcmat=cell2mat({sums_conn_str.qc}.'); % from bz.sums_conn -> bz.goodccg
 fwhm_all=(qcmat(:,2)-250)./30; % offset left half of symmatric ccg
@@ -86,26 +87,28 @@ disp('F.C. mean, sd, sem')
 disp([mean(fwhm_all), std(fwhm_all), std(fwhm_all)./sqrt(numel(fwhm_all))])
 fcyy=histcounts(fwhm_all,fcxx);
 fciqr=prctile(fwhm_all,[25,50,75]);
-%%
-bump3=[];
-bump6=[];
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
-for fn=reshape(fieldnames(com_map),1,[])
-   for subfn=reshape(fieldnames(com_map.(fn{1})),1,[])
-       if isfield(com_map.(fn{1}).(subfn{1}),'fwhm3')
-           bump3=[bump3,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm3.values())];
-       end
-       if isfield(com_map.(fn{1}).(subfn{1}),'fwhm6')
-           bump6=[bump6,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm6.values())];
-       end
-   end
+
+%% wave bump width
+if false
+    bump3=[];
+    bump6=[];
+    com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+    for fn=reshape(fieldnames(com_map),1,[])
+        for subfn=reshape(fieldnames(com_map.(fn{1})),1,[])
+            if isfield(com_map.(fn{1}).(subfn{1}),'fwhm3')
+                bump3=[bump3,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm3.values())];
+            end
+            if isfield(com_map.(fn{1}).(subfn{1}),'fwhm6')
+                bump6=[bump6,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm6.values())];
+            end
+        end
+    end
+
+    bxx=0.125:0.25:6.25;
+    bump3hist=histcounts(bump3,bxx,'Normalization','probability');
+    bump6hist=histcounts(bump6,bxx,'Normalization','probability');
 end
-
-bxx=0.125:0.25:6.25;
-bump3hist=histcounts(bump3,bxx,'Normalization','probability');
-bump6hist=histcounts(bump6,bxx,'Normalization','probability');
-
-%%
+%% chains end-to-end span
 load('chains_mix.mat','chains_uf');
 chains=chains_uf;
 clear chains_uf;
@@ -125,12 +128,12 @@ for dur=3:3:6
     end
 end
 
-cxx=0:200:6000;
+cxx=[0:200:1000,1500:500:6000];
 chist3=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3]*1000/4,cxx,'Normalization','probability');
 chist6=histcounts([t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','probability');
 
 
-%%
+%% composite loops
 
 hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
 C=struct2cell(hrstats.stats).';
@@ -147,14 +150,29 @@ hold on
 % plot(xx,per_ring_hist.incongru./sum(per_ring_hist.incongru,'all'),'-b');
 % plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
 count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
-looph=plot(xx,count_sum./sum(count_sum,'all'),'-kx');
-fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'--k.');
-% b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
-% b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
-c3h=plot(cxx(1:end-1)+100,chist3,'-k^');
-c6h=plot(cxx(1:end-1)+100,chist6,'-ko');
-hrh=plot(5:10:245,hrhist,'-.k+');
-
+if false
+    fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'--k.');
+    looph=plot(xx,count_sum./sum(count_sum,'all'),'-kx');
+    hrh=plot(5:10:245,hrhist,'-.k+');
+    if false
+        b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
+        b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
+    end
+    p_cxx=[100:200:900,1250:500:5750];%cxx=[0:200:2000,2500:500:6000];
+    c3h=plot(p_cxx,chist3,'-k^');
+    c6h=plot(p_cxx,chist6,'--ko');
+else
+    fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-','Color',"#D35400");
+    looph=plot(xx,count_sum./sum(count_sum,'all'),'-','Color',"#27AE60");
+    hrh=plot(5:10:245,hrhist,'-','Color',"#8E44AD");
+    if false
+        b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
+        b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
+    end
+    p_cxx=[100:200:900,1250:500:5750];%cxx=[0:200:2000,2500:500:6000];
+    c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
+    c6h=plot(p_cxx,chist6,'-','Color',"#C0392B");
+end
 xline(3000,'--k')
 xline(6000,'--k')
 %
@@ -165,5 +183,5 @@ xlim([0.3,6000])
 ylim([1e-3,1])
 xlabel('Time (ms)')
 ylabel('Probability')
-legend([fch,looph,hrh,c3h,c6h],{'FC','Loop','Hebbian wave','3s chain-loop','6s chain-loop'})
+legend([fch,looph,hrh,c3h,c6h],{'FC','Loop','Composite loops','3s chain-loop','6s chain-loop'},'Location','northoutside','Orientation','horizontal')
 end

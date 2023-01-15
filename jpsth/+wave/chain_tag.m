@@ -107,7 +107,7 @@ while curr_pre_ptr<tsize
     %matching time window, assuming 30kHz
     %assume max 200hz neuron FR, 2spikes × 5 su in 10ms
     if isempty(curr_chain)
-        nxtstep=min(curr_pre_ptr+2*chain_len,tsize); % 200hz->2spk/su/10ms
+        nxtstep=min(curr_pre_ptr+4*chain_len,tsize); % 200hz->2spk/su/10ms
         nxtptr=curr_pre_ptr+find(in(curr_pre_ptr:nxtstep,2)==1,1)-1;
         if isempty(nxtptr)
             curr_pre_ptr=curr_pre_ptr+1;
@@ -119,26 +119,22 @@ while curr_pre_ptr<tsize
         
         syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_pre_ptr,1)+300,1); %first outside window
         if isempty(syn_win_ubound)
-            syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1); %first outside window
-            if isempty(syn_win_ubound)
-                break;
-            end
-        end %TODO use max available instead
-        syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24,1);
+            syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
+        else
+            syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
+        end
     else
         cyc_number_next=in(curr_chain(end),2)+1;
         if cyc_number_next>chain_len
             syn_win_lbound=[];
         else
-            nxtstep=min(curr_pre_ptr+2*chain_len,tsize);
+            nxtstep=min(curr_pre_ptr+4*chain_len,tsize);
             syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_chain(end),1)+300,1); %first outside window
             if isempty(syn_win_ubound)
-                syn_win_ubound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+300,1); %first outside window
-                if isempty(syn_win_ubound)
-                    break;
-                end
-            end %TODO use max available instead
-            syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_chain(end),1)+24,1);
+                syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
+            else
+                syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
+            end
         end
     end
     if isempty(syn_win_lbound)
@@ -146,7 +142,7 @@ while curr_pre_ptr<tsize
         curr_pre_ptr=curr_pre_ptr+1;
         continue;
     end %matching time window, assuming 30kHz
-    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1); %post unit
+    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1); %post unit, could be 'last', etc.
     if ~isempty(diff_post_ptr)
         %TODO temp list chain spk
         if isempty(curr_chain), curr_chain=curr_pre_ptr;end
@@ -157,8 +153,89 @@ while curr_pre_ptr<tsize
             keyboard();
             tags(curr_chain)=chain_idx;
             chain_idx=chain_idx+1;
-        elseif numel(curr_chain)>7
-            tags(curr_chain)=-chain_idx;
+        end
+    end
+    curr_chain=[];
+    curr_pre_ptr=curr_pre_ptr+1;
+end
+
+out=struct();
+out.tags=tags;
+end
+
+
+
+
+function out=chain_recur(in,chain_len,opt)
+arguments
+    in
+    chain_len
+    opt.max_win (1,1) double = 10
+end
+
+
+tags=zeros(size(in,1),1);
+chain_idx=1;
+curr_pre_ptr=1;
+curr_chain=[];
+starts=[];
+ends=[];
+spk_cnt=[];
+durs=[];
+tsize=size(in,1);
+prevptr=0;
+% TODO: trial necessary?
+while curr_pre_ptr<tsize
+    prevptr=curr_pre_ptr;
+    if rem(curr_pre_ptr,5000)==0, fprintf('%06d.\n',curr_pre_ptr);end
+    %matching time window, assuming 30kHz
+    %assume max 200hz neuron FR, 2spikes × 5 su in 10ms
+    if isempty(curr_chain)
+        nxtstep=min(curr_pre_ptr+4*chain_len,tsize); % 200hz->2spk/su/10ms
+        nxtptr=curr_pre_ptr+find(in(curr_pre_ptr:nxtstep,2)==1,1)-1;
+        if isempty(nxtptr)
+            curr_pre_ptr=curr_pre_ptr+1;164.04/112.5
+            continue
+        else
+            curr_pre_ptr=nxtptr;
+        end
+        cyc_number_next=2;
+        
+        syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_pre_ptr,1)+300,1); %first outside window
+        if isempty(syn_win_ubound)
+            syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
+        else
+            syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
+        end
+    else
+        cyc_number_next=in(curr_chain(end),2)+1;
+        if cyc_number_next>chain_len
+            syn_win_lbound=[];
+        else
+            nxtstep=min(curr_pre_ptr+4*chain_len,tsize);
+            syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_chain(end),1)+300,1); %first outside window
+            if isempty(syn_win_ubound)
+                syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
+            else
+                syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
+            end
+        end
+    end
+    if isempty(syn_win_lbound)
+        curr_chain=[];
+        curr_pre_ptr=curr_pre_ptr+1;
+        continue;
+    end %matching time window, assuming 30kHz
+    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1); %post unit, could be 'last', etc.
+    if ~isempty(diff_post_ptr)
+        %TODO temp list chain spk
+        if isempty(curr_chain), curr_chain=curr_pre_ptr;end
+        curr_pre_ptr=curr_pre_ptr+syn_win_lbound-1+diff_post_ptr;
+        curr_chain=vertcat(curr_chain,curr_pre_ptr);
+    else
+        if numel(curr_chain)==chain_len
+            keyboard();
+            tags(curr_chain)=chain_idx;
             chain_idx=chain_idx+1;
         end
     end
