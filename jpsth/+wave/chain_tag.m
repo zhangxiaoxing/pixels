@@ -8,6 +8,9 @@ function out=chain_tag(chains)
 arguments
     chains
 end
+%% DEBUG
+% out=chain_alt(chains);
+%%
 %% build up 
 % all_chains=fieldnames(pstats.congru);
 waveids=reshape(unique(chains.wave),1,[]);
@@ -62,187 +65,67 @@ for sessid=sesses
                 end
                 % optional remove non-wave spikes
                 ts_id=ts_id(ts_id(:,4)>=1 & ts_id(:,4)<(duration+1) & ismember(ts_id(:,5),trial_sel),:);
-                %
-                ts_id=sortrows(ts_id,1);
-                ch_tags=chain_one(ts_id(:,[1 3]),numel(chains.cids{cc}));
-                if nnz(ch_tags.tags)>0
-                    keyboard();
-                    ts_id=[ts_id,ch_tags.tags]; % join TS, chain tag % 6
+%                 ts_id=sortrows(ts_id,1);
+%                 keyboard();
+                ts=chain_alt(ts_id(:,[1 3]));
+                if ~isempty(ts)
                     outkey="s"+sessid+"c"+cc;
-                    out.("d"+duration).(wid).(outkey).ts_id=ts_id;
+                    out.("d"+duration).(wid).(outkey).ts=ts;
                     out.("d"+duration).(wid).(outkey).meta={chains.cids(cc),chains.tcoms(cc)};
                 end
             end
         end
     end
 end
-
+stats(out);
 
 end
 
-
-
-function out=chain_one(in,chain_len,opt)
-arguments
-    in
-    chain_len
-    opt.max_win (1,1) double = 10
-end
-
-
-tags=zeros(size(in,1),1);
-chain_idx=1;
-curr_pre_ptr=1;
-curr_chain=[];
-starts=[];
-ends=[];
-spk_cnt=[];
-durs=[];
-tsize=size(in,1);
-prevptr=0;
-% TODO: trial necessary?
-while curr_pre_ptr<tsize
-    prevptr=curr_pre_ptr;
-    if rem(curr_pre_ptr,5000)==0, fprintf('%06d.\n',curr_pre_ptr);end
-    %matching time window, assuming 30kHz
-    %assume max 200hz neuron FR, 2spikes × 5 su in 10ms
-    if isempty(curr_chain)
-        nxtstep=min(curr_pre_ptr+4*chain_len,tsize); % 200hz->2spk/su/10ms
-        nxtptr=curr_pre_ptr+find(in(curr_pre_ptr:nxtstep,2)==1,1)-1;
-        if isempty(nxtptr)
-            curr_pre_ptr=curr_pre_ptr+1;
-            continue
-        else
-            curr_pre_ptr=nxtptr;
-        end
-        cyc_number_next=2;
-        
-        syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_pre_ptr,1)+300,1); %first outside window
-        if isempty(syn_win_ubound)
-            syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
-        else
-            syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
-        end
-    else
-        cyc_number_next=in(curr_chain(end),2)+1;
-        if cyc_number_next>chain_len
-            syn_win_lbound=[];
-        else
-            nxtstep=min(curr_pre_ptr+4*chain_len,tsize);
-            syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_chain(end),1)+300,1); %first outside window
-            if isempty(syn_win_ubound)
-                syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
-            else
-                syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
-            end
+function stats(out)
+for dur=reshape(fieldnames(out),1,[])
+    perd=[];
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            perd=[perd;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2),mean(diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2))./30];
         end
     end
-    if isempty(syn_win_lbound)
-        curr_chain=[];
-        curr_pre_ptr=curr_pre_ptr+1;
-        continue;
-    end %matching time window, assuming 30kHz
-    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1); %post unit, could be 'last', etc.
-    if ~isempty(diff_post_ptr)
-        %TODO temp list chain spk
-        if isempty(curr_chain), curr_chain=curr_pre_ptr;end
-        curr_pre_ptr=curr_pre_ptr+syn_win_lbound-1+diff_post_ptr;
-        curr_chain=vertcat(curr_chain,curr_pre_ptr);
-    else
-        if numel(curr_chain)==chain_len
-            keyboard();
-            tags(curr_chain)=chain_idx;
-            chain_idx=chain_idx+1;
+    statss.("d"+dur)=perd;
+end
+end
+
+
+function out=chain_alt(in)
+out=[];
+clen=max(in(:,2));
+persu=struct.empty(clen,0);
+for ii=1:clen
+    persu(ii).tsid=in(in(:,2)==ii,:);
+    persu(ii).idx=1;
+end
+
+curd=1;
+while true
+    nxtd=curd+1;
+    if persu(nxtd).idx>size(persu(nxtd).tsid,1) || persu(curd).idx>size(persu(curd).tsid,1)
+        break
+    end
+    if persu(nxtd).tsid(persu(nxtd).idx,1)<persu(curd).tsid(persu(curd).idx,1)+24 % ahead of window
+        persu(nxtd).idx=persu(nxtd).idx+1;
+    elseif persu(nxtd).tsid(persu(nxtd).idx,1)>persu(curd).tsid(persu(curd).idx,1)+300 % beyond window
+        persu(curd).idx=persu(curd).idx+1;
+        if curd~=1
+            curd=curd-1;
+        end
+    else % in window
+        if nxtd==clen
+            out=[out;arrayfun(@(x) persu(x).tsid(persu(x).idx,1),1:clen)];
+            persu(nxtd).idx=persu(nxtd).idx+1;
+        else
+            curd=nxtd;
         end
     end
-    curr_chain=[];
-    curr_pre_ptr=curr_pre_ptr+1;
 end
-
-out=struct();
-out.tags=tags;
 end
 
 
 
-
-function out=chain_recur(in,chain_len,opt)
-arguments
-    in
-    chain_len
-    opt.max_win (1,1) double = 10
-end
-
-
-tags=zeros(size(in,1),1);
-chain_idx=1;
-curr_pre_ptr=1;
-curr_chain=[];
-starts=[];
-ends=[];
-spk_cnt=[];
-durs=[];
-tsize=size(in,1);
-prevptr=0;
-% TODO: trial necessary?
-while curr_pre_ptr<tsize
-    prevptr=curr_pre_ptr;
-    if rem(curr_pre_ptr,5000)==0, fprintf('%06d.\n',curr_pre_ptr);end
-    %matching time window, assuming 30kHz
-    %assume max 200hz neuron FR, 2spikes × 5 su in 10ms
-    if isempty(curr_chain)
-        nxtstep=min(curr_pre_ptr+4*chain_len,tsize); % 200hz->2spk/su/10ms
-        nxtptr=curr_pre_ptr+find(in(curr_pre_ptr:nxtstep,2)==1,1)-1;
-        if isempty(nxtptr)
-            curr_pre_ptr=curr_pre_ptr+1;164.04/112.5
-            continue
-        else
-            curr_pre_ptr=nxtptr;
-        end
-        cyc_number_next=2;
-        
-        syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_pre_ptr,1)+300,1); %first outside window
-        if isempty(syn_win_ubound)
-            syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
-        else
-            syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
-        end
-    else
-        cyc_number_next=in(curr_chain(end),2)+1;
-        if cyc_number_next>chain_len
-            syn_win_lbound=[];
-        else
-            nxtstep=min(curr_pre_ptr+4*chain_len,tsize);
-            syn_win_ubound=find(in((curr_pre_ptr+1):nxtstep,1)>in(curr_chain(end),1)+300,1); %first outside window
-            if isempty(syn_win_ubound)
-                syn_win_lbound=find(in((curr_pre_ptr+1):end,1)>in(curr_pre_ptr,1)+24);
-            else
-                syn_win_lbound=find(in((curr_pre_ptr+1):(syn_win_ubound+curr_pre_ptr-1),1)>in(curr_pre_ptr,1)+24);
-            end
-        end
-    end
-    if isempty(syn_win_lbound)
-        curr_chain=[];
-        curr_pre_ptr=curr_pre_ptr+1;
-        continue;
-    end %matching time window, assuming 30kHz
-    diff_post_ptr=find(in((curr_pre_ptr+syn_win_lbound):(curr_pre_ptr+syn_win_ubound-1),2)==cyc_number_next,1); %post unit, could be 'last', etc.
-    if ~isempty(diff_post_ptr)
-        %TODO temp list chain spk
-        if isempty(curr_chain), curr_chain=curr_pre_ptr;end
-        curr_pre_ptr=curr_pre_ptr+syn_win_lbound-1+diff_post_ptr;
-        curr_chain=vertcat(curr_chain,curr_pre_ptr);
-    else
-        if numel(curr_chain)==chain_len
-            keyboard();
-            tags(curr_chain)=chain_idx;
-            chain_idx=chain_idx+1;
-        end
-    end
-    curr_chain=[];
-    curr_pre_ptr=curr_pre_ptr+1;
-end
-
-out=struct();
-out.tags=tags;
-end
