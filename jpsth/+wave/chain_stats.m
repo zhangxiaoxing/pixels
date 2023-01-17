@@ -1,11 +1,12 @@
 rev_stats=true;
 
+% global_init;
 % chains_uf=wave.COM_chain(sel_meta);
 % chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
 % blame=vcs.blame();
 % save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
 
-load('chains_mix.mat','chains_uf','chains_uf_rev');
+load('chains_mix.mat','chains_uf','blame');
 
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m

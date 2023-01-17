@@ -4,13 +4,17 @@
 % chains=chains_uf;
 % clear chains_uf;
 
-function out=chain_tag(chains)
+function out=chain_tag(chains,opt)
 arguments
     chains
+    opt.ccg (1,1) logical = true
 end
 %% DEBUG
 % out=chain_alt(chains);
 %%
+if opt.ccg
+    load('sums_conn_10.mat','sums_conn_str');
+end
 %% build up 
 % all_chains=fieldnames(pstats.congru);
 waveids=reshape(unique(chains.wave),1,[]);
@@ -66,31 +70,73 @@ for sessid=sesses
                 % optional remove non-wave spikes
                 ts_id=ts_id(ts_id(:,4)>=1 & ts_id(:,4)<(duration+1) & ismember(ts_id(:,5),trial_sel),:);
 %                 ts_id=sortrows(ts_id,1);
-%                 keyboard();
                 ts=chain_alt(ts_id(:,[1 3]));
                 if ~isempty(ts)
+                    
                     outkey="s"+sessid+"c"+cc;
                     out.("d"+duration).(wid).(outkey).ts=ts;
-                    out.("d"+duration).(wid).(outkey).meta={chains.cids(cc),chains.tcoms(cc)};
+                    out.("d"+duration).(wid).(outkey).meta={cids,chains.tcoms(cc)};
+                    out.("d"+duration).(wid).(outkey).ts_id=ts_id;
+
+                    % TODO: ccg
+                    if opt.ccg
+                        cursess=chains.sess(cc);
+                        sesspath=ephys.sessid2path(cursess);
+                        strippath=regexp(sesspath,'(?<=\\).*','match');
+                        sesssel=find(contains({sums_conn_str.folder},strippath));
+                        ccg=sums_conn_str(sesssel).ccg_sc;
+                        ccgid=sums_conn_str(sesssel).sig_con;
+                        chainccg=[];
+                        for ii=1:numel(cids)-1
+                            sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
+                            if nnz(sigsel)~=1
+                                keyboard()
+                            end
+                            chainccg=[chainccg;ccg(sigsel,:)];
+                        end
+                        out.("d"+duration).(wid).(outkey).ccgs=chainccg;
+                    end
                 end
             end
         end
     end
 end
-stats(out);
 
+for dur=reshape(fieldnames(out),1,[])
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            ccgs=out.(dur{1}).(wv{1}).(lp{1}).ccgs;
+            ccg_qual=[];
+            for ii=1:size(ccgs,1)
+                ccg_qual=[ccg_qual;bz.good_ccg(ccgs(ii,:))];
+                %1:Polarity 2:Time of peak 3:Noise peaks 4:FWHM 5:rising
+                %edge 6:falling edge
+            end
+            out.(dur{1}).(wv{1}).(lp{1}).ccg_qual=ccg_qual;
+        end
+    end
+end
+
+blame=vcs.blame();
+save('chain_tag.mat','out','blame')
+stats(out);
 end
 
 function stats(out)
 for dur=reshape(fieldnames(out),1,[])
-    perd=[];
+    perchaindur=struct();
+    [perchaindur.size,perchaindur.dur]=deal([]);
     for wv=reshape(fieldnames(out.(dur{1})),1,[])
         for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-            perd=[perd;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2),mean(diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2))./30];
+            perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
+            perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
         end
     end
-    statss.("d"+dur)=perd;
+    statss.("d"+dur)=perchaindur;
 end
+
+disp([max(cell2mat(statss.dd3.dur)),max(cell2mat(statss.dd6.dur))])
+
 end
 
 

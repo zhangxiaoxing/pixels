@@ -30,7 +30,7 @@ for fidx=1:numel(sums_conn_str)
     if opt.strict
         ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
         strict_sel=ccgqc(:,2)>=252 & ccgqc(:,4)>=2 & ccgqc(:,4)<=40 & ccgqc(:,5)>248;
-        %1:Polar 2:Time of peak 3:Noise peaks 4:FWHM 5:rising edge
+        %1:Polarity 2:Time of peak 3:Noise peaks 4:FWHM 5:rising edge
         %6:falling edge
         oneccg=sums_conn_str(fidx).ccg_sc(strict_sel,:); %ccg
         onecon=sums_conn_str(fidx).sig_con(strict_sel,:); %jitter controlled significant functional coupling
