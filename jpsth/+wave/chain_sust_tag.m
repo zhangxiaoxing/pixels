@@ -9,24 +9,19 @@ arguments
     opt.ccg (1,1) logical = true
 end
 
-% for devp
+% tsidin={0,25,50,75,100,125,150};
+% ts=chain_recur(tsidin,[],[],1);
+% keyboard()
 
-tsidin={[0:150:400,1500:150:1900],[300:150:700,1800:150:2200],[600:150:1000,2100:150:2500]};
-% tsidin=evalin('base','in');
-out=chain_recur(tsidin,[],[],1);
-return
-
-%% DEBUG
-% out=chain_alt(chains);
-%%
 if opt.ccg
     load('sums_conn_10.mat','sums_conn_str');
 end
 %% build up
 % all_chains=fieldnames(pstats.congru);
-waveids=reshape(unique(chains.wave),1,[]);
-sesses=reshape(unique(chains.sess),1,[]);
 ch_len=cellfun(@(x) numel(x),chains.cids);
+waveids=reshape(unique(chains.wave(ch_len>4)),1,[]);
+sesses=reshape(unique(chains.sess(ch_len>4)),1,[]);
+
 
 for sessid=sesses
     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
@@ -81,7 +76,7 @@ for sessid=sesses
                 for kk=1:numel(cids)
                     tsidin{kk}=ts_id(ts_id(:,3)==kk,1);
                 end
-                ts=chain_recur(tsidin,[],[],[]);
+                ts=chain_recur(tsidin,[],[],1);
                 if ~isempty(ts)
 
                     outkey="s"+sessid+"c"+cc;
@@ -129,30 +124,37 @@ for dur=reshape(fieldnames(out),1,[])
 end
 
 blame=vcs.blame();
-save('chain_tag.mat','out','blame')
+save('chain_sust_tag.mat','out','blame')
 stats(out);
 end
 
 function stats(out)
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur]=deal([]);
 for dur=reshape(fieldnames(out),1,[])
-    perchaindur=struct();
-    [perchaindur.size,perchaindur.dur]=deal([]);
+%     [perchaindur.size,perchaindur.dur]=deal([]);
     for wv=reshape(fieldnames(out.(dur{1})),1,[])
         for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-            perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
-            perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
+%             keyboard();
+            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
         end
     end
     statss.("d"+dur)=perchaindur;
 end
 
-disp([max(cell2mat(statss.dd3.dur)),max(cell2mat(statss.dd6.dur))])
-
+d6hist=histcounts(perchaindur.d6.dur,0:10:200,'Normalization','probability');
+d3hist=histcounts(perchaindur.d3.dur,0:10:200,'Normalization','probability');
+figure()
+hold on
+plot(5:10:195,d6hist,'-k');
+plot(5:10:195,d3hist,'--k');
+set(gca(),'XScale','log','YScale','log');
 end
 
 
 function out=chain_recur(in,chainDepth,currIdx,recDepth)
-disp("recDepth"+num2str(recDepth))
+% disp("recDepth"+num2str(recDepth))
 
 out=cell(0); %{[depth,id]}
 clen=size(in,2);
@@ -166,9 +168,7 @@ while currIdx<=numel(in{chainDepth})
     % no branch
     if currIdx<=numel(in{chainDepth})-1 && in{chainDepth}(currIdx+1)-in{chainDepth}(currIdx)<300
         link=[chainDepth,currIdx,in{chainDepth}(currIdx)];
-        fprintf('%d%dS>',chainDepth,currIdx)
         rec=chain_recur(in,chainDepth,currIdx+1,recDepth+1);
-        fprintf('%d%dS<',chainDepth,currIdx)
 %         if chainDepth==1 && currIdx==1
 %             keyboard()
 %         end
@@ -187,11 +187,9 @@ while currIdx<=numel(in{chainDepth})
         while nidx<=numel(in{nxtd}) && in{nxtd}(nidx)<in{chainDepth}(currIdx)+24
             nidx=nidx+1;
         end
-        if in{nxtd}(nidx)<in{chainDepth}(currIdx)+300 % in window
+        if nidx<=numel(in{nxtd}) && in{nxtd}(nidx)<in{chainDepth}(currIdx)+300 % in window
             link=[chainDepth,currIdx,in{chainDepth}(currIdx)];
-            fprintf('%d%dB>',chainDepth,currIdx)
             rec=chain_recur(in,nxtd,nidx,recDepth+1);
-            fprintf('%d%dB<',chainDepth,currIdx)
             for ii=1:numel(rec)
                 out(end+1)={[link;rec{ii}]};
             end
