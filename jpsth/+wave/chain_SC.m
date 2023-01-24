@@ -2,6 +2,9 @@ if false
     load('chain_tag.mat','out');
 end
 
+global_init;
+chain_len_thres=6;
+
 memsess=-1;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 greys=ephys.getGreyRegs('range','grey');
@@ -10,7 +13,7 @@ for dur=reshape(fieldnames(out),1,[])
     for wv=reshape(fieldnames(out.(dur{1})),1,[])
         for cnid=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
             % length selection
-            if size(out.(dur{1}).(wv{1}).(cnid{1}).ts,2)<5
+            if size(out.(dur{1}).(wv{1}).(cnid{1}).ts,2)<chain_len_thres
                 continue
             end
 
@@ -58,7 +61,8 @@ for dur=reshape(fieldnames(out),1,[])
                     ylim([0.5,jj+0.5])
                     xlabel('Time (s)')
                     ylabel('SU #')
-                    title("Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1}+", trial "+num2str(tt));
+                    title({"Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1}+", trial "+num2str(tt),...
+                        num2str(cncids)});
                     set(gca(),"YTick",1:jj,"YTickLabel",cnreg,'YDir','reverse')
                 end
 
