@@ -283,6 +283,13 @@ bz.rings.rings_su_wave_tcom_corr(sums_all)
 
 %% chain
 wave.chain_stats;
+wave.chains_time_constant
+wave.chains_loops_sc
+wave.chain_tag(chains) %statistics
+wave.chain_SC %plot
+wave.chain_sust_tag(chains,'burstInterval',300)
+wave.chain_sust_tag(chains,'burstInterval',600)
+wave.chain_sust_tag(chains,'burstInterval',1500)
 
 %% exports
 

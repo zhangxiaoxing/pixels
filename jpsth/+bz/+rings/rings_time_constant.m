@@ -1,5 +1,5 @@
 % TODO: confirm inter-loop-transition with spkTS-cid-map
-% TODO: join selective and non-selective loops
+% TODO: option to join selective and non-selective loops
 
 % We found that larger proportions of spikes were associated with 
 % such activity loops of same-memory neurons than that of non-memory
@@ -174,7 +174,7 @@ for sessid=33%[100,18,33]
         ring_spikes=[ring_spikes;onetrial];
         ring_cid=[ring_cid;onecid];
     end
-    %% showcase
+    %% hebbian composite loop showcase
     totalspk=arrayfun(@(x) numel([ring_spikes{x,:}]),1:size(ring_spikes,1));
     [totalspk,sidx]=sort(totalspk,'descend');
     
