@@ -1,6 +1,8 @@
 if false
     chainStr=load('chain_tag.mat','out');
+else
     bumpStr=load('chain_sust_tag_600.mat','out');
+    out=bumpStr.out;
 end
 
 skipccg=true;
@@ -56,15 +58,21 @@ for dur=reshape(fieldnames(out),1,[])
                 else % bump-wave
                     cndur=cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
                     [maxdur,maxidx]=max(cndur);
-                    disp(maxdur)
+
                     if maxdur>7500 % 500 ms
                         tsidsel=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,2);
                         ttlist=tsid1(tsidsel,5);
-                        % TODO: merge same trial different onset chains
-                        % e.g. suppidx
-%                         suppIdx=[];
-%                         for 
-%                         end
+                        % TODO: same trial, longest for each diff onset
+
+                        cn_tsid_sel=cellfun(@(x) x(1,2),out.(dur{1}).(wv{1}).(cnid{1}).ts);
+                        cn_trl_list=tsid1(cn_tsid_sel,5).';
+                        supp_onset=setdiff(unique(cn_tsid_sel(cn_trl_list==ttlist(1))),tsidsel);
+                        suppIdx=[];
+                        for ii=1:numel(supp_onset)
+                            onset_sel=find(cn_tsid_sel==supp_onset(ii));
+                            [~,oneid]=max(cndur(onset_sel));
+                            suppIdx=[suppIdx,onset_sel(oneid)];
+                        end
                     else
                         tsidsel=[];
                         ttlist=[];
@@ -87,11 +95,13 @@ for dur=reshape(fieldnames(out),1,[])
                                 plot(ts(tickpos),jj,'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
                             end
                         else
-                            bts=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx};
-                            % TODO: merge same trial different onset chains
-                            suts=bts(bts(:,1)==jj,3);
-                            [~,tickpos]=ismember(suts,cntsid(cntsid(:,3)==jj & cntsid(:,5)==tt,1));
-                            plot(ts(tickpos),repmat(jj,numel(tickpos),1),'r|','LineWidth',2);
+                            for iidx=[suppIdx,maxidx]
+                                bts=out.(dur{1}).(wv{1}).(cnid{1}).ts{iidx};
+                                % TODO: merge same trial different onset chains
+                                suts=bts(bts(:,1)==jj,3);
+                                [~,tickpos]=ismember(suts,cntsid(cntsid(:,3)==jj & cntsid(:,5)==tt,1));
+                                plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
+                            end
                         end
                     end
                     ylim([0.5,jj+0.5])

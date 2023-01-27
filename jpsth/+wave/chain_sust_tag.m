@@ -218,5 +218,36 @@ while currIdx<=numel(in{chainDepth})
 end
 end
 
+function plot_all()
+figure()
+hold on
+intvs=[300 600 1500];
+colors=['k','b','r'];
+for pidx=1:3
+    load(sprintf('chain_sust_tag_%d.mat',intvs(pidx)),'out')
+    perchaindur=struct();
+    [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+    for dur=reshape(fieldnames(out),1,[])
+        %     [perchaindur.size,perchaindur.dur]=deal([]);
+        for wv=reshape(fieldnames(out.(dur{1})),1,[])
+            for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+                %             keyboard();
+                perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+                perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
+                perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
+            end
+        end
+        statss.("d"+dur)=perchaindur;
+    end
 
+    d6hist=histcounts(perchaindur.d6.dur,[0:50:1000,1500,2000],'Normalization','probability');
+%     d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','probability');
+    plot([25:50:975,1250,1750],d6hist,'-','Color',colors(pidx));
+%     plot([25:50:975,1250,1750],d3hist,'--','Color',colors(pidx));
+end
+set(gca(),'XScale','log','YScale','log');
+ylim([1e-3,1]);
+xlabel('Time (ms)')
+ylabel('Probability')
+end
 
