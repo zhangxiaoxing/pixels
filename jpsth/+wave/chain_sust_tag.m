@@ -48,7 +48,7 @@ for sessid=sesses
                 ts_id=[];
                 cids=chains.cids{cc};
                 %                 disp({sessid,ri});
-                for in_chain_pos=1:numel(cids) % TODO, 1:chain_len
+                for in_chain_pos=1:numel(cids) 
                     one_chain_sel=spkID==cids(in_chain_pos);
                     rawts=spkTS(one_chain_sel);
 
@@ -80,6 +80,9 @@ for sessid=sesses
                 ts=chain_recur(tsidin,[],[],1,'burstInterval',opt.burstInterval);
                 if ~isempty(ts)
 
+                    % TODO: optional remove shorter chains for each
+                    % onset-spike
+
                     outkey="s"+sessid+"c"+cc;
                     out.("d"+duration).(wid).(outkey).ts=ts;
                     out.("d"+duration).(wid).(outkey).meta={cids,chains.tcoms(cc)};
@@ -109,7 +112,7 @@ for sessid=sesses
     end
 end
 
-if false % temporary due to lack of local toolbox
+
 for dur=reshape(fieldnames(out),1,[])
     for wv=reshape(fieldnames(out.(dur{1})),1,[])
         for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
@@ -124,10 +127,8 @@ for dur=reshape(fieldnames(out),1,[])
         end
     end
 end
-end
 
 blame=vcs.blame();
-blame.comment="Not all session finished, limited by available RAM";
 save(sprintf('chain_sust_tag_%d.mat',opt.burstInterval),'out','blame','-v7.3')
 stats(out);
 end
@@ -177,7 +178,7 @@ if isempty(chainDepth)
 end
 
 while currIdx<=numel(in{chainDepth})
-    % no branch
+    % same neuron
     if currIdx<=numel(in{chainDepth})-1 && in{chainDepth}(currIdx+1)-in{chainDepth}(currIdx)<opt.burstInterval
         link=[chainDepth,currIdx,in{chainDepth}(currIdx)];
         rec=chain_recur(in,chainDepth,currIdx+1,recDepth+1,'burstInterval',opt.burstInterval);
@@ -187,7 +188,7 @@ while currIdx<=numel(in{chainDepth})
         for ii=1:numel(rec)
             out(end+1)={[link;rec{ii}]};
         end
-    else % no branch last ts  %TODO varify time window
+    else % no branch last ts
         if chainDepth==clen
             out={[chainDepth,currIdx,in{chainDepth}(currIdx)]};
         end

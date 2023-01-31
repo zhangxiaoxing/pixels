@@ -1,61 +1,93 @@
-function rings_freq(sessidx, rsize, opt)
-arguments
-    sessidx (1,1) double {mustBePositive,mustBeInteger} = 1
-    rsize (1,1) double {mustBeMember(rsize,3:5)} = 3
-    opt.ridx (1,:) double = []
-    %%@deprecated
-    %     opt.partialfile (1,:) char = []
-end
-load(fullfile('bzdata','rings_bz.mat'),'rings');
-%loop entry
-if sessidx>size(rings,1) || isempty(rings{sessidx,rsize-2})
-    if isunix, quit(0);else, return;end
-end
-sess_rings=rings{sessidx,rsize-2};
-[spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessidx);
-if isempty(spkID), quit(0); end
+%% enumerate single spike and burst ring activitys
+%% main function works, aux functions WIP
 
-if isempty(opt.ridx)
-    rids=1:size(sess_rings,1);
-else
-    rids=opt.ridx;
+function rings_freq(opt)
+arguments
+%     opt.ridx (1,:) double = []
+    opt.burst (1,1) logical = true
+    opt.burstInterval (1,1) double = 600
+    opt.ccg  (1,1) logical = false
 end
-%% @deprecated
-% if ~isempty(opt.partialfile)
-%     load(opt.partialfile,'out');
-%     part_sess=cell2mat(out(:,1));
-%     if ~any(part_sess(:,1)==sessidx & part_sess(:,2)==rsize)
-%         return
-%     else
-%         pfidx=find(part_sess(:,1)==sessidx & part_sess(:,2)==rsize);
-%     end
-% end
-%%
-sums=cell(0);
-for ring_id=rids
-    disp(ring_id);
-    %% @deprecated
-    %         if ~isempty(opt.partialfile) && ismember(ring_id,out{pfidx,2}(1:end-1))
-    %             break;
-    %         end
-    %%
-    cids=sess_rings(ring_id,:);
-    per_cid_spk_cnt=cids;
-    ts_id=[];
-    for in_ring_pos=1:rsize
-        one_ring_sel=spkID==cids(in_ring_pos);
-        per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
-        ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
+% bz.rings.ring_list_bz
+load(fullfile('bzdata','rings_bz.mat'),'rings');
+
+blame=vcs.blame();
+
+%loop entry
+out=cell(0);
+for sessidx=1:size(rings,1)
+    if all(cellfun(@(x) isempty(x), rings(sessidx,:)),'all')
+        continue
     end
-    ts_id=sortrows(ts_id,1);
-    ring_stats=bz.rings.relax_tag(ts_id,rsize);
-    coact_count=sum(ring_stats.spk_cnt);
-    
-    if coact_count>(rsize+1)*10
-        sums(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)};
+    [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessidx);
+    for rsize=3:5
+        sess_rings=rings{sessidx,rsize-2};
+        if isempty(sess_rings)
+            continue
+        end
+        rids=1:size(sess_rings,1);
+        for ring_id=rids
+%             disp(ring_id);
+            cids=sess_rings(ring_id,:);
+            per_cid_spk_cnt=cids;
+            ts_id=[];
+            for in_ring_pos=1:rsize
+                one_ring_sel=spkID==cids(in_ring_pos);
+                per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
+                ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]);
+            end
+            % TODO: match trial, screen spikes
+            if opt.burst
+                tsidin=cell(1,numel(cids));
+                for kk=1:numel(cids)
+                    tsidin{kk}=ts_id(ts_id(:,2)==kk,1);
+                end
+                % out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
+                ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
+
+                if ~isempty(ts)
+                    % TODO: optional remove shorter chains for each
+                    % onset-spike
+
+                    outkey="s"+sessidx+"r"+rsize+"n"+ring_id;
+%                     out.("d"+duration).(wid).(outkey).ts=ts;
+%                     out.("d"+duration).(wid).(outkey).meta={cids}; % Skipped TCOM for now
+%                     out.("d"+duration).(wid).(outkey).ts_id=ts_id;
+
+                    out.(outkey).ts=ts;
+                    out.(outkey).meta={cids}; % Skipped TCOM for now
+                    out.(outkey).ts_id=ts_id;
+                    % TODO: ccg
+%                     if opt.ccg
+%                         cursess=chains.sess(ring_id);
+%                         sesspath=ephys.sessid2path(cursess);
+%                         strippath=regexp(sesspath,'(?<=\\).*','match');
+%                         sesssel=find(contains({sums_conn_str.folder},strippath));
+%                         ccg=sums_conn_str(sesssel).ccg_sc;
+%                         ccgid=sums_conn_str(sesssel).sig_con;
+%                         chainccg=[];
+%                         for ii=1:numel(cids)-1
+%                             sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
+%                             if nnz(sigsel)~=1
+%                                 keyboard()
+%                             end
+%                             chainccg=[chainccg;ccg(sigsel,:)];
+%                         end
+%                         out.("d"+duration).(wid).(outkey).ccgs=chainccg;
+%                     end
+                end
+            else
+                warning("Incomplete section")
+                keyboard()
+                ts_id=sortrows(ts_id,1);
+                ring_stats=bz.rings.relax_tag(ts_id,rsize);
+                coact_count=sum(ring_stats.spk_cnt);
+                if coact_count>(rsize+1)*10
+                    out(end+1,:)={sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)};
+                end
+            end
+        end
     end
-end
-if size(sums,1)>0
-    save(sprintf('ring_stats_%d_%d_%d_%d.mat',rsize,sessidx,min(rids),max(rids)),'sums');
+    save(sprintf('rings_burst_%d.mat',opt.burstInterval),'out','blame');
 end
 end

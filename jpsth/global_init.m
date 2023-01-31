@@ -10,9 +10,9 @@ gather_config.FC_thresh=100;
 
 % TODO:should be placed inside a structure
 if strcmp(gather_config.corr_type,'Pearson')
-    corr_ln_log='PearsonLinearLog';
-    corr_log_log='PearsonLogLog';
+    gather_config.corr_ln_log='PearsonLinearLog';
+    gather_config.corr_log_log='PearsonLogLog';
 else
-    corr_ln_log='Spearman';
-    corr_log_log='Spearman';
+    gather_config.corr_ln_log='Spearman';
+    gather_config.corr_log_log='Spearman';
 end

@@ -1,4 +1,4 @@
-% This method will generate a list that contains cyclic FCs. Regardless of
+% Generate a list that contains cyclic FCs. Regardless of
 % how frequently the associated structure appears in actual recordings. 
 function rings=ring_list_bz(opt)
 arguments
@@ -6,7 +6,7 @@ arguments
 end
 %bzthres=250;  %TODO filter by spike number % not really necessary when using full-length data
 if isempty(opt.shufid)
-    [sig,~]=bz.load_sig_pair();
+    sig=bz.load_sig_sums_conn_file('pair',false);
     fname='rings_bz.mat';
 else
     load('bz_ring_shufs.mat','shufs')
@@ -24,6 +24,6 @@ for sess=1:max(sig.sess)
         rings{sess,ring_size-2}=unique(bz.rings.flexsort(sess_rings),'rows');
     end
 end
-save(fullfile('bzdata',fname),'rings');
-
+blame=vcs.blame();
+save(fullfile('bzdata',fname),'rings','blame');
 end
