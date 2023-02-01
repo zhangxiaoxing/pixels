@@ -222,8 +222,8 @@ end
 function plot_all()
 figure()
 hold on
-intvs=[300 600 1500];
-colors=['k','b','r'];
+intvs=[300 600];
+colors=['k','b'];
 for pidx=1:3
     load(sprintf('chain_sust_tag_%d.mat',intvs(pidx)),'out')
     perchaindur=struct();
@@ -241,13 +241,14 @@ for pidx=1:3
         statss.("d"+dur)=perchaindur;
     end
 
-    d6hist=histcounts(perchaindur.d6.dur,[0:50:1000,1500,2000],'Normalization','probability');
-%     d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','probability');
+    d6hist=histcounts(perchaindur.d6.dur,[0:50:1000,1500,2000],'Normalization','pdf');
+    d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','pdf');
     plot([25:50:975,1250,1750],d6hist,'-','Color',colors(pidx));
-%     plot([25:50:975,1250,1750],d3hist,'--','Color',colors(pidx));
+    plot([25:50:975,1250,1750],d3hist,'--','Color',colors(pidx));
 end
 set(gca(),'XScale','log','YScale','log');
-ylim([1e-3,1]);
+ylim([1e-4,0.1]);
+xlim([0,1000]);
 xlabel('Time (ms)')
 ylabel('Probability')
 end

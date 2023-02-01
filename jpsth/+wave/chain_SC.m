@@ -1,16 +1,18 @@
 if false
     chainStr=load('chain_tag.mat','out');
-else
+elseif false
     bumpStr=load('chain_sust_tag_600.mat','out');
     out=bumpStr.out;
+    chain_len_thres=6;
+else
+%     load('rings_wave_burst_600.mat','out')
+    chain_len_thres=3;
 end
 
 skipccg=true;
 warning("Skip ccg on matebook due to missing toolbox");
 
-
 global_init;
-chain_len_thres=6;
 
 memsess=-1;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
@@ -26,7 +28,12 @@ for dur=reshape(fieldnames(out),1,[])
             end
 
             % region selection
-            currsess=str2double(regexp(cnid,'(?<=s)[0-9]*(?=c)','match','once'));
+            if contains(cnid,'r')
+                currsess=str2double(regexp(cnid,'(?<=s)[0-9]*(?=r)','match','once'));
+            else
+                currsess=str2double(regexp(cnid,'(?<=s)[0-9]*(?=c)','match','once'));
+            end
+
             if currsess~=memsess
                 sesssel=su_meta.sess==currsess;
                 sesscid=su_meta.allcid(sesssel);
@@ -110,6 +117,7 @@ for dur=reshape(fieldnames(out),1,[])
                     title({"Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1}+", trial "+num2str(tt),...
                         num2str(cncids)});
                     set(gca(),"YTick",1:jj,"YTickLabel",cnreg,'YDir','reverse')
+                    keyboard()
                 end
 
                 % TODO plot ccgs

@@ -1,5 +1,4 @@
-%% enumerate single spike and burst ring activitys
-%% main function works, aux functions WIP
+%% enumerate single spike and burst ring activities
 
 % TODO: spike screen by wave / trial
 function rings_burst_activiy(opt)
@@ -137,4 +136,38 @@ for dur=reshape(fieldnames(out),1,[])
     end
 end
 saved_sess=unique(saved_sess);
+end
+
+function plot_all(out)
+figure()
+hold on
+
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+    %     [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            %             keyboard();
+            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
+            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
+        end
+    end
+    statss.("d"+dur)=perchaindur;
+end
+
+d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
+% d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','pdf');
+
+plot([25:50:975,1250,1750],d6hist,'k-');
+% plot([25:50:975,1250,1750],d3hist,'k--');
+
+set(gca(),'XScale','log','YScale','log');
+ylim([1e-5,0.1]);
+xlabel('Time (ms)')
+ylabel('Probability')
+end
+
+function plot_SC(out)
 end
