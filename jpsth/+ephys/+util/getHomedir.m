@@ -35,9 +35,9 @@ if strcmp(opt.dtype,'neupix') ||  strcmp(opt.dtype,'MY')
         end
     elseif isunix
         if strcmp(opt.type,'sums')
-            homedir = fullfile('~','pixels','per_sec');
+            homedir = fullfile('..','per_sec');
         elseif strcmp(opt.type,'raw')
-            homedir = fullfile('~','neupix','SPKINFO');
+            homedir = fullfile('..','..','neupix','SPKINFO');
         end
     end
 else

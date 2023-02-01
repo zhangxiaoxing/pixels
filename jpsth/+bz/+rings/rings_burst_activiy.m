@@ -19,7 +19,7 @@ sesses=reshape(unique(rings_wave.sess),1,[]);
 %loop entry
 if opt.append_saved
     [out,saved]=get_saved_sess();
-    sesses=setdiff(sesses,saved(1:end-1));
+    sesses=setdiff(sesses,saved);
 else
     out=cell(0);
 end
@@ -45,7 +45,7 @@ for sessid=sesses
             sess_indices=reshape(find(rings_wave.sess==sessid & strcmp(rings_wave.wave,wid)),1,[]);
             
             for cc=sess_indices
-                
+                disp({sessid,duration,wid,cc})
                 ts_id=[];
                 cids=rings_wave.cids{cc};
                 for in_ring_pos=1:numel(cids) 
