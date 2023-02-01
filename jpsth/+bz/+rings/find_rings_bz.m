@@ -1,6 +1,8 @@
+%% find structurally potential loops in FC data
+
 function out=find_rings_bz(in,msize)
 arguments
-    in (:,2) double {mustBeNonempty(in)} %sig or pair?
+    in (:,2) double {mustBeNonempty(in)} %sig or pair
     msize (1,1) double {mustBeMember(msize,3:5)} % size of ring
 end
 out=[];

@@ -39,13 +39,17 @@ while true
         end
     end
     %% branch
-    %     if loopDepth<rsize
-    % TODO varify loop index WIP
+    if perSU(loopIdx)>numel(in{loopIdx})
+        break
+    end
     nxtd=loopIdx+1;
     if nxtd>rsize
         nxtd=1;
     end
     perSU(nxtd)=1;
+%     if perSU(2)>6616
+%         keyboard()
+%     end
     while perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+24
         perSU(nxtd)=perSU(nxtd)+1; % TODO: improve performance with binary tree search
     end

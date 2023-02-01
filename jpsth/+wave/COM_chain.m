@@ -14,7 +14,7 @@ end
 load('sums_conn_10.mat','sums_conn_str');
 % [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 % meta_str=ephys.util.load_meta('skip_stats',true);
-% warning('partial iteration for illustration')
+
 chains=cell(0);
 for fidx=1:numel(sums_conn_str)
     disp(fidx)

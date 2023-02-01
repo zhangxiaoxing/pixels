@@ -1,9 +1,10 @@
 %% enumerate single spike and burst ring activitys
 %% main function works, aux functions WIP
 
+% TODO: spike screen by wave / trial
+
 function rings_freq(opt)
 arguments
-%     opt.ridx (1,:) double = []
     opt.burst (1,1) logical = true
     opt.burstInterval (1,1) double = 600
     opt.ccg  (1,1) logical = false
@@ -77,8 +78,8 @@ for sessidx=1:size(rings,1)
 %                     end
                 end
             else
-                warning("Incomplete section")
-                keyboard()
+                error("Incomplete section")
+%                 keyboard()
                 ts_id=sortrows(ts_id,1);
                 ring_stats=bz.rings.relax_tag(ts_id,rsize);
                 coact_count=sum(ring_stats.spk_cnt);
