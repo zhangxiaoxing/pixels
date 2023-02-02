@@ -4,8 +4,8 @@ elseif false
     bumpStr=load('chain_sust_tag_600.mat','out');
     out=bumpStr.out;
     chain_len_thres=6;
-else
-%     load('rings_wave_burst_600.mat','out')
+elseif true
+    load('rings_wave_burst_600.mat','out')
     chain_len_thres=3;
 end
 
@@ -56,24 +56,28 @@ for dur=reshape(fieldnames(out),1,[])
             end
             if all(strict_sel==0) % plot
                 cntsid=out.(dur{1}).(wv{1}).(cnid{1}).ts_id;
-                tsid1=cntsid(cntsid(:,3)==1,:);
+                tsidOnset=arrayfun(@(x) cntsid(cntsid(:,3)==x,:),1:numel(cncids),'UniformOutput',false); 
                 if isnumeric(out.(dur{1}).(wv{1}).(cnid{1}).ts) % one spike chain
-                    [~,tsidsel]=ismember(out.(dur{1}).(wv{1}).(cnid{1}).ts(:,1),tsid1(:,1));
+                    [~,tsidsel]=ismember(out.(dur{1}).(wv{1}).(cnid{1}).ts(:,1),tsidOnset{1}(:,1));
                     [gc,gr]=groupcounts(trls);
                     gridx=reshape(find(gc>1),1,[]);
                     ttlist=gr(gridx);
                 else % bump-wave
                     cndur=cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
                     [maxdur,maxidx]=max(cndur);
-
                     if maxdur>7500 % 500 ms
+                        onsetSUIdx=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,1); % first SU index in chain/loops
+                        pos_within=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,1);
                         tsidsel=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,2);
-                        ttlist=tsid1(tsidsel,5);
+                        ttlist=tsidOnset{pos_within}(tsidsel,5); % current trial
                         % TODO: same trial, longest for each diff onset
+                        % TODO: match trial for different 
 
-                        cn_tsid_sel=cellfun(@(x) x(1,2),out.(dur{1}).(wv{1}).(cnid{1}).ts);
-                        cn_trl_list=tsid1(cn_tsid_sel,5).';
-                        supp_onset=setdiff(unique(cn_tsid_sel(cn_trl_list==ttlist(1))),tsidsel);
+                        cn_tsid_sel=cellfun(@(x) x(1,1:2),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false);
+                        cn_trl_list=cellfun(@(x) tsidOnset{x(1)}(x(2),5),cn_tsid_sel);
+                        onset_set=cell2mat(cn_tsid_sel(cn_trl_list==ttlist(1)).'); % [supos,pos_within_SU]
+
+                        supp_onset=setdiff(unique(),tsidsel);
                         suppIdx=[];
                         for ii=1:numel(supp_onset)
                             onset_sel=find(cn_tsid_sel==supp_onset(ii));
@@ -85,7 +89,7 @@ for dur=reshape(fieldnames(out),1,[])
                         ttlist=[];
                     end
                 end
-                trls=tsid1(tsidsel,5);
+                trls=tsidOnset(tsidsel,5);
 
                 % TODO plot raster
                 for tt=ttlist
