@@ -76,11 +76,12 @@ for dur=reshape(fieldnames(out),1,[])
                         cn_tsid_sel=cellfun(@(x) x(1,1:2),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false);
                         cn_trl_list=cellfun(@(x) tsidOnset{x(1)}(x(2),5),cn_tsid_sel);
                         onset_set=cell2mat(cn_tsid_sel(cn_trl_list==ttlist(1)).'); % [supos,pos_within_SU]
-
-                        supp_onset=setdiff(unique(),tsidsel);
+                        
+                        same_onset=onset_set(:,1)==pos_within & onset_set(:,2)==tsidsel;
+                        supp_onset=onset_set(~same_onset,:);
                         suppIdx=[];
-                        for ii=1:numel(supp_onset)
-                            onset_sel=find(cn_tsid_sel==supp_onset(ii));
+                        for ii=1:size(supp_onset,1)
+                            onset_sel=find(all(cell2mat(cn_tsid_sel.')==supp_onset(ii,:),2));
                             [~,oneid]=max(cndur(onset_sel));
                             suppIdx=[suppIdx,onset_sel(oneid)];
                         end
@@ -89,7 +90,7 @@ for dur=reshape(fieldnames(out),1,[])
                         ttlist=[];
                     end
                 end
-                trls=tsidOnset(tsidsel,5);
+                trls=tsidOnset{pos_within}(tsidsel,5);
 
                 % TODO plot raster
                 for tt=ttlist
@@ -111,7 +112,11 @@ for dur=reshape(fieldnames(out),1,[])
                                 % TODO: merge same trial different onset chains
                                 suts=bts(bts(:,1)==jj,3);
                                 [~,tickpos]=ismember(suts,cntsid(cntsid(:,3)==jj & cntsid(:,5)==tt,1));
-                                plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
+                                if iidx==maxidx
+                                    plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
+                                else
+                                    plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#00FF',dec2hex(jj,2)]);
+                                end
                             end
                         end
                     end
