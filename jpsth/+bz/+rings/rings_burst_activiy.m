@@ -6,9 +6,17 @@ arguments
     opt.burst (1,1) logical = true
     opt.burstInterval (1,1) double = 600
     opt.ccg  (1,1) logical = false
-    opt.append_saved (1,1) logical = true
+    opt.append_saved (1,1) logical = false
 end
 % bz.rings.ring_list_bz
+ppool=gcp('nocreate');
+if isempty(ppool)
+    if ispc
+        ppool=parpool(2);
+    elseif isunix
+        ppool=parpool(4);
+    end
+end
 load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
 
 blame=vcs.blame();
@@ -22,7 +30,7 @@ if opt.append_saved
 else
     out=cell(0);
 end
-
+Q=parallel.FevalFuture.empty();
 for sessid=sesses
     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
     for duration=[3 6]
@@ -76,49 +84,66 @@ for sessid=sesses
                     for kk=1:numel(cids)
                         tsidin{kk}=ts_id(ts_id(:,3)==kk,1);
                     end
-%                     one-off debug
-%                     if ~any(cellfun(@(x) numel(x),tsidin)==6616,'all') %6616
-%                         continue
-%                     end
                     % out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
-                    assignin('base','tsidin',tsidin)
-                    ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
-
-                    if ~isempty(ts)
-                        % TODO: optional remove shorter chains for each
-                        % onset-spike
-
-                        outkey="s"+sessid+"r"+numel(tsidin)+"n"+cc;
-                        out.("d"+duration).(wid).(outkey).ts=ts;
-                        out.("d"+duration).(wid).(outkey).meta={cids}; % Skipped TCOM for now
-                        out.("d"+duration).(wid).(outkey).ts_id=ts_id;
-
-                        % TODO: ccg
-                        %                     if opt.ccg
-                        %                         cursess=rings_wave.sess(ring_id);
-                        %                         sesspath=ephys.sessid2path(cursess);
-                        %                         strippath=regexp(sesspath,'(?<=\\).*','match');
-                        %                         sesssel=find(contains({sums_conn_str.folder},strippath));
-                        %                         ccg=sums_conn_str(sesssel).ccg_sc;
-                        %                         ccgid=sums_conn_str(sesssel).sig_con;
-                        %                         chainccg=[];
-                        %                         for ii=1:numel(cids)-1
-                        %                             sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
-                        %                             if nnz(sigsel)~=1
-                        %                                 keyboard()
-                        %                             end
-                        %                             chainccg=[chainccg;ccg(sigsel,:)];
-                        %                         end
-                        %                         out.("d"+duration).(wid).(outkey).ccgs=chainccg;
-                        %                     end
-                    end
+%                     ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
+                    outkey="d"+duration+wid+"s"+sessid+"r"+numel(tsidin)+"n"+cc;
+                    Q(end+1)=parfeval(ppool,@bz.rings.relax_tag_long,4,tsidin,[],[],[],[],cids,ts_id,outkey,"burstInterval",600);
+%                     bz.rings.relax_tag_long(tsidin,[],[],[],[],cids,ts_id,outkey)
                 else
                     error("Incomplete section")
                 end
             end
         end
     end
-    save(sprintf('rings_wave_burst_%d.mat',opt.burstInterval),'out','blame');
+end
+
+
+
+%% gather from future
+dbfile=fullfile("bzdata","rings_wave_burst_"+num2str(opt.burstInterval)+".db");
+if ~exist(dbfile,'file')
+    conn=sqlite(dbfile,"create");
+    close(conn);
+end
+for fii=1:numel(Q)
+    [ts,cids,ts_id,key]=fetchOutputs(Q(fii));
+    saveOne(ts,cids,ts_id,key);
+end
+
+
+end
+function saveOne(ts,cids,ts_id,key)
+if ~isempty(ts)
+    % TODO: optional remove shorter chains for each
+    % onset-spike
+    dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+    conn=sqlite(dbfile);
+    for tid=1:numel(ts)
+        tbl=array2table([repmat(tid,size(ts{tid},1),1),ts{tid}]);
+        sqlwrite(conn,key+"_ts",tbl)
+    end
+    sqlwrite(conn,key+"_meta",array2table(cids))
+    sqlwrite(conn,key+"_tsid",array2table(ts_id))
+    close(conn);
+    disp(key);
+    % TODO: ccg
+    %                     if opt.ccg
+    %                         cursess=rings_wave.sess(ring_id);
+    %                         sesspath=ephys.sessid2path(cursess);
+    %                         strippath=regexp(sesspath,'(?<=\\).*','match');
+    %                         sesssel=find(contains({sums_conn_str.folder},strippath));
+    %                         ccg=sums_conn_str(sesssel).ccg_sc;
+    %                         ccgid=sums_conn_str(sesssel).sig_con;
+    %                         chainccg=[];
+    %                         for ii=1:numel(cids)-1
+    %                             sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
+    %                             if nnz(sigsel)~=1
+    %                                 keyboard()
+    %                             end
+    %                             chainccg=[chainccg;ccg(sigsel,:)];
+    %                         end
+    %                         out.("d"+duration).(wid).(outkey).ccgs=chainccg;
+    %                     end
 end
 end
 

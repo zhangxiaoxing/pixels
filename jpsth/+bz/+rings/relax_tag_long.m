@@ -1,15 +1,17 @@
 %% Repurosed for burst-loop algorithm as of 23.01.30
 
-function out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
+function [out,cids,ts_id,key]=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,cids,ts_id,key,opt)
 arguments
     in
     loopIdx % current neuron idx
     recDepth
     loopCnt % accumated loop neuron count
     perSU
-    opt.burstInterval (1,1) double = 300 % ticks, at 30k sps
+    cids
+    ts_id
+    key
+    opt.burstInterval (1,1) double = 600 % ticks, at 30k sps
 end
-
 out=cell(0); %{[depth,id]}
 rsize=size(in,2);
 
@@ -30,7 +32,7 @@ while true
         link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
         delta=zeros(1,numel(perSU));
         delta(loopIdx)=1;
-        rec_same=bz.rings.relax_tag_long(in,loopIdx,recDepth+1,loopCnt,perSU+delta,'burstInterval',opt.burstInterval);
+        rec_same=bz.rings.relax_tag_long(in,loopIdx,recDepth+1,loopCnt,perSU+delta,cids,ts_id,key,'burstInterval',opt.burstInterval);
         for ii=1:numel(rec_same)
             out(end+1)={[link;rec_same{ii}]};
         end
@@ -57,7 +59,7 @@ while true
     end
     if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
         link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
-        rec_branch=bz.rings.relax_tag_long(in,nxtd,recDepth+1,loopCnt+1,perSU,'burstInterval',opt.burstInterval);
+        rec_branch=bz.rings.relax_tag_long(in,nxtd,recDepth+1,loopCnt+1,perSU,cids,ts_id,key,'burstInterval',opt.burstInterval);
         for ii=1:numel(rec_branch)
             out(end+1)={[link;rec_branch{ii}]};
         end
