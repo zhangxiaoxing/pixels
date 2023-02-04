@@ -108,15 +108,19 @@ function out=stats(single_su_multi_ring)
 % 3s and 6s
 cnt3s=cellfun(@(x) size(x,2), struct2cell(single_su_multi_ring.d3));
 cnt6s=cellfun(@(x) size(x,2), struct2cell(single_su_multi_ring.d6));
-hist3=histcounts(cnt3s,[0:10:100,1000],'Normalization','probability');
-hist6=histcounts(cnt6s,[0:10:100,1000],'Normalization','probability');
+% hist3=histcounts(cnt3s,[0:10:100,500],'Normalization','pdf');
+hist6=histcounts([cnt3s;cnt6s],[0:5:15,20:20:100,200],'Normalization','pdf');
 figure()
 hold on;
-plot(5:10:95,mean([hist3(1:end-1);hist6(1:end-1)]),'-k');
-plot(95:10:105,mean([hist3(end-1:end);hist6(end-1:end)]),'--k');
-set(gca(),'YScale','log')
-xlabel('Number of communal loops')
-ylabel('Probability')
+% plot(5:10:95,mean([hist3(1:end-1);hist6(1:end-1)]),'-k');
+% plot(95:10:105,mean([hist3(end-1:end);hist6(end-1:end)]),'--k');
+plot([2.5:5:17.5,30:20:90,150],hist6,'-k');
+set(gca(),'YScale','log','XTick',0:50:150)
+ylim([4e-4,0.1])
+xlim([0,175])
+xlabel('Number of composite loops')
+ylabel('Probability density')
+title('Single SU in composite loops')
 
 
 % TODO prob of switch vs interval
