@@ -185,3 +185,139 @@ xlabel('Time (ms)')
 ylabel('Probability')
 legend([fch,looph,hrh,c3h,c6h],{'FC','Loop','Composite loops','3s chain-loop','6s chain-loop'},'Location','northoutside','Orientation','horizontal')
 end
+
+
+
+function single_burst_loops()
+global_init();
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+wrs_mux_meta=ephys.get_wrs_mux_meta();
+
+%% single spike loops
+load('bzdata\sums_ring_stats_all.mat')
+curr_sess=-1;
+edges=[0:1:10,20:10:200];
+per_ring_hist=struct();
+[per_ring_hist.congru,per_ring_hist.incongru,per_ring_hist.nonmem,per_ring_hist.others]=deal(zeros(1,29));
+for rsize=1:3
+    one_rsize=sums_all{rsize};
+    for ridx=1:size(one_rsize,1)
+        if curr_sess~=one_rsize{ridx,1}
+            curr_sess=one_rsize{ridx,1};
+            sesscid=su_meta.allcid(su_meta.sess==curr_sess);
+            sesswaveid=wrs_mux_meta.wave_id(su_meta.sess==curr_sess);
+            sessmap=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
+        end
+        curr_waveid=cell2mat(sessmap.values(num2cell(one_rsize{ridx,3})));
+        rwid=bz.rings.ring_wave_type(curr_waveid);
+        rfreq_str=one_rsize{ridx,5};
+        per_ring_hist.(rwid)=per_ring_hist.(rwid)+histcounts((rfreq_str.durs)./30,edges); % spkTS unit, i.e. 1/30 ms
+    end
+end
+
+congru_pdf=per_ring_hist.congru./(sum(per_ring_hist.congru).*diff([0:1:10,20:10:200]));
+
+%% burst loops
+load('rings_wave_burst_600.mat','out');
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+    %     [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            %             keyboard();
+            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
+            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
+        end
+    end
+    statss.("d"+dur)=perchaindur;
+end
+
+d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
+% d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','pdf');
+
+figure()
+hold on
+sph=plot([0.5:1:9.5,15:10:195],congru_pdf,'--k');
+bph=plot([25:50:975,1250,1750],d6hist,'k-');
+% plot([25:50:975,1250,1750],d3hist,'k--');
+set(gca(),'XScale','log','YScale','log');
+ylim([1e-5,0.1]);
+xlabel('Time (ms)')
+ylabel('Probability density (per loop per ms)')
+legend([sph,bph],{'Single spike loops','Burst spike loops'},'Location','northoutside','Orientation','horizontal')
+end
+
+function composite_loops()
+hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
+C=struct2cell(hrstats.stats).';
+expd=[C{:}];
+expdd=[expd{:}];
+hrhist=histcounts(expdd,[0:10:100,150:50:250],'Normalization','pdf');
+
+figure()
+hold on
+sph=plot([0.5:1:9.5,15:10:195],congru_pdf,'--k');
+hrh=plot([5:10:95,125:50:225],hrhist,'-k');
+% plot([25:50:975,1250,1750],d3hist,'k--');
+set(gca(),'XScale','log','YScale','log');
+ylim([1e-5,0.1]);
+xlabel('Time (ms)')
+ylabel('Probability density (per loop per ms)')
+legend([sph,hrh],{'Single spike loops','Composite single spike loops'},'Location','northoutside','Orientation','horizontal')
+
+end
+
+function single_multi_spike_chains()
+%% single spike
+load('chain_tag.mat','out')
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+    perchaindur=struct();
+    [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
+            perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
+        end
+    end
+    statss.("d"+dur)=perchaindur;
+end
+singlehist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],0:10:100,'Normalization','pdf');
+
+
+%% multi spike
+load('chain_sust_tag_600.mat','out')
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+%     [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+%             keyboard();
+            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
+            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
+        end
+    end
+    statsm.("d"+dur)=perchaindur;
+end
+
+multihist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600],'Normalization','pdf');
+% d3hist=histcounts(perchaindur.d3.dur,0:50:600,'Normalization','pdf');
+figure()
+hold on
+sh=plot([5:10:95],singlehist,'--k');
+mh=plot([5:10:95,150:100:550],multihist,'-k');
+% plot(25:50:575,d3hist,'--k');
+set(gca(),'XScale','log','YScale','log');
+
+ylim([1e-5,0.1]);
+xlabel('Time (ms)');
+ylabel('Probability density');
+legend([sh,mh],{'Single spike chain','Burst spike chain'},'Location','northoutside','Orientation','horizontal')
+
+end
+

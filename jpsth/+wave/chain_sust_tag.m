@@ -134,6 +134,7 @@ stats(out);
 end
 
 function stats(out)
+load('chain_sust_tag_600.mat','out')
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
 for dur=reshape(fieldnames(out),1,[])
@@ -149,13 +150,17 @@ for dur=reshape(fieldnames(out),1,[])
     statss.("d"+dur)=perchaindur;
 end
 
-d6hist=histcounts(perchaindur.d6.dur,0:50:600,'Normalization','probability');
-d3hist=histcounts(perchaindur.d3.dur,0:50:600,'Normalization','probability');
+d6hist=histcounts([perchaindur.d3.dur,perchaindur.d6.dur],[0:20:100,200:100:600],'Normalization','pdf');
+% d3hist=histcounts(perchaindur.d3.dur,0:50:600,'Normalization','pdf');
 figure()
 hold on
-plot(25:50:575,d6hist,'-k');
-plot(25:50:575,d3hist,'--k');
+plot([10:20:90,150:100:550],d6hist,'-k');
+% plot(25:50:575,d3hist,'--k');
 set(gca(),'XScale','log','YScale','log');
+
+
+
+
 end
 
 

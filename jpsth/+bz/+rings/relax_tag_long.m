@@ -1,19 +1,19 @@
 %% Repurosed for burst-loop algorithm as of 23.01.30
 
-function [out,cids,ts_id,key]=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,cids,ts_id,key,opt)
+function out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
 arguments
     in
     loopIdx % current neuron idx
     recDepth
     loopCnt % accumated loop neuron count
     perSU
-    cids
-    ts_id
-    key
     opt.burstInterval (1,1) double = 600 % ticks, at 30k sps
 end
 out=cell(0); %{[depth,id]}
 rsize=size(in,2);
+if ~isempty(perSU) && rem(perSU(1),1000)==0
+    disp([perSU(1),numel(in{1})]);
+end
 
 if isempty(loopIdx)
     [~,loopIdx]=min(cellfun(@(x) x(1),in));
@@ -32,7 +32,7 @@ while true
         link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
         delta=zeros(1,numel(perSU));
         delta(loopIdx)=1;
-        rec_same=bz.rings.relax_tag_long(in,loopIdx,recDepth+1,loopCnt,perSU+delta,cids,ts_id,key,'burstInterval',opt.burstInterval);
+        rec_same=bz.rings.relax_tag_long(in,loopIdx,recDepth+1,loopCnt,perSU+delta,'burstInterval',opt.burstInterval);
         for ii=1:numel(rec_same)
             out(end+1)={[link;rec_same{ii}]};
         end
@@ -51,15 +51,13 @@ while true
         nxtd=1;
     end
     perSU(nxtd)=1;
-%     if perSU(2)>6616
-%         keyboard()
+%     while perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+24
+%         perSU(nxtd)=perSU(nxtd)+1; % TODO: improve performance with binary tree search
 %     end
-    while perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+24
-        perSU(nxtd)=perSU(nxtd)+1; % TODO: improve performance with binary tree search
-    end
+    perSU(nxtd)=findFirst(in{nxtd},in{loopIdx}(perSU(loopIdx))+24);
     if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
         link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
-        rec_branch=bz.rings.relax_tag_long(in,nxtd,recDepth+1,loopCnt+1,perSU,cids,ts_id,key,'burstInterval',opt.burstInterval);
+        rec_branch=bz.rings.relax_tag_long(in,nxtd,recDepth+1,loopCnt+1,perSU,'burstInterval',opt.burstInterval);
         for ii=1:numel(rec_branch)
             out(end+1)={[link;rec_branch{ii}]};
         end
@@ -82,5 +80,27 @@ while true
     else
         break
     end
+end
+end
+
+
+
+function idx = findFirst(nxt, curr) %nxt should be first > curr
+l = 1;
+r = length(nxt);
+idx = 1;
+while l < r
+    idx = 1 + floor((l + r - 1) / 2);
+    if nxt(idx) > curr
+        r = idx - 1;
+    elseif nxt(idx) <= curr
+        l = idx;
+    end
+end
+if l == r
+    idx = r;
+end
+if nxt(idx) <= curr
+    idx = idx+1;
 end
 end

@@ -6,15 +6,15 @@ arguments
     opt.burst (1,1) logical = true
     opt.burstInterval (1,1) double = 600
     opt.ccg  (1,1) logical = false
-    opt.append_saved (1,1) logical = false
+    opt.append_saved (1,1) logical = true
 end
 % bz.rings.ring_list_bz
 ppool=gcp('nocreate');
 if isempty(ppool)
     if ispc
-        ppool=parpool(2);
+        ppool=parallel.Pool.empty;
     elseif isunix
-        ppool=parpool(4);
+        ppool=parpool(2);
     end
 end
 load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
@@ -25,8 +25,7 @@ sesses=reshape(unique(rings_wave.sess),1,[]);
 
 %loop entry
 if opt.append_saved
-    [out,saved]=get_saved_sess();
-    sesses=setdiff(sesses,saved);
+    saved_keys=get_saved_sess();
 else
     out=cell(0);
 end
@@ -52,6 +51,12 @@ for sessid=sesses
             sess_indices=reshape(find(rings_wave.sess==sessid & strcmp(rings_wave.wave,wid)),1,[]);
             
             for cc=sess_indices
+                outkey="d"+duration+wid+"s"+sessid+"r"+numel(rings_wave.cids{cc})+"n"+cc;
+                if opt.append_saved
+                    if nnz(startsWith(saved_keys,outkey))==3
+                        continue
+                    end
+                end
                 disp({sessid,duration,wid,cc})
                 ts_id=[];
                 cids=rings_wave.cids{cc};
@@ -85,10 +90,12 @@ for sessid=sesses
                         tsidin{kk}=ts_id(ts_id(:,3)==kk,1);
                     end
                     % out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
-%                     ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
-                    outkey="d"+duration+wid+"s"+sessid+"r"+numel(tsidin)+"n"+cc;
-                    Q(end+1)=parfeval(ppool,@bz.rings.relax_tag_long,4,tsidin,[],[],[],[],cids,ts_id,outkey,"burstInterval",600);
-%                     bz.rings.relax_tag_long(tsidin,[],[],[],[],cids,ts_id,outkey)
+                    ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
+                    if ~isempty(ts)
+                        saveOne(ts,cids,ts_id,outkey);
+                        clear ts
+                    end
+%                     Q(end+1)=parfeval(ppool,@bz.rings.relax_tag_long,4,tsidin,[],[],[],[],cids,ts_id,outkey,"burstInterval",600);
                 else
                     error("Incomplete section")
                 end
@@ -100,17 +107,15 @@ end
 
 
 %% gather from future
-dbfile=fullfile("bzdata","rings_wave_burst_"+num2str(opt.burstInterval)+".db");
-if ~exist(dbfile,'file')
-    conn=sqlite(dbfile,"create");
-    close(conn);
-end
-for fii=1:numel(Q)
-    [ts,cids,ts_id,key]=fetchOutputs(Q(fii));
-    saveOne(ts,cids,ts_id,key);
-end
-
-
+% dbfile=fullfile("bzdata","rings_wave_burst_"+num2str(opt.burstInterval)+".db");
+% if ~exist(dbfile,'file')
+%     conn=sqlite(dbfile,"create");
+%     close(conn);
+% end
+% for fii=1:numel(Q)
+%     [ts,cids,ts_id,key]=fetchOutputs(Q(fii));
+%     saveOne(ts,cids,ts_id,key);
+% end
 end
 function saveOne(ts,cids,ts_id,key)
 if ~isempty(ts)
@@ -148,19 +153,10 @@ end
 end
 
 
-function [out,saved_sess]=get_saved_sess()
-load('rings_wave_burst_600.mat','out');
-saved_sess=[];
-for dur=reshape(fieldnames(out),1,[])
-    for wv=reshape(fieldnames(out.(dur{1})),1,[])
-        saved_sess=[saved_sess;...
-            str2double(...
-            regexp(...
-            fieldnames(out.(dur{1}).(wv{1})),...
-            '(?<=s)\d+(?=r)','match','once'))];
-    end
-end
-saved_sess=unique(saved_sess);
+function keys=get_saved_sess()
+dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+conn=sqlite(dbfile);
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
 end
 
 function plot_all(out)
