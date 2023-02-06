@@ -9,14 +9,14 @@ arguments
     opt.append_saved (1,1) logical = true
 end
 % bz.rings.ring_list_bz
-ppool=gcp('nocreate');
-if isempty(ppool)
-    if ispc
-        ppool=parallel.Pool.empty;
-    elseif isunix
-        ppool=parpool(2);
-    end
-end
+% ppool=gcp('nocreate');
+% if isempty(ppool)
+%     if ispc
+%         ppool=parallel.Pool.empty;
+%     elseif isunix
+%         ppool=parpool(2);
+%     end
+% end
 load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
 
 blame=vcs.blame();
@@ -155,8 +155,9 @@ end
 
 function keys=get_saved_sess()
 dbfile=fullfile("bzdata","rings_wave_burst_600.db");
-conn=sqlite(dbfile);
+conn=sqlite(dbfile,'readonly');
 keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+conn.close();
 end
 
 function plot_all(out)

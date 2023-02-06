@@ -1,6 +1,3 @@
-% TODO: confirm inter-loop-transition with spkTS-cid-map
-% TODO: option to join selective and non-selective loops
-
 % We found that larger proportions of spikes were associated with 
 % such activity loops of same-memory neurons than that of non-memory
 % neurons (fig. Sx). For all the recorded neurons, we observed xx% of
@@ -382,6 +379,7 @@ for sessid=[4 9 14 18]%reshape(unique(usess),1,[])
         end
     end
 end
+conn.close();
 
 blame=vcs.blame();
 save(fullfile('bzdata','composite_burst_ring.mat'),'stats','blame')

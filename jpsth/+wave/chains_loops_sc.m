@@ -125,7 +125,6 @@ for wid=1:4
             nodecell=[{'Id','Label','XX','YY'};...
             num2cell([sessid;sessid;cell2mat(sesscommap.values(num2cell(sessid)));regtcom.*8].')];
             writecell(nodecell,fullfile('bzdata',sprintf('node4gephi_s%dw_%d.csv',sess,wid)));
-
         end
     end
 end
