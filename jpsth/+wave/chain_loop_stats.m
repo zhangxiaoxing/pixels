@@ -1,7 +1,46 @@
 % interate sessions
 % load single spike chain data
-
 % load burst spike chain data
+function single_multi_chains()
+ssc=load('chain_tag.mat','out');
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+    perchaindur=struct();
+    [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
+            perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
+        end
+    end
+    statss.("d"+dur)=perchaindur;
+end
+singlehist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],0:10:100,'Normalization','pdf');
+
+
+%% multi spike
+msc=load('chain_sust_tag_600.mat','out');
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+%     [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+%             keyboard();
+            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
+            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
+        end
+    end
+    statsm.("d"+dur)=perchaindur;
+end
+
+multihist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600],'Normalization','pdf');
+end
+
+
+
 
 %% load single spike loop data
 function single_spike_composite()
