@@ -1,5 +1,4 @@
 %% Repurosed for burst-loop algorithm as of 23.01.30
-
 function out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
 arguments
     in
