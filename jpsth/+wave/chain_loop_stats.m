@@ -1,10 +1,115 @@
 % interate sessions
 % load single spike chain data
-
 % load burst spike chain data
+% TODO: probe memory, remove unused sessions if necessary
+
+%% single spike chain
+sschain=load('chain_tag.mat','out');
+keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
+    struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
+keys=vertcat(keys{:});
+ssc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
+%% multi spike
+bschain=load('chain_sust_tag_600.mat','out');
+keys=[struct2cell(structfun(@(x) fieldnames(x), bschain.out.d6, 'UniformOutput', false));...
+    struct2cell(structfun(@(x) fieldnames(x), bschain.out.d3, 'UniformOutput', false))];
+keys=vertcat(keys{:});
+bsc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
+%% single spike loop
+load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats');
+pstats=rmfield(pstats,"nonmem");
+ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
+%% burst spike loop, keys only
+dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+conn=sqlite(dbfile,"readonly");
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+close(conn);
+bsl_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=r)','match','once')));
+
+intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
+
+% single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
+for sessid=18
+    [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'skip_spike',true);
+    FT_SPIKE.lc_tag=cell(size(FT_SPIKE.timestamp));
+    for cidx=1:numel(FT_SPIKE.timestamp)
+        FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
+    end
+
+    %% single spike chain
+    for dur=["d6","d3"]
+        for wid=reshape(fieldnames(sschain.out.(dur)),1,[])
+            for cc=reshape(fieldnames(sschain.out.(dur).(wid{1})),1,[])
+                if ~startsWith(cc{1},['s',num2str(sessid)])
+                    continue
+                end
+                keyboard()
+                onechain=sschain.out.(dur).(wid{1}).(cc{1});
+                for cid=onechain.meta{1}
+                    cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)))
+    
+                end
+            end
+        end
+    end
+%% multi spike
+%% single spike loop
+%% burst spike loop, keys only
+
+end
+
+
+
+function chains()
+
+%% single spike chain
+sschain=load('chain_tag.mat','out');
+
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+    perchaindur=struct();
+    [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+            perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
+            perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
+        end
+    end
+    statss.("d"+dur)=perchaindur;
+end
+singlechainhist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],0:10:100,'Normalization','pdf');
+
+
+%% multi spike chain
+bschain=load('chain_sust_tag_600.mat','out');
+%%
+perchaindur=struct();
+[perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
+for dur=reshape(fieldnames(out),1,[])
+%     [perchaindur.size,perchaindur.dur]=deal([]);
+    for wv=reshape(fieldnames(out.(dur{1})),1,[])
+        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+%             keyboard();
+            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
+            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
+            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
+        end
+    end
+    statsm.("d"+dur)=perchaindur;
+end
+
+multichainhist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600],'Normalization','pdf')
+end
+
 
 %% load single spike loop data
 function single_spike_composite()
+%%
+load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats')
+pstats=rmfield(pstats,"nonmem");
+
+%%
 stats=struct();
 waveids={[1 5],[2 5],[3 6],[4 6],[1 7],[2 8],[3 7],[4 8]};
 for wid=1:4
@@ -169,3 +274,14 @@ end
 % union all neuron spikes
 % tag chained-loops spikes
 % time constant stats
+
+
+
+
+function db_test()
+dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+conn=sqlite(dbfile,"readonly");
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+keys(1)
+conn.fetch("SELECT COUNT(*) FROM "+keys(1));
+end

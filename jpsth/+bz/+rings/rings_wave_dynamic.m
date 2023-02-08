@@ -102,7 +102,7 @@ burst_loop_pdf=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,150
 
 
 %% individual FC
-load('sums_conn.mat','sums_conn_str');
+load('sums_conn_10.mat','sums_conn_str');
 qcmat=cell2mat({sums_conn_str.qc}.'); % from bz.sums_conn -> bz.goodccg
 fwhm_all=(qcmat(:,2)-250)./30; % offset left half of symmatric ccg
 fcxx=0:0.8:20;
@@ -152,8 +152,9 @@ for dur=3:3:6
 end
 
 cxx=[0:200:1000,1500:500:6000];
-chist3=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3]*1000/4,cxx,'Normalization','pdf');
-chist6=histcounts([t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
+% chist3=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3]*1000/4,cxx,'Normalization','pdf');
+% chist6=histcounts([t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
+crhist=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3;t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
 
 
 %% composite loops
@@ -250,8 +251,9 @@ else
         b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
     end
     p_cxx=[100:200:900,1250:500:5750];%cxx=[0:200:2000,2500:500:6000];
-    c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
-    c6h=plot(p_cxx,chist6,'-','Color',"#C0392B");
+%     c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
+%     c6h=plot(p_cxx,chist6,'-','Color',"#C0392B");
+    crh=plot(p_cxx,crhist,'-','Color',"#C0392B");
 end
 xline(3000,'--k')
 xline(6000,'--k')
@@ -263,7 +265,7 @@ xlim([0.3,6000])
 ylim([1e-5,1])
 xlabel('Time (ms)')
 ylabel('Probability density')
-legend([fch,looph,bsh,sch,bch,snh,mnh,c3h,c6h],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','3s chained loops','6s chained loops'},'Location','eastoutside','Orientation','vertical')
+legend([fch,looph,bsh,sch,bch,snh,mnh,crh],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops'},'Location','eastoutside','Orientation','vertical')
 end
 
 

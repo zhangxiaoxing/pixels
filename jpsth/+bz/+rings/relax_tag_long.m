@@ -8,6 +8,7 @@ arguments
     loopCnt % accumated loop neuron count
     perSU
     opt.burstInterval (1,1) double = 600 % ticks, at 30k sps
+    opt.burst (1,1) logical = true % option to merge single spike loop algorithm
 end
 out=cell(0); %{[depth,id]}
 rsize=size(in,2);
