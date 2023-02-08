@@ -64,7 +64,6 @@ function chains()
 
 %% single spike chain
 sschain=load('chain_tag.mat','out');
-
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
 for dur=reshape(fieldnames(out),1,[])
@@ -78,6 +77,7 @@ for dur=reshape(fieldnames(out),1,[])
     end
     statss.("d"+dur)=perchaindur;
 end
+
 singlechainhist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],0:10:100,'Normalization','pdf');
 
 
@@ -99,9 +99,9 @@ for dur=reshape(fieldnames(out),1,[])
     statsm.("d"+dur)=perchaindur;
 end
 
+
 multichainhist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600],'Normalization','pdf')
 end
-
 
 %% load single spike loop data
 function single_spike_composite()
