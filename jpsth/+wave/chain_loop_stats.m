@@ -36,6 +36,7 @@ bsl_sess=unique(str2double(regexp(bslkeys,'(?<=s)\d{1,3}(?=r)','match','once')))
 usess=intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
 
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
+
 per_sess_coverage=struct();
 if true %% new
 for sessid=[22]
@@ -99,6 +100,7 @@ for sessid=[22]
             end
         end
     end
+
     if optmem
         clear bschain
     end
@@ -138,11 +140,12 @@ for sessid=[22]
             continue
         end
         chainmeta=table2array(conn.sqlread(replace(cc,'_ts','_meta')));
-        %   Not enough memory for complete larger tables
-        rids=table2array(conn.fetch("SELECT DISTINCT Var1 from "+cc));
-        for rid=reshape(rids,1,[])
-            onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1="+num2str(rid)));
-%             keyboard()
+        %   Not enough memory for larger complete tables
+        maxrid=table2array(conn.fetch("SELECT MAX(Var1) from "+cc));
+        for rid=1:1000:maxrid
+            onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1>="+num2str(rid)+ " AND Var1<"+num2str(rid+1000)));
+            %             keyboard()
+            disp(rid);
             for cidx=1:numel(chainmeta)
                 cid=chainmeta(cidx);
                 cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
@@ -150,10 +153,12 @@ for sessid=[22]
                 [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
                 FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
             end
-            tseq=onechain(:,4);
-            onset=floor(tseq(1)./30);
-            offset=ceil(tseq(end)./30);
-            covered(onset:offset)=true;
+            for rrid=rid:rid+999
+                tseq=onechain(onechain(:,1)==rrid,4);
+                onset=floor(tseq(1)./30);
+                offset=ceil(tseq(end)./30);
+                covered(onset:offset)=true;
+            end
         end
     end
     conn.close();
@@ -296,6 +301,56 @@ end
 
 
 
+    %% single spike loop
+    
+    for cc=reshape(fieldnames(pstats.congru),1,[])
+        if ~startsWith(cc{1},['s',num2str(sessid),'r'])
+            continue
+        end
+        onechain=pstats.congru.(cc{1});
+        for cidx=1:size(onechain.rstats{3},2)
+            cid=onechain.rstats{3}(cidx);
+            ucid=[ucid,cid];
+            cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
+            totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
+            [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
+            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+4;
+        end
+    end
+    clear pstats
+    %% burst spike loop, keys only
+    dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+    conn=sqlite(dbfile,"readonly");
+    for cc=reshape(bslkeys,1,[])
+        if ~contains(cc,['s',num2str(sessid),'r']) || ~endsWith(cc,'_ts')
+            continue
+        end
+       
+        onechain=table2array(conn.sqlread(cc));
+        chainmeta=table2array(conn.sqlread(replace(cc,'_ts','_meta')));
+        for cidx=1:numel(chainmeta)
+            cid=chainmeta(cidx);
+            ucid=[ucid,cid];
+            cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
+            totag=onechain(onechain(:,2)==cidx,4);
+            [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
+            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
+        end
+    end
+    conn.close();
+end
+function quickdirty(FT_SPIKE)
+total=0;
+tagged=0;
+ts_tag=[];
+for ii=1:numel(FT_SPIKE.lc_tag)
+    if any(FT_SPIKE.lc_tag{ii}>0,'all')
+        total=total+numel(FT_SPIKE.lc_tag{ii});
+        tagged=tagged+nnz(FT_SPIKE.lc_tag{ii}>0);
+        ts_tag=[ts_tag;repmat(ii,numel(FT_SPIKE.timestamp{ii}),1),FT_SPIKE.timestamp{ii}.',FT_SPIKE.time{ii}.',FT_SPIKE.trial{ii}.',FT_SPIKE.lc_tag{ii}.'];
+    end
+end
+disp([total,tagged,tagged./total])
 end
 
 
