@@ -1,17 +1,9 @@
-% ring in wave
-% load('bzdata\sums_ring_stats_all.mat')
-function  rings_wave_dynamic(sums_all)
-% TODO optional global filter to remove spikes outside delay
+function  rings_wave_dynamic()
 global_init();
-% classify rings based on su-waveid combination
-% --link ring su to meta-su
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-
 % --link ring to wave-combination congru|incongru|nonmem
-
 % tag ring spks with trial type, trial time
-
 % histogram of loop activity duration
 if false
     mm_dur=[];
@@ -131,30 +123,47 @@ if false
     bump3hist=histcounts(bump3,bxx,'Normalization','probability');
     bump6hist=histcounts(bump6,bxx,'Normalization','probability');
 end
-%% chains end-to-end span
-load('chains_mix.mat','chains_uf');
-chains=chains_uf;
-clear chains_uf;
-wids=reshape(unique(chains.wave),1,[]);
-t_span=struct();
-for dur=3:3:6
-    for wid=wids
-        lsel=cellfun(@(x) numel(x)>4,chains.cids);
-        wsel=chains.wave==wid & chains.dur==dur;
-        dtcom=cellfun(@(x) x(end)-x(1),chains.tcoms(lsel & wsel));
-%         if ~isfield(t_span,wid+num2str(dur))
-%             t_span.(wid+num2str(dur))=[];
-%         end
-        if ~isempty(dtcom)
-            t_span.("d"+num2str(dur)).(wid)=dtcom;
+if false
+    %% chains end-to-end span
+    load('chains_mix.mat','chains_uf');
+    chains=chains_uf;
+    clear chains_uf;
+    wids=reshape(unique(chains.wave),1,[]);
+    t_span=struct();
+    for dur=3:3:6
+        for wid=wids
+            lsel=cellfun(@(x) numel(x)>4,chains.cids);
+            wsel=chains.wave==wid & chains.dur==dur;
+            dtcom=cellfun(@(x) x(end)-x(1),chains.tcoms(lsel & wsel));
+            %         if ~isfield(t_span,wid+num2str(dur))
+            %             t_span.(wid+num2str(dur))=[];
+            %         end
+            if ~isempty(dtcom)
+                t_span.("d"+num2str(dur)).(wid)=dtcom;
+            end
         end
     end
+
+    cxx=[0:200:1000,1500:500:6000];
+    % chist3=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3]*1000/4,cxx,'Normalization','pdf');
+    % chist6=histcounts([t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
+    crhist=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3;t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
 end
 
-cxx=[0:200:1000,1500:500:6000];
-% chist3=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3]*1000/4,cxx,'Normalization','pdf');
-% chist6=histcounts([t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
-crhist=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3;t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
+%% chained loops
+per_sess_coverage=struct();
+for sessid=[14 18]
+    load("ChainedLoop"+num2str(sessid)+".mat",'covered')
+    per_sess_coverage.("S"+num2str(sessid))=covered;
+end
+covered=cell2mat(struct2cell(per_sess_coverage));
+
+edges = find(diff([0;covered;0]==1));
+onset = edges(1:2:end-1);  % Start indices
+run_length = edges(2:2:end)-onset;  % Consecutive ones counts
+% per_sess_coverage.("S"+num2str(sessid))=run_length;
+chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
+% plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);
 
 
 %% composite loops
@@ -168,10 +177,7 @@ load(fullfile('bzdata','composite_burst_ring.mat'),'stats')
 C=struct2cell(stats).';
 expd=[C{:}];
 expdd=[expd{:}];
-figure();
 burst_compo_pdf=histcounts(expdd,[20:20:200,300:100:700],'Normalization','pdf');
-
-
 
 load('chain_tag.mat','out')
 perchaindur=struct();
@@ -207,18 +213,10 @@ for dur=reshape(fieldnames(out),1,[])
     statsm.("d"+dur)=perchaindur;
 end
 
-multichainhist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600],'Normalization','pdf')
+multichainhist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600],'Normalization','pdf');
 
 
-
-
-
-
-
-
-
-
-%%
+%% PLOT
 xx=[0.5:1:9.5,15:10:195];
 figure()
 hold on
@@ -253,7 +251,8 @@ else
     p_cxx=[100:200:900,1250:500:5750];%cxx=[0:200:2000,2500:500:6000];
 %     c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
 %     c6h=plot(p_cxx,chist6,'-','Color',"#C0392B");
-    crh=plot(p_cxx,crhist,'-','Color',"#C0392B");
+%     crh=plot(p_cxx,crhist,'-','Color',"#C0392B");
+    crh=plot([10:20:90,150,250,450:300:1050],chained_loops_pdf,'-','Color','#C0392B');
 end
 xline(3000,'--k')
 xline(6000,'--k')
@@ -262,7 +261,7 @@ xline(6000,'--k')
 % xline(fciqr(2),'k--')
 set(gca(),'YScale','log','XScale','log','YTick',10.^[-5:0])
 xlim([0.3,6000])
-ylim([1e-5,1])
+ylim([3e-6,1])
 xlabel('Time (ms)')
 ylabel('Probability density')
 legend([fch,looph,bsh,sch,bch,snh,mnh,crh],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops'},'Location','eastoutside','Orientation','vertical')
