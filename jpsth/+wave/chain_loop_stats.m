@@ -8,6 +8,9 @@ if ispc
         optmem=true;
     end
 end
+
+per_sess_coverage=struct();
+
 if false %% new
 %% single spike chain
 sschain=load('chain_tag.mat','out');
@@ -35,8 +38,6 @@ bsl_sess=unique(str2double(regexp(bslkeys,'(?<=s)\d{1,3}(?=r)','match','once')))
 usess=intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
 
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
-
-per_sess_coverage=struct();
 
 for sessid=[22]
     covered=false(7200*100,1);
@@ -153,6 +154,9 @@ for sessid=[22]
                 FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
             end
             for rrid=rid:rid+999
+                if rrid>maxrid
+                    break
+                end
                 tseq=onechain(onechain(:,1)==rrid,4);
                 onset=floor(tseq(1)./30);
                 offset=ceil(tseq(end)./30);
@@ -165,20 +169,21 @@ for sessid=[22]
     save("ChainedLoop"+num2str(sessid)+".mat",'FT_SPIKE','covered','blame')
 end
 else % load from file
-    for sessid=[18]
+    for sessid=[14 18 22]
         load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
 %         run_length_sums=struct();
         per_sess_coverage.("S"+num2str(sessid))=covered;
     end
 end
 % keyboard();
-covered=cell2mat(struct2cell(per_sess_coverage));
-
-edges = find(diff([0;covered;0]==1));
-onset = edges(1:2:end-1);  % Start indices
-run_length = edges(2:2:end)-onset;  % Consecutive ones counts
-% per_sess_coverage.("S"+num2str(sessid))=run_length;
-
+covered=struct2cell(per_sess_coverage);
+run_length=[];
+for jj=1:numel(covered)
+    edges = find(diff([0;covered{jj};0]==1));
+    onset = edges(1:2:end-1);  % Start indices
+    run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
+    % per_sess_coverage.("S"+num2str(sessid))=run_length;
+end
 chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
 figure()
 plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);

@@ -89,144 +89,150 @@ end
 
 
 %% single spike loop
-
+bracket=@(x) all(x>=onsetTS,'all') && all(x<offsetTS,'all');
 for cc=reshape(fieldnames(pstats.congru),1,[])
     if ~startsWith(cc{1},['s',num2str(sessid),'r'])
         continue
     end
     onechain=pstats.congru.(cc{1});
-    keyboard()
-    for cidx=1:size(onechain.rstats{3},2)
-        cid=onechain.rstats{3}(cidx);
-        %             ucid=[ucid,cid];
-
+    occursel=setdiff(arrayfun(@(x) x.*bracket(onechain.ts_id(onechain.ts_id(:,6)==x,1)),...
+        setdiff(unique(onechain.ts_id(:,6)),0)),0);
+    if ~isempty(occursel)
+        for ii=reshape(occursel,1,[])
+            curr=onechain.ts_id(onechain.ts_id(:,6)==ii,[2,1]);
+            if all(curr(:,2)>=maxonset,'all') && all(curr(:,2)<maxoffset,'all')
+                in_maximum_tags(end+1,:)={'SSL',ii,curr};
+            else
+                in_trial_tags(end+1,:)={'SSL',ii,curr};
+            end
+        end
     end
 end
-if optmem
-    clear pstats
-end
+
 %% burst spike loop
 dbfile=fullfile("bzdata","rings_wave_burst_600.db");
 conn=sqlite(dbfile,"readonly");
+bslkeys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
 for cc=reshape(bslkeys,1,[])
     if ~contains(cc,['s',num2str(sessid),'r']) || ~endsWith(cc,'_ts')
         continue
     end
     chainmeta=table2array(conn.sqlread(replace(cc,'_ts','_meta')));
-    %   Not enough memory for larger complete tables
     maxrid=table2array(conn.fetch("SELECT MAX(Var1) from "+cc));
     for rid=1:1000:maxrid
         onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1>="+num2str(rid)+ " AND Var1<"+num2str(rid+1000)));
-        %             keyboard()
-        disp(rid);
-        for cidx=1:numel(chainmeta)
-            cid=chainmeta(cidx);
-            cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-            totag=onechain(onechain(:,2)==cidx,4);
-            [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
-        end
-        for rrid=rid:rid+999
-            tseq=onechain(onechain(:,1)==rrid,4);
-            onset=floor(tseq(1)./30);
-            offset=ceil(tseq(end)./30);
-            covered(onset:offset)=true;
+        occursel=setdiff(arrayfun(@(x) x.*bracket(onechain(onechain(:,1)==x,4)),unique(onechain(:,1))),0);
+        if ~isempty(occursel)
+            for ii=reshape(occursel,1,[])
+                curr=[arrayfun(@(x) chainmeta(x),onechain(onechain(:,1)==ii,2)),onechain(onechain(:,1)==ii,4)];
+                if all(curr(:,2)>=maxonset,'all') && all(curr(:,2)<maxoffset,'all')
+                    in_maximum_tags(end+1,:)={'BSL',ii,curr};
+                else
+                    in_trial_tags(end+1,:)={'BSL',ii,curr};
+                end
+            end
         end
     end
 end
 
+%% ===============PLOT PREPARATION===============
 
-% keyboard();
-covered=cell2mat(struct2cell(per_sess_coverage));
-
-edges = find(diff([0;covered;0]==1));
-onset = edges(1:2:end-1);  % Start indices
-run_length = edges(2:2:end)-onset;  % Consecutive ones counts
-% per_sess_coverage.("S"+num2str(sessid))=run_length;
-
-chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
-figure()
-plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);
-set(gca(),'XScale','log','YScale','log')
-
-%% ========================SHOWCASE===============
-
-function SC()
-sessid=18;
-load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 sess_cid=su_meta.allcid(su_meta.sess==sessid);
 sess_reg=su_meta.reg_tree(5,su_meta.sess==sessid).';
 
-
-edges = find(diff([0;covered;0]==1));
-onset = edges(1:2:end-1);  % Start indices
-run_length = edges(2:2:end)-onset;  % Consecutive ones counts
-
-[~,maxid]=max(run_length);
-maxonset=onset(maxid);
-maxoffset=edges(maxid*2);
-trialid=find(maxonset.*30-FT_SPIKE.trialinfo(:,1)>0,1,'last');
-
-uidx=unique(ts_tag(:,1));
-ucid=str2double(FT_SPIKE.label(uidx));
+ucid=unique(subsref(cell2mat(in_maximum_tags(:,3)),struct(type={'()'},subs={{':',1}})));
 [~,cidmap]=ismember(ucid,sess_cid);
 ureg=sess_reg(cidmap);
 
-uidx=uidx(~ismissing(ureg));
+ucid=ucid(~ismissing(ureg));
 ureg=ureg(~ismissing(ureg));
-%% regional TCOM related 
+
+% regional TCOM related 
 global_init;
 wrs_mux_meta=ephys.get_wrs_mux_meta();
+if false
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 [fcom6.olf.collection,fcom6.olf.com_meta]=wave.per_region_COM(...
     com_map,'sel_type','olf','com_field','com6');
 [~,tcidx]=ismember(ureg,fcom6.olf.collection(:,2));
 reg_tcom=cell2mat(fcom6.olf.collection(tcidx,1))./4;
-
 [reg_tcom,tcomidx]=sort(reg_tcom,'descend');
-ureg=ureg(tcomidx);
-uidx=uidx(tcomidx);
-%%
+else
+[map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'linear','linear'}); % only need map_cells for tcom-frac corr
+reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
+[reg_prop,tcomidx]=sort(reg_prop);
+end
 
-for ii=1:10
-    preg=cell(0);
-    ptrial=utrial(sort_idx(ii));
-    pts_tag=ts_tag(ts_tag(:,4)==ptrial,:);
+ureg=ureg(tcomidx);
+ucid=ucid(tcomidx);
+
+%% Actual plot
+
+intrialmat=unique(cell2mat(in_trial_tags(:,3)),'rows');
+inmaxmat=unique(cell2mat(in_maximum_tags(:,3)),'rows');
+
+figure();
+hold on;
+yy=1;
+cidyymap=containers.Map('KeyType','double','ValueType','double');
+for cid=reshape(ucid,1,[])
+    cidyymap(cid)=yy;
+    ft_sel=strcmp(FT_SPIKE.label,num2str(cid));
     
-    figure();
-    hold on;
-    yy=1;
-    for cid=reshape(uidx,1,[])
-        xx=pts_tag(pts_tag(:,1)==cid & pts_tag(:,5)==0,3)-1;
-        cntag=pts_tag(pts_tag(:,1)==cid & bitand(pts_tag(:,5),3)>0 & bitand(pts_tag(:,5),12)==0,3)-1;
-        lptag=pts_tag(pts_tag(:,1)==cid & bitand(pts_tag(:,5),3)==0 & bitand(pts_tag(:,5),12)>0,3)-1;
-        bothtag=pts_tag(pts_tag(:,1)==cid & bitand(pts_tag(:,5),3)>0 & bitand(pts_tag(:,5),12)>0,3)-1;
-        if ~(isempty(cntag) && isempty(lptag) && isempty(bothtag))
-            preg=[preg;ureg(uidx==cid)];
-            plot(xx,repmat(yy,1,numel(xx)),'k|')
-            plot(cntag,repmat(yy,1,numel(cntag)),'b|')
-            plot(lptag,repmat(yy,1,numel(lptag)),'r|')
-            plot(bothtag,repmat(yy,1,numel(bothtag)),'m|')
-            yy=yy+1;
+    % TODO set diff tagged spike from all spikes
+    ts=intrialmat(intrialmat(:,1)==cid,2);
+    [~,tsidxx]=ismember(ts,FT_SPIKE.timestamp{ft_sel});
+    trialxx=FT_SPIKE.time{ft_sel}(tsidxx);
+    plot(trialxx,repmat(yy,1,numel(trialxx)),'|','MarkerEdgeColor','#FF80FF','LineWidth',1);
+
+    ts=inmaxmat(inmaxmat(:,1)==cid,2);
+    [~,tsidxx]=ismember(ts,FT_SPIKE.timestamp{ft_sel});
+    maxxx=FT_SPIKE.time{ft_sel}(tsidxx);
+    plot(maxxx,repmat(yy,1,numel(maxxx)),'|','MarkerEdgeColor','#FF0000','LineWidth',1);
+    
+    xx=FT_SPIKE.time{ft_sel}(FT_SPIKE.trial{ft_sel}==trialid);
+    xx=setdiff(xx,union(trialxx,maxxx));
+    plot(xx,repmat(yy,1,numel(xx)),'|','MarkerEdgeColor',"#808080")
+    yy=yy+1;
+end
+% xlim([0,FT_SPIKE.trialinfo(trialid,8)]);
+xlim([5,6.2]);
+xlabel('Time (s)')
+ylabel('Neuron #')
+title("Session "+num2str(sessid)+" Trial "+num2str(trialid));
+set(gca,'YTick',1:numel(ureg),'YTickLabel',ureg)
+
+%% plot assembly
+already=[];
+for ii=1:size(in_maximum_tags,1)
+    curr=in_maximum_tags{ii,3};
+    % skip unnecessary
+    if ~isempty(already) && all(ismember(curr,already,'rows'))
+        disp("skipped "+num2str(ii))
+        continue
+    end
+    already=unique([already;curr],'rows');
+
+%
+
+    for jj=1:size(curr,1)-1
+        fromy=cidyymap(curr(jj,1));
+        fromsel=strcmp(FT_SPIKE.label,num2str(curr(jj,1)));
+        fromx=FT_SPIKE.time{fromsel}(FT_SPIKE.timestamp{fromsel}==curr(jj,2));
+    
+        toy=cidyymap(curr(jj+1,1));
+        tosel=strcmp(FT_SPIKE.label,num2str(curr(jj+1,1)));
+        tox=FT_SPIKE.time{tosel}(FT_SPIKE.timestamp{tosel}==curr(jj+1,2));
+        
+        if ismember(in_maximum_tags{ii,1},{'SSL','BSL'})  % loop        
+            plot([fromx,tox],[fromy,toy],'c-')
+        else
+            plot([fromx,tox],[fromy,toy],'b-')
         end
     end
-    xlim([0,FT_SPIKE.trialinfo(ptrial,8)]);
-    xlabel('Time (s)')
-    ylabel('Neuron #')
-    title("Session "+num2str(sessid)+" Trial "+num2str(ptrial));
-    set(gca,'YTick',1:numel(preg),'YTickLabel',preg)
-    keyboard();
-end
-%% stats
 end
 
 
-function db_test()
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
-conn=sqlite(dbfile,"readonly");
-keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
-keys(1)
-conn.fetch("SELECT COUNT(*) FROM "+keys(1));
-%         rids=table2array(conn.fetch("SELECT DISTINCT Var1 from d6s1d6s22r3n274_ts"));
-end
+
+
