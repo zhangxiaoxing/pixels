@@ -188,12 +188,12 @@ set(gca(),'XScale','log','YScale','log')
 
 function SC()
 sessid=18;
-load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 sess_cid=su_meta.allcid(su_meta.sess==sessid);
 sess_reg=su_meta.reg_tree(5,su_meta.sess==sessid).';
 
-
+% sessid=18;
+load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
 edges = find(diff([0;covered;0]==1));
 onset = edges(1:2:end-1);  % Start indices
 run_length = edges(2:2:end)-onset;  % Consecutive ones counts

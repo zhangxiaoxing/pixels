@@ -10,7 +10,18 @@ dbfile=fullfile("bzdata","rings_wave_burst_600.db");
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
 
 sessid=18;
-trialid=167;
+load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
+edges = find(diff([0;covered;0]==1));
+onset = edges(1:2:end-1);  % Start indices
+run_length = edges(2:2:end)-onset;  % Consecutive ones counts
+
+[~,maxid]=max(run_length);
+maxonset=onset(maxid).*30;
+maxoffset=edges(maxid*2).*30;
+trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
+
+
+
 [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
 
 onsetTS=FT_SPIKE.trialinfo(trialid,1)+30000;
@@ -20,6 +31,8 @@ offsetTS=FT_SPIKE.trialinfo(trialid,1)+FT_SPIKE.trialinfo(trialid,8).*30000+3000
 % for cidx=1:numel(FT_SPIKE.timestamp)
 %     FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
 % end
+in_trial_tags=cell(0);
+in_maximum_tags=cell(0);
 
 %% single spike chain
 for dur=["d6","d3"]
@@ -30,32 +43,26 @@ for dur=["d6","d3"]
             end
             onechain=sschain.out.(dur).(wid{1}).(cc{1});
 %             onechain=onechainstr.ts_id(onechainstr.ts_id(:,5)==trialid,:)
-            occursel=find(all(onechain.ts>onsetTS & onechain.ts<offsetTS,2));
-            if isempty(occursel)
-                continue
-            end
-            onechain.ts=onechain.ts(occursel,:);
-            keyboard();
-            for cidx=1:size(onechain.ts,2)
-                cid=onechain.meta{1}(cidx);
-                %                     ucid=[ucid,cid];
-                cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                totag=onechain.ts(:,cidx);
-                [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+1;
-            end
-            % run length tag
-            for cidx=1:size(onechain.ts,1)
-                onset=floor(onechain.ts(cidx,1)./30);
-                offset=ceil(onechain.ts(cidx,end)./30);
-                covered(onset:offset)=true;
+            occursel=find(all(onechain.ts>=onsetTS & onechain.ts<offsetTS,2));
+            if ~isempty(occursel)
+                maxsel=find(all(onechain.ts>=maxonset & onechain.ts<maxoffset));
+                intrialsel=setdiff(occursel,maxsel);
+%                 keyboard()
+                if ~isempty(intrialsel)
+                    for ii=reshape(intrialsel,1,[])
+                        in_trial_tags(end+1,:)={'SSC',ii,[onechain.meta{1};onechain.ts(ii,:)].'};
+                    end
+                end
+                if ~isempty(maxsel)
+                    for ii=reshape(maxsel,1,[])
+                        in_maximum_tags(end+1,:)={'SSC',ii,[onechain.meta{1};onechain.ts(ii,:)].'};
+                    end
+                end
             end
         end
     end
 end
-if optmem
-    clear sschain
-end
+
 %% multi spike chain
 for dur=["d6","d3"]
     for wid=reshape(fieldnames(bschain.out.(dur)),1,[])
@@ -64,27 +71,22 @@ for dur=["d6","d3"]
                 continue
             end
             onechain=bschain.out.(dur).(wid{1}).(cc{1});
-            for cidx=1:size(onechain.meta{1},2)
-                cid=onechain.meta{1}(cidx);
-                %                     ucid=[ucid,cid];
-                cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                for bscid=1:numel(onechain.ts)
-                    totag=onechain.ts{bscid}(onechain.ts{bscid}(:,1)==cidx,3);
-                    [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                    FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+2;
+            occursel=find(cellfun(@(x) all(x(:,3)>=onsetTS,'all') && all(x(:,3)<offsetTS,'all'),onechain.ts));
+            if ~isempty(occursel)
+                for ii=reshape(occursel,1,[])
+                    if all(onechain.ts{ii}(:,3)>=maxonset,'all') && all(onechain.ts{ii}(:,3)<maxoffset,'all') 
+                        in_maximum_tags(end+1,:)={'BSC',ii,...
+                            [arrayfun(@(x) onechain.meta{1}(x), onechain.ts{ii}(:,1)),onechain.ts{ii}(:,3)]};
+                    else
+                        in_trial_tags(end+1,:)={'BSC',ii,...
+                            [arrayfun(@(x) onechain.meta{1}(x), onechain.ts{ii}(:,1)),onechain.ts{ii}(:,3)]};
+                    end
                 end
-                % run length tag
-                onset=floor(onechain.ts{bscid}(1,3)./30);
-                offset=ceil(onechain.ts{bscid}(end,3)./30);
-                covered(onset:offset)=true;
             end
         end
     end
 end
 
-if optmem
-    clear bschain
-end
 
 %% single spike loop
 
@@ -93,21 +95,11 @@ for cc=reshape(fieldnames(pstats.congru),1,[])
         continue
     end
     onechain=pstats.congru.(cc{1});
+    keyboard()
     for cidx=1:size(onechain.rstats{3},2)
         cid=onechain.rstats{3}(cidx);
         %             ucid=[ucid,cid];
-        cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-        totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
-        [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-        FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+4;
 
-        % run length tag
-        for tagi=reshape(setdiff(unique(onechain.ts_id(:,6)),0),1,[])
-            tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
-            onset=floor(tseq(1)./30);
-            offset=ceil(tseq(end)./30);
-            covered(onset:offset)=true;
-        end
     end
 end
 if optmem
