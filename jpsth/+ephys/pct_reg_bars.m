@@ -7,6 +7,7 @@ arguments
     opt.data_type (1,:) char = "mixed-olf-dur"
     opt.skip_error_bar (1,1) logical = true
     opt.xyscale (1,2) cell = {'Linear','Linear'}
+    opt.skip_export (1,1) logical = true
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -44,15 +45,17 @@ end
 flatten=@(y) cellfun(@(x) x,y);
 bardata=sortrows(sums,10,'descend');
 regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
-exp=input('export for 3d render? yes/no\n','s');
-if strcmpi(exp,'yes') % export for brain renderer
-    for rr=1:size(bardata,1)
-        disp("['"+string(idmap.ccfid2reg(bardata(rr,2))) ...
-            +"',"...
-            + num2str(bardata(rr,[10 13 7]),"%.3f,")...
-            + "]");
+if ~opt.skip_export
+    exp=input('export for 3d render? yes/no\n','s');
+    if strcmpi(exp,'yes') % export for brain renderer
+        for rr=1:size(bardata,1)
+            disp("['"+string(idmap.ccfid2reg(bardata(rr,2))) ...
+                +"',"...
+                + num2str(bardata(rr,[10 13 7]),"%.3f,")...
+                + "]");
+        end
+        keyboard()
     end
-    keyboard()
 end
 mixed_map=containers.Map(regstr,num2cell(bardata(:,[7,4,3]),2));
 olf_map=containers.Map(regstr,num2cell(bardata(:,[10,5,3]),2));
@@ -61,6 +64,7 @@ dur_map=containers.Map(regstr,num2cell(bardata(:,[13,5,3]),2));
 map_cells={mixed_map,olf_map,dur_map};
 
 if opt.skip_plot
+    fh=[];
     return
 end
 

@@ -152,16 +152,16 @@ ureg=ureg(~ismissing(ureg));
 global_init;
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 if false
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
-[fcom6.olf.collection,fcom6.olf.com_meta]=wave.per_region_COM(...
-    com_map,'sel_type','olf','com_field','com6');
-[~,tcidx]=ismember(ureg,fcom6.olf.collection(:,2));
-reg_tcom=cell2mat(fcom6.olf.collection(tcidx,1))./4;
-[reg_tcom,tcomidx]=sort(reg_tcom,'descend');
+    com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+    [fcom6.olf.collection,fcom6.olf.com_meta]=wave.per_region_COM(...
+        com_map,'sel_type','olf','com_field','com6');
+    [~,tcidx]=ismember(ureg,fcom6.olf.collection(:,2));
+    reg_tcom=cell2mat(fcom6.olf.collection(tcidx,1))./4;
+    [reg_tcom,tcomidx]=sort(reg_tcom,'descend');
 else
-[map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'linear','linear'}); % only need map_cells for tcom-frac corr
-reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
-[reg_prop,tcomidx]=sort(reg_prop);
+    [map_cells,~]=ephys.pct_reg_bars(wrs_mux_meta,'skip_plot',true); % only need map_cells for tcom-frac corr
+    reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
+    [reg_prop,tcomidx]=sort(reg_prop);
 end
 
 ureg=ureg(tcomidx);
@@ -205,17 +205,19 @@ set(gca,'YTick',1:numel(ureg),'YTickLabel',ureg)
 
 %% plot assembly
 already=[];
+cc=colormap('lines');
 for ii=1:size(in_maximum_tags,1)
     curr=in_maximum_tags{ii,3};
+    currfc=cell2mat(arrayfun(@(jj) [curr(jj,2),curr(jj,1),curr(jj+1,2),curr(jj+1,1)],(1:size(curr,1)-1).','UniformOutput',false));
     % skip unnecessary
-    if ~isempty(already) && all(ismember(curr,already,'rows'))
+    if ~isempty(already) && all(ismember(currfc,already,'rows'))
         disp("skipped "+num2str(ii))
         continue
     end
-    already=unique([already;curr],'rows');
+    already=unique([already;currfc],'rows');
 
-%
 
+    plotmat=[];
     for jj=1:size(curr,1)-1
         fromy=cidyymap(curr(jj,1));
         fromsel=strcmp(FT_SPIKE.label,num2str(curr(jj,1)));
@@ -225,13 +227,19 @@ for ii=1:size(in_maximum_tags,1)
         tosel=strcmp(FT_SPIKE.label,num2str(curr(jj+1,1)));
         tox=FT_SPIKE.time{tosel}(FT_SPIKE.timestamp{tosel}==curr(jj+1,2));
         
-        if ismember(in_maximum_tags{ii,1},{'SSL','BSL'})  % loop        
-            plot([fromx,tox],[fromy,toy],'c-')
-        else
-            plot([fromx,tox],[fromy,toy],'b-')
-        end
+%         if ismember(in_maximum_tags{ii,1},{'SSL','BSL'})  % loop        
+            
+%         else
+%             plot([fromx,tox],[fromy,toy],'-')
+%         end
+        plotmat=[plotmat;fromx,tox,fromy,toy];
     end
+
+    plot(plotmat(:,1:2).',plotmat(:,3:4).','-','Color',cc(randi(size(cc,1)),:));
 end
+set(gca(),'XTick',5:0.2:6.2,'XTickLabel',0:0.2:1.2)
+ylim([0.5,25.5])
+
 
 
 
