@@ -104,7 +104,7 @@ fcyy=histcounts(fwhm_all,fcxx,'Normalization','pdf');
 fciqr=prctile(fwhm_all,[25,50,75]);
 
 %% wave bump width
-if false
+if true
     bump3=[];
     bump6=[];
     com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
@@ -120,8 +120,9 @@ if false
     end
 
     bxx=0.125:0.25:6.25;
-    bump3hist=histcounts(bump3,bxx,'Normalization','probability');
-    bump6hist=histcounts(bump6,bxx,'Normalization','probability');
+%     bump3hist=histcounts(bump3,bxx,'Normalization','probability');
+%     bump6hist=histcounts(bump6,bxx,'Normalization','probability');
+    bumphist=histcounts([bump3,bump6],bxx,'Normalization','pdf');
 end
 if false
     %% chains end-to-end span
@@ -244,9 +245,10 @@ else
     bch=plot([30:20:190,250:100:650],burst_compo_pdf,'-k','Color',"#000000");
     snh=plot([5:10:95],singlechainhist,'-','Color',"#D354FF");
     mnh=plot([5:10:95,150:100:550],multichainhist,'-','Color',"#FF54FF");
-    if false
-        b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
-        b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
+    if true
+%         b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
+%         b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
+        bumph=plot((0.25:0.25:6).*1000,bumphist,'-','Color','#808080');
     end
     p_cxx=[100:200:900,1250:500:5750];%cxx=[0:200:2000,2500:500:6000];
 %     c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
@@ -264,7 +266,7 @@ xlim([0.3,6000])
 ylim([3e-6,1])
 xlabel('Time (ms)')
 ylabel('Probability density')
-legend([fch,looph,bsh,sch,bch,snh,mnh,crh],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops'},'Location','eastoutside','Orientation','vertical')
+legend([fch,looph,bsh,sch,bch,snh,mnh,crh,bumph],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops','Wave bump width'},'Location','eastoutside','Orientation','vertical')
 end
 
 
