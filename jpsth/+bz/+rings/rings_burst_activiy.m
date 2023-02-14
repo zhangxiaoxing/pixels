@@ -19,17 +19,22 @@ end
 % end
 load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
 
-blame=vcs.blame();
+% blame=vcs.blame();
 waveids=reshape(unique(rings_wave.wave),1,[]);
 sesses=reshape(unique(rings_wave.sess),1,[]);
 
 %loop entry
+
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+if ~exist(dbfile,'file')
+    conn=sqlite(dbfile,"create");
+    close(conn);
+end
+
 if opt.append_saved
     saved_keys=get_saved_sess();
-else
-    out=cell(0);
 end
-Q=parallel.FevalFuture.empty();
+% Q=parallel.FevalFuture.empty();
 for sessid=sesses
     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
     for duration=[3 6]
@@ -53,7 +58,7 @@ for sessid=sesses
             for cc=sess_indices
                 outkey="d"+duration+wid+"s"+sessid+"r"+numel(rings_wave.cids{cc})+"n"+cc;
                 if opt.append_saved
-                    if nnz(startsWith(saved_keys,outkey))==3
+                    if ~isempty(saved_keys) && nnz(startsWith(saved_keys,outkey))==3
                         continue
                     end
                 end
@@ -90,7 +95,9 @@ for sessid=sesses
                         tsidin{kk}=ts_id(ts_id(:,3)==kk,1);
                     end
                     % out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
-                    ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
+%                     ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
+                    ts=bz.rings.relax_tag_long_iter(tsidin,"burstInterval",opt.burstInterval);
+                    cellqc(ts);
                     if ~isempty(ts)
                         saveOne(ts,cids,ts_id,outkey);
                         clear ts
@@ -121,7 +128,7 @@ function saveOne(ts,cids,ts_id,key)
 if ~isempty(ts)
     % TODO: optional remove shorter chains for each
     % onset-spike
-    dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+    dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
     conn=sqlite(dbfile);
     for tid=1:numel(ts)
         tbl=array2table([repmat(tid,size(ts{tid},1),1),ts{tid}]);
@@ -154,10 +161,16 @@ end
 
 
 function keys=get_saved_sess()
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
-conn=sqlite(dbfile,'readonly');
-keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
-conn.close();
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+if exist(dbfile,'file')
+    conn=sqlite(dbfile,'readonly');
+    keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+    conn.close();
+else
+    conn=sqlite(dbfile,"create");
+    close(conn);
+    keys=[];
+end
 end
 
 function plot_all(out)
@@ -191,5 +204,48 @@ xlabel('Time (ms)')
 ylabel('Probability')
 end
 
-function plot_SC(out)
+
+function sqliteqc()
+dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+conn=sqlite(dbfile,'readonly');
+prevcid=conn.sqlread("d6s1d6s4r3n1_meta")
+prevtsid=table2array(conn.sqlread("d6s1d6s4r3n1_ts"));
+for ii=1:max(prevtsid(:,1))
+    oner=prevtsid(prevtsid(:,1)==ii,2:end);
+    for jj=2:size(oner,1)
+        if oner(jj,1)==oner(jj-1,1)
+            if oner(jj,3)-oner(jj-1,3)>600
+                disp({'error burst',ii,jj})
+            end
+        else
+            if oner(jj,3)-oner(jj-1,3)>300
+                disp({'error fc',ii,jj})
+            end
+        end
+    end
 end
+conn.close()
+end
+
+function cellqc(ts)
+for ii=1:numel(ts)
+    oner=ts{ii};
+    for jj=2:size(oner,1)
+        if oner(jj,1)==oner(jj-1,1)
+            if oner(jj,3)-oner(jj-1,3)>600 || oner(jj,3)-oner(jj-1,3)<1
+                disp({'error burst',ii,jj})
+                keyboard()
+            end
+        else
+            if oner(jj,3)-oner(jj-1,3)>300 || oner(jj,3)-oner(jj-1,3)<24
+                disp({'error fc',ii,jj})
+                keyboard()
+            end
+        end
+    end
+end
+end
+
+
+
+

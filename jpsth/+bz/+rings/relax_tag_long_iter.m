@@ -2,7 +2,7 @@
 %% iterations due to performance concerns. 23.01.30
 
 
-% in_={[10:450:920,2150:450:2700].',[950:450:1500].',[1550:450:2200].'}
+% in_={[10:450:920,2150:450:2700,([10:450:920,2150:450:2700])+30000].',[500:450:1500,(500:450:1500)+30000].',[1550:450:2200,(1550:450:2200)+30000].'}
 % bz.rings.relax_tag_long_iter(in_);
 function out=relax_tag_long_iter(in,opt)
 arguments
@@ -11,117 +11,99 @@ arguments
     opt.burst (1,1) logical = true % option to merge single spike loop algorithm
 end
 out=cell(0); %{[depth,id]}
-rsize=size(in,2);
+already=[0,0,0,0];
 
+rsize=size(in,2);
 [~,loopIdx]=min(cellfun(@(x) x(1),in));
 recDepth=1;
 loopCnt=1;
 perSU=ones(1,rsize);
-
-% disp([loopCnt,loopIdx,perSU(loopIdx),recDepth]);
+minIdx=ones(1,rsize);
 
 %% iterative
-istack={{loopIdx,recDepth,loopCnt,perSU,[]}};
+istack={loopIdx,recDepth,loopCnt,perSU,out,'burst'};
 
-% TODO: where is result?
+% TODO: where are the results?
 while ~isempty(istack)
     % get parameters from stack
-    currFrame= istack{1};
-    loopIdx=currFrame{1};
-    recDepth=currFrame{2};
-    loopCnt=currFrame{3};
-    perSU=currFrame{4};
-    prevlinks=currFrame{5};
-    if numel(istack)>1
-        istack=istack(2:end);
-    else
-        istack=cell(0);
-    end
-
-    if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
-        link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
-        perSU(loopIdx)=perSU(loopIdx)+1;
-        istack=[{{loopIdx,recDepth+1,loopCnt,perSU,[prevlinks;link]}};...
-            istack];
-        continue; % TODO varify jump point.
-    else
-        if loopCnt>rsize % proper dealing with end-of-line-return
-            % TODO unfinished update of result
-            % TODO check for repetition before udpate result
-            out(end+1)=[prevlinks;loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
-        end
-
-        % push branch context into stack. i.e. depth first
-        %                 rec_branch=cell(0);
-        if perSU(loopIdx)>numel(in{loopIdx})
-            break % TODO break from control loop or continue?
-        end
-
-        if loopIdx==rsize
-            nxtd=1;
-        else
-            nxtd=loopIdx+1;
-        end
-        perSU(nxtd)=findFirst(in{nxtd},in{loopIdx}(perSU(loopIdx))+24);
-
-        if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
+    loopIdx=istack{1,1};
+    recDepth=istack{1,2};
+    loopCnt=istack{1,3};
+    perSU=istack{1,4};
+    % ??
+    nextSect=istack{1,6};
+    istack(1,:)=[]; % pop
+    switch nextSect
+        case 'burst'
             link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
-            istack=[{{nxtd,recDepth+1,loopCnt+1,perSU,[prevlinks;link]}};...
+            % push return
+            istack=[{loopIdx,recDepth,loopCnt,perSU,link,'branch'};...
                 istack];
-            continue;
-        end
-        % Unencumbered by any FC
-        if recDepth==1
-            % TODO: Skip processed spikes
-            if ~isempty(rec_branch) || ~isempty(rec_same)
-                for ss=1:numel(perSU)
-                    perSU(ss)=max(cellfun(@(x) max(x(x(:,1)==ss,2)),[rec_same,rec_branch]),[],"all");
+            if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
+                % push recursive
+                perSU(loopIdx)=perSU(loopIdx)+1;
+                istack=[{loopIdx,recDepth+1,loopCnt,perSU,link,'burst'};...
+                    istack];
+            else
+                if loopCnt>rsize
+                    cstack=flip(cell2mat(istack(:,5)));
+                    currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                    if ~all(ismember(currconn,already,'rows'))
+                        out(end+1)={cstack};
+                    end
+                    already=unique([already;currconn],'rows');
                 end
             end
-            if ~all(perSU+1<cellfun(@(x) numel(x),in),'all')
-                break % valid break of control loop
-            else
-                nextTS=arrayfun(@(x) in{x}(perSU(x)+1),1:rsize);
-                [~,loopIdx]=min(nextTS);
-                perSU(loopIdx)=perSU(loopIdx)+1;
-
-                % TODO should clear stack here?
-                istack={{loopIdx,1,1,perSU,[]}};...
-                    continue
+        case 'branch'
+            if perSU(loopIdx)>numel(in{loopIdx})
+                %TODO: used to be break in recursion
+                keyboard();
             end
-        else
-            % Should modify stack
-            continue
-        end
+            if loopIdx==rsize
+                nxtd=1;
+            else
+                nxtd=loopIdx+1;
+            end
+            
+            link=[loopIdx,perSU(loopIdx),in{loopIdx}(perSU(loopIdx))];
+            % push return
+            istack=[{loopIdx,recDepth,loopCnt,perSU,link,'housekeeping'};...
+                istack];
+            perSU(nxtd)=findFirst(in{nxtd},in{loopIdx}(perSU(loopIdx))+24);
+            if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
+                % push recursive
+                istack=[{nxtd,recDepth+1,loopCnt+1,perSU,link,'burst'};...
+                    istack];
+            end
+        case 'housekeeping'
+            %% Unencumbered by any FC
+            % TODO: push?
+            if recDepth==1
+                nxtIdx=ones(1,rsize);
+                if size(already,1)<rsize+1
+                    nxtIdx(loopIdx)=perSU(loopIdx)+1;
+                else
+                    nxtIdx(loopIdx)=max(already(already(:,3)==loopIdx,4)+1);
+                end
+                for jj=setdiff(1:rsize,loopIdx)
+                    remainset=setdiff(1:numel(in{jj})+1,already(already(:,3)==jj,4));
+                    nxtIdx(jj)=min(remainset);
+                end
+                nxtIdx=max([nxtIdx;minIdx]);
+                if ~all(nxtIdx<cellfun(@(x) numel(x),in),'all')
+                    break % valid break of control loop
+                else
+                    nextTS=arrayfun(@(x) in{x}(nxtIdx(x)),1:rsize);
+                    [~,loopIdx]=min(nextTS);
+                    perSU=nxtIdx;
+                    minIdx=nxtIdx;                    
+                    minIdx(loopIdx)=minIdx(loopIdx)+1;
+                    istack={loopIdx,1,1,perSU,[],'burst'};
+                end
+            end
     end
 end
 end
-
-
-%             if recDepth==1
-%                 % TODO: Skip processed spikes
-%                 if ~isempty(rec_branch) || ~isempty(rec_same)
-%                     for ss=1:numel(perSU)
-%                         perSU(ss)=max(cellfun(@(x) max(x(x(:,1)==ss,2)),[rec_same,rec_branch]),[],"all");
-%                     end
-%                 end
-%                 if ~all(perSU+1<cellfun(@(x) numel(x),in),'all')
-%                     break % valid break of control loop
-%                 else
-%                     nextTS=arrayfun(@(x) in{x}(perSU(x)+1),1:rsize);
-%                     [~,loopIdx]=min(nextTS);
-%                     perSU(loopIdx)=perSU(loopIdx)+1;
-% 
-%                     % TODO should clear stack here?
-%                     istack={{loopIdx,1,1,perSU,[]}};...
-%                     continue
-% 
-%                 end
-%             else
-%                 break
-%             end
-
-
 
 
 function idx = findFirst(nxt, curr) %nxt should be first > curr
