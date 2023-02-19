@@ -39,22 +39,29 @@ while ~isempty(istack)
             % push return
             istack=[{loopIdx,recDepth,loopCnt,perSU,link,'branch'};...
                 istack];
-            if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
-                % push recursive
-                perSU(loopIdx)=perSU(loopIdx)+1;
-                istack=[{loopIdx,recDepth+1,loopCnt,perSU,link,'burst'};...
-                    istack];
+            %TODO: fastforward whenever possible
+%             currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+            if false
             else
-                if loopCnt>rsize
-                    cstack=flip(cell2mat(istack(:,5)));
-                    currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
-                    if ~all(ismember(currconn,already,'rows'))
-                        out(end+1)={cstack};
+                % w/o fastforward
+                if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
+                    % push recursive
+                    perSU(loopIdx)=perSU(loopIdx)+1;
+                    istack=[{loopIdx,recDepth+1,loopCnt,perSU,link,'burst'};...
+                        istack];
+                else
+                    if loopCnt>rsize
+                        cstack=flip(cell2mat(istack(:,5)));
+                        currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                        if ~all(ismember(currconn,already,'rows'))
+                            out(end+1)={cstack};
+                        end
+                        already=unique([already;currconn],'rows');
                     end
-                    already=unique([already;currconn],'rows');
                 end
             end
         case 'branch'
+
             if perSU(loopIdx)>numel(in{loopIdx})
                 %TODO: used to be break in recursion
                 keyboard();
@@ -70,10 +77,15 @@ while ~isempty(istack)
             istack=[{loopIdx,recDepth,loopCnt,perSU,link,'housekeeping'};...
                 istack];
             perSU(nxtd)=findFirst(in{nxtd},in{loopIdx}(perSU(loopIdx))+24);
-            if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
-                % push recursive
-                istack=[{nxtd,recDepth+1,loopCnt+1,perSU,link,'burst'};...
-                    istack];
+            %TODO: fastforward whenever possible
+            if false
+            else
+                % w/o fastforward
+                if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
+                    % push recursive
+                    istack=[{nxtd,recDepth+1,loopCnt+1,perSU,link,'burst'};...
+                        istack];
+                end
             end
         case 'housekeeping'
             %% Unencumbered by any FC
