@@ -40,8 +40,27 @@ while ~isempty(istack)
             istack=[{loopIdx,recDepth,loopCnt,perSU,link,'branch'};...
                 istack];
             %TODO: fastforward whenever possible
-%             currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
-            if false
+            if any(ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],already,'rows'))
+                % build sequence
+                if size(istack,1)<2
+                    continue % guaranteed repetitive
+                end
+                for rr=1:numel(out)
+                    prevconn=[out{rr}(1:end-1,1:2),out{rr}(2:end,1:2)];
+                    [ismem,pos]=ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],prevconn,'rows');
+                    if ismem
+                        cstack=[flip(cell2mat(istack(:,5)));out{rr}(pos+1:end,:)];
+                        currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                        % decide loop completeness
+                        % optional output
+                        % -> update already found table
+                        if any(diff(find(cstack(:,1)==cstack(1,1)))>1) && ~all(ismember(currconn,already,'rows'))
+                            out(end+1)={cstack};
+                            already=unique([already;currconn],'rows');
+                        end
+                        continue
+                    end
+                end
             else
                 % w/o fastforward
                 if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
@@ -55,8 +74,8 @@ while ~isempty(istack)
                         currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
                         if ~all(ismember(currconn,already,'rows'))
                             out(end+1)={cstack};
+                            already=unique([already;currconn],'rows');
                         end
-                        already=unique([already;currconn],'rows');
                     end
                 end
             end
@@ -78,7 +97,27 @@ while ~isempty(istack)
                 istack];
             perSU(nxtd)=findFirst(in{nxtd},in{loopIdx}(perSU(loopIdx))+24);
             %TODO: fastforward whenever possible
-            if false
+            if any(ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],already,'rows'))
+                % build sequence
+                if size(istack,1)<2
+                    continue % guaranteed repetitive
+                end
+                for rr=1:numel(out)
+                    prevconn=[out{rr}(1:end-1,1:2),out{rr}(2:end,1:2)];
+                    [ismem,pos]=ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],prevconn,'rows');
+                    if ismem
+                        cstack=[flip(cell2mat(istack(:,5)));out{rr}(pos+1:end,:)];
+                        currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                        % decide loop completeness
+                        % optional output
+                        % -> update already found table
+                        if any(diff(find(cstack(:,1)==cstack(1,1)))>1) && ~all(ismember(currconn,already,'rows'))
+                            out(end+1)={cstack};
+                            already=unique([already;currconn],'rows');
+                        end
+                        continue
+                    end
+                end
             else
                 % w/o fastforward
                 if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
