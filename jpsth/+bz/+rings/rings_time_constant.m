@@ -91,6 +91,13 @@ if ~opt.load_file
                 tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>=1 & ts_id(:,4)<4) ...
                     | (ismember(ts_id(:,5),d6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
                 rsums=ts_id(tssel,:);
+                
+                for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
+                    if nnz(rsums(:,6)==ii)<=numel(cids)
+                        rsums(rsums(:,6)==ii,6)=0;
+                    end
+                end
+
                 pstats.nonmem.(uidtag).ts_id=rsums;
                 pstats.nonmem.(uidtag).rstats=rstats(ri,[1:3,7:10]);
                 pstats.nonmem.(uidtag).trials=trials;
@@ -99,6 +106,12 @@ if ~opt.load_file
                 tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4)...
                     | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
                 rsums=ts_id(tssel,:);
+                for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
+                    if nnz(rsums(:,6)==ii)<=numel(cids)
+                        rsums(rsums(:,6)==ii,6)=0;
+                    end
+                end
+
                 pstats.congru.(uidtag).ts_id=rsums;
                 pstats.congru.(uidtag).rstats=rstats(ri,[1:3,7:10]);
                 pstats.congru.(uidtag).trials=trials;
@@ -293,7 +306,7 @@ end
 
 %%
 function burst_spike_composite()
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 conn=sqlite(dbfile,"readonly");
 keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
 usess=str2double(unique(regexp(keys,'(?<=s)\d{1,3}(?=r[3-5])','match','once')));
@@ -301,7 +314,7 @@ usess=str2double(unique(regexp(keys,'(?<=s)\d{1,3}(?=r[3-5])','match','once')));
 % statistics
 stats=struct();
 
-for sessid=[4 9 14 18]%reshape(unique(usess),1,[])
+for sessid=reshape(unique(usess),1,[])
     [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false,'skip_spike',true);
     sessfn=contains(keys,"s"+num2str(sessid)+"r") & endsWith(keys,"_ts");
     for wid=1:4
@@ -361,7 +374,7 @@ for sessid=[4 9 14 18]%reshape(unique(usess),1,[])
                 if isempty(ring_spikes{tt,rridx})
                     continue
                 end
-                ts=ring_spikes{tt,rridx}-1;
+                ts=ring_spikes{tt,rridx}-1+realmin;
                 for ii=2:size(ts,1)
                     if (ts(ii,1)~=ts(ii-1,1) && ts(ii,2)-ts(ii-1,2)<0.01)...
                             || (ts(ii,1)==ts(ii-1,1) && ts(ii,2)-ts(ii-1,2)<0.02)
@@ -387,9 +400,10 @@ C=struct2cell(stats).';
 expd=[C{:}];
 expdd=[expd{:}];
 figure();
-histcompo=histcounts(expdd,[0:20:200,300:100:700],'Normalization','pdf');
-plot([10:20:190,250:100:650],hist,'-k')
+histcompo=histcounts(expdd,[0:20:200,300:300:1200],'Normalization','pdf');
+plot([10:20:190,250,450:300:1050],histcompo,'-k')
 set(gca(),'YScale','log','XScale','log')
-ylim([1e-5,0.1])
+ylim([1e-6,0.1])
+xlim([10,2000])
 end
 

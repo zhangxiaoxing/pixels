@@ -1,12 +1,15 @@
-%% single spike chain
+% Plot per-spike raster showcase of chained loops
+
+
+% single spike chain
 sschain=load('chain_tag.mat','out');
-%% multi spike
+% multi spike
 bschain=load('chain_sust_tag_600.mat','out');
-%% single spike loop
+% single spike loop
 load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats');
 pstats=rmfield(pstats,"nonmem");
-%% burst spike loop, keys only
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+% burst spike loop, keys only
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
 
 sessid=18;
@@ -19,7 +22,6 @@ run_length = edges(2:2:end)-onset;  % Consecutive ones counts
 maxonset=onset(maxid).*30;
 maxoffset=edges(maxid*2).*30;
 trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
-
 
 
 [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
@@ -110,7 +112,7 @@ for cc=reshape(fieldnames(pstats.congru),1,[])
 end
 
 %% burst spike loop
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 conn=sqlite(dbfile,"readonly");
 bslkeys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
 for cc=reshape(bslkeys,1,[])

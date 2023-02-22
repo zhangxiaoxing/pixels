@@ -6,7 +6,7 @@ rev_stats=true;
 % blame=vcs.blame();
 % save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
 
-load('chains_mix.mat','chains_uf','blame');
+load('chains_mix.mat','chains_uf','chains_uf_rev','blame');
 
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
@@ -83,6 +83,7 @@ ylabel('Total occurance')
 title('Total number of linked WM-neuron-series')
 
 %% wave vs wave, 3s vs 6s
+if false
 countbin=2.5:12.5;
 %mix 3s, mix6s, olf 3s, olf 6s, dur 3s, dur 6s
 wavetype={{'olf_s1','olf_s2'},{'dur_d3'},{'s1d3','s2d3'};...
@@ -94,7 +95,7 @@ tiledlayout(1,3);
 pxx=3:12;
 
 lss={'--','-'};
-for chartIdx=1:3
+for chartIdx=[1,3]
     nexttile;
     hold on
     for durIdx=1:2
@@ -120,14 +121,60 @@ for chartIdx=1:3
         revh=plot(pxx,data_rev_hist,'b','LineStyle',lss{durIdx});
         shufh=plot(pxx,shufmm,'k','LineStyle',lss{durIdx});
     end
-    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'});
+    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},'Location','northoutside');
 
-    xlim([3,11])
+    xlim([3,10])
     ylim([0,max(ylim())])
     xlabel('Number neuron in wave-link')
     ylabel('Total occurance')
+    set(gca(),'XTick',4:2:10)
 %     title(ttls{chartIdx});
 end
+end
+%% chain count, merge 3s, 6s, skip duration
+countbin=2.5:10.5;
+%mix 3s, mix6s, olf 3s, olf 6s, dur 3s, dur 6s
+wavetype={{'olf_s1','olf_s2'},{'s1d3','s2d3','s1d6','s2d6'}};
+figure()
+tiledlayout(1,2);
+pxx=3:10;
+
+for chartIdx=1:2
+    nexttile;
+    hold on
+    datasel=ismember(chains_uf.wave,wavetype{chartIdx});
+    data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(datasel)),countbin);
+%     data_hist(data_hist==0)=realmin;
+
+    data_rev_sel=ismember(chains_uf_rev.wave,wavetype{chartIdx});
+    data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(data_rev_sel)),countbin);
+%     data_rev_hist(data_rev_hist==0)=realmin;
+
+    shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
+    for shufid=1:numel(shuf_chains)
+        shuf_sel=ismember(shuf_chains{shufid}.wave,wavetype{chartIdx});
+        shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids(shuf_sel)),countbin);
+    end
+
+    shufmm=mean(shuf_hist);
+    shufsd=std(shuf_hist);
+
+    fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
+
+    datah=plot(pxx,data_hist,'-r');
+    revh=plot(pxx,data_rev_hist,'-b');
+    shufh=plot(pxx,shufmm,'-k');
+
+    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},'Location','northoutside');
+
+    xlim([3,10])
+    ylim([1,max(ylim())])
+    xlabel('Number neuron in wave-link')
+    ylabel('Total occurance')
+    set(gca(),'XTick',4:2:10,'YScale','log')
+%     title(ttls{chartIdx});
+end
+
 
 
 %% per-wave stats-per-region stats pie chart
@@ -216,10 +263,10 @@ bh(1).FaceColor='w';
 bh(2).FaceColor=[0.5,0.5,0.5];
 bh(3).FaceColor='k';
 legend(bh,{'Chain only','Shared','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',10)
-ylim([0,0.3])
+ylim([0,0.1])
 xlim([0.5,2.5])
 ylabel('Proportion of selection neurons (%)')
-set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.1:0.3,'FontSize',10,'YTickLabel',0:10:30);
+set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.05:0.15,'FontSize',10,'YTickLabel',0:5:15);
 
 %% non-mem
 % load('chains_nonmem.mat','nonmem_chains')

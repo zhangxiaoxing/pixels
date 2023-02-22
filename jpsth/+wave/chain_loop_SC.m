@@ -1,3 +1,7 @@
+% May be obsolete as of 2023.2.21
+% Pending remove from repo
+
+
 if false
     chainStr=load('chain_tag.mat','out');
 elseif false

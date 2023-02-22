@@ -8,6 +8,7 @@ arguments
     opt.skip_error_bar (1,1) logical = true
     opt.xyscale (1,2) cell = {'Linear','Linear'}
     opt.skip_export (1,1) logical = true
+    opt.skip_dur (1,1) logical = true
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -76,16 +77,16 @@ hold on
 
 for ll=1:size(bardata,1)
     c=ephys.getRegColor(regstr{ll},'large_area',true);
-    scatter(bardata(ll,7),bardata(ll,10),4,c,'filled','o')
-    text(bardata(ll,7),bardata(ll,10),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+    scatter(bardata(ll,10),bardata(ll,7),4,c,'filled','o')
+    text(bardata(ll,10),bardata(ll,7),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
 end
-xlabel(legends{1})
-ylabel(legends{2})
+xlabel(legends{2})
+ylabel(legends{1})
 set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
-xxdata=bardata(:,7);
-yydata=bardata(:,10);
+xxdata=bardata(:,10);
+yydata=bardata(:,7);
 if strcmp(opt.xyscale{1},'log')
-xxdata=log10(xxdata);
+    xxdata=log10(xxdata);
 end
 if strcmp(opt.xyscale{2},'log')
     yydata=log10(yydata);
@@ -93,14 +94,14 @@ end
 
 [r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
-
-coord=[xxdata,yydata];
-coord(:,3)=1;
-regres=coord(:,[1,3])\coord(:,2);
-xx=minmax(xxdata.');
-yy=10.^(xx.*regres(1)+regres(2));
-plot(10.^xx,yy,'--k');
-
+if all(strcmp(opt.xyscale,'log'),'all')
+    coord=[xxdata,yydata];
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    xx=minmax(xxdata.');
+    yy=10.^(xx.*regres(1)+regres(2));
+    plot(10.^xx,yy,'--k');
+end
 %==============================================================
 nexttile(6);
 hold on
@@ -169,18 +170,31 @@ plot(10.^xx,yy,'--k');
 
 nexttile(1,[1,3]);
 hold on
-bh=bar(bardata(:,[10,13,7]),1,'grouped');
-if ~opt.skip_error_bar
-    errorbar(bh(3).XEndPoints,bh(3).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
-    errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
-    errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,13:14),1,2),diff(bardata(:,[13,15]),1,2),'k.');
+if opt.skip_dur
+    bh=bar(bardata(:,[10,7]),1,'grouped');
+    if ~opt.skip_error_bar
+        errorbar(bh(2).XEndPoints,bh(3).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
+        errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
+    end
+    bh(2).FaceColor='b';% mixed
+    bh(1).FaceColor='r';% olf
+else
+    bh=bar(bardata(:,[10,13,7]),1,'grouped');
+    if ~opt.skip_error_bar
+        errorbar(bh(3).XEndPoints,bh(3).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
+        errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
+        errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,13:14),1,2),diff(bardata(:,[13,15]),1,2),'k.');
+    end
+    bh(3).FaceColor='w';% mixed
+    bh(1).FaceColor='r';% olf
+    bh(2).FaceColor='b';% dur
 end
-bh(3).FaceColor='w';% mixed
-bh(1).FaceColor='r';% olf
-bh(2).FaceColor='b';% dur
-
 set(gca(),'YScale',opt.xyscale{2})
-ylim([0.02,1])
+if any(strcmp(opt.xyscale,'log'),'all')
+    
+else
+    ylim([0,0.6])
+end
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
 %% colorize region
 ymax=max(ylim());

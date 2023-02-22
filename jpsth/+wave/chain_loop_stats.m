@@ -25,11 +25,11 @@ keys=[struct2cell(structfun(@(x) fieldnames(x), bschain.out.d6, 'UniformOutput',
 keys=vertcat(keys{:});
 bsc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
 %% single spike loop
-load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats');
+load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
 pstats=rmfield(pstats,"nonmem");
 ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
 %% burst spike loop, keys only
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 conn=sqlite(dbfile,"readonly");
 bslkeys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
 close(conn);
@@ -38,9 +38,8 @@ bsl_sess=unique(str2double(regexp(bslkeys,'(?<=s)\d{1,3}(?=r)','match','once')))
 usess=intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
 
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
-
-for sessid=[22]
-    covered=false(7200*100,1);
+for sessid=reshape(usess,1,[])
+    covered=false(1000,1); % 2hrs of milli-sec bins
     [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
     FT_SPIKE.lc_tag=cell(size(FT_SPIKE.timestamp));
     for cidx=1:numel(FT_SPIKE.timestamp)
@@ -125,6 +124,7 @@ for sessid=[22]
                 tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
                 onset=floor(tseq(1)./30);
                 offset=ceil(tseq(end)./30);
+%                 if offset-onset<2,keyboard();end
                 covered(onset:offset)=true;
             end
         end
@@ -133,7 +133,7 @@ for sessid=[22]
         clear pstats
     end
     %% burst spike loop
-    dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+    dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
     conn=sqlite(dbfile,"readonly");
     for cc=reshape(bslkeys,1,[])
         if ~contains(cc,['s',num2str(sessid),'r']) || ~endsWith(cc,'_ts')
@@ -169,7 +169,7 @@ for sessid=[22]
     save("ChainedLoop"+num2str(sessid)+".mat",'FT_SPIKE','covered','blame')
 end
 else % load from file
-    for sessid=[14 18 22]
+    for sessid=[14,18,22,33,34,68,100,102,114]
         load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
 %         run_length_sums=struct();
         per_sess_coverage.("S"+num2str(sessid))=covered;
@@ -181,13 +181,15 @@ run_length=[];
 for jj=1:numel(covered)
     edges = find(diff([0;covered{jj};0]==1));
     onset = edges(1:2:end-1);  % Start indices
+%     disp([jj,min(edges(2:2:end)-onset)]);
     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
-    % per_sess_coverage.("S"+num2str(sessid))=run_length;
+    per_sess_coverage.("S"+num2str(sessid))=run_length;
 end
 chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
 figure()
 plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);
 set(gca(),'XScale','log','YScale','log')
+xlim([10,1200])
 
 %% ========================SHOWCASE===============
 
@@ -263,10 +265,45 @@ end
 
 
 function db_test()
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 conn=sqlite(dbfile,"readonly");
 keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
 keys(1)
 conn.fetch("SELECT COUNT(*) FROM "+keys(1));
 %         rids=table2array(conn.fetch("SELECT DISTINCT Var1 from d6s1d6s22r3n274_ts"));
+end
+
+
+
+
+
+
+function extropolation()
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+wrs_mux_meta=ephys.get_wrs_mux_meta();
+
+figure()
+hold on
+for sessid=[14,18,22,33,34,68,100,102,114]
+    sess_scale=nnz(su_meta.sess==sessid & wrs_mux_meta.wave_id>0);
+    load("ChainedLoop"+num2str(sessid)+".mat",'covered')
+    edges = find(diff([0;covered;0]==1));
+    onset = edges(1:2:end-1);  % Start indices
+    run_length =edges(2:2:end)-onset;  % Consecutive ones counts
+    scatter(sess_scale,prctile(run_length,25),'bo')
+    scatter(sess_scale,prctile(run_length,50),'ko')
+    scatter(sess_scale,prctile(run_length,75),'ro')
+end
+% keyboard();
+covered=struct2cell(per_sess_coverage);
+% run_length=[];
+for jj=1:numel(covered)
+    edges = find(diff([0;covered{jj};0]==1));
+    onset = edges(1:2:end-1);  % Start indices
+    disp([jj,min(edges(2:2:end)-onset)]);
+    %     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
+    % per_sess_coverage.("S"+num2str(sessid))=run_length;
+end
+
+
 end

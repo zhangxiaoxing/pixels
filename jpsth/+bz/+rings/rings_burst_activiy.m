@@ -8,18 +8,8 @@ arguments
     opt.ccg  (1,1) logical = false
     opt.append_saved (1,1) logical = true
 end
-% bz.rings.ring_list_bz
-% ppool=gcp('nocreate');
-% if isempty(ppool)
-%     if ispc
-%         ppool=parallel.Pool.empty;
-%     elseif isunix
-%         ppool=parpool(2);
-%     end
-% end
-load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
 
-% blame=vcs.blame();
+load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
 waveids=reshape(unique(rings_wave.wave),1,[]);
 sesses=reshape(unique(rings_wave.sess),1,[]);
 
@@ -110,7 +100,14 @@ for sessid=sesses
         end
     end
 end
-
+if false
+    blame=vcs.blame();
+    btbl=struct2table(blame);
+    btbl.datetime=string(btbl.datetime);
+    btbl.git_hash=string(btbl.git_hash);
+    btbl.git_status=string(btbl.git_status);
+    conn.sqlwrite('blame',btbl);
+end
 
 
 %% gather from future
@@ -138,24 +135,6 @@ if ~isempty(ts)
     sqlwrite(conn,key+"_tsid",array2table(ts_id))
     close(conn);
     disp(key);
-    % TODO: ccg
-    %                     if opt.ccg
-    %                         cursess=rings_wave.sess(ring_id);
-    %                         sesspath=ephys.sessid2path(cursess);
-    %                         strippath=regexp(sesspath,'(?<=\\).*','match');
-    %                         sesssel=find(contains({sums_conn_str.folder},strippath));
-    %                         ccg=sums_conn_str(sesssel).ccg_sc;
-    %                         ccgid=sums_conn_str(sesssel).sig_con;
-    %                         chainccg=[];
-    %                         for ii=1:numel(cids)-1
-    %                             sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
-    %                             if nnz(sigsel)~=1
-    %                                 keyboard()
-    %                             end
-    %                             chainccg=[chainccg;ccg(sigsel,:)];
-    %                         end
-    %                         out.("d"+duration).(wid).(outkey).ccgs=chainccg;
-    %                     end
 end
 end
 
@@ -206,7 +185,7 @@ end
 
 
 function sqliteqc()
-dbfile=fullfile("bzdata","rings_wave_burst_600.db");
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 conn=sqlite(dbfile,'readonly');
 prevcid=conn.sqlread("d6s1d6s4r3n1_meta")
 prevtsid=table2array(conn.sqlread("d6s1d6s4r3n1_ts"));

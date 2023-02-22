@@ -2,52 +2,8 @@ function  rings_wave_dynamic()
 global_init();
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-% --link ring to wave-combination congru|incongru|nonmem
-% tag ring spks with trial type, trial time
-% histogram of loop activity duration
-if false
-    mm_dur=[];
 
-    for rsize=1:3
-        one_rsize=sums_all{rsize};
-        for ridx=1:size(one_rsize,1)
-            rfreq_str=one_rsize{ridx,5};
-            mm_dur=[mm_dur;mean(rfreq_str.durs)./30]; % spkTS unit, i.e. 1/30 ms
-        end
-    end
-
-    xx=5:10:195;
-    edges=0:10:200;
-    figure()
-    hold on
-    plot(xx,histcounts(mm_dur,edges));
-    set(gca(),'YScale','log')
-    xlabel('Time (ms)')
-    ylabel('Probability')
-
-
-    return
-
-    mm_dur=cell(1,3);
-
-    for rsize=1:3
-        one_rsize=sums_all{rsize};
-        for ridx=1:size(one_rsize,1)
-            rfreq_str=one_rsize{ridx,5};
-            mm_dur{rsize}=[mm_dur{rsize};mean(rfreq_str.durs)./30]; % spkTS unit, i.e. 1/30 ms
-        end
-    end
-
-    xx=5:10:195;
-    edges=0:10:200;
-    figure()
-    hold on
-    h3=plot(xx,histcounts(mm_dur{1},edges),'k');
-    h4=plot(xx,histcounts(mm_dur{2},edges),'b');
-    h5=plot(xx,histcounts(mm_dur{3},edges),'r');
-    legend([h3,h4,h5],{'3-Neuron','4-Neuron','5-Neuron'})
-    set(gca(),'YScale','log')
-end
+% Statistics for 3- 4- and 5-SU rings time constant removed on 2023.2.22
 
 %% individual loops
 load('bzdata\sums_ring_stats_all.mat')
@@ -90,7 +46,7 @@ for dur=reshape(fieldnames(out),1,[])
     statss.("d"+dur)=perchaindur;
 end
 
-burst_loop_pdf=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
+burst_loop_pdf=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:20:200,300:300:1200],'Normalization','pdf');
 
 
 %% individual FC
@@ -122,7 +78,12 @@ if true
     bxx=0.125:0.25:6.25;
 %     bump3hist=histcounts(bump3,bxx,'Normalization','probability');
 %     bump6hist=histcounts(bump6,bxx,'Normalization','probability');
-    bumphist=histcounts([bump3,bump6],bxx,'Normalization','pdf');
+    bumps.hist=histcounts([bump3,bump6],bxx,'Normalization','pdf');
+    bumps.mean3=mean(bump3).*1000;
+    bumps.sem3=std(bump3)./sqrt(numel(bump3)).*1000;
+    bumps.mean6=mean(bump6).*1000;
+    bumps.sem6=std(bump6)./sqrt(numel(bump6)).*1000;
+
 end
 if false
     %% chains end-to-end span
@@ -153,7 +114,7 @@ end
 
 %% chained loops
 per_sess_coverage=struct();
-for sessid=[14 18]
+for sessid=[14,18,22,33,34,68,100,102,114]
     load("ChainedLoop"+num2str(sessid)+".mat",'covered')
     per_sess_coverage.("S"+num2str(sessid))=covered;
 end
@@ -178,7 +139,7 @@ load(fullfile('bzdata','composite_burst_ring.mat'),'stats')
 C=struct2cell(stats).';
 expd=[C{:}];
 expdd=[expd{:}];
-burst_compo_pdf=histcounts(expdd,[20:20:200,300:100:700],'Normalization','pdf');
+burst_compo_pdf=histcounts(expdd,[0:20:200,300:300:1200],'Normalization','pdf');
 
 load('chain_tag.mat','out')
 perchaindur=struct();
@@ -240,15 +201,22 @@ if false
 else
     fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-','Color',"#D35400");
     looph=plot([0.5:1:9.5,15:10:195],single_loop_pdf,'-','Color',"#27AE60");
-    bsh=plot([25:50:975,1250,1750],burst_loop_pdf,'-','Color',"#FF5400");
+    bsh=plot([10:20:190,250,450:300:1050],burst_loop_pdf,'-','Color',"#FF5400");
     sch=plot([5:10:95,125:50:225],hrhist,'-','Color',"#8E44AD");
-    bch=plot([30:20:190,250:100:650],burst_compo_pdf,'-k','Color',"#000000");
+    bch=plot([10:20:190,250,450:300:1050],burst_compo_pdf,'-k','Color',"#000000");
     snh=plot([5:10:95],singlechainhist,'-','Color',"#D354FF");
     mnh=plot([5:10:95,150:100:550],multichainhist,'-','Color',"#FF54FF");
     if true
 %         b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
 %         b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
-        bumph=plot((0.25:0.25:6).*1000,bumphist,'-','Color','#808080');
+%         bumph=plot((0.25:0.25:6).*1000,bumphist,'-','Color','#808080');
+          fill([bumps.mean3-bumps.sem3,bumps.mean3+bumps.sem3,bumps.mean3+bumps.sem3,bumps.mean3-bumps.sem3],...
+              [realmin,realmin,1,1],'r','EdgeColor','none','FaceAlpha',0.2)
+
+          fill([bumps.mean6-bumps.sem6,bumps.mean6+bumps.sem6,bumps.mean6+bumps.sem6,bumps.mean6-bumps.sem6],...
+              [realmin,realmin,1,1],'r','EdgeColor','none','FaceAlpha',0.2)
+          
+          xline([bumps.mean3,bumps.mean6],'--r')
     end
     p_cxx=[100:200:900,1250:500:5750];%cxx=[0:200:2000,2500:500:6000];
 %     c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
@@ -263,10 +231,10 @@ xline(6000,'--k')
 % xline(fciqr(2),'k--')
 set(gca(),'YScale','log','XScale','log','YTick',10.^[-5:0])
 xlim([0.3,6000])
-ylim([3e-6,1])
+ylim([5e-7,1])
 xlabel('Time (ms)')
 ylabel('Probability density')
-legend([fch,looph,bsh,sch,bch,snh,mnh,crh,bumph],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops','Wave bump width'},'Location','eastoutside','Orientation','vertical')
+legend([fch,looph,bsh,sch,bch,snh,mnh,crh],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops'},'Location','eastoutside','Orientation','vertical')
 end
 
 
@@ -279,9 +247,10 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 %% single spike loops
 load('bzdata\sums_ring_stats_all.mat')
 curr_sess=-1;
-edges=[0:1:10,20:10:200];
+edges=[0:2:10,20:20:200];
 per_ring_hist=struct();
-[per_ring_hist.congru,per_ring_hist.incongru,per_ring_hist.nonmem,per_ring_hist.others]=deal(zeros(1,29));
+[per_ring_hist.congru,per_ring_hist.incongru,per_ring_hist.nonmem,per_ring_hist.others]=deal(zeros(1,15));
+durminmax=[intmax,-1];
 for rsize=1:3
     one_rsize=sums_all{rsize};
     for ridx=1:size(one_rsize,1)
@@ -294,35 +263,44 @@ for rsize=1:3
         curr_waveid=cell2mat(sessmap.values(num2cell(one_rsize{ridx,3})));
         rwid=bz.rings.ring_wave_type(curr_waveid);
         rfreq_str=one_rsize{ridx,5};
+%         collect_durs=[collect_durs,rfreq_str.durs];
+        if strcmp(rwid,'congru')
+            durminmax(1)=min([durminmax(1),rfreq_str.durs],[],"all");
+            durminmax(2)=max([durminmax(2),rfreq_str.durs],[],"all");
+        end
         per_ring_hist.(rwid)=per_ring_hist.(rwid)+histcounts((rfreq_str.durs)./30,edges); % spkTS unit, i.e. 1/30 ms
     end
 end
 
-congru_pdf=per_ring_hist.congru./(sum(per_ring_hist.congru).*diff([0:1:10,20:10:200]));
+congru_pdf=per_ring_hist.congru./(sum(per_ring_hist.congru).*diff([0:2:10,20:20:200]));
 
 %% burst loops
-load('rings_wave_burst_600.mat','out');
+% load('rings_wave_burst_600.mat','out');
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+conn=sqlite(dbfile,"readonly");
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+ukey=keys(endsWith(keys,'_ts'));
+span=@(x) x(end)-x(1);
+
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
-for dur=reshape(fieldnames(out),1,[])
-    %     [perchaindur.size,perchaindur.dur]=deal([]);
-    for wv=reshape(fieldnames(out.(dur{1})),1,[])
-        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-            %             keyboard();
-            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
-            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
-            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
-        end
-    end
+for onekey=reshape(ukey,1,[])
+    dur=regexp(onekey,'^d\d','match','once');
+    allts=table2array(conn.sqlread(onekey));
+    maxid=allts(end,1);
+% reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
+    perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,arrayfun(@(x) nnz(allts(:,1)==x),1:maxid)];
+    perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,arrayfun(@(x) span(allts(allts(:,1)==x,4)),1:maxid)./30];
+%     perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
     statss.("d"+dur)=perchaindur;
 end
-
+close(conn)
 d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
 % d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','pdf');
 
 figure()
 hold on
-sph=plot([0.5:1:9.5,15:10:195],congru_pdf,'--k');
+sph=plot([1:2:9,15:20:195],congru_pdf,'--k');
 bph=plot([25:50:975,1250,1750],d6hist,'k-');
 % plot([25:50:975,1250,1750],d3hist,'k--');
 set(gca(),'XScale','log','YScale','log');
@@ -411,40 +389,42 @@ C=struct2cell(stats).';
 expd=[C{:}];
 expdd=[expd{:}];
 figure();
-histcompo=histcounts(expdd,[20:20:200,300:100:700],'Normalization','pdf');
+histcompo=histcounts(expdd,[0:20:200,300:300:1200],'Normalization','pdf');
 
-load('rings_wave_burst_600.mat','out');
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+conn=sqlite(dbfile,"readonly");
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+ukey=keys(endsWith(keys,'_ts'));
+span=@(x) x(end)-x(1);
+
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
-for dur=reshape(fieldnames(out),1,[])
-    %     [perchaindur.size,perchaindur.dur]=deal([]);
-    for wv=reshape(fieldnames(out.(dur{1})),1,[])
-        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-            %             keyboard();
-            perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(lp{1}).ts)];
-            perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(lp{1}).ts)./30];
-            perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
-        end
-    end
+for onekey=reshape(ukey,1,[])
+    dur=regexp(onekey,'^d\d','match','once');
+    allts=table2array(conn.sqlread(onekey));
+    maxid=allts(end,1);
+% reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
+    perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,arrayfun(@(x) nnz(allts(:,1)==x),1:maxid)];
+    perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,arrayfun(@(x) span(allts(allts(:,1)==x,4)),1:maxid)./30];
+%     perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
     statss.("d"+dur)=perchaindur;
 end
+close(conn)
+d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:20:200,300:300:1200],'Normalization','pdf');
 
-d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
 % d3hist=histcounts(perchaindur.d3.dur,[0:50:1000,1500,2000],'Normalization','pdf');
 
 figure()
 hold on
-bph=plot([25:50:975,1250,1750],d6hist,'--k');
-cph=plot([30:20:190,250:100:650],histcompo,'-k');
+bph=plot([10:20:190,250,450:300:1050],d6hist,'--k');
+cph=plot([10:20:190,250,450:300:1050],histcompo,'-k');
 % plot([25:50:975,1250,1750],d3hist,'k--');
 set(gca(),'XScale','log','YScale','log');
-ylim([1e-5,0.1]);
+xlim([10,2000])
+ylim([5e-7,0.1]);
 xlabel('Time (ms)')
 ylabel('Probability density (per loop per ms)')
 legend([bph,cph],{'Burst spike loops','Composite burst spike loops'},'Location','northoutside','Orientation','horizontal')
-
-
-
 
 set(gca(),'YScale','log','XScale','log')
 end

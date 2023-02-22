@@ -1,6 +1,6 @@
-%% WIP algorithm for replacing recursive relax_tag_long function with 
-%% iterations due to performance concerns. 23.01.30
-
+% Algorithm for replacing recursive relax_tag_long function with 
+% iterations due to performance concerns. 23.01.30
+% TODO: Merge single spike loops search
 
 % in_={[10:450:920,2150:450:2700,([10:450:920,2150:450:2700])+30000].',[500:450:1500,(500:450:1500)+30000].',[1550:450:2200,(1550:450:2200)+30000].'}
 % bz.rings.relax_tag_long_iter(in_);
@@ -39,6 +39,9 @@ while ~isempty(istack)
             % push return
             istack=[{loopIdx,recDepth,loopCnt,perSU,link,'branch'};...
                 istack];
+            if ~opt.burst
+                continue
+            end
             if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
                 % push recursive
                 perSU(loopIdx)=perSU(loopIdx)+1;
@@ -55,10 +58,6 @@ while ~isempty(istack)
                 end
             end
         case 'branch'
-            if perSU(loopIdx)>numel(in{loopIdx})
-                %TODO: used to be break in recursion
-                keyboard();
-            end
             if loopIdx==rsize
                 nxtd=1;
             else

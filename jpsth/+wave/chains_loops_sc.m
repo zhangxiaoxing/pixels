@@ -1,9 +1,15 @@
+% generate data to feed gephi for the chained loops illustration
+% 2023.2.6
+% TODO: rename
 
-%chain + loop
+% chain + loop
 global_init;
 sig=bz.load_sig_sums_conn_file('pair',false);
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 greys=ephys.getGreyRegs('range','grey');
+wrs_mux_meta=ephys.get_wrs_mux_meta();
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'early_smooth',false);
+
 
 load(fullfile('bzdata','sums_ring_stats_all.mat'));
 rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
@@ -25,35 +31,37 @@ for sess=reshape(unique(chains.sess),1,[])
 end
 chains.regsel=cellfun(@(x) all(ismember(x,greys),"all"),chains.reg);
 
-wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'early_smooth',false);
 
-tcom3_maps=cell(1,3);
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    [fcom3.(type).collection,fcom3.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',type,'com_field','com3');
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom3.(type).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom3.(type).collection(:,2));
-    tcom3_maps{typeidx}=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom3.(type).collection(tcidx,1))));
+if false % for y axis brain region order, used selective percentage instead
+    tcom3_maps=cell(1,3);
+    for typeidx=1:3
+        type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+        [fcom3.(type).collection,fcom3.(type).com_meta]=wave.per_region_COM(...
+            com_map,'sel_type',type,'com_field','com3');
+        ureg=intersect(ephys.getGreyRegs('range','grey'),...
+            fcom3.(type).collection(:,2));
+        [~,tcidx]=ismember(ureg,fcom3.(type).collection(:,2));
+        tcom3_maps{typeidx}=containers.Map(...
+            ureg,num2cell(cellfun(@(x) x/4, fcom3.(type).collection(tcidx,1))));
+    end
+
+
+    tcom6_maps=cell(1,3);
+    for typeidx=1:3
+        type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+        [fcom6.(type).collection,fcom6.(type).com_meta]=wave.per_region_COM(...
+            com_map,'sel_type',type,'com_field','com6');
+        ureg=intersect(ephys.getGreyRegs('range','grey'),...
+            fcom6.(type).collection(:,2));
+        [~,tcidx]=ismember(ureg,fcom6.(type).collection(:,2));
+        tcom6_maps{typeidx}=containers.Map(...
+            ureg,num2cell(cellfun(@(x) x/4, fcom6.(type).collection(tcidx,1))));
+    end
 end
 
-
-tcom6_maps=cell(1,3);
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    [fcom6.(type).collection,fcom6.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',type,'com_field','com6');
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom6.(type).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom6.(type).collection(:,2));
-    tcom6_maps{typeidx}=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom6.(type).collection(tcidx,1))));
-end
-
-
+[map_cells,~]=ephys.pct_reg_bars(wrs_mux_meta,'skip_plot',true); % only need map_cells for tcom-frac corr
+reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
+[reg_prop,tcomidx]=sort(reg_prop);
 
 % showcase
 % with both wave
@@ -113,23 +121,20 @@ for wid=1:4
                 com_map.("s"+num2str(sess)).olf_s1.com3;...
                 com_map.("s"+num2str(sess)).olf_s2.com3;...
                 com_map.("s"+num2str(sess)).dur_d3.com3];
-                regtcom=cell2mat(tcom3_maps{2}.values(sess_reg_map.values(num2cell(sessid))));
             else
                 sesscommap=[com_map.("s"+num2str(sess)).(wtags(wid)).com6;...
                 com_map.("s"+num2str(sess)).olf_s1.com6;...
                 com_map.("s"+num2str(sess)).olf_s2.com6;...
                 com_map.("s"+num2str(sess)).dur_d3.com6];
-                regtcom=cell2mat(tcom6_maps{2}.values(sess_reg_map.values(num2cell(sessid))));
             end
-            keyboard()
+
+            regtcom=cell2mat(tcom3_maps{2}.values(sess_reg_map.values(num2cell(sessid))));
+            
+%             keyboard()
             nodecell=[{'Id','Label','XX','YY'};...
             num2cell([sessid;sessid;cell2mat(sesscommap.values(num2cell(sessid)));regtcom.*8].')];
             writecell(nodecell,fullfile('bzdata',sprintf('node4gephi_s%dw_%d.csv',sess,wid)));
         end
     end
 end
-
-
-
-
 
