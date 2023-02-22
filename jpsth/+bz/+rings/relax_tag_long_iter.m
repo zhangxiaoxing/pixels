@@ -42,19 +42,44 @@ while ~isempty(istack)
             if ~opt.burst
                 continue
             end
-            if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
-                % push recursive
-                perSU(loopIdx)=perSU(loopIdx)+1;
-                istack=[{loopIdx,recDepth+1,loopCnt,perSU,link,'burst'};...
-                    istack];
-            else
-                if loopCnt>rsize
-                    cstack=flip(cell2mat(istack(:,5)));
-                    currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
-                    if ~all(ismember(currconn,already,'rows'))
-                        out(end+1)={cstack};
+            %TODO: fastforward whenever possible
+            if any(ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],already,'rows'))
+                % build sequence
+                if size(istack,1)<2
+                    continue % guaranteed repetitive
+                end
+                for rr=1:numel(out)
+                    prevconn=[out{rr}(1:end-1,1:2),out{rr}(2:end,1:2)];
+                    [ismem,pos]=ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],prevconn,'rows');
+                    if ismem
+                        cstack=[flip(cell2mat(istack(:,5)));out{rr}(pos+1:end,:)];
+                        currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                        % decide loop completeness
+                        % optional output
+                        % -> update already found table
+                        if any(diff(find(cstack(:,1)==cstack(1,1)))>1) && ~all(ismember(currconn,already,'rows'))
+                            out(end+1)={cstack};
+                            already=unique([already;currconn],'rows');
+                        end
+                        continue
                     end
-                    already=unique([already;currconn],'rows');
+                end
+            else
+                % w/o fastforward
+                if perSU(loopIdx)<=numel(in{loopIdx})-1 && in{loopIdx}(perSU(loopIdx)+1)-in{loopIdx}(perSU(loopIdx))<opt.burstInterval
+                    % push recursive
+                    perSU(loopIdx)=perSU(loopIdx)+1;
+                    istack=[{loopIdx,recDepth+1,loopCnt,perSU,link,'burst'};...
+                        istack];
+                else
+                    if loopCnt>rsize
+                        cstack=flip(cell2mat(istack(:,5)));
+                        currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                        if ~all(ismember(currconn,already,'rows'))
+                            out(end+1)={cstack};
+                            already=unique([already;currconn],'rows');
+                        end
+                    end
                 end
             end
         case 'branch'
@@ -69,10 +94,35 @@ while ~isempty(istack)
             istack=[{loopIdx,recDepth,loopCnt,perSU,link,'housekeeping'};...
                 istack];
             perSU(nxtd)=findFirst(in{nxtd},in{loopIdx}(perSU(loopIdx))+24);
-            if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
-                % push recursive
-                istack=[{nxtd,recDepth+1,loopCnt+1,perSU,link,'burst'};...
-                    istack];
+            %TODO: fastforward whenever possible
+            if any(ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],already,'rows'))
+                % build sequence
+                if size(istack,1)<2
+                    continue % guaranteed repetitive
+                end
+                for rr=1:numel(out)
+                    prevconn=[out{rr}(1:end-1,1:2),out{rr}(2:end,1:2)];
+                    [ismem,pos]=ismember([loopIdx,perSU(loopIdx),loopIdx,perSU(loopIdx)+1],prevconn,'rows');
+                    if ismem
+                        cstack=[flip(cell2mat(istack(:,5)));out{rr}(pos+1:end,:)];
+                        currconn=[cstack(1:end-1,1:2),cstack(2:end,1:2)];
+                        % decide loop completeness
+                        % optional output
+                        % -> update already found table
+                        if any(diff(find(cstack(:,1)==cstack(1,1)))>1) && ~all(ismember(currconn,already,'rows'))
+                            out(end+1)={cstack};
+                            already=unique([already;currconn],'rows');
+                        end
+                        continue
+                    end
+                end
+            else
+                % w/o fastforward
+                if perSU(nxtd)<=numel(in{nxtd}) && in{nxtd}(perSU(nxtd))<in{loopIdx}(perSU(loopIdx))+300 % in window
+                    % push recursive
+                    istack=[{nxtd,recDepth+1,loopCnt+1,perSU,link,'burst'};...
+                        istack];
+                end
             end
         case 'housekeeping'
             %% Unencumbered by any FC
