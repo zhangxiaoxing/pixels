@@ -9,7 +9,7 @@ if ispc
     end
 end
 
-per_sess_coverage=struct();
+
 
 if false %% new
 %% single spike chain
@@ -40,10 +40,12 @@ usess=intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
 for sessid=reshape(usess,1,[])
     covered=false(1000,1); % 2hrs of milli-sec bins
-    [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
-    FT_SPIKE.lc_tag=cell(size(FT_SPIKE.timestamp));
-    for cidx=1:numel(FT_SPIKE.timestamp)
-        FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
+    if false
+        [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
+        FT_SPIKE.lc_tag=cell(size(FT_SPIKE.timestamp));
+        for cidx=1:numel(FT_SPIKE.timestamp)
+            FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
+        end
     end
 
     %% single spike chain
@@ -54,13 +56,15 @@ for sessid=reshape(usess,1,[])
                     continue
                 end
                 onechain=sschain.out.(dur).(wid{1}).(cc{1});
-                for cidx=1:size(onechain.ts,2)
-                    cid=onechain.meta{1}(cidx);
-%                     ucid=[ucid,cid];
-                    cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                    totag=onechain.ts(:,cidx);
-                    [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                    FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+1;
+                if false
+                    for cidx=1:size(onechain.ts,2)
+                        cid=onechain.meta{1}(cidx);
+                        %                     ucid=[ucid,cid];
+                        cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
+                        totag=onechain.ts(:,cidx);
+                        [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
+                        FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+1;
+                    end
                 end
                 % run length tag
                 for cidx=1:size(onechain.ts,1)
@@ -74,7 +78,7 @@ for sessid=reshape(usess,1,[])
     if optmem
         clear sschain
     end
-%% multi spike chain
+    %% multi spike chain
     for dur=["d6","d3"]
         for wid=reshape(fieldnames(bschain.out.(dur)),1,[])
             for cc=reshape(fieldnames(bschain.out.(dur).(wid{1})),1,[])
@@ -82,16 +86,20 @@ for sessid=reshape(usess,1,[])
                     continue
                 end
                 onechain=bschain.out.(dur).(wid{1}).(cc{1});
-                for cidx=1:size(onechain.meta{1},2)
-                    cid=onechain.meta{1}(cidx);
-%                     ucid=[ucid,cid];
-                    cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                    for bscid=1:numel(onechain.ts)
-                        totag=onechain.ts{bscid}(onechain.ts{bscid}(:,1)==cidx,3);
-                        [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                        FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+2;
+                if false
+                    for cidx=1:size(onechain.meta{1},2)
+                        cid=onechain.meta{1}(cidx);
+                        %                     ucid=[ucid,cid];
+                        cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
+                        for bscid=1:numel(onechain.ts)
+                            totag=onechain.ts{bscid}(onechain.ts{bscid}(:,1)==cidx,3);
+                            [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
+                            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+2;
+                        end
                     end
-                    % run length tag
+                end
+                % run length tag
+                for bscid=1:numel(onechain.ts)
                     onset=floor(onechain.ts{bscid}(1,3)./30);
                     offset=ceil(onechain.ts{bscid}(end,3)./30);
                     covered(onset:offset)=true;
@@ -111,22 +119,23 @@ for sessid=reshape(usess,1,[])
             continue
         end
         onechain=pstats.congru.(cc{1});
-        for cidx=1:size(onechain.rstats{3},2)
-            cid=onechain.rstats{3}(cidx);
-%             ucid=[ucid,cid];
-            cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-            totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
-            [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+4;
-
-            % run length tag
-            for tagi=reshape(setdiff(unique(onechain.ts_id(:,6)),0),1,[])
-                tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
-                onset=floor(tseq(1)./30);
-                offset=ceil(tseq(end)./30);
-%                 if offset-onset<2,keyboard();end
-                covered(onset:offset)=true;
+        if false
+            for cidx=1:size(onechain.rstats{3},2)
+                cid=onechain.rstats{3}(cidx);
+                %             ucid=[ucid,cid];
+                cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
+                totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
+                [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
+                FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+4;
             end
+        end
+        % run length tag
+        for tagi=reshape(setdiff(unique(onechain.ts_id(:,6)),0),1,[])
+            tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
+            onset=floor(tseq(1)./30);
+            offset=ceil(tseq(end)./30);
+            %                 if offset-onset<2,keyboard();end
+            covered(onset:offset)=true;
         end
     end
     if optmem
@@ -145,13 +154,15 @@ for sessid=reshape(usess,1,[])
         for rid=1:1000:maxrid
             onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1>="+num2str(rid)+ " AND Var1<"+num2str(rid+1000)));
             %             keyboard()
-            disp(rid);
-            for cidx=1:numel(chainmeta)
-                cid=chainmeta(cidx);
-                cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                totag=onechain(onechain(:,2)==cidx,4);
-                [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
+            if false
+                disp(rid);
+                for cidx=1:numel(chainmeta)
+                    cid=chainmeta(cidx);
+                    cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
+                    totag=onechain(onechain(:,2)==cidx,4);
+                    [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
+                    FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
+                end
             end
             for rrid=rid:rid+999
                 if rrid>maxrid
@@ -169,8 +180,9 @@ for sessid=reshape(usess,1,[])
     save("ChainedLoop"+num2str(sessid)+".mat",'FT_SPIKE','covered','blame')
 end
 else % load from file
+    per_sess_coverage=struct();
     for sessid=[14,18,22,33,34,68,100,102,114]
-        load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
+        load("ChainedLoop"+num2str(sessid)+".mat",'covered')
 %         run_length_sums=struct();
         per_sess_coverage.("S"+num2str(sessid))=covered;
     end
@@ -183,7 +195,7 @@ for jj=1:numel(covered)
     onset = edges(1:2:end-1);  % Start indices
 %     disp([jj,min(edges(2:2:end)-onset)]);
     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
-    per_sess_coverage.("S"+num2str(sessid))=run_length;
+%     per_sess_coverage.("S"+num2str(sessid))=run_length;
 end
 chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
 figure()
@@ -274,11 +286,7 @@ conn.fetch("SELECT COUNT(*) FROM "+keys(1));
 end
 
 
-
-
-
-
-function extropolation()
+function extrapolation()
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 

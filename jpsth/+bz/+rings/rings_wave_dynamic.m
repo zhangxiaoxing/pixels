@@ -182,9 +182,7 @@ multichainhist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:10
 xx=[0.5:1:9.5,15:10:195];
 figure()
 hold on
-% plot(xx,per_ring_hist.congru./sum(per_ring_hist.congru,'all'),'-r');
-% plot(xx,per_ring_hist.incongru./sum(per_ring_hist.incongru,'all'),'-b');
-% plot(xx,per_ring_hist.nonmem./sum(per_ring_hist.nonmem,'all'),'-k');
+
 count_sum=per_ring_hist.congru+per_ring_hist.incongru+per_ring_hist.nonmem+per_ring_hist.others;
 if false
     fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'--k.');
@@ -237,42 +235,30 @@ ylabel('Probability density')
 legend([fch,looph,bsh,sch,bch,snh,mnh,crh],{'FC','Single spike Loops','Burst spike loops','Single spike composite loops','Burst spike composite loops','Single spike chains','Burst spike chains','Chained loops'},'Location','eastoutside','Orientation','vertical')
 end
 
-
-
 function single_burst_loops()
 global_init();
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
 %% single spike loops
-load('bzdata\sums_ring_stats_all.mat')
-curr_sess=-1;
-edges=[0:2:10,20:20:200];
-per_ring_hist=struct();
-[per_ring_hist.congru,per_ring_hist.incongru,per_ring_hist.nonmem,per_ring_hist.others]=deal(zeros(1,15));
-durminmax=[intmax,-1];
-for rsize=1:3
-    one_rsize=sums_all{rsize};
-    for ridx=1:size(one_rsize,1)
-        if curr_sess~=one_rsize{ridx,1}
-            curr_sess=one_rsize{ridx,1};
-            sesscid=su_meta.allcid(su_meta.sess==curr_sess);
-            sesswaveid=wrs_mux_meta.wave_id(su_meta.sess==curr_sess);
-            sessmap=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
+
+% Trial-wave-filtered==================================
+load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
+pstats=rmfield(pstats,"nonmem");
+
+durs=[];
+for cc=reshape(fieldnames(pstats.congru),1,[])
+    onechain=pstats.congru.(cc{1});
+    for cidx=1:size(onechain.rstats{3},2)
+        % run length tag
+        for tagi=reshape(setdiff(unique(onechain.ts_id(:,6)),0),1,[])
+            tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
+            durs=[durs,(tseq(end)-tseq(1))./30];
         end
-        curr_waveid=cell2mat(sessmap.values(num2cell(one_rsize{ridx,3})));
-        rwid=bz.rings.ring_wave_type(curr_waveid);
-        rfreq_str=one_rsize{ridx,5};
-%         collect_durs=[collect_durs,rfreq_str.durs];
-        if strcmp(rwid,'congru')
-            durminmax(1)=min([durminmax(1),rfreq_str.durs],[],"all");
-            durminmax(2)=max([durminmax(2),rfreq_str.durs],[],"all");
-        end
-        per_ring_hist.(rwid)=per_ring_hist.(rwid)+histcounts((rfreq_str.durs)./30,edges); % spkTS unit, i.e. 1/30 ms
     end
 end
-
-congru_pdf=per_ring_hist.congru./(sum(per_ring_hist.congru).*diff([0:2:10,20:20:200]));
+%TODO: update pdf from trial-tagged data
+congru_pdf=histcounts(durs,[0:2:10,20:20:200],'Normalization','pdf');
 
 %% burst loops
 % load('rings_wave_burst_600.mat','out');
@@ -288,10 +274,8 @@ for onekey=reshape(ukey,1,[])
     dur=regexp(onekey,'^d\d','match','once');
     allts=table2array(conn.sqlread(onekey));
     maxid=allts(end,1);
-% reg_prop=subsref(cell2mat(map_cells{2}.values(ureg)),struct(type={'()'},subs={{':',1}}));
     perchaindur.(dur{1}).size=[perchaindur.(dur{1}).size,arrayfun(@(x) nnz(allts(:,1)==x),1:maxid)];
     perchaindur.(dur{1}).dur=[perchaindur.(dur{1}).dur,arrayfun(@(x) span(allts(allts(:,1)==x,4)),1:maxid)./30];
-%     perchaindur.(dur{1}).int=[perchaindur.(dur{1}).int,cell2mat(cellfun(@(x) diff(x(:,3),1,1).',out.(dur{1}).(wv{1}).(lp{1}).ts,'UniformOutput',false))./30];
     statss.("d"+dur)=perchaindur;
 end
 close(conn)
