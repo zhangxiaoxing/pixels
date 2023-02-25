@@ -208,15 +208,18 @@ function plot(thinned)
 end
 
 function ffit(thinned)
+
 %     su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
     load("chainned_loops_thinned.mat","thinned")
+    %%
     sessfn=fieldnames(thinned);
     figure()
     hold on
     ylim([1,10000])
     xlim([10,10000])
+    fitxx=[1:9,10:10:90,100:100:900,1000:1000:10000];
     tofit=struct();
-    B=[];
+%     B=[];
     for fn=reshape(sessfn,1,[])
 %         sessid=str2double(regexp(fn,'(?<=S)\d*','match','once'));
 %         sessreg=su_meta.reg_tree(5,su_meta.sess==sessid);
@@ -240,14 +243,31 @@ function ffit(thinned)
         tofit.(fn{1}).poly1=fp1;
         tofit.(fn{1}).pow2=fpw2;
         plot(nsu(:,1),nsu(:,3),'-','Color','#c0c0c0')
-        plot(fpw2,'r-')
-        B=[B;fpw2.a,fpw2.b,fpw2.c];
-%         [GC,GR,GP]=groupcounts(sessreg.');
-%         tofit.(fn{1}).reg=[GR,num2cell(GC),num2cell(GP)];
+        tofit.(fn{1}).poly1fit=fp1(fitxx);
+        tofit.(fn{1}).powr2fit=fpw2(fitxx);
     end
+    
+    poly1mat=cell2mat(cellfun(@(x) tofit.(x).poly1fit.',sessfn,'UniformOutput',false));
+    pow2mat=cell2mat(cellfun(@(x) tofit.(x).powr2fit.',sessfn,'UniformOutput',false));
+    
+    p1mm=mean(poly1mat);
+    p1sem=std(poly1mat)./sqrt(size(poly1mat,1));
+    p1sel=(p1mm-p1sem)>0;
+    fill([fitxx(p1sel),fliplr(fitxx(p1sel))],[p1mm(p1sel)+p1sem(p1sel),fliplr(p1mm(p1sel)-p1sem(p1sel))],'r','EdgeColor','none','FaceAlpha',0.2);
+    plot(fitxx(p1sel),p1mm(p1sel),'r-');
+
+    p2mm=mean(pow2mat);
+    p2sem=std(pow2mat)./sqrt(size(pow2mat,1));
+    p2sel=(p2mm-p2sem)>0;
+    fill([fitxx(p2sel),fliplr(fitxx(p2sel))],[p2mm(p2sel)+p2sem(p2sel),fliplr(p2mm(p2sel)-p2sem(p2sel))],'b','EdgeColor','none','FaceAlpha',0.2);
+    plot(fitxx(p2sel),p2mm(p2sel),'b-');
+
     yline(3000,'k--')
     yline(6000,'k--')
     set(gca(),'XScale','log','YScale','log')
+    xlabel('Simultaneously observed neurons')
+    ylabel('Longest chained-loops pattern duration (msec)')
+    %%
 end
 
 
