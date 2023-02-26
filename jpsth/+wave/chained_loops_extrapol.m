@@ -158,54 +158,54 @@ end
 blame=vcs.blame();
 save("chainned_loops_thinned.mat","thinned","blame")
 
-
-
-function plot(thinned)
-    load("chainned_loops_thinned.mat","thinned")
-    sessfn=fieldnames(thinned);
-%     struct2cell(thinned)
-    
-    figure()
-    hold on
-    tofit=[];
-    for fn=reshape(sessfn,1,[])
-        onesess=thinned.(fn{1});
-        nsu=[];
-        for ii=1:size(onesess,1)
-            pct=[];
-            for jj=1:size(onesess{ii,2})
-                if ~isempty(onesess{ii,2}{jj})
-                    pct=[pct;median(onesess{ii,2}{jj}),max(onesess{ii,2}{jj})];
-                else
-                    pct=[pct;0,0];
-                end
-            end
-            nsu=[nsu;onesess{ii,1}(1)-onesess{ii,1}(2),mean(pct,1)];
-        end
-%         plot(nsu(:,1),nsu(:,2),'--')
-        plot(nsu(:,1),nsu(:,3),'-o','Color','#C0C0C0')
-        tofit=[tofit;nsu(:,1),nsu(:,3)];
-    end
-    fp1=fit(tofit(:,1),tofit(:,2),'power2');
-    plot(fp1,'r-')
-    set(gca(),'XScale','log','YScale','log')
-%     set(gca(),'XScale','linear','YScale','linear')
-
-    xlim([10,5000])
-    ylim([1,10000])
-    yline(3000,'k--')
-    yline(6000,'k--')
-    xlabel('Simultaneously observed neurons')
-    ylabel('Median, longest chained-loops pattern duration (msec)')
-
-
-    figure()
-    hold on
-    scatter(tofit(:,1),tofit(:,2))
-    fp1=fit(tofit(:,1),tofit(:,2),'poly1');
-    plot(fp1,'r-')
-    set(gca(),'XScale','log','YScale','log')
-end
+% 
+% 
+% function plot(thinned)
+%     load("chainned_loops_thinned.mat","thinned")
+%     sessfn=fieldnames(thinned);
+% %     struct2cell(thinned)
+%     
+%     figure()
+%     hold on
+%     tofit=[];
+%     for fn=reshape(sessfn,1,[])
+%         onesess=thinned.(fn{1});
+%         nsu=[];
+%         for ii=1:size(onesess,1)
+%             pct=[];
+%             for jj=1:size(onesess{ii,2})
+%                 if ~isempty(onesess{ii,2}{jj})
+%                     pct=[pct;median(onesess{ii,2}{jj}),max(onesess{ii,2}{jj})];
+%                 else
+%                     pct=[pct;0,0];
+%                 end
+%             end
+%             nsu=[nsu;onesess{ii,1}(1)-onesess{ii,1}(2),mean(pct,1)];
+%         end
+% %         plot(nsu(:,1),nsu(:,2),'--')
+%         plot(nsu(:,1),nsu(:,3),'-o','Color','#C0C0C0')
+%         tofit=[tofit;nsu(:,1),nsu(:,3)];
+%     end
+%     fp1=fit(tofit(:,1),tofit(:,2),'power2');
+%     plot(fp1,'r-')
+%     set(gca(),'XScale','log','YScale','log')
+% %     set(gca(),'XScale','linear','YScale','linear')
+% 
+%     xlim([10,5000])
+%     ylim([1,10000])
+%     yline(3000,'k--')
+%     yline(6000,'k--')
+%     xlabel('Simultaneously observed neurons')
+%     ylabel('Median, longest chained-loops pattern duration (msec)')
+% 
+% 
+%     figure()
+%     hold on
+%     scatter(tofit(:,1),tofit(:,2))
+%     fp1=fit(tofit(:,1),tofit(:,2),'poly1');
+%     plot(fp1,'r-')
+%     set(gca(),'XScale','log','YScale','log')
+% end
 
 function ffit(thinned)
 
@@ -215,7 +215,7 @@ function ffit(thinned)
     sessfn=fieldnames(thinned);
     figure()
     hold on
-    ylim([1,10000])
+    ylim([4,10000])
     xlim([10,10000])
     fitxx=[1:9,10:10:90,100:100:900,1000:1000:10000];
     tofit=struct();
@@ -251,15 +251,19 @@ function ffit(thinned)
     pow2mat=cell2mat(cellfun(@(x) tofit.(x).powr2fit.',sessfn,'UniformOutput',false));
     
     p1mm=mean(poly1mat);
+    p1sel=p1mm>0;
     p1sem=std(poly1mat)./sqrt(size(poly1mat,1));
-    p1sel=(p1mm-p1sem)>0;
-    fill([fitxx(p1sel),fliplr(fitxx(p1sel))],[p1mm(p1sel)+p1sem(p1sel),fliplr(p1mm(p1sel)-p1sem(p1sel))],'r','EdgeColor','none','FaceAlpha',0.2);
+    p1span=[p1mm(p1sel)+p1sem(p1sel),fliplr(p1mm(p1sel)-p1sem(p1sel))];
+    p1span(p1span<=0)=realmin();
+    fill([fitxx(p1sel),fliplr(fitxx(p1sel))],p1span,'r','EdgeColor','none','FaceAlpha',0.2);
     plot(fitxx(p1sel),p1mm(p1sel),'r-');
 
     p2mm=mean(pow2mat);
+    p2sel=p2mm>0;
     p2sem=std(pow2mat)./sqrt(size(pow2mat,1));
-    p2sel=(p2mm-p2sem)>0;
-    fill([fitxx(p2sel),fliplr(fitxx(p2sel))],[p2mm(p2sel)+p2sem(p2sel),fliplr(p2mm(p2sel)-p2sem(p2sel))],'b','EdgeColor','none','FaceAlpha',0.2);
+    p2span=[p2mm(p2sel)+p2sem(p2sel),fliplr(p2mm(p2sel)-p2sem(p2sel))];
+    p2span(p2span<=0)=realmin();
+    fill([fitxx(p2sel),fliplr(fitxx(p2sel))],p2span,'b','EdgeColor','none','FaceAlpha',0.2);
     plot(fitxx(p2sel),p2mm(p2sel),'b-');
 
     yline(3000,'k--')
@@ -270,31 +274,31 @@ function ffit(thinned)
     %%
 end
 
-
-function extrapolation()
-su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-wrs_mux_meta=ephys.get_wrs_mux_meta();
-
-figure()
-hold on
-for sessid=[14,18,22,33,34,68,100,102,114]
-    sess_scale=nnz(su_meta.sess==sessid & wrs_mux_meta.wave_id>0);
-    load("ChainedLoop"+num2str(sessid)+".mat",'covered')
-    edges = find(diff([0;covered;0]==1));
-    onset = edges(1:2:end-1);  % Start indices
-    run_length =edges(2:2:end)-onset;  % Consecutive ones counts
-    scatter(sess_scale,prctile(run_length,25),'bo')
-    scatter(sess_scale,prctile(run_length,50),'ko')
-    scatter(sess_scale,prctile(run_length,75),'ro')
-end
-% keyboard();
-covered=struct2cell(per_sess_coverage);
-% run_length=[];
-for jj=1:numel(covered)
-    edges = find(diff([0;covered{jj};0]==1));
-    onset = edges(1:2:end-1);  % Start indices
-    disp([jj,min(edges(2:2:end)-onset)]);
-    %     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
-    % per_sess_coverage.("S"+num2str(sessid))=run_length;
-end
-end
+% 
+% function extrapolation()
+% su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+% wrs_mux_meta=ephys.get_wrs_mux_meta();
+% 
+% figure()
+% hold on
+% for sessid=[14,18,22,33,34,68,100,102,114]
+%     sess_scale=nnz(su_meta.sess==sessid & wrs_mux_meta.wave_id>0);
+%     load("ChainedLoop"+num2str(sessid)+".mat",'covered')
+%     edges = find(diff([0;covered;0]==1));
+%     onset = edges(1:2:end-1);  % Start indices
+%     run_length =edges(2:2:end)-onset;  % Consecutive ones counts
+%     scatter(sess_scale,prctile(run_length,25),'bo')
+%     scatter(sess_scale,prctile(run_length,50),'ko')
+%     scatter(sess_scale,prctile(run_length,75),'ro')
+% end
+% % keyboard();
+% covered=struct2cell(per_sess_coverage);
+% % run_length=[];
+% for jj=1:numel(covered)
+%     edges = find(diff([0;covered{jj};0]==1));
+%     onset = edges(1:2:end-1);  % Start indices
+%     disp([jj,min(edges(2:2:end)-onset)]);
+%     %     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
+%     % per_sess_coverage.("S"+num2str(sessid))=run_length;
+% end
+% end
