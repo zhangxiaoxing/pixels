@@ -27,7 +27,7 @@ if isempty(map) || ~strcmp(opt.type,type_) || ~strcmp(opt.criteria,criteria_)
     type_=opt.type;
     criteria_=opt.criteria;
 end
-if sessid>0
+if map.isKey(sessid)
     out=map(sessid);
 else
     out=[];
