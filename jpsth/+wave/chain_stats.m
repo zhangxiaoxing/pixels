@@ -18,13 +18,14 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 greys=ephys.getGreyRegs('range','grey');
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 chains_uf.reg=cell(size(chains_uf.cids));
-chains_uf.reg_sel=false(size(chains_uf.cids));
+chains_uf.reg_sel=addcats(categorical(NaN(size(chains_uf.cids))),["within","cross"]);
 if exist('rev_stats','var') && rev_stats
     chains_uf_rev.reg=cell(size(chains_uf_rev.cids));
-    chains_uf_rev.reg_sel=false(size(chains_uf_rev.cids));
+    chains_uf_rev.reg_sel=addcats(categorical(NaN(size(chains_uf_rev.cids))),["within","cross"]);
 end
 
-
+% Screen through corresponding regions.
+% TODO: separate processing of within region and cross region chains.
 for sess=reshape(unique(chains_uf.sess),1,[])
     sesscid=su_meta.allcid(su_meta.sess==sess);
     sessreg=su_meta.reg_tree(5,su_meta.sess==sess);
@@ -32,7 +33,13 @@ for sess=reshape(unique(chains_uf.sess),1,[])
         [~,supos]=ismember(chains_uf.cids{cnid},sesscid);
         chains_uf.reg{cnid}=sessreg(supos);
         if all(ismember(sessreg(supos),greys),'all')
-            chains_uf.reg_sel(cnid)=true;
+            if all(strcmp(sessreg(supos(2:end)),sessreg(supos(1))),'all')
+                % within region
+                chains_uf.reg_sel(cnid)="within";
+            else
+                % cross region
+                chains_uf.reg_sel(cnid)="cross";
+            end
         end
     end
     if rev_stats
@@ -40,16 +47,24 @@ for sess=reshape(unique(chains_uf.sess),1,[])
             [~,supos]=ismember(chains_uf_rev.cids{cnid},sesscid);
             chains_uf_rev.reg{cnid}=sessreg(supos);
             if all(ismember(sessreg(supos),greys),'all')
-                chains_uf_rev.reg_sel(cnid)=true;
+                if all(strcmp(sessreg(supos(2:end)),sessreg(supos(1))),'all')
+                    % within region
+                    chains_uf_rev.reg_sel(cnid)="within";
+                else
+                    % cross region
+                    chains_uf_rev.reg_sel(cnid)="cross";
+                end
             end
         end
     end
 end %sess
 
 %% total number
+% TODO: within, cross
+curr_tag="within";
 countbin=2.5:12.5;
-data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel)),countbin);
-data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel)),countbin);
+data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel==curr_tag)),countbin);
+data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel==curr_tag)),countbin);
 if false
     load('chains_nonmem.mat','nonmem_chains')
     nonmem_hist=histcounts(cellfun(@(x) numel(x),nonmem_chains.cids),countbin);
@@ -101,10 +116,10 @@ for chartIdx=[1,3]
     hold on
     for durIdx=1:2
         datasel=ismember(chains_uf.wave,wavetype{durIdx,chartIdx}) & chains_uf.dur==durs(durIdx,chartIdx);
-        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel & datasel)),countbin);
+        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel==curr_tag & datasel)),countbin);
 
         data_rev_sel=ismember(chains_uf_rev.wave,wavetype{durIdx,chartIdx}) & chains_uf_rev.dur==durs(durIdx,chartIdx);
-        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel & data_rev_sel)),countbin);
+        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel==curr_tag & data_rev_sel)),countbin);
 
         shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
         for shufid=1:numel(shuf_chains)
@@ -185,7 +200,7 @@ end
 chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
 len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
 
-olf_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel;
+olf_sel=(chains_uf.reg_sel==curr_tag) & ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel;
 olf_uid=[chains_uf.uid{olf_sel}];
 [chain_olf_uid,usel]=unique(olf_uid);
 
@@ -194,7 +209,7 @@ olf_reg_cat=categorical(olf_reg);
 olf_u_reg_cat=categorical(olf_reg(usel));
 
 
-both_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel;
+both_sel=chains_uf.reg_sel==curr_tag & ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel;
 both_uid=[chains_uf.uid{both_sel}];
 [chain_both_uid,usel]=unique(both_uid);
 both_reg=[chains_uf.reg{both_sel}];
@@ -202,7 +217,7 @@ both_reg_cat=categorical(both_reg);
 both_u_reg_cat=categorical(both_reg(usel));
 
 
-dur_sel=chains_uf.reg_sel & ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel;
+dur_sel=chains_uf.reg_sel==curr_tag & ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel;
 dur_uid=[chains_uf.uid{dur_sel}];
 [chain_dur_uid,usel]=unique(dur_uid);
 dur_reg=[chains_uf.reg{dur_sel}];
@@ -281,8 +296,8 @@ set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.05:0.15,'Fon
 
 %%  wave time correlation, region and neuron, an arrow for each chain
 chains_uf.reg_tcom=cell(size(chains_uf.reg));
-sel6=chains_uf.dur==6 & chains_uf.reg_sel;
-sel3=chains_uf.dur==3 & chains_uf.reg_sel;
+sel6=chains_uf.dur==6 & chains_uf.reg_sel==curr_tag;
+sel3=chains_uf.dur==3 & chains_uf.reg_sel==curr_tag;
 olf_sel=ismember(chains_uf.wave,{'olf_s1','olf_s2'});
 dur_sel=ismember(chains_uf.wave,{'dur_d3','dur_d6'});
 both_sel=ismember(chains_uf.wave,{'s1d3','s2d3','s1d6','s2d6'});
