@@ -28,10 +28,9 @@ end
 
 persess=[];
 for ii=1:116
-[spkID,spkTS]=ephys.getSPKID_TS(ii,'keep_trial',false);
-rtime=(spkTS(end)-spkTS(1))./30000;
-gc=groupcounts(spkID);
-persess=[persess;gc./rtime];
+    disp(ii);
+    [spkID,spkTS,~,~,~,FT_SPK]=ephys.getSPKID_TS(ii,'keep_trial',true);
+    persess=[persess,cellfun(@(x) nnz(x<-0.5 & x>=-1.5),FT_SPK.time)./size(FT_SPK.trialinfo,1)];
 end
 
 mean([oo,dd,mm])

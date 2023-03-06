@@ -188,7 +188,7 @@ if opt.calc_dec
                     end
                 end
                 norm_train=normalize(xx_train,'center',C,'scale',S);
-                SVMM=fitcecoc(norm_train,yy_train);
+                SVMM=fitcsvm(norm_train,yy_train);
                 norm_test=normalize(xx_test,'center',C,'scale',S);
                 modelPredict=SVMM.predict(norm_test);
                 norm_err=normalize(xx_err,'center',C,'scale',S);

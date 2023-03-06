@@ -96,6 +96,7 @@ end
 % exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
 
 %% correct error decoding >>>>>>>>>>>>>>>>>
+% svm on neuron firing rates
 if false
     odor4odor=pct.pct_decoding_correct_error(wrs_mux_meta,5:6,'lblidx',5,'n_su',50);% odor
     dur4odor=pct.pct_decoding_correct_error(wrs_mux_meta,7:8,'lblidx',5,'n_su',50);% odor
@@ -121,8 +122,6 @@ ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'mix')
 %% Figure 2
 fh=ephys.sust_trans_bar_w_mix(wrs_mux_meta);
 fh=ephys.sust_trans_correct_error(wrs_mux_meta);
-
-
 
 %% wave-half-half
 if false
@@ -282,6 +281,13 @@ bz.rings.rings_su_wave_tcom_corr(sums_all)
 %TODO: assembly time constant olf, both, 3s 6s
 
 %% chain
+
+% global_init;
+% chains_uf=wave.COM_chain(sel_meta);
+% chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
+% blame=vcs.blame();
+% save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
+
 wave.chain_stats;
 wave.chains_time_constant
 wave.chains_loops_sc

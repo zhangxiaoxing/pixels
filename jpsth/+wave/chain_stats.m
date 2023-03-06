@@ -14,11 +14,12 @@ load('chains_mix.mat','chains_uf','chains_uf_rev','blame');
 load('chains_shuf.mat','shuf_chains')
 %% region tag
 global_init;
+wrs_mux_meta=ephys.get_wrs_mux_meta();
 greys=ephys.getGreyRegs('range','grey');
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 chains_uf.reg=cell(size(chains_uf.cids));
 chains_uf.reg_sel=false(size(chains_uf.cids));
-if rev_stats
+if exist('rev_stats','var') && rev_stats
     chains_uf_rev.reg=cell(size(chains_uf_rev.cids));
     chains_uf_rev.reg_sel=false(size(chains_uf_rev.cids));
 end
@@ -287,6 +288,11 @@ dur_sel=ismember(chains_uf.wave,{'dur_d3','dur_d6'});
 both_sel=ismember(chains_uf.wave,{'s1d3','s2d3','s1d6','s2d6'});
 %tcom_map:{mixed olf dur}
 %% olf 6
+if ~exist('tcom6_maps','var')
+    warning('Missing tcom6_maps')
+    keyboard()
+end
+
 inkey=cellfun(@(x) all(ismember(x,tcom6_maps{2}.keys()),'all'),chains_uf.reg);
 chains_uf.reg_tcom(sel6 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps{2}.values(x)),chains_uf.reg(sel6 & olf_sel & inkey),'UniformOutput',false);
 xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel6 & olf_sel & inkey),'UniformOutput',false));
@@ -398,6 +404,7 @@ set(gca(),'XTick',0:3,'XTickLabel',{'O3','O6','B3','B6'},'YTick',-0.5:0.5:0.5)
 ylabel('Neuron-region wave timing slope')
 
 %% occurance of chain neuron per region neuron
+
 olf_ratio=[];
 both_ratio=[];
 for rr=greys
@@ -414,13 +421,13 @@ end
 figure()
 tiledlayout(1,2)
 nexttile()
-bar(olf_ratio(1:10))
-set(gca(),'XTick',1:10,'XTickLabel',greys(olf_srt(1:10)),'YScale','log','XTickLabelRotation',90);
+bar(olf_ratio(1:5))
+set(gca(),'XTick',1:5,'XTickLabel',greys(olf_srt(1:10)),'YScale','log','XTickLabelRotation',90);
 ylim([0.01,10]);
 ylabel('Occurance per neuron')
 nexttile()
-bar(both_ratio(1:10))
-set(gca(),'XTick',1:10,'XTickLabel',greys(both_srt(1:10)),'YScale','log','XTickLabelRotation',90);
+bar(both_ratio(1:5))
+set(gca(),'XTick',1:5,'XTickLabel',greys(both_srt(1:10)),'YScale','log','XTickLabelRotation',90);
 ylim([0.01,10]);
 ylabel('Occurance per neuron')
 
