@@ -67,8 +67,22 @@ pxx=3:12;
 countbin=2.5:12.5;
 
 % for curr_tag=["within","cross"]
-    data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(~isundefined(chains_uf.reg_sel))),countbin);
-    data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(~isundefined(chains_uf_rev.reg_sel))),countbin);
+    if true % region constrained
+        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids),countbin);
+        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids),countbin);
+    end
+
+
+    if false % region constrained
+        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(~isundefined(chains_uf.reg_sel))),countbin);
+        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(~isundefined(chains_uf_rev.reg_sel))),countbin);
+    end
+    if false % wave constrained
+        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(~isundefined(chains_uf.reg_sel) & ...
+            ismember(chains_uf.wave,{'olf_s1','olf_s2','s1d3','s2d3','s1d6','s2d6'}))),countbin);
+        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(~isundefined(chains_uf_rev.reg_sel) & ...
+            ismember(chains_uf_rev.wave,{'olf_s1','olf_s2','s1d3','s2d3','s1d6','s2d6'}))),countbin);
+    end
     if false
         load('chains_nonmem.mat','nonmem_chains')
         nonmem_hist=histcounts(cellfun(@(x) numel(x),nonmem_chains.cids),countbin);
@@ -96,12 +110,14 @@ countbin=2.5:12.5;
         legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},...
             'Location','northoutside');
     end
-    ylim([0,1200])
-    xlabel('Number of linked neuron')
+    ylim([1,4000])
+    xlabel('Number of neurons in chains')
     ylabel('Total occurance')
-    title(curr_tag)
+    set(gca(),'YScale','log')
+    xlim([2.5,8.5])
+%     title(curr_tag)
 % end
-sgtitle("Total number of linked WM-neuron-series ")
+sgtitle("Total number of congruent chains")
 
 %% wave vs wave, 3s vs 6s
 if false
@@ -205,7 +221,7 @@ end
 chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
 len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
 
-olf_sel=(chains_uf.reg_sel==curr_tag) & ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel;
+olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel; % & (chains_uf.reg_sel==curr_tag)
 olf_uid=[chains_uf.uid{olf_sel}];
 [chain_olf_uid,usel]=unique(olf_uid);
 
@@ -214,7 +230,7 @@ olf_reg_cat=categorical(olf_reg);
 olf_u_reg_cat=categorical(olf_reg(usel));
 
 
-both_sel=chains_uf.reg_sel==curr_tag & ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel;
+both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
 both_uid=[chains_uf.uid{both_sel}];
 [chain_both_uid,usel]=unique(both_uid);
 both_reg=[chains_uf.reg{both_sel}];
@@ -222,7 +238,7 @@ both_reg_cat=categorical(both_reg);
 both_u_reg_cat=categorical(both_reg(usel));
 
 
-dur_sel=chains_uf.reg_sel==curr_tag & ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel;
+dur_sel=ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag 
 dur_uid=[chains_uf.uid{dur_sel}];
 [chain_dur_uid,usel]=unique(dur_uid);
 dur_reg=[chains_uf.reg{dur_sel}];
@@ -284,7 +300,7 @@ bh(1).FaceColor='w';
 bh(2).FaceColor=[0.5,0.5,0.5];
 bh(3).FaceColor='k';
 legend(bh,{'Chain only','Shared','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',10)
-ylim([0,0.1])
+ylim([0,0.175])
 xlim([0.5,2.5])
 ylabel('Proportion of selection neurons (%)')
 set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.05:0.15,'FontSize',10,'YTickLabel',0:5:15);
@@ -301,8 +317,8 @@ set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.05:0.15,'Fon
 
 %%  wave time correlation, region and neuron, an arrow for each chain
 chains_uf.reg_tcom=cell(size(chains_uf.reg));
-sel6=chains_uf.dur==6 & chains_uf.reg_sel==curr_tag;
-sel3=chains_uf.dur==3 & chains_uf.reg_sel==curr_tag;
+sel6=chains_uf.dur==6;% & chains_uf.reg_sel==curr_tag;
+sel3=chains_uf.dur==3;% & chains_uf.reg_sel==curr_tag;
 olf_sel=ismember(chains_uf.wave,{'olf_s1','olf_s2'});
 dur_sel=ismember(chains_uf.wave,{'dur_d3','dur_d6'});
 both_sel=ismember(chains_uf.wave,{'s1d3','s2d3','s1d6','s2d6'});
@@ -424,33 +440,64 @@ set(gca(),'XTick',0:3,'XTickLabel',{'O3','O6','B3','B6'},'YTick',-0.5:0.5:0.5)
 ylabel('Neuron-region wave timing slope')
 
 %% occurance of chain neuron per region neuron
+% partially overlap with previous code block
 
-olf_ratio=[];
-both_ratio=[];
-for rr=greys
-    su_cnt=nnz(strcmp(su_meta.reg_tree(5,:),rr));
-    chains_occur_olf=nnz(olf_reg_cat==rr);
-    chains_occur_both=nnz(both_reg_cat==rr);
-    olf_ratio=[olf_ratio;chains_occur_olf./su_cnt];
-    both_ratio=[both_ratio;chains_occur_both./su_cnt];
+% chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
+% len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
+
+for curr_tag=["within","cross"]
+    olf_within_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel & (chains_uf.reg_sel==curr_tag);
+
+    olf_uid=[chains_uf.uid{olf_sel}];
+    [chain_olf_uid,usel]=unique(olf_uid);
+
+    olf_reg=[chains_uf.reg{olf_sel}];
+    olf_reg_cat.(curr_tag)=categorical(olf_reg);
+    olf_u_reg_cat.(curr_tag)=categorical(olf_reg(usel));
+
+    both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
+    both_uid=[chains_uf.uid{both_sel}];
+    [chain_both_uid,usel]=unique(both_uid);
+    both_reg=[chains_uf.reg{both_sel}];
+    both_reg_cat.(curr_tag)=categorical(both_reg);
+    both_u_reg_cat.(curr_tag)=categorical(both_reg(usel));
+
+    % dur_sel=ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
+    % dur_uid=[chains_uf.uid{dur_sel}];
+    % [chain_dur_uid,usel]=unique(dur_uid);
+    % dur_reg=[chains_uf.reg{dur_sel}];
+    % dur_reg_cat=categorical(dur_reg);
+    % dur_u_reg_cat=categorical(dur_reg(usel));
+
+    olf_ratio.(curr_tag)=[];
+    both_ratio.(curr_tag)=[];
+    for rr=greys
+        su_cnt=nnz(strcmp(su_meta.reg_tree(5,:),rr));
+        chains_occur_olf=nnz(olf_reg_cat.(curr_tag)==rr);
+        chains_occur_both=nnz(both_reg_cat.(curr_tag)==rr);
+        olf_ratio.(curr_tag)=[olf_ratio.(curr_tag);chains_occur_olf./su_cnt];
+        both_ratio.(curr_tag)=[both_ratio.(curr_tag);chains_occur_both./su_cnt];
+    end
+    [olf_ratio.(curr_tag),olf_srt.(curr_tag)]=sort(olf_ratio.(curr_tag),'descend');
+    [both_ratio.(curr_tag),both_srt.(curr_tag)]=sort(both_ratio.(curr_tag),'descend');
 end
 
-[olf_ratio,olf_srt]=sort(olf_ratio,'descend');
-[both_ratio,both_srt]=sort(both_ratio,'descend');
-
 figure()
-tiledlayout(1,2)
-nexttile()
-bar(olf_ratio(1:5))
-set(gca(),'XTick',1:5,'XTickLabel',greys(olf_srt(1:10)),'YScale','log','XTickLabelRotation',90);
-ylim([0.01,10]);
-ylabel('Occurance per neuron')
-nexttile()
-bar(both_ratio(1:5))
-set(gca(),'XTick',1:5,'XTickLabel',greys(both_srt(1:10)),'YScale','log','XTickLabelRotation',90);
-ylim([0.01,10]);
-ylabel('Occurance per neuron')
-
+tiledlayout(2,2)
+for curr_tag=["within","cross"]
+    nexttile()
+    bar(olf_ratio.(curr_tag)(1:5))
+    set(gca(),'XTick',1:5,'XTickLabel',greys(olf_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
+    ylim([0.01,10]);
+    ylabel('Occurance per neuron')
+    title("olf "+curr_tag)
+    nexttile()
+    bar(both_ratio.(curr_tag)(1:5))
+    set(gca(),'XTick',1:5,'XTickLabel',greys(both_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
+    ylim([0.01,10]);
+    ylabel('Occurance per neuron')
+    title("both "+curr_tag)
+end
 
 %% showcase
 

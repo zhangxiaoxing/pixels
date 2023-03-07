@@ -330,7 +330,7 @@ for dur=reshape(fieldnames(out),1,[])
     end
     statss.("d"+dur)=perchaindur;
 end
-singlehist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],0:10:100,'Normalization','pdf');
+singlehist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[0:9,10:10:100],'Normalization','pdf');
 
 
 %% multi spike
@@ -354,7 +354,7 @@ multihist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600
 % d3hist=histcounts(perchaindur.d3.dur,0:50:600,'Normalization','pdf');
 figure()
 hold on
-sh=plot([5:10:95],singlehist,'--k');
+sh=plot([0.5:9.5,15:10:95],singlehist,'--k');
 mh=plot([5:10:95,150:100:550],multihist,'-k');
 % plot(25:50:575,d3hist,'--k');
 set(gca(),'XScale','log','YScale','log');
@@ -363,6 +363,14 @@ ylim([1e-5,0.1]);
 xlabel('Time (ms)');
 ylabel('Probability density');
 legend([sh,mh],{'Single spike chain','Burst spike chain'},'Location','northoutside','Orientation','horizontal')
+if false
+    qtrs=prctile([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[25,50,75]); % 16.6667   21.1000   25.8000, @2023-03-07
+    xline(qtrs,'--k',{'25%','50%','75%'})
+    ylim([1e-4,1e-1])
+    title('single spike chains')
+end
+
+
 
 end
 

@@ -31,6 +31,10 @@ else
     annostr=opt.tag;
 end
 fhandles=get(groot(),'Children');
+if numel(fhandles)>1
+    warning("more than 1 figures, continue?")
+    keyboard()
+end
 for hc=reshape(fhandles,1,[])
     ah=annotation(hc,'textbox',[0 0.9 1 0.1], ...
         'String',annostr,'EdgeColor','none','Interpreter','none');
