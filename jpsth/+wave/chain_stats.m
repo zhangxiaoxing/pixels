@@ -59,44 +59,49 @@ for sess=reshape(unique(chains_uf.sess),1,[])
     end
 end %sess
 
-%% total number
+%% total number of chains
 % TODO: within, cross
-curr_tag="within";
-countbin=2.5:12.5;
-data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(chains_uf.reg_sel==curr_tag)),countbin);
-data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(chains_uf_rev.reg_sel==curr_tag)),countbin);
-if false
-    load('chains_nonmem.mat','nonmem_chains')
-    nonmem_hist=histcounts(cellfun(@(x) numel(x),nonmem_chains.cids),countbin);
-end
-
-shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
-for shufid=1:numel(shuf_chains)
-    shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids),countbin);    
-end
-
-shufmm=mean(shuf_hist);
-shufsd=std(shuf_hist);
-
-pxx=3:12;
 figure()
-hold on
-fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
-datah=plot(pxx,data_hist,'-r');
-revh=plot(pxx,data_rev_hist,'-b');
-shufh=plot(pxx,shufmm,'-k');
-if false
-    nonmemh=plot(pxx,nonmem_hist,'-','Color',[0.5,0.5,0.5]);
-    legend([datah,revh,nonmemh,shufh],...
-        {'Wave-consistent','Wave-inconsistent','Non-memory','Shuffled wave-consistent'});
+% tiledlayout(1,2)
+pxx=3:12;
+countbin=2.5:12.5;
 
-else
-    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'});
-end
+% for curr_tag=["within","cross"]
+    data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(~isundefined(chains_uf.reg_sel))),countbin);
+    data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(~isundefined(chains_uf_rev.reg_sel))),countbin);
+    if false
+        load('chains_nonmem.mat','nonmem_chains')
+        nonmem_hist=histcounts(cellfun(@(x) numel(x),nonmem_chains.cids),countbin);
+    end
 
-xlabel('Number of linked neuron')
-ylabel('Total occurance')
-title('Total number of linked WM-neuron-series')
+    shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
+    for shufid=1:numel(shuf_chains)
+        shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids),countbin);
+    end
+
+    shufmm=mean(shuf_hist);
+    shufsd=std(shuf_hist);
+
+%     nexttile()
+    hold on
+    fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
+    datah=plot(pxx,data_hist,'-r');
+    revh=plot(pxx,data_rev_hist,'-b');
+    shufh=plot(pxx,shufmm,'-k');
+    if false
+        nonmemh=plot(pxx,nonmem_hist,'-','Color',[0.5,0.5,0.5]);
+        legend([datah,revh,nonmemh,shufh],...
+            {'Wave-consistent','Wave-inconsistent','Non-memory','Shuffled wave-consistent'});
+    else
+        legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},...
+            'Location','northoutside');
+    end
+    ylim([0,1200])
+    xlabel('Number of linked neuron')
+    ylabel('Total occurance')
+    title(curr_tag)
+% end
+sgtitle("Total number of linked WM-neuron-series ")
 
 %% wave vs wave, 3s vs 6s
 if false
@@ -184,7 +189,7 @@ for chartIdx=1:2
     legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},'Location','northoutside');
 
     xlim([3,10])
-    ylim([1,max(ylim())])
+    ylim([1,3000])
     xlabel('Number neuron in wave-link')
     ylabel('Total occurance')
     set(gca(),'XTick',4:2:10,'YScale','log')
