@@ -1,3 +1,6 @@
+% Likely obsolete as of 2023.03.08
+% pending delete
+
 function fh=pct_proportion_GLM(map_cells,corr_type,opt)
 arguments
     map_cells (1,:) cell

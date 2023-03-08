@@ -2,11 +2,12 @@ function [fc_com_pvsst_stats,fh]=fc_com_reg_wave(wave_meta,com_map,tcom_maps,opt
 arguments
     wave_meta
     com_map
-    tcom_maps
+    tcom_maps (1,1) struct
     opt.condense_plot (1,1) logical = false
     opt.omit_reg_wave (1,1) logical = true
     opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
 end
+fns={'olf','dur','mixed'};
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
 [sig,~]=bz.load_sig_sums_conn_file();
@@ -48,7 +49,6 @@ mixed_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);
 olf_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);
 dur_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);
 typesel_mat=[olf_congru,dur_congru,mixed_congru];
-tcom_maps_rearr=tcom_maps([2,3,1]);
 
 if false
     colors={'r','b','k'};
@@ -61,7 +61,7 @@ if false
         nexttile();
         hold on
 
-        sel_tcom_map=tcom_maps_rearr{typeIdx};
+        sel_tcom_map=tcom_maps.(fns{typeIdx});
 
         avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
         reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
@@ -101,7 +101,7 @@ barmm=[];
 barci=[];
 if false %forward and reverse
     for typeIdx=1:3
-        sel_tcom_map=tcom_maps_rearr{typeIdx};
+        sel_tcom_map=tcom_maps.(fns{typeIdx});
 
         avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
         reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
@@ -142,7 +142,7 @@ if false %forward and reverse
     end
 else% same and diff % TODO
     for typeIdx=1:3 
-        sel_tcom_map=tcom_maps_rearr{typeIdx};
+        sel_tcom_map=tcom_maps.(fns{typeIdx});
         avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
         reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
         reg_wave_timing=cellfun(@(x) sel_tcom_map(x{1}),...

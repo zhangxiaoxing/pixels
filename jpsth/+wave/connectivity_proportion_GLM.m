@@ -1,6 +1,6 @@
 function [fh,hiermap]=connectivity_proportion_GLM(map_cells,corr_type,opt)
 arguments
-    map_cells (1,:) cell
+    map_cells (1,:) struct
     corr_type (1,:) char {mustBeMember(corr_type,{'Spearman','PearsonLogLog','PearsonLinearLog'})}
     opt.skip_efferent (1,1) logical = true
     opt.corr1 (1,1) logical =true;
@@ -12,13 +12,13 @@ arguments
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
     opt.stats_type (1,:) char
     opt.data_type (1,:) char
-    opt.feat_tag
     
 end
 
-if ~isfield(opt,'feat_tag') || isempty(opt.feat_tag)
-    warning('Missing data tag');
+if opt.corr2 || opt.corr3
+    error("Need to remove injection site from correlation, not done yet")
 end
+
 
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
 
@@ -39,17 +39,19 @@ map_regs=intersect(allen_src_regs,grey_regs);
 
 %% -> feature_region_map entry point
 epochii=1;
-for featii=1:numel(map_cells) % both, either, summed
+fns=fieldnames(map_cells);
+for featii=1:numel(fns) % both, either, summed
     one_reg_corr_list=[];
 %     two_reg_corr_list=[];
-    feat_reg_map=map_cells{epochii,featii};
+    feat_reg_map=map_cells.(fns{featii});
     intersect_regs=intersect(map_regs,feat_reg_map.keys());
     idx4corr=cell2mat(src_idx_map.values(idmap.reg2ccfid.values(intersect_regs)));
 
-    feat_prop_cell=feat_reg_map.values(intersect_regs);
-    feat_prop=cellfun(@(x) x(1),feat_prop_cell);
-
-    [glmxmat,glmxmeta]=deal([]);
+    feat_prop=cell2mat(feat_reg_map.values(intersect_regs));
+    if size(feat_prop,2)>1
+        feat_prop=feat_prop(:,1);
+    end
+    [allen_mat,allen_meta]=deal([]);
     % efferent_proj_dense(soruce) ~ feature_proportion
     if ~opt.skip_efferent
         for ii=1:numel(sink_ccfid)
@@ -61,8 +63,8 @@ for featii=1:numel(map_cells) % both, either, summed
                 disp("skipped region without ephys: "+string(idmap.ccfid2reg(sink_ccfid(ii))));
                 continue
             end
-            glmxmat=[glmxmat;allen_density];
-            glmxmeta=[glmxmeta;1,ii,sink_ccfid(ii)];
+            allen_mat=[allen_mat;allen_density];
+            allen_meta=[allen_meta;1,ii,sink_ccfid(ii)];
         end
     end
     % afferent_proj_dense(sink) ~ feature_proportion
@@ -77,26 +79,33 @@ for featii=1:numel(map_cells) % both, either, summed
             continue
         end
         
-        glmxmat=[glmxmat;allen_density.'];
-        glmxmeta=[glmxmeta;2,ii,src_ccfid(ii)];
+        allen_mat=[allen_mat;allen_density.'];
+        allen_meta=[allen_meta;2,ii,src_ccfid(ii)];
     end
 
+    intersect_ccfid=cell2mat(idmap.reg2ccfid.values(intersect_regs));
+
     %% one region corr, bar plot
+    
     if opt.corr1
-        for regii=1:size(glmxmat,1)
+        
+        for regii=1:size(allen_mat,1)
+            % TODO: remove injection site
             switch(corr_type)
                 case 'Spearman'
-                    [r,p]=corr(glmxmat(regii,:).',feat_prop,'type','Spearman');
+                    vsel=intersect_ccfid~=allen_meta(regii,3);
+                    [r,p]=corr(reshape(allen_mat(regii,vsel).',[],1),...
+                        reshape(feat_prop(vsel),[],1),'type','Spearman');
                 case 'PearsonLogLog'
-                    vsel=(glmxmat(regii,:).')>0 & feat_prop>0;
-                    [r,p]=corr(reshape(log10(glmxmat(regii,vsel)),[],1),...
+                    vsel=(allen_mat(regii,:).')>0 & feat_prop>0 & intersect_ccfid~=allen_meta(regii,3);
+                    [r,p]=corr(reshape(log10(allen_mat(regii,vsel)),[],1),...
                         reshape(log10(feat_prop(vsel)),[],1),'type','Pearson');
                 case 'PearsonLinearLog'
-                    vsel=(glmxmat(regii,:).')>0;
-                    [r,p]=corr(reshape(log10(glmxmat(regii,vsel)),[],1),...
+                    vsel=(allen_mat(regii,:).')>0 & intersect_ccfid~=allen_meta(regii,3);
+                    [r,p]=corr(reshape(log10(allen_mat(regii,vsel)),[],1),...
                         reshape(feat_prop(vsel),[],1),'type','Pearson');
             end
-            one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(glmxmeta(regii,:)),r,p];
+            one_reg_corr_list=[one_reg_corr_list;featii,epochii,regii,double(allen_meta(regii,:)),r,p];
             %====================================^^^1^^^^^^2^^^^^^3^^^^^^^^^^^4,5,6^^^^^^^^^^^^^7^8^^
         end
 %         save('one_reg_corr_list.mat','one_reg_corr_list')
@@ -120,11 +129,9 @@ for featii=1:numel(map_cells) % both, either, summed
             bh.CData(s_list(:,4)==2,:)=repmat([0,0,0],nnz(s_list(:,4)==2),1);
             ylabel('Connectivity-coding proportion correlation (Pearson''s r)')
             set(gca(),'XTick',1:size(s_list,1),'XTickLabel',xlbl,'XTickLabelRotation',90);
-            if isfield(opt,'feat_tag') && ~isempty(opt.feat_tag)
-                title(opt.feat_tag(featii));
-            else
-                title(sprintf('epoch%d-feature%d',epochii,featii))
-            end
+            
+            sgtitle(fns{featii});
+%                 title(sprintf('epoch%d-feature%d',epochii,featii))
             ylim([-1,1]);
 
             for rr=1:numel(xlbl)
@@ -138,59 +145,68 @@ for featii=1:numel(map_cells) % both, either, summed
 %             nexttile(1,[1,3])
             nexttile(1,[2,1]) % positive max
             hold on
-            glmidx=find(glmxmeta(:,1)==s_list(1,4) & glmxmeta(:,2)==s_list(1,5));
+            glmidx=find(allen_meta(:,1)==s_list(1,4) & allen_meta(:,2)==s_list(1,5));
+            rmv_inj=intersect_ccfid~=allen_meta(s_list(1,3),3);
             for ll=1:numel(feat_prop)
+                if intersect_ccfid(ll)==allen_meta(s_list(1,3),3)
+                    continue
+                end
                 c=ephys.getRegColor(intersect_regs{ll},'large_area',true);
-                scatter(glmxmat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
-                text(glmxmat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+                scatter(allen_mat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
+                text(allen_mat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
             end
 
-
+            
             xlabel('Projection density (px/px)');
             ylabel('Regional averaged feature index')
             if strcmp(corr_type,'PearsonLinearLog')
                 set(gca,'XScale','log','YScale','linear')
-                coord=[log10(glmxmat(glmidx,:).'),feat_prop];
+                coord=[log10(allen_mat(glmidx,rmv_inj).'),feat_prop(rmv_inj)];
                 coord(:,3)=1;
                 regres=coord(:,[1,3])\coord(:,2);
-                xx=minmax(glmxmat(glmidx,:));
+                xx=minmax(allen_mat(glmidx,rmv_inj));
                 yy=log10(xx).*regres(1)+regres(2);
                 plot(xx,yy,'--k');
             else
                 set(gca,'XScale','log','YScale','log')
-                coord=log10([glmxmat(glmidx,:).',feat_prop]);
+                coord=log10([allen_mat(glmidx,rmv_inj).',feat_prop(rmv_inj)]);
                 coord(:,3)=1;
                 regres=coord(:,[1,3])\coord(:,2);
-                xx=minmax(glmxmat(glmidx,:));
+                xx=minmax(allen_mat(glmidx,rmv_inj));
                 yy=10.^(log10(xx).*regres(1)+regres(2));
                 plot(xx,yy,'--k');
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
 
+            
             nexttile(2,[2,1]) %negative max
             hold on
-            glmidx=find(glmxmeta(:,1)==s_list(end,4) & glmxmeta(:,2)==s_list(end,5));
+            glmidx=find(allen_meta(:,1)==s_list(end,4) & allen_meta(:,2)==s_list(end,5));
+            rmv_inj=intersect_ccfid~=allen_meta(s_list(end,3),3);
             for ll=1:numel(feat_prop)
+                if intersect_ccfid(ll)==allen_meta(s_list(end,3),3)
+                    continue
+                end
                 c=ephys.getRegColor(intersect_regs{ll},'large_area',true);
-                scatter(glmxmat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
-                text(glmxmat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+                scatter(allen_mat(glmidx,ll),feat_prop(ll),4,c,'filled','o')
+                text(allen_mat(glmidx,ll),feat_prop(ll),intersect_regs{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
             end
             xlabel('Projection density (px/px)');
             ylabel('Regional averaged feature index')
             if strcmp(corr_type,'PearsonLinearLog')
                 set(gca,'XScale','log','YScale','linear')
-                coord=[log10(glmxmat(glmidx,:).'),feat_prop];
+                coord=[log10(allen_mat(glmidx,rmv_inj).'),feat_prop(rmv_inj)];
                 coord(:,3)=1;
                 regres=coord(:,[1,3])\coord(:,2);
-                xx=minmax(glmxmat(glmidx,:));
+                xx=minmax(allen_mat(glmidx,rmv_inj));
                 yy=log10(xx).*regres(1)+regres(2);
                 plot(xx,yy,'--k');
             else
                 set(gca,'XScale','log','YScale','log')
-                coord=log10([glmxmat(glmidx,:).',feat_prop]);
+                coord=log10([allen_mat(glmidx,rmv_inj).',feat_prop(rmv_inj)]);
                 coord(:,3)=1;
                 regres=coord(:,[1,3])\coord(:,2);
-                xx=minmax(glmxmat(glmidx,:));
+                xx=minmax(allen_mat(glmidx,rmv_inj));
                 yy=10.^(log10(xx).*regres(1)+regres(2));
                 plot(xx,yy,'--k');
             end
@@ -213,14 +229,14 @@ for featii=1:numel(map_cells) % both, either, summed
     end
     %% two region glm interaction
     if opt.corr2
-        comb2=nchoosek(1:size(glmxmat,1),2);
+        comb2=nchoosek(1:size(allen_mat,1),2);
         mdlid_rsq_AICC=[];
         for jj=1:size(comb2,1)
             if rem(jj,1000)==0
                 disp(jj)
             end
-            allen_A=log10(glmxmat(comb2(jj,1),:).'); % from one alternating target, to idx4corr
-            allen_B=log10(glmxmat(comb2(jj,2),:).');
+            allen_A=log10(allen_mat(comb2(jj,1),:).'); % from one alternating target, to idx4corr
+            allen_B=log10(allen_mat(comb2(jj,2),:).');
             mdl=fitglm([allen_A,allen_B],feat_prop,'linear'); % (1|2)jj => glmxmat==glmxmeta => (sink_ccfid|src_ccfid)
 %             two_reg_corr_list=[two_reg_corr_list;featii,epochii,jj,double(glmxmeta(comb2(jj,1),:)),double(glmxmeta(comb2(jj,2),:)),mdl.Coefficients.Estimate.',mdl.Rsquared.Ordinary,mdl.ModelCriterion.AICc];
             %============================================^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -237,14 +253,14 @@ for featii=1:numel(map_cells) % both, either, summed
 %                     reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
 %                     reg1=['To ',reg1{1}];
 %                 else
-                    reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,1),2))));
+                    reg1=(idmap.ccfid2reg(src_ccfid(allen_meta(comb2(maxidx,1),2))));
                     reg1=signs(sign(mdlid_rsq_AICC(kk,4))+2)+string(reg1);
 %                 end
 %                 if glmxmeta(comb2(maxidx,2),1)==1
 %                     reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
 %                     reg2=['To ',reg2{1}];
 %                 else
-                    reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
+                    reg2=idmap.ccfid2reg(src_ccfid(allen_meta(comb2(maxidx,2),2)));
                     reg2=signs(sign(mdlid_rsq_AICC(kk,5))+2)+string(reg2);
 %                 end
 %                 disp([reg1,',',reg2,' ',num2str(mdlid_rsq_AICC(kk,2:3))])
@@ -263,8 +279,8 @@ for featii=1:numel(map_cells) % both, either, summed
 %             close(fh)
 
             maxidx=mdlid_rsq_AICC(1,1);
-            allen_A=log10(glmxmat(comb2(maxidx,1),:).'); % from one alternating target, to idx4corr
-            allen_B=log10(glmxmat(comb2(maxidx,2),:).');
+            allen_A=log10(allen_mat(comb2(maxidx,1),:).'); % from one alternating target, to idx4corr
+            allen_B=log10(allen_mat(comb2(maxidx,2),:).');
             mdl=fitglm([allen_A,allen_B],feat_prop,'linear');
 
 
@@ -273,14 +289,14 @@ for featii=1:numel(map_cells) % both, either, summed
 %                 reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,1),2)));
 %                 reg1=['To_',reg1{1}];
 %             else
-                reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,1),2))));
+                reg1=(idmap.ccfid2reg(src_ccfid(allen_meta(comb2(maxidx,1),2))));
                 reg1=['From_',reg1{1}];
 %             end
 %             if glmxmeta(comb2(maxidx,2),1)==1
 %                 reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb2(maxidx,2),2)));
 %                 reg2=['To_',reg2{1}];
 %             else
-                reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb2(maxidx,2),2)));
+                reg2=idmap.ccfid2reg(src_ccfid(allen_meta(comb2(maxidx,2),2)));
                 reg2=['From_',reg2{1}];
 %             end
             nexttile(1,[2,1])
@@ -316,16 +332,16 @@ for featii=1:numel(map_cells) % both, either, summed
     end
     %%
     if opt.corr3
-        comb3=nchoosek(1:size(glmxmat,1),3);
+        comb3=nchoosek(1:size(allen_mat,1),3);
         max3rsqp=0;
         max3idxp=-1;
         for jj=127706%1:size(comb3,1)
             if rem(jj,1000)==0
                 disp(jj)
             end
-            allen_A=glmxmat(comb3(jj,1),:).'; % from one alternating target, to idx4corr
-            allen_B=glmxmat(comb3(jj,2),:).';
-            allen_C=glmxmat(comb3(jj,3),:).';
+            allen_A=allen_mat(comb3(jj,1),:).'; % from one alternating target, to idx4corr
+            allen_B=allen_mat(comb3(jj,2),:).';
+            allen_C=allen_mat(comb3(jj,3),:).';
             mdl=fitglm([allen_A,allen_B,allen_C],feat_prop,'poly111');
             if mdl.Rsquared.Ordinary>max3rsqp
                 max3rsqp=mdl.Rsquared.Ordinary;
@@ -335,26 +351,26 @@ for featii=1:numel(map_cells) % both, either, summed
             if mdl.Rsquared.Ordinary>0.64
                 disp(jj)
                 disp(sqrt(mdl.Rsquared.Ordinary));
-                if glmxmeta(comb3(jj,1),1)==1
-                    reg1=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,1),2)));
+                if allen_meta(comb3(jj,1),1)==1
+                    reg1=idmap.ccfid2reg(sink_ccfid(allen_meta(comb3(jj,1),2)));
                     reg1=['To_',reg1{1}];
                 else
-                    reg1=(idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,1),2))));
+                    reg1=(idmap.ccfid2reg(src_ccfid(allen_meta(comb3(jj,1),2))));
                     reg1=['From_',reg1{1}];
                 end
-                if glmxmeta(comb3(jj,2),1)==1
-                    reg2=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,2),2)));
+                if allen_meta(comb3(jj,2),1)==1
+                    reg2=idmap.ccfid2reg(sink_ccfid(allen_meta(comb3(jj,2),2)));
                     reg2=['To_',reg2{1}];
                 else
-                    reg2=idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,2),2)));
+                    reg2=idmap.ccfid2reg(src_ccfid(allen_meta(comb3(jj,2),2)));
                     reg2=['From_',reg2{1}];
                 end
 
-                if glmxmeta(comb3(jj,3),1)==1
-                    reg3=idmap.ccfid2reg(sink_ccfid(glmxmeta(comb3(jj,3),2)));
+                if allen_meta(comb3(jj,3),1)==1
+                    reg3=idmap.ccfid2reg(sink_ccfid(allen_meta(comb3(jj,3),2)));
                     reg3=['To_',reg3{1}];
                 else
-                    reg3=idmap.ccfid2reg(src_ccfid(glmxmeta(comb3(jj,3),2)));
+                    reg3=idmap.ccfid2reg(src_ccfid(allen_meta(comb3(jj,3),2)));
                     reg3=['From_',reg3{1}];
                 end
                 if opt.plot3

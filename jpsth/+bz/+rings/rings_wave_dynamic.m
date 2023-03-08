@@ -258,7 +258,7 @@ for cc=reshape(fieldnames(pstats.congru),1,[])
     end
 end
 %TODO: update pdf from trial-tagged data
-congru_pdf=histcounts(durs,[0:2:10,20:20:200],'Normalization','pdf');
+congru_pdf=histcounts(durs,[0:9,10:10:200],'Normalization','pdf');
 
 %% burst loops
 % load('rings_wave_burst_600.mat','out');
@@ -284,7 +284,7 @@ d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],
 
 figure()
 hold on
-sph=plot([1:2:9,15:20:195],congru_pdf,'--k');
+sph=plot([0.5:9.5,15:10:195],congru_pdf,'--k');
 bph=plot([25:50:975,1250,1750],d6hist,'k-');
 % plot([25:50:975,1250,1750],d3hist,'k--');
 set(gca(),'XScale','log','YScale','log');
@@ -292,6 +292,13 @@ ylim([1e-5,0.1]);
 xlabel('Time (ms)')
 ylabel('Probability density (per loop per ms)')
 legend([sph,bph],{'Single spike loops','Burst spike loops'},'Location','northoutside','Orientation','horizontal')
+if false %supplement for single spike ring-along plot
+    qtrs=prctile(durs,[25,50,75]); % 16.9   22.2   28.3, @2023-03-08
+    xline(qtrs,'--k',{'25%','50%','75%'})
+    ylim([1e-4,1e-1])
+    title('single spike loops')
+end
+
 end
 
 function composite_loops()
@@ -363,14 +370,12 @@ ylim([1e-5,0.1]);
 xlabel('Time (ms)');
 ylabel('Probability density');
 legend([sh,mh],{'Single spike chain','Burst spike chain'},'Location','northoutside','Orientation','horizontal')
-if false
+if false % supplyment for  single spike time constant alone plot, w/o busrt, w/ median, IQR
     qtrs=prctile([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[25,50,75]); % 16.6667   21.1000   25.8000, @2023-03-07
     xline(qtrs,'--k',{'25%','50%','75%'})
     ylim([1e-4,1e-1])
     title('single spike chains')
 end
-
-
 
 end
 

@@ -58,11 +58,9 @@ if ~opt.skip_export
         keyboard()
     end
 end
-mixed_map=containers.Map(regstr,num2cell(bardata(:,[7,4,3]),2));
-olf_map=containers.Map(regstr,num2cell(bardata(:,[10,5,3]),2));
-dur_map=containers.Map(regstr,num2cell(bardata(:,[13,5,3]),2));
-
-map_cells={mixed_map,olf_map,dur_map};
+map_cells.mixed=containers.Map(regstr,num2cell(bardata(:,[7,4,3]),2));
+map_cells.olf=containers.Map(regstr,num2cell(bardata(:,[10,5,3]),2));
+map_cells.dur=containers.Map(regstr,num2cell(bardata(:,[13,5,3]),2));
 
 if opt.skip_plot
     fh=[];

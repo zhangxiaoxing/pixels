@@ -7,31 +7,24 @@ meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
-
 % map_cells: mixed_map,olf_map,dur_map
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-tcom3_maps=cell(1,3);
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+tcom3_maps=struct();
+tcom6_maps=struct();
+grey_regs=ephys.getGreyRegs('range','grey');
+for typeidx=["mixed","olf","dur"]
     [fcom3.(type).collection,fcom3.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',type,'com_field','com3');
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom3.(type).collection(:,2));
+        com_map,'sel_type',typeidx,'com_field','com3');
+    ureg=intersect(grey_regs,fcom3.(typeidx).collection(:,2));
     [~,tcidx]=ismember(ureg,fcom3.(type).collection(:,2));
-    tcom3_maps{typeidx}=containers.Map(...
+    tcom3_maps.(typeidx)=containers.Map(...
         ureg,num2cell(cellfun(@(x) x/4, fcom3.(type).collection(tcidx,1))));
-end
 
-
-tcom6_maps=cell(1,3);
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
     [fcom6.(type).collection,fcom6.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',type,'com_field','com6');
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom6.(type).collection(:,2));
+        com_map,'sel_type',typeidx,'com_field','com6');
+    ureg=intersect(grey_regs,fcom6.(typeidx).collection(:,2));
     [~,tcidx]=ismember(ureg,fcom6.(type).collection(:,2));
-    tcom6_maps{typeidx}=containers.Map(...
+    tcom6_maps.(typeidx)=containers.Map(...
         ureg,num2cell(cellfun(@(x) x/4, fcom6.(type).collection(tcidx,1))));
 end
 
@@ -161,33 +154,32 @@ ch=gcf().Children.Children;
 ch(3).YLim=[0,0.6];
 
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,gather_config.corr_log_log, ...
-    'range','grey','data_type','pct-frac','stats_type','percentile',...
-    'feat_tag',{'Mixed','Olfactory','Duration'},'corr2',false,'plot2',false);
+    'range','grey','data_type','pct-frac','stats_type','percentile');
 
 
 %% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 if false
 % 3s delay trials and 6s delay trials early 3s
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,gather_config.corr_ln_log, ...
-    'range','grey','data_type','wrs-mux-TCOM','stats_type','wrs-mux','feat_tag',{'Mixed','Olfactory','Duration'});
+    'range','grey','data_type','wrs-mux-TCOM','stats_type','wrs-mux');
 end
 % 3s delay trials only
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom3_maps,gather_config.corr_ln_log, ...
-    'range','grey','data_type','wrs-mux-TCOM3','stats_type','wrs-mux3','feat_tag',{'Mixed','Olfactory','Duration'});
+    'range','grey','data_type','wrs-mux-TCOM3','stats_type','wrs-mux3');
 
 % 6s delay trials only
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom6_maps,gather_config.corr_ln_log, ...
-    'range','grey','data_type','wrs-mux-TCOM6','stats_type','wrs-mux6','feat_tag',{'Mixed','Olfactory','Duration'});
+    'range','grey','data_type','wrs-mux-TCOM6','stats_type','wrs-mux6');
 
-
-
-olf_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom3_maps(2),gather_config.corr_ln_log, ...
+olfmap.olf=tcom3_maps.olf;
+olf_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(olfmap,gather_config.corr_ln_log, ...
     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
-    'feat_tag',{'Olfaction'},'corr2',true,'plot2',true,'corr1',false);
+    'corr2',true,'plot2',true,'corr1',false);
 
-dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom3_maps(3),gather_config.corr_ln_log, ...
+durmap.dur=tcom3_maps.dur;
+dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(durmap,gather_config.corr_ln_log, ...
     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
-    'feat_tag',{'Duration'},'corr2',true,'plot2',true,'corr1',false);
+    'corr2',true,'plot2',true,'corr1',false);
 
 % mix_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom_maps(1),gather_config.corr_ln_log, ...
 %     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
