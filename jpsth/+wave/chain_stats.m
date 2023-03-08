@@ -444,9 +444,9 @@ ylabel('Neuron-region wave timing slope')
 
 % chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
 % len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
-
+clear olf_reg_cat olf_u_reg_cat both_reg_cat both_u_reg_cat
 for curr_tag=["within","cross"]
-    olf_within_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel & (chains_uf.reg_sel==curr_tag);
+    olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel & (chains_uf.reg_sel==curr_tag);
 
     olf_uid=[chains_uf.uid{olf_sel}];
     [chain_olf_uid,usel]=unique(olf_uid);
@@ -455,7 +455,7 @@ for curr_tag=["within","cross"]
     olf_reg_cat.(curr_tag)=categorical(olf_reg);
     olf_u_reg_cat.(curr_tag)=categorical(olf_reg(usel));
 
-    both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
+    both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel & chains_uf.reg_sel==curr_tag;
     both_uid=[chains_uf.uid{both_sel}];
     [chain_both_uid,usel]=unique(both_uid);
     both_reg=[chains_uf.reg{both_sel}];
@@ -488,13 +488,13 @@ for curr_tag=["within","cross"]
     nexttile()
     bar(olf_ratio.(curr_tag)(1:5))
     set(gca(),'XTick',1:5,'XTickLabel',greys(olf_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
-    ylim([0.01,10]);
+    ylim([0.001,10]);
     ylabel('Occurance per neuron')
     title("olf "+curr_tag)
     nexttile()
     bar(both_ratio.(curr_tag)(1:5))
     set(gca(),'XTick',1:5,'XTickLabel',greys(both_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
-    ylim([0.01,10]);
+    ylim([0.001,10]);
     ylabel('Occurance per neuron')
     title("both "+curr_tag)
 end
