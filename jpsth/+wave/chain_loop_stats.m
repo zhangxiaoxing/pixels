@@ -220,76 +220,7 @@ set(gca(),'XScale','log','YScale','log')
 xlim([10,1200])
 
 %% ========================SHOWCASE===============
-
-function SC()
-sessid=18;
-su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-sess_cid=su_meta.allcid(su_meta.sess==sessid);
-sess_reg=su_meta.reg_tree(5,su_meta.sess==sessid).';
-
-% sessid=18;
-load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
-edges = find(diff([0;covered;0]==1));
-onset = edges(1:2:end-1);  % Start indices
-run_length = edges(2:2:end)-onset;  % Consecutive ones counts
-
-[~,maxid]=max(run_length);
-maxonset=onset(maxid);
-maxoffset=edges(maxid*2);
-trialid=find(maxonset.*30-FT_SPIKE.trialinfo(:,1)>0,1,'last');
-
-uidx=unique(ts_tag(:,1));
-ucid=str2double(FT_SPIKE.label(uidx));
-[~,cidmap]=ismember(ucid,sess_cid);
-ureg=sess_reg(cidmap);
-
-uidx=uidx(~ismissing(ureg));
-ureg=ureg(~ismissing(ureg));
-%% regional TCOM related 
-global_init;
-wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
-[fcom6.olf.collection,fcom6.olf.com_meta]=wave.per_region_COM(...
-    com_map,'sel_type','olf','com_field','com6');
-[~,tcidx]=ismember(ureg,fcom6.olf.collection(:,2));
-reg_tcom=cell2mat(fcom6.olf.collection(tcidx,1))./4;
-
-[reg_tcom,tcomidx]=sort(reg_tcom,'descend');
-ureg=ureg(tcomidx);
-uidx=uidx(tcomidx);
-%%
-
-for ii=1:10
-    preg=cell(0);
-    ptrial=utrial(sort_idx(ii));
-    pts_tag=ts_tag(ts_tag(:,4)==ptrial,:);
-    
-    figure();
-    hold on;
-    yy=1;
-    for cid=reshape(uidx,1,[])
-        xx=pts_tag(pts_tag(:,1)==cid & pts_tag(:,5)==0,3)-1;
-        cntag=pts_tag(pts_tag(:,1)==cid & bitand(pts_tag(:,5),3)>0 & bitand(pts_tag(:,5),12)==0,3)-1;
-        lptag=pts_tag(pts_tag(:,1)==cid & bitand(pts_tag(:,5),3)==0 & bitand(pts_tag(:,5),12)>0,3)-1;
-        bothtag=pts_tag(pts_tag(:,1)==cid & bitand(pts_tag(:,5),3)>0 & bitand(pts_tag(:,5),12)>0,3)-1;
-        if ~(isempty(cntag) && isempty(lptag) && isempty(bothtag))
-            preg=[preg;ureg(uidx==cid)];
-            plot(xx,repmat(yy,1,numel(xx)),'k|')
-            plot(cntag,repmat(yy,1,numel(cntag)),'b|')
-            plot(lptag,repmat(yy,1,numel(lptag)),'r|')
-            plot(bothtag,repmat(yy,1,numel(bothtag)),'m|')
-            yy=yy+1;
-        end
-    end
-    xlim([0,FT_SPIKE.trialinfo(ptrial,8)]);
-    xlabel('Time (s)')
-    ylabel('Neuron #')
-    title("Session "+num2str(sessid)+" Trial "+num2str(ptrial));
-    set(gca,'YTick',1:numel(preg),'YTickLabel',preg)
-    keyboard();
-end
-%% stats
-end
+% moved to chain_loops_SC_spk.m
 
 
 function db_test()
