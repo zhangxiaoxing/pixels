@@ -2,7 +2,7 @@
 % load single spike chain data
 % load burst spike chain data
 
-bburst=false;
+bburst=true;
 
 optmem=false;
 if ispc
@@ -13,7 +13,7 @@ if ispc
 end
 
 
-if ~exist('inited','var') || ~inited
+if false%~exist('inited','var') || ~inited
     inited=true;
     %% single spike chain
     sschain=load('chain_tag.mat','out');
@@ -47,6 +47,7 @@ if ~exist('inited','var') || ~inited
         usess=intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
     end
     % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
+    per_sess_coverage=struct();
     for sessid=reshape(usess,1,[])
         covered=false(1000,1); % 2hrs of milli-sec bins
 
@@ -192,11 +193,11 @@ if ~exist('inited','var') || ~inited
             save("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'FT_SPIKE','covered','blame')
         end
     end
+    per_sess_coverage.("S"+num2str(sessid))=covered;
 else % load from file
-    per_sess_coverage=struct();
     for sessid=[14,18,22,33,34,68,100,102,114]
         if bburst
-            load("ChainedLoop"+num2str(sessid)+".mat",'covered')
+            load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
         else
             load("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'covered')
         end
@@ -213,11 +214,28 @@ for jj=1:numel(covered)
     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
 %     per_sess_coverage.("S"+num2str(sessid))=run_length;
 end
-chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
 figure()
-plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);
+hold on;
+if bburst
+    chained_loops_pdf=histcounts(run_length,[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
+    plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-k');
+    qtrs=prctile(run_length,[25,50,75]);
+    qtrs19=prctile(run_length,[10,20,80,90]);
+    xline(qtrs,'--k') % 17 24 35
+    xlim([5,1200])
+%     ylim([8e-6,0.1])
+else
+    chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
+    plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
+    qtrs=prctile(run_length,[25,50,75]);
+    xline(qtrs,'--k',{'25%','50%','75%'}) % 17 24 35
+    xlim([3,300])
+    ylim([8e-6,0.1])
+
+end
 set(gca(),'XScale','log','YScale','log')
-xlim([10,1200])
+xlabel('Time (ms)')
+ylabel('Probability density')
 
 %% ========================SHOWCASE===============
 % moved to chain_loops_SC_spk.m

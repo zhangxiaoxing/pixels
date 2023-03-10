@@ -1,8 +1,11 @@
 % Plot per-spike raster showcase of chained loops
-bburst=false;
+bburst=true;
 
 if false
+    global_init;
+    wrs_mux_meta=ephys.get_wrs_mux_meta();
     su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+    [map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'linear','linear'},'skip_plot',true); % only need map_cells for tcom-frac corr
 
     % single spike chain
     sschain=load('chain_tag.mat','out');
@@ -17,7 +20,7 @@ if false
 end
 
 %[ 14    18    22    33    34    68   100   102   114]
-sessid=100;
+sessid=18;
 % extract connected components with graph tools; option: per-trial
 % dynamic graph=============================
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
@@ -153,12 +156,12 @@ for maxid=reshape(maxids(1:10),1,[])
             end
         end
     end
-    if all(~strcmp(in_maximum_tags(:,1),'SSC')) || all(~strcmp(in_maximum_tags(:,1),'SSL'))
+    if ~bburst && (all(~strcmp(in_maximum_tags(:,1),'SSC')) || all(~strcmp(in_maximum_tags(:,1),'SSL')))
         warning("No chains or loops")
         continue
     end
 
-    %% ===============PLOT PREPARATION===============
+    %% ===========SPIKE PLOT PREPARATION===============
 
     sess_cid=su_meta.allcid(su_meta.sess==sessid);
     sess_reg=su_meta.reg_tree(5,su_meta.sess==sessid).';
@@ -174,19 +177,18 @@ for maxid=reshape(maxids(1:10),1,[])
     ureg=ureg(~ismissing(ureg));
 
     % regional TCOM related
-    global_init;
-    wrs_mux_meta=ephys.get_wrs_mux_meta();
-    if false
-        com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
-        [fcom6.olf.collection,fcom6.olf.com_meta]=wave.per_region_COM(...
-            com_map,'sel_type','olf','com_field','com6');
-        [~,tcidx]=ismember(ureg,fcom6.olf.collection(:,2));
-        reg_tcom=cell2mat(fcom6.olf.collection(tcidx,1))./4;
-        [reg_tcom,tcomidx]=sort(reg_tcom,'descend');
+
+    if false%bburst
+
+        reg_prop=subsref(cell2mat(map_cells.olf.values(ureg)),struct(type={'()'},subs={{':',1}}));
+        [reg_prop,tcomidx]=sort(reg_prop,'descend');
+        ureg=ureg(tcomidx);
+        ucid=ucid(tcomidx);
+
     else
         chnConn=in_maximum_tags(strcmp(in_maximum_tags(:,1),'SSC'),3);
-        connmat=cell2mat(cellfun(@(x) [x(1:end-1,1),x(2:end,1)],chnConn,'UniformOutput',false));
-        digh=digraph(cellstr(int2str(connmat(:,1))),cellstr(int2str(connmat(:,2))));
+        chnConnmat=cell2mat(cellfun(@(x) [x(1:end-1,1),x(2:end,1)],chnConn,'UniformOutput',false));
+        digh=digraph(cellstr(int2str(chnConnmat(:,1))),cellstr(int2str(chnConnmat(:,2))));
         if ~digh.isdag
             warning("Is not DAG")
             continue
@@ -194,13 +196,32 @@ for maxid=reshape(maxids(1:10),1,[])
         topocid=str2double(digh.Nodes.Name(digh.toposort));
         [~,topopos]=ismember(ucid,topocid);
         topopos(topopos==0)=numel(topocid)+1;
-
         reg_prop=subsref(cell2mat(map_cells.olf.values(ureg)),struct(type={'()'},subs={{':',1}}));
         [reg_prop,tcomidx]=sortrows([reg_prop,-topopos],[1,2]);
+        ureg=ureg(tcomidx);
+        ucid=ucid(tcomidx);
+
+
+        % for gephi illustration
+        lopConn=in_maximum_tags(strcmp(in_maximum_tags(:,1),'SSL'),3);
+        lopConnmat=cell2mat(cellfun(@(x) [x(1:end-1,1),x(2:end,1)],lopConn,'UniformOutput',false));
+
+        
+        allconns=unique([chnConnmat;lopConnmat],'rows');
+        allconns(:,3)=0;
+        allconns(ismember(allconns(:,1:2),chnConnmat,'rows'),3)=1;
+        lopsel=ismember(allconns(:,1:2),lopConnmat,'rows');
+        allconns(lopsel,3)=allconns(lopsel,3)+2;
+        csvcell=[{'Source','Target','Pattern'};num2cell(allconns)];
+        writecell(csvcell,fullfile('bzdata',sprintf('SingleSpkConn4gephi_s%dm_%d.csv',sessid,maxid)));
+
+        nodecell=[{'Id','Label','Toposort','REG','ChnOrd'};...
+            num2cell([ucid,ucid,(numel(ucid):-1:1).',reg_prop(:,1),topopos(tcomidx)])];
+        writecell(nodecell,fullfile('bzdata',sprintf('SingleSpkNode4gephi_s%dm_%d.csv',sessid,maxid)));
+
     end
 
-    ureg=ureg(tcomidx);
-    ucid=ucid(tcomidx);
+
 
     %% ================== Actual plot ============================
 
@@ -273,11 +294,11 @@ for maxid=reshape(maxids(1:10),1,[])
     end
     % set(gca(),'XTick',5:0.2:6.2,'XTickLabel',0:0.2:1.2)
     if bburst
-        
-        set(gca(),'XTick',0:7,'XTickLabel',0:7)
+        xlim(xspan+[-0.02,0.02]);
+        set(gca(),'XTick',xspan(1)-0.02:0.5:xspan(1)+2,'XTickLabel',0:0.5:2);
     else
         xlim(xspan+[-0.01,0.01]);
-        set(gca(),'XTick',xspan(1)-0.01:0.05:xspan+0.21,'XTickLabel',0:0.05:0.2);
+        set(gca(),'XTick',xspan(1)-0.01:0.05:xspan(2)+0.21,'XTickLabel',0:0.05:0.2);
     end
     ylim([0.5,yy-0.5])
     keyboard();

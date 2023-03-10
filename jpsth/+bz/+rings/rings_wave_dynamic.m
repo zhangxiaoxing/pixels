@@ -306,18 +306,21 @@ hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
 C=struct2cell(hrstats.stats).';
 expd=[C{:}];
 expdd=[expd{:}];
-hrhist=histcounts(expdd,[0:10:100,150:50:250],'Normalization','pdf');
-
+hrhist=histcounts(expdd,[0:2:19,20:20:240],'Normalization','pdf');
+qtrs=prctile(expdd,[25,50,75]);
+qtrs19=prctile(expdd,[10,50,90]);
 figure()
 hold on
-sph=plot([0.5:1:9.5,15:10:195],congru_pdf,'--k');
-hrh=plot([5:10:95,125:50:225],hrhist,'-k');
+% sph=plot([0.5:1:9.5,15:10:195],congru_pdf,'--k');
+hrh=plot([1:2:19,30:20:240],hrhist,'-k');
+xline(qtrs,'k--',{'25%','50%','75%'})
 % plot([25:50:975,1250,1750],d3hist,'k--');
 set(gca(),'XScale','log','YScale','log');
-ylim([1e-5,0.1]);
+ylim([8e-6,0.1]);
 xlabel('Time (ms)')
 ylabel('Probability density (per loop per ms)')
-legend([sph,hrh],{'Single spike loops','Composite single spike loops'},'Location','northoutside','Orientation','horizontal')
+xlim([2,300])
+
 
 end
 
