@@ -158,54 +158,6 @@ end
 blame=vcs.blame();
 save("chainned_loops_thinned.mat","thinned","blame")
 
-% 
-% 
-% function plot(thinned)
-%     load("chainned_loops_thinned.mat","thinned")
-%     sessfn=fieldnames(thinned);
-% %     struct2cell(thinned)
-%     
-%     figure()
-%     hold on
-%     tofit=[];
-%     for fn=reshape(sessfn,1,[])
-%         onesess=thinned.(fn{1});
-%         nsu=[];
-%         for ii=1:size(onesess,1)
-%             pct=[];
-%             for jj=1:size(onesess{ii,2})
-%                 if ~isempty(onesess{ii,2}{jj})
-%                     pct=[pct;median(onesess{ii,2}{jj}),max(onesess{ii,2}{jj})];
-%                 else
-%                     pct=[pct;0,0];
-%                 end
-%             end
-%             nsu=[nsu;onesess{ii,1}(1)-onesess{ii,1}(2),mean(pct,1)];
-%         end
-% %         plot(nsu(:,1),nsu(:,2),'--')
-%         plot(nsu(:,1),nsu(:,3),'-o','Color','#C0C0C0')
-%         tofit=[tofit;nsu(:,1),nsu(:,3)];
-%     end
-%     fp1=fit(tofit(:,1),tofit(:,2),'power2');
-%     plot(fp1,'r-')
-%     set(gca(),'XScale','log','YScale','log')
-% %     set(gca(),'XScale','linear','YScale','linear')
-% 
-%     xlim([10,5000])
-%     ylim([1,10000])
-%     yline(3000,'k--')
-%     yline(6000,'k--')
-%     xlabel('Simultaneously observed neurons')
-%     ylabel('Median, longest chained-loops pattern duration (msec)')
-% 
-% 
-%     figure()
-%     hold on
-%     scatter(tofit(:,1),tofit(:,2))
-%     fp1=fit(tofit(:,1),tofit(:,2),'poly1');
-%     plot(fp1,'r-')
-%     set(gca(),'XScale','log','YScale','log')
-% end
 
 function ffit(thinned)
 
@@ -239,15 +191,20 @@ function ffit(thinned)
         end
         tofit.(fn{1}).vars=nsu;
         fp1=fit(nsu(:,1),nsu(:,3),'poly1');
+        fplog=fit(log10(nsu(nsu(:,3)>0,1)),log10(nsu(nsu(:,3)>0,3)),'poly1');
         fpw2=fit(nsu(:,1),nsu(:,3),'power2');
         tofit.(fn{1}).poly1=fp1;
+        tofit.(fn{1}).polylog=fplog;
         tofit.(fn{1}).pow2=fpw2;
+        
         plot(nsu(:,1),nsu(:,3),'-','Color','#c0c0c0')
         tofit.(fn{1}).poly1fit=fp1(fitxx);
+        tofit.(fn{1}).polylogfit=10.^(fplog(log10(fitxx)));
         tofit.(fn{1}).powr2fit=fpw2(fitxx);
     end
     
     poly1mat=cell2mat(cellfun(@(x) tofit.(x).poly1fit.',sessfn,'UniformOutput',false));
+    polylogmat=cell2mat(cellfun(@(x) tofit.(x).polylogfit.',sessfn,'UniformOutput',false));
     pow2mat=cell2mat(cellfun(@(x) tofit.(x).powr2fit.',sessfn,'UniformOutput',false));
     
     p1mm=mean(poly1mat);
@@ -255,8 +212,18 @@ function ffit(thinned)
     p1sem=std(poly1mat)./sqrt(size(poly1mat,1));
     p1span=[p1mm(p1sel)+p1sem(p1sel),fliplr(p1mm(p1sel)-p1sem(p1sel))];
     p1span(p1span<=0)=realmin();
-    fill([fitxx(p1sel),fliplr(fitxx(p1sel))],p1span,'r','EdgeColor','none','FaceAlpha',0.2);
-    plot(fitxx(p1sel),p1mm(p1sel),'r-');
+    fill([fitxx(p1sel),fliplr(fitxx(p1sel))],p1span,'g','EdgeColor','none','FaceAlpha',0.2);
+    poly1h=plot(fitxx(p1sel),p1mm(p1sel),'g-');
+
+
+    plogmm=mean(polylogmat);
+    plogsel=plogmm>0;
+    plogsem=std(polylogmat)./sqrt(size(polylogmat,1));
+    plogspan=[plogmm(plogsel)+plogsem(plogsel),fliplr(plogmm(plogsel)-plogsem(plogsel))];
+    plogspan(plogspan<=0)=realmin();
+    fill([fitxx(plogsel),fliplr(fitxx(plogsel))],plogspan,'r','EdgeColor','none','FaceAlpha',0.2);
+    loglogh=plot(fitxx(plogsel),plogmm(plogsel),'r-');
+
 
     p2mm=mean(pow2mat);
     p2sel=p2mm>0;
@@ -264,13 +231,14 @@ function ffit(thinned)
     p2span=[p2mm(p2sel)+p2sem(p2sel),fliplr(p2mm(p2sel)-p2sem(p2sel))];
     p2span(p2span<=0)=realmin();
     fill([fitxx(p2sel),fliplr(fitxx(p2sel))],p2span,'b','EdgeColor','none','FaceAlpha',0.2);
-    plot(fitxx(p2sel),p2mm(p2sel),'b-');
+    pwrh=plot(fitxx(p2sel),p2mm(p2sel),'b-');
 
     yline(3000,'k--')
     yline(6000,'k--')
     set(gca(),'XScale','log','YScale','log')
     xlabel('Simultaneously observed neurons')
     ylabel('Longest chained-loops pattern duration (msec)')
+    legend([loglogh,poly1h,pwrh],{'log-linear','linear','power-law'},'Location','northoutside','Orientation','horizontal')
     %%
 end
 
