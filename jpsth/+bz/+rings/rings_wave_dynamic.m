@@ -3,6 +3,8 @@ global_init();
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
+skip_lowlvl_burst=true;
+
 % Statistics for 3- 4- and 5-SU rings time constant removed on 2023.2.22
 
 %% individual loops
@@ -30,6 +32,7 @@ end
 single_loop_pdf=per_ring_hist.congru./(sum(per_ring_hist.congru).*diff([0:1:10,20:10:200]));
 
 %% burst loops
+
 load('rings_wave_burst_600.mat','out');
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
@@ -112,7 +115,7 @@ if false
     crhist=histcounts([t_span.d3.olf_s1;t_span.d3.olf_s2;t_span.d3.s1d3;t_span.d3.s2d3;t_span.d6.olf_s1;t_span.d6.olf_s2;t_span.d6.s1d6;t_span.d6.s2d6]*1000/4,cxx,'Normalization','pdf');
 end
 
-%% chained loops
+%% burst chained loops
 per_sess_coverage=struct();
 for sessid=[14,18,22,33,34,68,100,102,114]
     load("ChainedLoop"+num2str(sessid)+".mat",'covered')
@@ -124,8 +127,25 @@ edges = find(diff([0;covered;0]==1));
 onset = edges(1:2:end-1);  % Start indices
 run_length = edges(2:2:end)-onset;  % Consecutive ones counts
 % per_sess_coverage.("S"+num2str(sessid))=run_length;
-chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
+burst_chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
 % plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);
+
+
+%% single spike chained loops
+per_sess_coverage=struct();
+for sessid=[14,18,22,33,34,68,100,102,114]
+    load("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'covered')
+    per_sess_coverage.("S"+num2str(sessid))=covered;
+end
+covered=cell2mat(struct2cell(per_sess_coverage));
+
+edges = find(diff([0;covered;0]==1));
+onset = edges(1:2:end-1);  % Start indices
+run_length = edges(2:2:end)-onset;  % Consecutive ones counts
+% per_sess_coverage.("S"+num2str(sessid))=run_length;
+SS_chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Normalization','pdf');
+% plot([10:20:90,150,250,450:300:1050],chained_loops_pdf);
+
 
 
 %% composite loops
@@ -158,7 +178,7 @@ end
 singlechainhist=histcounts([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],0:10:100,'Normalization','pdf');
 
 
-%% multi spike
+%% multi spike chain
 load('chain_sust_tag_600.mat','out')
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
@@ -199,12 +219,12 @@ if false
 else
     fch=plot(0.4:0.8:19.6,fcyy./sum(fcyy,'all'),'-','Color',"#D35400");
     looph=plot([0.5:1:9.5,15:10:195],single_loop_pdf,'-','Color',"#27AE60");
-    bsh=plot([10:20:190,250,450:300:1050],burst_loop_pdf,'-','Color',"#FF5400");
+%     bsh=plot([10:20:190,250,450:300:1050],burst_loop_pdf,'-','Color',"#FF5400");
     sch=plot([5:10:95,125:50:225],hrhist,'-','Color',"#8E44AD");
-    bch=plot([10:20:190,250,450:300:1050],burst_compo_pdf,'-k','Color',"#000000");
+%     bch=plot([10:20:190,250,450:300:1050],burst_compo_pdf,'-k','Color',"#000000");
     snh=plot([5:10:95],singlechainhist,'-','Color',"#D354FF");
-    mnh=plot([5:10:95,150:100:550],multichainhist,'-','Color',"#FF54FF");
-    if true
+%     mnh=plot([5:10:95,150:100:550],multichainhist,'-','Color',"#FF54FF");
+    if false
 %         b3h=plot((0.25:0.25:6).*1000,bump3hist,'-b');
 %         b6h=plot((0.25:0.25:6).*1000,bump6hist,'-c');
 %         bumph=plot((0.25:0.25:6).*1000,bumphist,'-','Color','#808080');
@@ -220,10 +240,11 @@ else
 %     c3h=plot(p_cxx,chist3,'-','Color',"#2980B9");
 %     c6h=plot(p_cxx,chist6,'-','Color',"#C0392B");
 %     crh=plot(p_cxx,crhist,'-','Color',"#C0392B");
-    crh=plot([10:20:90,150,250,450:300:1050],chained_loops_pdf,'-','Color','#C0392B');
+    scrh=plot([10:20:90,150,250,450:300:1050],SS_chained_loops_pdf,'-','Color','#C0392B');
+    bcrh=plot([10:20:90,150,250,450:300:1050],burst_chained_loops_pdf,'-','Color','#C0392B');
 end
-xline(3000,'--k')
-xline(6000,'--k')
+% xline(3000,'--k')
+% xline(6000,'--k')
 %
 % xline(fciqr(2),'k-')
 % xline(fciqr(2),'k--')
