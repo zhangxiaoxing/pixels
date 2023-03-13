@@ -43,10 +43,13 @@ if ~opt.load_file
                 continue
             end
             rstats=[rstats;one_rsize(ridx,:),curr_waveid,seltype,rsize,rwid];
+            %  ////////////////^^^^^^^^^^\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+            % {sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)}
         end
     end
 %     keyboard()
     rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
+    % ring spike rate > 0.1 Hz & no figure of eight
     usess=unique(cell2mat(rstats(:,1)));
 
     for sessid=usess.'
@@ -106,6 +109,7 @@ if ~opt.load_file
                 tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4)...
                     | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
                 rsums=ts_id(tssel,:);
+                % remove trial-time cut-off loops
                 for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
                     if nnz(rsums(:,6)==ii)<=numel(cids)
                         rsums(rsums(:,6)==ii,6)=0;
@@ -122,7 +126,7 @@ if ~opt.load_file
     blame=vcs.blame();
     save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
 else
-    load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats')
+    load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame')
 end
 plotStats(pstats)
 end
@@ -200,7 +204,7 @@ for sessid=33%[100,18,33]
         ts=ring_spikes{tt,rridx}-1;
         scatter(ts,rridx,'k','|')
         for ii=2:numel(ts)
-            if ts(ii)-ts(ii-1)<0.01
+            if ts(ii)-ts(ii-1)<0.01005
                 onset=floor(ts(ii-1)*1000);
                 offset=ceil(ts(ii)*1000);
                 %                     disp([onset,offset]);
@@ -226,7 +230,7 @@ end
 %% statistics
 stats=struct();
 waveids={[1 5],[2 5],[3 6],[4 6],[1 7],[2 8],[3 7],[4 8]};
-for wid=1:4
+for wid=1:8
     waveid=waveids{wid};
     for sessid=reshape(unique(sess),1,[])
         allsessfn=fn(sess==sessid);
@@ -250,32 +254,27 @@ for wid=1:4
             trial_sel=find(trials(:,5)==8 & trials(:,8)==6 & all(trials(:,9:10)>0,2));
         end
         ring_spikes=cell(0,numel(sess_ring));
-%         ring_cid=cell(0,numel(sess_ring));
         for t=reshape(trial_sel,1,[])
             onetrial=cell(1,0);
-%             onecid=cell(1,0);
             for onefn=reshape(sess_ring,1,[])
                 ts_id=pstats.congru.(onefn{1}).ts_id();
                 tsel=ts_id(:,5)==t & ts_id(:,6)~=0;
                 time_trial={reshape(ts_id(tsel,4),1,[])};
-%                 cid_trial={reshape(ts_id(tsel,2),1,[])};
                 onetrial(1,end+1)=time_trial;
-%                 onecid(1,end+1)=cid_trial;
             end
-            ring_spikes=[ring_spikes;onetrial];
-%             ring_cid=[ring_cid;onecid];
+            ring_spikes=[ring_spikes;onetrial]; % trial x ringid cell of trial-time
         end
         sfn=sprintf('w%ds%d',wid,sessid);
         stats.(sfn)=cell(0);
-        for tt=1:size(ring_spikes,1)
-            covered=zeros(1,3000);
-            for rridx=1:size(ring_spikes,2)
+        for tt=1:size(ring_spikes,1) % #trial
+            covered=zeros(1,1000);
+            for rridx=1:size(ring_spikes,2) % #loops
                 if isempty(ring_spikes{tt,rridx})
                     continue
                 end
                 ts=ring_spikes{tt,rridx}-1;
                 for ii=2:numel(ts)
-                    if ts(ii)-ts(ii-1)<0.01
+                    if ts(ii)-ts(ii-1)<0.01005
                         onset=ceil(ts(ii-1)*1000);
                         offset=ceil(ts(ii)*1000);
                         covered(onset:offset)=1;

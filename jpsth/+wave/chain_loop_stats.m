@@ -221,14 +221,14 @@ if bburst
     plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-k');
     qtrs=prctile(run_length,[25,50,75]);
     qtrs19=prctile(run_length,[10,20,80,90]);
-    xline(qtrs,'--k') % 17 24 35
+    xline(qtrs,'--k',string(qtrs)) % 17 24 35
     xlim([5,1200])
 %     ylim([8e-6,0.1])
 else
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
     plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
     qtrs=prctile(run_length,[25,50,75]);
-    xline(qtrs,'--k',{'25%','50%','75%'}) % 17 24 35
+    xline(qtrs,'--k',string(qtrs)) % 17 24 35
     xlim([3,300])
     ylim([8e-6,0.1])
 

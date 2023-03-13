@@ -266,6 +266,8 @@ bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 bz.rings.ring_wave_freq(wrs_mux_meta); 
 load(fullfile('bzdata','sums_ring_stats_all.mat'));
 % bz.rings.rings_reg_pie(sums_all)
+% bz.rings.rings_freq
+bz.rings.rings_time_constant(sums_all)
 bz.rings.loop_occurance_per_reg_su(sums_all,su_meta);
 bz.rings.rings_wave_dynamic(sums_all)
 bz.rings.rings_su_wave_tcom_corr(sums_all)

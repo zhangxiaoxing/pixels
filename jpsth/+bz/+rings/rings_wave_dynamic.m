@@ -24,8 +24,10 @@ for rsize=1:3
         end
         curr_waveid=cell2mat(sessmap.values(num2cell(one_rsize{ridx,3})));
         rwid=bz.rings.ring_wave_type(curr_waveid);
-        rfreq_str=one_rsize{ridx,5};
-        per_ring_hist.(rwid)=per_ring_hist.(rwid)+histcounts((rfreq_str.durs)./30,edges); % spkTS unit, i.e. 1/30 ms
+        if strcmp(rwid,'congru')
+            rfreq_str=one_rsize{ridx,5};
+            per_ring_hist.(rwid)=per_ring_hist.(rwid)+histcounts((rfreq_str.durs)./30,edges); % spkTS unit, i.e. 1/30 ms
+        end
     end
 end
 
@@ -306,8 +308,8 @@ d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],
 figure()
 hold on
 sph=plot([0.5:9.5,15:10:195],congru_pdf,'--k');
-bph=plot([25:50:975,1250,1750],d6hist,'k-');
-% plot([25:50:975,1250,1750],d3hist,'k--');
+% bph=plot([25:50:975,1250,1750],d6hist,'k-');
+
 set(gca(),'XScale','log','YScale','log');
 ylim([1e-5,0.1]);
 xlabel('Time (ms)')
@@ -315,7 +317,7 @@ ylabel('Probability density (per loop per ms)')
 legend([sph,bph],{'Single spike loops','Burst spike loops'},'Location','northoutside','Orientation','horizontal')
 if false %supplement for single spike ring-along plot
     qtrs=prctile(durs,[25,50,75]); % 16.9   22.2   28.3, @2023-03-08
-    xline(qtrs,'--k',{'25%','50%','75%'})
+    xline(qtrs,'--k',string(qtrs))
     ylim([1e-4,1e-1])
     title('single spike loops')
 end
