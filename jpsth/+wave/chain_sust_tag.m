@@ -23,7 +23,6 @@ ch_len=cellfun(@(x) numel(x),chains.cids);
 waveids=reshape(unique(chains.wave(ch_len>4)),1,[]);
 sesses=reshape(unique(chains.sess(ch_len>4)),1,[]);
 
-
 for sessid=sesses
     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
     for duration=[3 6]

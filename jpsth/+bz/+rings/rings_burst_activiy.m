@@ -15,14 +15,14 @@ sesses=reshape(unique(rings_wave.sess),1,[]);
 
 %loop entry
 
-dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+dbfile=fullfile("bzdata","rings_wave_burst_iter_"+num2str(opt.burstInterval)+".db");
 if ~exist(dbfile,'file')
     conn=sqlite(dbfile,"create");
     close(conn);
 end
 
 if opt.append_saved
-    saved_keys=get_saved_sess();
+    saved_keys=get_saved_sess(opt.burstInterval);
 end
 % Q=parallel.FevalFuture.empty();
 for sessid=sesses
@@ -87,9 +87,9 @@ for sessid=sesses
                     % out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
 %                     ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
                     ts=bz.rings.relax_tag_long_iter(tsidin,"burstInterval",opt.burstInterval);
-                    cellqc(ts);
+%                     cellqc(ts);
                     if ~isempty(ts)
-                        saveOne(ts,cids,ts_id,outkey);
+                        saveOne(ts,cids,ts_id,outkey,opt.burstInterval);
                         clear ts
                     end
 %                     Q(end+1)=parfeval(ppool,@bz.rings.relax_tag_long,4,tsidin,[],[],[],[],cids,ts_id,outkey,"burstInterval",600);
@@ -121,11 +121,11 @@ end
 %     saveOne(ts,cids,ts_id,key);
 % end
 end
-function saveOne(ts,cids,ts_id,key)
+function saveOne(ts,cids,ts_id,key,burst_interval)
 if ~isempty(ts)
     % TODO: optional remove shorter chains for each
     % onset-spike
-    dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+    dbfile=fullfile("bzdata","rings_wave_burst_iter_"+num2str(burst_interval)+".db");
     conn=sqlite(dbfile);
     for tid=1:numel(ts)
         tbl=array2table([repmat(tid,size(ts{tid},1),1),ts{tid}]);
@@ -135,12 +135,14 @@ if ~isempty(ts)
     sqlwrite(conn,key+"_tsid",array2table(ts_id))
     close(conn);
     disp(key);
+    keyboard()
 end
+
 end
 
 
-function keys=get_saved_sess()
-dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+function keys=get_saved_sess(burstinterval)
+dbfile=fullfile("bzdata","rings_wave_burst_iter_"+num2str(burstinterval)+".db");
 if exist(dbfile,'file')
     conn=sqlite(dbfile,'readonly');
     keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
