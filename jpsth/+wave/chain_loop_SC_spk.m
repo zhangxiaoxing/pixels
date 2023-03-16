@@ -1,5 +1,5 @@
 % Plot per-spike raster showcase of chained loops
-bburst=true;
+bburst=false;
 
 if false
     global_init;
@@ -20,7 +20,7 @@ if false
 end
 
 %[ 14    18    22    33    34    68   100   102   114]
-sessid=18;
+sessid=100;
 % extract connected components with graph tools; option: per-trial
 % dynamic graph=============================
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
@@ -205,7 +205,6 @@ for maxid=reshape(maxids(1:10),1,[])
         % for gephi illustration
         lopConn=in_maximum_tags(strcmp(in_maximum_tags(:,1),'SSL'),3);
         lopConnmat=cell2mat(cellfun(@(x) [x(1:end-1,1),x(2:end,1)],lopConn,'UniformOutput',false));
-
         
         allconns=unique([chnConnmat;lopConnmat],'rows');
         allconns(:,3)=0;
@@ -214,6 +213,9 @@ for maxid=reshape(maxids(1:10),1,[])
         allconns(lopsel,3)=allconns(lopsel,3)+2;
         csvcell=[{'Source','Target','Pattern'};num2cell(allconns)];
         writecell(csvcell,fullfile('bzdata',sprintf('SingleSpkConn4gephi_s%dm_%d.csv',sessid,maxid)));
+        
+        % predefined layout using gephi and Ordered-Graph-Layout
+        gephilayout=jsondecode(fileread(fullfile("+gephi","SS_chain_loop_230315.json")));
 
         nodecell=[{'Id','Label','Toposort','REG','ChnOrd'};...
             num2cell([ucid,ucid,(numel(ucid):-1:1).',reg_prop(:,1),topopos(tcomidx)])];
@@ -222,6 +224,22 @@ for maxid=reshape(maxids(1:10),1,[])
     end
 
 
+    %% unique component count======================================
+    if false
+    chainspks=cellfun(@(x) x(:,1),in_maximum_tags(strcmp(in_maximum_tags(:,1),'SSC'),3),'UniformOutput',false);
+    for ii=5:8
+        sel=cellfun(@(x) numel(x),chainspks)==ii;
+        cntsu.("L"+ii)=cell2mat(chainspks(sel).').';
+        ucnt.("L"+ii)=size(unique(chainsu.("L"+ii),'rows'),1);
+    end
+
+    loopspks=cellfun(@(x) unique(x(:,1)),in_maximum_tags(strcmp(in_maximum_tags(:,1),'SSL'),3),'UniformOutput',false);
+    for ii=3:5
+        sel=cellfun(@(x) numel(x),loopspks)==ii;
+        cntsu.("C"+ii)=cell2mat(loopspks(sel).').';
+        ucnt.("C"+ii)=size(unique(cntsu.("C"+ii),'rows'),1);
+    end
+    end
 
     %% ================== Actual plot ============================
 

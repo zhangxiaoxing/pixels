@@ -128,12 +128,12 @@ for dur=reshape(fieldnames(out),1,[])
 end
 
 blame=vcs.blame();
-save(sprintf('chain_sust_tag_%d.mat',opt.burstInterval),'out','blame','-v7.3')
+save(fullfile("bzdata","chain_sust_tag_"+opt.burstInterval+".mat"),'out','blame','-v7.3')
 stats(out);
 end
 
 function stats(out)
-load('chain_sust_tag_600.mat','out')
+% load(fullfile("bzdata","chain_sust_tag_"+burstInterval+".mat"),'out')
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
 for dur=reshape(fieldnames(out),1,[])
@@ -226,10 +226,10 @@ end
 function plot_all()
 figure()
 hold on
-intvs=[300 600];
+intvs=[150 300 600];
 colors=['k','b'];
 for pidx=1:3
-    load(sprintf('chain_sust_tag_%d.mat',intvs(pidx)),'out')
+    load(fullfile("bzdata","chain_sust_tag_"+intvs(pidx)+".mat"),'out')
     perchaindur=struct();
     [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
     for dur=reshape(fieldnames(out),1,[])

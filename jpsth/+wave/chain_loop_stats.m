@@ -3,6 +3,7 @@
 % load burst spike chain data
 
 bburst=true;
+burstinterval=150;
 
 optmem=false;
 if ispc
@@ -13,7 +14,7 @@ if ispc
 end
 
 
-if false%~exist('inited','var') || ~inited
+if true%~exist('inited','var') || ~inited
     inited=true;
     %% single spike chain
     sschain=load('chain_tag.mat','out');
@@ -31,14 +32,14 @@ if false%~exist('inited','var') || ~inited
 
     if bburst
         %% burst spike chain
-        bschain=load('chain_sust_tag_600.mat','out');
+        bschain=load(fullfile("bzdata","chain_sust_tag_"+burstinterval+".mat"),'out');
         keys=[struct2cell(structfun(@(x) fieldnames(x), bschain.out.d6, 'UniformOutput', false));...
             struct2cell(structfun(@(x) fieldnames(x), bschain.out.d3, 'UniformOutput', false))];
         keys=vertcat(keys{:});
         bsc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
 
         %% burst spike loop, keys only
-        dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+        dbfile=fullfile("bzdata","rings_wave_burst_iter_"+burstinterval+".db");
         conn=sqlite(dbfile,"readonly");
         bslkeys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
         close(conn);
@@ -151,7 +152,7 @@ if false%~exist('inited','var') || ~inited
             end
 
             %% burst spike loop
-            dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+            dbfile=fullfile("bzdata","rings_wave_burst_iter_"+burstinterval+".db");
             conn=sqlite(dbfile,"readonly");
             for cc=reshape(bslkeys,1,[])
                 if ~contains(cc,['s',num2str(sessid),'r']) || ~endsWith(cc,'_ts')
@@ -188,43 +189,62 @@ if false%~exist('inited','var') || ~inited
         end
         blame=vcs.blame();
         if bburst
-            save("ChainedLoop"+num2str(sessid)+".mat",'FT_SPIKE','covered','blame')
+            save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
         else
-            save("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'FT_SPIKE','covered','blame')
+            save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
         end
     end
-    per_sess_coverage.("S"+num2str(sessid))=covered;
+    per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
 else % load from file
-    for sessid=[14,18,22,33,34,68,100,102,114]
-        if bburst
-            load("ChainedLoop"+num2str(sessid)+".mat",'covered','FT_SPIKE')
-        else
-            load("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'covered')
+    per_sess_coverage=struct();
+    for bi=[150,300,600]
+        for sessid=[14,18,22,33,34,68,100,102,114]
+            if bburst
+                load(fullfile("bzdata","ChainedLoop"+bi+"S"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
+            else
+                load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
+            end
+            per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
         end
-        per_sess_coverage.("S"+num2str(sessid))=covered;
     end
 end
 % keyboard();
-covered=struct2cell(per_sess_coverage);
-run_length=[];
-for jj=1:numel(covered)
-    edges = find(diff([0;covered{jj};0]==1));
-    onset = edges(1:2:end-1);  % Start indices
-%     disp([jj,min(edges(2:2:end)-onset)]);
-    run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
-%     per_sess_coverage.("S"+num2str(sessid))=run_length;
+covcell=struct2cell(per_sess_coverage);
+covfn=fieldnames(per_sess_coverage);
+covered=struct();
+run_length=struct();
+
+for bi=[150,300,600]
+    covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
+    run_length.("B"+bi)=[];
+    for jj=1:numel(covered.("B"+bi))
+        edges = find(diff([0;covered.("B"+bi){jj};0]==1));
+        onset = edges(1:2:end-1);  % Start indices
+        %     disp([jj,min(edges(2:2:end)-onset)]);
+        run_length.("B"+bi) =[run_length.("B"+bi); edges(2:2:end)-onset];  % Consecutive ones counts
+        %     per_sess_coverage.("S"+num2str(sessid))=run_length;
+    end
 end
-figure()
-hold on;
+
 if bburst
-    chained_loops_pdf=histcounts(run_length,[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
-    plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-k');
-    qtrs=prctile(run_length,[25,50,75]);
-    qtrs19=prctile(run_length,[10,20,80,90]);
-    xline(qtrs,'--k',string(qtrs)) % 17 24 35
+    figure()
+    hold on;
+    ph=[];
+    cmap=colormap("lines");
+    cidx=1;
+    for bi=[150,300,600]    
+        chained_loops_pdf=histcounts(run_length.("B"+bi),[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
+        ph(end+1)=plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-','Color',cmap(cidx,:));
+        qtrs=prctile(run_length.("B"+bi),[25,50,75]);
+        %     qtrs19=prctile(run_length,[10,20,80,90]);
+        xline(qtrs,'--',string(qtrs),'Color',cmap(cidx,:)) % 17 24 35
+        cidx=cidx+1;
+    end
     xlim([5,1200])
-%     ylim([8e-6,0.1])
+    ylim([8e-7,0.1])
 else
+    figure()
+    hold on;
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
     plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
     qtrs=prctile(run_length,[25,50,75]);
