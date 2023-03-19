@@ -1,4 +1,4 @@
-[mmax,ttrial]=wave.chain_loop_SC_spk(false,100,4,'skip_plot',false);
+[mmax,ttrial]=wave.chain_loop_SC_spk(false,100,4,'skip_plot',true);
 % predefined layout using gephi and Ordered-Graph-Layout
 gephilayout=jsondecode(fileread(fullfile("+gephi","SS_chain_loop_230315.json")));
 
@@ -31,12 +31,12 @@ for onset=mminTS:(binw*30):mmaxTS
             if tsmat(ii,2)>=onset && tsmat(ii,2)<onset+binw*10
                 conmat=[conmat;tsmat(ii-1,1),tsmat(ii,1),ii-1];
                 key=sprintf('%d_%d',tsmat(ii-1,1),tsmat(ii,1));
-                lbl=regexp(mmax{patIdx,2},'(?<=s\d*)[cr]\d*','match','once');
-                
+                ptag=regexp(mmax{patIdx,2},'(?<=s\d*)[cr]\d*','match','once');
+                lbl=string(ptag{1})+"#"+num2str(ii-1);
                 if idxmap.isKey(key)
-                    idxmap(key)=strjoin({idxmap(key),''})
+                    idxmap(key)=idxmap(key)+", "+lbl;
                 else
-                    idxmap(key)=
+                    idxmap(key)=lbl;
                 end
             end
         end

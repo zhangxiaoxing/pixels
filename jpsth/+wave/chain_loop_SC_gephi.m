@@ -1,6 +1,5 @@
 % generate data to feed gephi for the chained loops illustration
 % 2023.2.6
-% TODO: rename
 
 % chain + loop
 global_init;
