@@ -2,8 +2,9 @@
 % load single spike chain data
 % load burst spike chain data
 
+per_spk_tag=false;
 bburst=true;
-burstinterval=150;
+burstinterval=600;
 
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 
@@ -84,7 +85,7 @@ if true%~exist('inited','var') || ~inited
                         disp("Outside largest component")
                         continue
                     end
-                    if false
+                    if per_spk_tag
                         for cidx=1:size(onechain.ts,2)
                             cid=onechain.meta{1}(cidx);
                             %                     ucid=[ucid,cid];
@@ -117,7 +118,7 @@ if true%~exist('inited','var') || ~inited
                 disp("Outside largest component")
                 continue
             end
-            if false
+            if per_spk_tag
                 for cidx=1:size(onechain.rstats{3},2)
                     cid=onechain.rstats{3}(cidx);
                     %             ucid=[ucid,cid];
@@ -153,7 +154,7 @@ if true%~exist('inited','var') || ~inited
                             disp("Outside largest component")
                             continue
                         end
-                        if false
+                        if per_spk_tag
                             for cidx=1:size(onechain.meta{1},2)
                                 cid=onechain.meta{1}(cidx);
                                 %                     ucid=[ucid,cid];
@@ -197,7 +198,7 @@ if true%~exist('inited','var') || ~inited
                 for rid=1:1000:maxrid
                     onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1>="+num2str(rid)+ " AND Var1<"+num2str(rid+1000)));
 
-                    if false
+                    if per_spk_tag
                         disp(rid);
                         for cidx=1:numel(chainmeta)
                             cid=chainmeta(cidx);

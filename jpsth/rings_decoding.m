@@ -1,4 +1,7 @@
-ed%idces from hebb_pattern_showcase.m
+% Appear to be outdated ,judging from data collection routines
+% pending removal as of 2023.03.20
+
+%idces from hebb_pattern_showcase.m
 if ~exist('rings','var')
     if isunix
         addpath(fullfile('npy-matlab-master','npy-matlab'))

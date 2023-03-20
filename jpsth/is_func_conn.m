@@ -1,3 +1,8 @@
+% SPADE related statistics were unsuitable for higher throughput recordings
+% due to memory performance issues.
+% Pending removal as of 2023.03.20
+
+
 stpts=h5read('..\SPADE\stp_ts_export.hdf5','/spk_ts')'; %session,cid,sample,ts
 stp_cnt=h5read('..\SPADE\stp_ts_export.hdf5','/spk_cnt')'; %session,cid,stp spk count, total spk count
 
