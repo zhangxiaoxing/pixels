@@ -5,6 +5,8 @@
 bburst=true;
 burstinterval=150;
 
+[sig,~]=bz.load_sig_sums_conn_file('pair',false);
+
 optmem=false;
 if ispc
     [~,sysmem]=memory();
@@ -50,6 +52,17 @@ if true%~exist('inited','var') || ~inited
     % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
     per_sess_coverage=struct();
     for sessid=reshape(usess,1,[])
+        % extract connected components with graph tools; option: per-trial
+        % dynamic graph=============================
+        ssel=sig.sess==sessid;
+        gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
+        [sgbin,binsize]=conncomp(gh);
+        bidx=binsize(sgbin)==max(binsize);
+        largec=subgraph(gh,bidx);
+        conn_cid=str2double(table2cell(largec.Nodes));
+        %^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        % TODO: Use the information.
+
         covered=false(1000,1); % 2hrs of milli-sec bins
 
         [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
@@ -66,6 +79,11 @@ if true%~exist('inited','var') || ~inited
                         continue
                     end
                     onechain=sschain.out.(dur).(wid{1}).(cc{1});
+                    %check cid in largest network
+                    if ~all(ismember(onechain.meta{1},conn_cid),'all')
+                        disp("Outside largest component")
+                        continue
+                    end
                     if false
                         for cidx=1:size(onechain.ts,2)
                             cid=onechain.meta{1}(cidx);
@@ -94,6 +112,11 @@ if true%~exist('inited','var') || ~inited
                 continue
             end
             onechain=pstats.congru.(cc{1});
+            %check cid in largest network
+            if ~all(ismember(onechain.rstats{3},conn_cid),'all')
+                disp("Outside largest component")
+                continue
+            end
             if false
                 for cidx=1:size(onechain.rstats{3},2)
                     cid=onechain.rstats{3}(cidx);
@@ -124,7 +147,12 @@ if true%~exist('inited','var') || ~inited
                         if ~startsWith(cc{1},['s',num2str(sessid),'c'])
                             continue
                         end
+                        %check cid in largest network
                         onechain=bschain.out.(dur).(wid{1}).(cc{1});
+                        if ~all(ismember(onechain.meta{1},conn_cid),'all')
+                            disp("Outside largest component")
+                            continue
+                        end
                         if false
                             for cidx=1:size(onechain.meta{1},2)
                                 cid=onechain.meta{1}(cidx);
@@ -159,11 +187,16 @@ if true%~exist('inited','var') || ~inited
                     continue
                 end
                 chainmeta=table2array(conn.sqlread(replace(cc,'_ts','_meta')));
+                %check cid in largest network
+                if ~all(ismember(chainmeta,conn_cid),'all')
+                    disp("Outside largest component")
+                    continue
+                end
                 %   Not enough memory for larger complete tables
                 maxrid=table2array(conn.fetch("SELECT MAX(Var1) from "+cc));
                 for rid=1:1000:maxrid
                     onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1>="+num2str(rid)+ " AND Var1<"+num2str(rid+1000)));
-                    %             keyboard()
+
                     if false
                         disp(rid);
                         for cidx=1:numel(chainmeta)
