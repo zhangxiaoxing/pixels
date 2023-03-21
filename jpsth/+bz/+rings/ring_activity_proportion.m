@@ -1,8 +1,117 @@
+burstinterval=600;
+fl=dir(fullfile("bzdata","ChainedLoop"+burstinterval+"S*.mat"));
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+wrs_mux_meta=ephys.get_wrs_mux_meta();
+sums=[];
+for fi=1:numel(fl)
+    sessid=str2double(regexp(fl(fi).name,'(?<=S)\d{1,3}(?=\.mat)','match','once'));
+    sess_cid=su_meta.allcid(su_meta.sess==sessid);
+    sess_wave_id=wrs_mux_meta.wave_id(su_meta.sess==sessid);
+    
+    fstr=load(fullfile(fl(fi).folder,fl(fi).name));
+    trl=fstr.FT_SPIKE.trialinfo;
+    
+    for suidx=1:numel(sess_cid)
+        ftidx=strcmp(num2str(sess_cid(suidx)),fstr.FT_SPIKE.label);
+        if ~(any(fstr.FT_SPIKE.lc_tag{ftidx},'all'))
+            continue;
+        end
+         
+        switch sess_wave_id(suidx)
+            case 0
+                continue
+            case 1
+                trlsel=find(trl(:,5)==4 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+            case 2
+                trlsel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7;                
+            case 3
+                trlsel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+            case 4
+                trlsel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7;
+            case 5
+                trl3sel=find(trl(:,5)==4 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                trl6sel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=(ismember(fstr.FT_SPIKE.trial{ftidx},trl3sel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4) ...
+                    |(ismember(fstr.FT_SPIKE.trial{ftidx},trl6sel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7);
+            case 6
+                trl3sel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                trl6sel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=(ismember(fstr.FT_SPIKE.trial{ftidx},trl3sel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4) ...
+                    |(ismember(fstr.FT_SPIKE.trial{ftidx},trl6sel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7);
+            case 7
+                trlsel=find(ismember(trl(:,5),[4,8]) & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+            case 8
+                trlsel=find(ismember(trl(:,5),[4,8]) & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7;
+        end
+        % ratio: chain:1, loop:4, SSCL1|4, burst>0
+        sums=[sums;...
+            sessid,double(sess_cid(suidx)),sess_wave_id(suidx),...
+            nnz(bitand(fstr.FT_SPIKE.lc_tag{ftidx}(spksel),1)),...
+            nnz(bitand(fstr.FT_SPIKE.lc_tag{ftidx}(spksel),4)),...
+            nnz(bitand(fstr.FT_SPIKE.lc_tag{ftidx}(spksel),5)),...
+            nnz(fstr.FT_SPIKE.lc_tag{ftidx}(spksel)),...
+            nnz(spksel)];
+    end
+end
+
+% two panels olf|both, 4 box each, chain, loop, SSChL, BChL
+
+olfsel=ismember(sums(:,3),5:6);
+bothsel=ismember(sums(:,3),1:4);
+
+olfboxdata=[reshape(sums(olfsel,4:6)./sums(olfsel,8),[],1),...
+    reshape(repmat([1 2 3],nnz(olfsel),1),[],1)];
+bothboxdata=[reshape(sums(bothsel,4:6)./sums(bothsel,8),[],1),...
+    reshape(repmat([1 2 3],nnz(bothsel),1),[],1)];
+
+
+figure()
+tiledlayout(1,2)
+nexttile()
+hold on
+boxplot(olfboxdata(:,1),olfboxdata(:,2),'Colors','k','Whisker',realmax)
+set(gca(),'XTick',1:3,'XTickLabel',{'Ch','Lp','ChL'},'YTick',0:0.1:0.5,'YTickLabel',0:10:50)
+ylim([0,0.5])
+ylabel('Percentage of spikes during delay')
+title('Odor only')
+nexttile()
+hold on
+boxplot(bothboxdata(:,1),bothboxdata(:,2),'Colors','k','Whisker',realmax)
+set(gca(),'XTick',1:3,'XTickLabel',{'Ch','Lp','ChL'},'YTick',0:0.1:0.5,'YTickLabel',0:10:50)
+ylim([0,0.5])
+ylabel('Percentage of spikes during delay')
+title('Encode both')
+
+
+
+
+return
+
+
+
+%% previous partial implemention
+function obsolete()
 % load pstats3, pstats4 from file or function
 if ~exist('pstats3','var') || ~exist('pstats4','var') || ~exist('pstats5','var')
     if true
-%         load('loops_proportion_stats_3.mat','pstats3');
-%         load('loops_proportion_stats_4.mat','pstats4');
+        %         load('loops_proportion_stats_3.mat','pstats3');
+        %         load('loops_proportion_stats_4.mat','pstats4');
         load('loops_proportion_stats_all.mat','pstats3','pstats4','pstats5','mstats3','mstats4','mstats5');
     else
         if ~exist('sums_all','var')
@@ -14,7 +123,7 @@ if ~exist('pstats3','var') || ~exist('pstats4','var') || ~exist('pstats5','var')
         mstats3=meta_data(3,sums_all);
         mstats4=meta_data(4,sums_all);
         mstats5=meta_data(5,sums_all);
-%         save('loops_proportion_stats_all.mat','mstats3','mstats4','mstats5','-append')
+        %         save('loops_proportion_stats_all.mat','mstats3','mstats4','mstats5','-append')
     end
 end
 
@@ -24,80 +133,80 @@ sess5=cellfun(@(x) str2double(replace(x,'s','')), fieldnames(pstats5));
 usess=unique([sess3;sess4;sess5]);
 mstats=struct();
 for statmtype=["congru","nonmem"]
-stats=[];
-if strcmp(statmtype,"congru")
-    mtypeidx=1;
-else
-    mtypeidx=2;
-end
-meta=ephys.util.load_meta();
-for sessid=usess.'
-    sesscid=meta.allcid(meta.sess==sessid);
-    sessmtype=meta.mem_type(meta.sess==sessid);
-    sess_fld=sprintf('s%d',sessid);
-    [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessid);
-    [ucid3,ucid4,ucid5]=deal([]);
-    if isfield(pstats3,sess_fld)
-        ucid3=cellfun(@(x) str2double(replace(x,'c','')),fieldnames(pstats3.(sess_fld)));
-    end
-    if isfield(pstats4,sess_fld)
-        ucid4=cellfun(@(x) str2double(replace(x,'c','')),fieldnames(pstats4.(sess_fld)));
-    end
-    if isfield(pstats5,sess_fld)
-        ucid5=cellfun(@(x) str2double(replace(x,'c','')),fieldnames(pstats5.(sess_fld)));
-    end
-    ucid=unique([ucid3;ucid4;ucid5]);
-    cidmtype=arrayfun(@(x) sessmtype(sesscid==x),ucid);
+    stats=[];
     if strcmp(statmtype,"congru")
-        ucid=ucid(ismember(cidmtype,1:4));
+        mtypeidx=1;
     else
-        ucid=ucid(cidmtype==0);
+        mtypeidx=2;
     end
-    for onecid=ucid.'
-        disp([sessid,onecid]);
-        su_fld=sprintf('c%d',onecid);
-        totalspk=nnz(spkID==onecid);
-        [max_prop,loop_spks]=deal([]);
-        if isfield(pstats3,sess_fld) && isfield(pstats3.(sess_fld),su_fld)
-            mtype=cell2mat(cellfun(@(x) mstats3.(sess_fld).(su_fld).(x),fieldnames(pstats3.(sess_fld).(su_fld)),'UniformOutput',false));
-            if any(mtype(:,mtypeidx))
-                fld=fieldnames(pstats3.(sess_fld).(su_fld));
-                fldsel=fld(mtype(:,1));
-                max_prop=[max_prop;cellfun(@(x) numel(pstats3.(sess_fld).(su_fld).(x)),fldsel)];
-                loop_spks=[loop_spks;cell2mat(cellfun(@(x) pstats3.(sess_fld).(su_fld).(x),fldsel,'UniformOutput',false))];
-            end
+    meta=ephys.util.load_meta();
+    for sessid=usess.'
+        sesscid=meta.allcid(meta.sess==sessid);
+        sessmtype=meta.mem_type(meta.sess==sessid);
+        sess_fld=sprintf('s%d',sessid);
+        [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessid);
+        [ucid3,ucid4,ucid5]=deal([]);
+        if isfield(pstats3,sess_fld)
+            ucid3=cellfun(@(x) str2double(replace(x,'c','')),fieldnames(pstats3.(sess_fld)));
         end
-        if isfield(pstats4,sess_fld) && isfield(pstats4.(sess_fld),su_fld)
-            mtype=cell2mat(cellfun(@(x) mstats4.(sess_fld).(su_fld).(x),fieldnames(pstats4.(sess_fld).(su_fld)),'UniformOutput',false));
-            if any(mtype(:,mtypeidx))
-                fld=fieldnames(pstats4.(sess_fld).(su_fld));
-                fldsel=fld(mtype(:,1));
-                max_prop=[max_prop;cellfun(@(x) numel(pstats4.(sess_fld).(su_fld).(x)),fldsel)];
-                loop_spks=[loop_spks;cell2mat(cellfun(@(x) pstats4.(sess_fld).(su_fld).(x),fldsel,'UniformOutput',false))];
-            end
+        if isfield(pstats4,sess_fld)
+            ucid4=cellfun(@(x) str2double(replace(x,'c','')),fieldnames(pstats4.(sess_fld)));
         end
-        if isfield(pstats5,sess_fld) && isfield(pstats5.(sess_fld),su_fld)
-            mtype=cell2mat(cellfun(@(x) mstats5.(sess_fld).(su_fld).(x),fieldnames(pstats5.(sess_fld).(su_fld)),'UniformOutput',false));
-            if any(mtype(:,mtypeidx))
-                fld=fieldnames(pstats5.(sess_fld).(su_fld));
-                fldsel=fld(mtype(:,mtypeidx));
-                max_prop=[max_prop;cellfun(@(x) numel(pstats5.(sess_fld).(su_fld).(x)),fldsel)];
-                loop_spks=[loop_spks;cell2mat(cellfun(@(x) pstats5.(sess_fld).(su_fld).(x),fldsel,'UniformOutput',false))];
-            end
+        if isfield(pstats5,sess_fld)
+            ucid5=cellfun(@(x) str2double(replace(x,'c','')),fieldnames(pstats5.(sess_fld)));
         end
-        if ~isempty(max_prop)
-            stats=[stats;sessid,onecid,totalspk,numel(max_prop),max(max_prop),numel(unique(loop_spks))];
+        ucid=unique([ucid3;ucid4;ucid5]);
+        cidmtype=arrayfun(@(x) sessmtype(sesscid==x),ucid);
+        if strcmp(statmtype,"congru")
+            ucid=ucid(ismember(cidmtype,1:4));
+        else
+            ucid=ucid(cidmtype==0);
+        end
+        for onecid=ucid.'
+            disp([sessid,onecid]);
+            su_fld=sprintf('c%d',onecid);
+            totalspk=nnz(spkID==onecid);
+            [max_prop,loop_spks]=deal([]);
+            if isfield(pstats3,sess_fld) && isfield(pstats3.(sess_fld),su_fld)
+                mtype=cell2mat(cellfun(@(x) mstats3.(sess_fld).(su_fld).(x),fieldnames(pstats3.(sess_fld).(su_fld)),'UniformOutput',false));
+                if any(mtype(:,mtypeidx))
+                    fld=fieldnames(pstats3.(sess_fld).(su_fld));
+                    fldsel=fld(mtype(:,1));
+                    max_prop=[max_prop;cellfun(@(x) numel(pstats3.(sess_fld).(su_fld).(x)),fldsel)];
+                    loop_spks=[loop_spks;cell2mat(cellfun(@(x) pstats3.(sess_fld).(su_fld).(x),fldsel,'UniformOutput',false))];
+                end
+            end
+            if isfield(pstats4,sess_fld) && isfield(pstats4.(sess_fld),su_fld)
+                mtype=cell2mat(cellfun(@(x) mstats4.(sess_fld).(su_fld).(x),fieldnames(pstats4.(sess_fld).(su_fld)),'UniformOutput',false));
+                if any(mtype(:,mtypeidx))
+                    fld=fieldnames(pstats4.(sess_fld).(su_fld));
+                    fldsel=fld(mtype(:,1));
+                    max_prop=[max_prop;cellfun(@(x) numel(pstats4.(sess_fld).(su_fld).(x)),fldsel)];
+                    loop_spks=[loop_spks;cell2mat(cellfun(@(x) pstats4.(sess_fld).(su_fld).(x),fldsel,'UniformOutput',false))];
+                end
+            end
+            if isfield(pstats5,sess_fld) && isfield(pstats5.(sess_fld),su_fld)
+                mtype=cell2mat(cellfun(@(x) mstats5.(sess_fld).(su_fld).(x),fieldnames(pstats5.(sess_fld).(su_fld)),'UniformOutput',false));
+                if any(mtype(:,mtypeidx))
+                    fld=fieldnames(pstats5.(sess_fld).(su_fld));
+                    fldsel=fld(mtype(:,mtypeidx));
+                    max_prop=[max_prop;cellfun(@(x) numel(pstats5.(sess_fld).(su_fld).(x)),fldsel)];
+                    loop_spks=[loop_spks;cell2mat(cellfun(@(x) pstats5.(sess_fld).(su_fld).(x),fldsel,'UniformOutput',false))];
+                end
+            end
+            if ~isempty(max_prop)
+                stats=[stats;sessid,onecid,totalspk,numel(max_prop),max(max_prop),numel(unique(loop_spks))];
+            end
         end
     end
-end
 
-stats(:,7)=stats(:,5)./stats(:,3).*100;
-stats(:,8)=stats(:,6)./stats(:,3).*100;
-if strcmp(statmtype,"congru")
-    mstats.congru=stats;
-else
-    mstats.nonmem=stats;
-end
+    stats(:,7)=stats(:,5)./stats(:,3).*100;
+    stats(:,8)=stats(:,6)./stats(:,3).*100;
+    if strcmp(statmtype,"congru")
+        mstats.congru=stats;
+    else
+        mstats.nonmem=stats;
+    end
 end
 save('loops_proportion_stats.mat','mstats')
 
@@ -115,14 +224,14 @@ for bin=1:(numel(binedge)-1)
     cc=mstats.congru(cbinsel,8);
     cc(:,2)=bin;
     cc(:,3)=1;
-    
+
     nbinsel=mstats.nonmem(:,4)>=binedge(bin) & mstats.nonmem(:,4)<=binedge(bin)+diff(binedge(bin:bin+1),1,2)./2;
     nmm=mean(mstats.nonmem(nbinsel,8));
     nci=bootci(500,@(x) mean(x),mstats.nonmem(nbinsel,8));
     nn=mstats.nonmem(nbinsel,8);
     nn(:,2)=bin;
     nn(:,3)=0;
-    
+
     anovamat=[anovamat;cc;nn];
     perbin=[perbin;mean(cbinsel),cmm,cci(1),cci(2),mean(nbinsel),nmm,nci(1),nci(2)];
 end
@@ -143,7 +252,7 @@ xlim([0,100])
 exportgraphics(fh,'loops_spk_proportion.pdf');
 anovan(anovamat(:,1),{anovamat(:,2),anovamat(:,3)})
 
-% 
+%
 % fh=figure('Color','w','Position',[32,32,195,235]);
 % hold on;
 % swarmchart([ones(size(stats,1),1);2*ones(size(stats,1),1)],[stats(:,7);stats(:,8)],1,'o','filled','MarkerFaceColor','r','MarkerFaceAlpha',0.2,'MarkerEdgeColor','none','XJitterWidth',0.5)
@@ -155,73 +264,73 @@ anovan(anovamat(:,1),{anovamat(:,2),anovamat(:,3)})
 % ylim([0,60]);
 % exportgraphics(fh,'loops_spk_proportion.pdf');
 
-function pstats=load_data(rsize,sums_all)
-% if rsize==4
-%     load(fullfile('bzdata','sums_ring_stats_4.mat'),'sums4');
-%     rstats=sums4;
-% else
-%     load(fullfile('bzdata','sums_ring_stats_3.mat'),'sums3');
-%     rstats=sums3;
-% end
-rstats=sums_all{rsize-2};
-rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==rsize,:);
+    function pstats=load_data(rsize,sums_all)
+        % if rsize==4
+        %     load(fullfile('bzdata','sums_ring_stats_4.mat'),'sums4');
+        %     rstats=sums4;
+        % else
+        %     load(fullfile('bzdata','sums_ring_stats_3.mat'),'sums3');
+        %     rstats=sums3;
+        % end
+        rstats=sums_all{rsize-2};
+        rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==rsize,:);
 
-usess=unique(cell2mat(rstats(:,1)));
-pstats=struct();
-for sessid=usess.'
-    pstats.(sprintf('s%d',sessid))=struct();
-    [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessid);
-    rid=find(cell2mat(rstats(:,1))==sessid);
-    for ri=reshape(rid,1,[])
-        disp([sessid,ri]);
-        ts_id=[];
-        cids=rstats{ri,3};
-        per_cid_spk_cnt=cids;
-        for in_ring_pos=1:numel(cids) % TODO, 1:rsize
-            one_ring_sel=spkID==cids(in_ring_pos);
-            per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
-            ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]); % TS, ring_id
-        end
-        ts_id=sortrows(ts_id,1);
-        ts_id=[ts_id,rstats{ri,5}.tags]; % join TS, ring tag
+        usess=unique(cell2mat(rstats(:,1)));
+        pstats=struct();
+        for sessid=usess.'
+            pstats.(sprintf('s%d',sessid))=struct();
+            [spkID,spkTS,trials,suids,folder]=ephys.getSPKID_TS(sessid);
+            rid=find(cell2mat(rstats(:,1))==sessid);
+            for ri=reshape(rid,1,[])
+                disp([sessid,ri]);
+                ts_id=[];
+                cids=rstats{ri,3};
+                per_cid_spk_cnt=cids;
+                for in_ring_pos=1:numel(cids) % TODO, 1:rsize
+                    one_ring_sel=spkID==cids(in_ring_pos);
+                    per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
+                    ts_id=cat(1,ts_id,[spkTS(one_ring_sel),ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos]); % TS, ring_id
+                end
+                ts_id=sortrows(ts_id,1);
+                ts_id=[ts_id,rstats{ri,5}.tags]; % join TS, ring tag
 
-        for cidx=1:numel(rstats{ri,3})
-            cid=rstats{ri,3}(cidx);
-            if ~isfield(pstats.(sprintf('s%d',sessid)),sprintf('c%d',cid))
-                pstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid))=struct();
+                for cidx=1:numel(rstats{ri,3})
+                    cid=rstats{ri,3}(cidx);
+                    if ~isfield(pstats.(sprintf('s%d',sessid)),sprintf('c%d',cid))
+                        pstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid))=struct();
+                    end
+                    pstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid)).(sprintf('r%d',ri))=ts_id(ts_id(:,2)==cidx & ts_id(:,3)~=0,1);
+                end
             end
-            pstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid)).(sprintf('r%d',ri))=ts_id(ts_id(:,2)==cidx & ts_id(:,3)~=0,1);
+        end
+    end
+
+    function mstats=meta_data(rsize,sums_all)
+        meta=ephys.util.load_meta();
+        rstats=sums_all{rsize-2};
+        rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==rsize,:);
+
+        usess=unique(cell2mat(rstats(:,1)));
+        mstats=struct();
+        for sessid=usess.'
+            sesscid=meta.allcid(meta.sess==sessid);
+            sessmtype=meta.mem_type(meta.sess==sessid);
+            mstats.(sprintf('s%d',sessid))=struct();
+            rid=find(cell2mat(rstats(:,1))==sessid);
+            for ri=reshape(rid,1,[])
+                disp([sessid,ri]);
+                %find mem type here
+                rtypes=arrayfun(@(x) sessmtype(sesscid==x),rstats{ri,3});
+                congru=all(ismember(rtypes,1:2),'all') | all(ismember(rtypes,3:4),'all');
+                nonmem=all(rtypes==0,'all');
+                for cidx=1:numel(rstats{ri,3})
+                    cid=rstats{ri,3}(cidx);
+                    if ~isfield(mstats.(sprintf('s%d',sessid)),sprintf('c%d',cid))
+                        mstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid))=struct();
+                    end
+                    mstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid)).(sprintf('r%d',ri))=[congru,nonmem];
+                end
+            end
         end
     end
 end
-end
-
-function mstats=meta_data(rsize,sums_all)
-meta=ephys.util.load_meta();
-rstats=sums_all{rsize-2};
-rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==rsize,:);
-
-usess=unique(cell2mat(rstats(:,1)));
-mstats=struct();
-for sessid=usess.'
-    sesscid=meta.allcid(meta.sess==sessid);
-    sessmtype=meta.mem_type(meta.sess==sessid);
-    mstats.(sprintf('s%d',sessid))=struct();
-    rid=find(cell2mat(rstats(:,1))==sessid);
-    for ri=reshape(rid,1,[])
-        disp([sessid,ri]);
-        %find mem type here
-        rtypes=arrayfun(@(x) sessmtype(sesscid==x),rstats{ri,3});
-        congru=all(ismember(rtypes,1:2),'all') | all(ismember(rtypes,3:4),'all');
-        nonmem=all(rtypes==0,'all');
-        for cidx=1:numel(rstats{ri,3})
-            cid=rstats{ri,3}(cidx);
-            if ~isfield(mstats.(sprintf('s%d',sessid)),sprintf('c%d',cid))
-                mstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid))=struct();
-            end
-            mstats.(sprintf('s%d',sessid)).(sprintf('c%d',cid)).(sprintf('r%d',ri))=[congru,nonmem];
-        end
-    end
-end
-end
-

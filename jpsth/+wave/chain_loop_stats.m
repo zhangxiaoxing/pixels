@@ -2,7 +2,7 @@
 % load single spike chain data
 % load burst spike chain data
 
-per_spk_tag=false;
+per_spk_tag=true;
 bburst=true;
 burstinterval=600;
 
@@ -197,9 +197,8 @@ if true%~exist('inited','var') || ~inited
                 maxrid=table2array(conn.fetch("SELECT MAX(Var1) from "+cc));
                 for rid=1:1000:maxrid
                     onechain=table2array(conn.fetch("SELECT * FROM "+cc+" WHERE Var1>="+num2str(rid)+ " AND Var1<"+num2str(rid+1000)));
-
                     if per_spk_tag
-                        disp(rid);
+%                         disp(rid);
                         for cidx=1:numel(chainmeta)
                             cid=chainmeta(cidx);
                             cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));

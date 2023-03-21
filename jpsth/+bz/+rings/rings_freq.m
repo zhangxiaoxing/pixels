@@ -1,4 +1,4 @@
-%% enumerate single spike and burst ring activitys
+%% enumerate single spike and burst ring activities
 %% main function works, aux functions WIP
 
 % TODO: spike screen by wave / trial
