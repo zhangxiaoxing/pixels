@@ -1,6 +1,4 @@
-% interate sessions
-% load single spike chain data
-% load burst spike chain data
+% tag spikes in neuron with loop or chain activity
 
 per_spk_tag=true;
 bburst=true;
