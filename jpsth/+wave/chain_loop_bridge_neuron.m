@@ -21,7 +21,7 @@ usess=intersect(ssc_sess,ssl_sess);
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
 
 bridge_sums=[];
-common_sums=[];
+pivot_sums=[];
 for sessid=reshape(usess,1,[])
    
     % all loop cid
@@ -40,13 +40,19 @@ for sessid=reshape(usess,1,[])
                     continue
                 end
                 onechain=sschain.out.(dur).(wid{1}).(cc{1}).meta{1};
-                commonsu=onechain(ismember(onechain,loopset)).';
-                common_sums=[common_sums;repmat(sessid,[size(commonsu),1]),commonsu];
-
                 for suidx=2:(numel(onechain)-1)
                     if any(ismember(onechain(1:suidx-1),loopset),"all") ...
-                            && any(ismember(onechain(suidx+1:end),loopset),"all")
+                            && any(ismember(onechain(suidx+1:end),loopset),"all")...
+                            && ~ismember(onechain(suidx),loopset)
                         bridge_sums=[bridge_sums;sessid,onechain(suidx)];
+                        % pivot
+                        if ismember(onechain(suidx-1),loopset)
+                            pivot_sums=[pivot_sums;sessid,onechain(suidx-1)];
+                        end
+                        if ismember(onechain(suidx+1),loopset)
+                            pivot_sums=[pivot_sums;sessid,onechain(suidx+1)];
+                        end
+
                     end
                 end
             end
@@ -61,7 +67,7 @@ for ii=1:size(bucid,1)
 end
 brregs=categorical(bregs(~ismissing(bregs)));
 
-cucid=unique(common_sums,"rows");
+cucid=unique(pivot_sums,"rows");
 cregs=cell(size(cucid,1),1);
 for ii=1:size(cucid,1)
     susel=su_meta.sess==cucid(ii,1) & su_meta.allcid==cucid(ii,2);

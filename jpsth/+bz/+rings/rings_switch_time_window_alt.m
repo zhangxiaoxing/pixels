@@ -1,5 +1,5 @@
 % TODO: loop-loop switch
-% Primary development branch since 2023.1.2
+% Primary developing branch since 2023.1.2
 
 function [single_su_multi_ring,ssmr_meta]=rings_switch_time_window_alt(single_su_multi_ring)
 %data file from rings_time_constant.m
