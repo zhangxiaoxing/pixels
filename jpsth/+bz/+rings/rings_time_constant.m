@@ -217,6 +217,7 @@ for sessid=33%[100,18,33]
    xlim([0,3])
    xlabel('Time (s)')
    ylim([0.5,size(ring_spikes,2)+0.5])
+   %% currently working on this
    ylabel('Loops #')
    edges = find(diff([0,covered,0]==1));
    onset = edges(1:2:end-1);  % Start indices

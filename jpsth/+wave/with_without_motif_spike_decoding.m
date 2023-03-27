@@ -1,5 +1,8 @@
 burstinterval=600;
- 
+decmod=categorical({'olf'},{'olf','dur'});
+
+trlN=20;
+neuN=50;
 
 poswithmat=[];
 posw_o_mat=[];
@@ -29,20 +32,14 @@ for fi=1:numel(fl)
                 continue
             case 1
                 trlsel=find(trl(:,5)==4 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
                 if  decmod=='olf'
                     antitrlsel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
-                    antispksel=ismember(fstr.FT_SPIKE.trial{ftidx},antitrlsel) ...
-                        & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
-%                 else
-%                     antitrlsel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                else
+                    antitrlsel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
                 end
-                keyboard();
+                
             case 2
                 trlsel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7;
                 if  decmod=='olf'
                     antitrlsel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
                 else
@@ -51,47 +48,70 @@ for fi=1:numel(fl)
 
             case 3
                 trlsel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
                 if  decmod=='olf'
-                    antitrlsel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
-                else
                     antitrlsel=find(trl(:,5)==4 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                else
+                    antitrlsel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
                 end
 
             case 4
                 trlsel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7;
                 if  decmod=='olf'
-                    antitrlsel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
+                    antitrlsel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
                 else
-                    antitrlsel=find(trl(:,5)==4 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                    antitrlsel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
                 end
-
             case 5
                 trl3sel=find(trl(:,5)==4 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
                 trl6sel=find(trl(:,5)==4 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=(ismember(fstr.FT_SPIKE.trial{ftidx},trl3sel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4) ...
-                    |(ismember(fstr.FT_SPIKE.trial{ftidx},trl6sel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7);
+                antitrl3sel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                antitrl6sel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
             case 6
                 trl3sel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
                 trl6sel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=(ismember(fstr.FT_SPIKE.trial{ftidx},trl3sel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4) ...
-                    |(ismember(fstr.FT_SPIKE.trial{ftidx},trl6sel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7);
+                antitrl3sel=find(trl(:,5)==8 & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
+                antitrl6sel=find(trl(:,5)==8 & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
             case 7
                 trlsel=find(ismember(trl(:,5),[4,8]) & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+                antitrlsel=find(ismember(trl(:,5),[4,8]) & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
             case 8
                 trlsel=find(ismember(trl(:,5),[4,8]) & trl(:,8)==6 & trl(:,9)>0 & trl(:,10)>0);
-                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
-                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7;
+                antitrlsel=find(ismember(trl(:,5),[4,8]) & trl(:,8)==3 & trl(:,9)>0 & trl(:,10)>0);
         end
+        
+        if all(decmod=='olf')
+            if ismember(sess_wave_id(suidx),1:4)
+                if ~(numel(trlsel)>trlN && numel(antitrlsel)>trlN)
+                    continue
+                end
+                postrl=randsample(trlsel,trlN);
+
+                spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+                    & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+
+                [gc,gr]=groupcounts(fstr.FT_SPIKE.trial{ftidx}(spksel).');
+
+
+                poswithmat=[poswithmat,./trl(postrl,8)];
+                posw_o_mat=[posw_o_mat;]; 
+                negmat=[negmat;];
+            end
+        end
+                % per preferred-trial spikes, before dealing with chain-loop tags
+
+%                 spksel=(ismember(fstr.FT_SPIKE.trial{ftidx},trl3sel) ...
+%                     & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4) ...
+%                     |(ismember(fstr.FT_SPIKE.trial{ftidx},trl6sel) ...
+%                     & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<7);
+
+% 
+%                 antispksel=ismember(fstr.FT_SPIKE.trial{ftidx},antitrlsel) ...
+%                     & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+%                 spksel=ismember(fstr.FT_SPIKE.trial{ftidx},trlsel) ...
+%                     & fstr.FT_SPIKE.time{ftidx}>=1 & fstr.FT_SPIKE.time{ftidx}<4;
+
+%                 [gc,gr]=groupcounts(fstr.FT_SPIKE.trial{ftidx}(spksel).');
+
         % ratio: chain:1, loop:4, SSCL1|4, burst>0
         sums=[sums;...
             sessid,double(sess_cid(suidx)),sess_wave_id(suidx),...
