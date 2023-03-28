@@ -1,11 +1,12 @@
 % Plot per-spike raster showcase of chained loops
 % sessid=100;
-function [in_maximum_tags,in_trial_tags,maxid]=chain_loop_SC_spk(bburst,sessid,maxidx,opt)
+function [in_maximum_tags,in_trial_tags,meta]=chain_loop_SC_spk(bburst,sessid,maxidx,opt)
 arguments
     bburst (1,1) logical
     sessid (1,1) double {mustBeInteger,mustBePositive} % session id
     maxidx (1,1) double {mustBeInteger,mustBePositive} % index of sorted activity pattern
     opt.skip_plot(1,1) logical = true
+    opt.by_cover_rate (1,1) logical = false
 end
 
 persistent sschain bschain pstats
@@ -45,17 +46,34 @@ if ~exist('bburst','var') || bburst
 else
     load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
 end
-edges = find(diff([0;covered;0]==1));
-onset = edges(1:2:end-1);  % Start indices
-run_length = edges(2:2:end)-onset;  % Consecutive ones counts
+if ~opt.by_cover_rate
+    % sort by max run length
+    edges = find(diff([0;covered;0]==1));
+    onset = edges(1:2:end-1);  % Start indices
+    run_length = edges(2:2:end)-onset;  % Consecutive ones counts
 
-[~,maxids]=sort(run_length,'descend');
-maxid=maxids(maxidx);
-maxonset=onset(maxid).*30;
-maxoffset=edges(maxid*2).*30;
-trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
+    [~,maxids]=sort(run_length,'descend');
+    maxid=maxids(maxidx);
+    maxonset=onset(maxid).*30;
+    maxoffset=edges(maxid*2).*30;
+    trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
+else
+    % sort by cover rate
+    delayonset=ceil(FT_SPIKE.trialinfo(:,1)./30)+1000;
+    delayonset((delayonset+3000)>numel(covered))=[];
+    coveredbins=arrayfun(@(x) nnz(covered(x:x+3000)),delayonset);
+    [~,maxids]=sort(coveredbins,'descend');
+    trialid=maxids(maxidx);
+    maxid=coveredbins(trialid);
+    maxonset=FT_SPIKE.trialinfo(trialid,1)+30000;
+    maxoffset=FT_SPIKE.trialinfo(trialid,2);
+end
+
+
+
 delaylen=FT_SPIKE.trialinfo(trialid,8);
 dur="d"+delaylen;
+meta=[trialid,maxid,delaylen];
 
 onsetTS=FT_SPIKE.trialinfo(trialid,1)+30000;
 offsetTS=FT_SPIKE.trialinfo(trialid,1)+FT_SPIKE.trialinfo(trialid,8).*30000+30000;

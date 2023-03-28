@@ -1,7 +1,7 @@
 % tag spikes in neuron with loop or chain activity
 
 per_spk_tag=true;
-bburst=true;
+bburst=false;
 burstinterval=600;
 
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
@@ -226,6 +226,7 @@ if true%~exist('inited','var') || ~inited
         end
     end
     per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
+    denovoflag=true;
 else % load from file
     per_sess_coverage=struct();
     for bi=[150,300,600]
@@ -238,8 +239,12 @@ else % load from file
             per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
         end
     end
+    denovoflag=false;
 end
-% keyboard();
+if denovoflag
+    disp("New set of data file generated")
+    keyboard();
+end
 covcell=struct2cell(per_sess_coverage);
 covfn=fieldnames(per_sess_coverage);
 covered=struct();
