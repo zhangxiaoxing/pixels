@@ -280,7 +280,7 @@ bz.rings.rings_su_wave_tcom_corr(sums_all)
 % chains_uf=wave.COM_chain(sel_meta);
 % chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
 % blame=vcs.blame();
-% save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
+% save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
 wave.chain_stats;
 wave.chains_time_constant

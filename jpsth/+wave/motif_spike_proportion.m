@@ -97,5 +97,26 @@ set(gca(),'XTick',1:3,'XTickLabel',{'Ch','Lp','ChL'},'YTick',0:0.1:0.5,'YTickLab
 ylim([0,0.5])
 ylabel('Percentage of spikes during delay')
 title('Encode both')
+
+
+
+olfboxdatab=[reshape(sums(olfsel,7)./sums(olfsel,8),[],1),...
+    reshape(repmat(1,nnz(olfsel),1),[],1)];
+bothboxdatab=[reshape(sums(bothsel,7)./sums(bothsel,8),[],1),...
+    reshape(repmat(2,nnz(bothsel),1),[],1)];
+
+bdata=[olfboxdatab;bothboxdatab];
+
+
+figure()
+hold on
+boxplot(bdata(:,1),bdata(:,2),'Colors','k','Whisker',realmax)
+set(gca(),'XTick',1:2,'XTickLabel',{'Odor','Both'},'YTick',0:0.2:1,'YTickLabel',0:20:100)
+ylabel('Percentage of spikes during delay')
+xlim([0.5,2.5])
+title('burst motif spike proportion')
+
+prctile(bdata(bdata(:,2)==1,1),[25 50 75])
+prctile(bdata(bdata(:,2)==2,1),[25 50 75])
 return
 

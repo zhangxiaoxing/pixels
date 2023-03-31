@@ -7,6 +7,7 @@ arguments
     maxidx (1,1) double {mustBeInteger,mustBePositive} % index of sorted activity pattern
     opt.skip_plot(1,1) logical = true
     opt.by_cover_rate (1,1) logical = false
+    opt.all_trial_stats (1,1) logical = false
 end
 
 persistent sschain bschain pstats
@@ -57,7 +58,7 @@ if ~opt.by_cover_rate
     maxonset=onset(maxid).*30;
     maxoffset=edges(maxid*2).*30;
     trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
-else
+elseif ~opt.all_trial_stats
     % sort by cover rate
     delayonset=ceil(FT_SPIKE.trialinfo(:,1)./30)+1000;
     delayonset((delayonset+3000)>numel(covered))=[];
@@ -67,9 +68,13 @@ else
     maxid=coveredbins(trialid);
     maxonset=FT_SPIKE.trialinfo(trialid,1)+30000;
     maxoffset=FT_SPIKE.trialinfo(trialid,2);
+else % for statistics
+    delayonset=ceil(FT_SPIKE.trialinfo(:,1)./30)+1000;
+    delayonset((delayonset+3000)>numel(covered))=[];
+    trialid=[]
+    maxonset=FT_SPIKE.trialinfo(trialid,1)+30000;
+    maxoffset=FT_SPIKE.trialinfo(trialid,2);
 end
-
-
 
 delaylen=FT_SPIKE.trialinfo(trialid,8);
 dur="d"+delaylen;
@@ -182,7 +187,7 @@ if ~exist('bburst','var') || bburst
     end
 end
 if ~bburst && (all(~strcmp(in_maximum_tags(:,1),'SSC')) || all(~strcmp(in_maximum_tags(:,1),'SSL')))
-    warning("No chains or loops")
+    warning("All chains or all loops")
 end
 
 if ~opt.skip_plot

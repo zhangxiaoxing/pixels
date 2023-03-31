@@ -92,7 +92,7 @@ if true
 end
 if false
     %% chains end-to-end span
-    load('chains_mix.mat','chains_uf');
+    load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
     chains=chains_uf;
     clear chains_uf;
     wids=reshape(unique(chains.wave),1,[]);

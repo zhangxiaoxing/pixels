@@ -4,9 +4,9 @@ rev_stats=true;
 % chains_uf=wave.COM_chain(sel_meta);
 % chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
 % blame=vcs.blame();
-% save('chains_mix.mat','chains_uf','chains_uf_rev','blame')
+% save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
-load('chains_mix.mat','chains_uf','chains_uf_rev','blame');
+load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame');
 
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
@@ -58,6 +58,12 @@ for sess=reshape(unique(chains_uf.sess),1,[])
         end
     end
 end %sess
+% within & cross count
+disp([...
+nnz(chains_uf.reg_sel=="within" & cellfun(@(x) numel(x)>4,chains_uf.cids)),...
+nnz(chains_uf.reg_sel=="cross" & cellfun(@(x) numel(x)>4,chains_uf.cids))...
+]);
+
 
 %% total number of chains
 % TODO: within, cross

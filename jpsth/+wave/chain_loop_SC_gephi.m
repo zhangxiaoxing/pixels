@@ -15,7 +15,7 @@ rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
 clear sums_all
 rstats(:,5)=num2cell(cellfun(@(x) all(ismember(x,greys),"all"),rstats(:,8)));
 
-load('chains_mix.mat','chains_uf');
+load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
 chains=chains_uf;
 clear chains_uf;
 chains.len=cellfun(@(x) numel(x),chains.cids);

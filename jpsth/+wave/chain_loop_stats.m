@@ -1,8 +1,8 @@
 % tag spikes in neuron with loop or chain activity
-
 per_spk_tag=true;
 bburst=false;
 burstinterval=600;
+skipfile=true;
 
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 
@@ -14,8 +14,7 @@ if ispc
     end
 end
 
-
-if true%~exist('inited','var') || ~inited
+if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
     %% single spike chain
     sschain=load('chain_tag.mat','out');
@@ -49,10 +48,17 @@ if true%~exist('inited','var') || ~inited
         usess=intersect(intersect(intersect(ssc_sess,bsc_sess),ssl_sess),bsl_sess);
     end
     % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
+
+    %% per-session entrance
     per_sess_coverage=struct();
+
+    % 1:session#, 2:trial#, 3:sample, 4:duration, 5:chain motif count,
+    % 6: chain activity c6ount, 7: loop motif count, 8:loop activity count
+    per_trial_motif_freq=[];
+    per_trial_motif_cid=cell(0);
+
     for sessid=reshape(usess,1,[])
-        % extract connected components with graph tools; option: per-trial
-        % dynamic graph=============================
+        % extract connected components with graph tools;
         ssel=sig.sess==sessid;
         gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
         [sgbin,binsize]=conncomp(gh);
@@ -60,7 +66,6 @@ if true%~exist('inited','var') || ~inited
         largec=subgraph(gh,bidx);
         conn_cid=str2double(table2cell(largec.Nodes));
         %^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        % TODO: Use the information.
 
         covered=false(1000,1); % 2hrs of milli-sec bins
 
@@ -69,15 +74,63 @@ if true%~exist('inited','var') || ~inited
         for cidx=1:numel(FT_SPIKE.timestamp)
             FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
         end
+        wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
+        per_trial_motif_freq=[per_trial_motif_freq;...
+            repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),zeros(nnz(wtsel),4)];
+        per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),2)];
+        coveredNG=false(1000,1); % 2hrs of milli-sec bins
 
         %% single spike chain
         for dur=["d6","d3"]
+            dd=str2double(replace(dur,"d",""));
             for wid=reshape(fieldnames(sschain.out.(dur)),1,[])
                 for cc=reshape(fieldnames(sschain.out.(dur).(wid{1})),1,[])
                     if ~startsWith(cc{1},['s',num2str(sessid),'c'])
                         continue
                     end
                     onechain=sschain.out.(dur).(wid{1}).(cc{1});
+                    % ts_id: ts, cid, pos, trial_time, trial
+
+                    % per-trial frequency.
+                    tsel=[];
+                    if dd==3
+                        switch wid{1}
+                            case 's1d3'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                            case 's2d3'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                            case 'olf_s1'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                            case 'olf_s2'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                            case 'dur_d3'
+                                tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
+                        end
+                    else
+                        switch wid{1}
+                            case 's1d6'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                            case 's2d6'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                            case 'olf_s1'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                            case 'olf_s2'
+                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                            case 'dur_d6'
+                                tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
+                        end
+                    end
+                    if ~isempty(tsel)
+                        per_trial_motif_freq(tsel,5)=per_trial_motif_freq(tsel,5)+1;
+                        for ttt=reshape(find(tsel),1,[])
+                            per_trial_motif_cid{ttt,1}=unique([per_trial_motif_cid{ttt,1},onechain.meta{1}]);
+                        end
+
+                        [~,tid]=ismember(onechain.ts(:,1),onechain.ts_id(:,1));
+                        activitysel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),onechain.ts_id(tid,5));
+                        per_trial_motif_freq(activitysel,6)=per_trial_motif_freq(activitysel,6)+1;
+                    end
+                    % ==================
                     %check cid in largest network
                     if ~all(ismember(onechain.meta{1},conn_cid),'all')
                         disp("Outside largest component")
@@ -111,6 +164,23 @@ if true%~exist('inited','var') || ~inited
                 continue
             end
             onechain=pstats.congru.(cc{1});
+            % .ts_id(:,6) => loop tag
+            % per-trial frequency.
+            [pref3,pref6]=bz.rings.preferred_trials_rings(onechain.rstats{4},trials);
+            tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),[pref3;pref6]);
+            per_trial_motif_freq(tsel,7)=per_trial_motif_freq(tsel,7)+1;
+
+            for ttt=reshape(find(tsel),1,[])
+                per_trial_motif_cid{ttt,2}=unique([per_trial_motif_cid{ttt,2},onechain.rstats{3}]);
+            end
+
+            u_act_per_trl=unique(onechain.ts_id(onechain.ts_id(:,6)>0,[5 6]),'rows');
+            [gc,gr]=groupcounts(u_act_per_trl(:,1));
+            for aa=1:numel(gr)
+                asel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==gr(aa);
+                per_trial_motif_freq(asel,8)=per_trial_motif_freq(asel,8)+gc(aa);
+            end
+            
             %check cid in largest network
             if ~all(ismember(onechain.rstats{3},conn_cid),'all')
                 disp("Outside largest component")
@@ -218,14 +288,25 @@ if true%~exist('inited','var') || ~inited
             end
             conn.close();
         end
-        blame=vcs.blame();
-        if bburst
-            save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-        else
-            save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+        if false % WIP % remove unconnected motifs % no effect on time constant
+            underthrestrl=per_trial_motif_freq(per_trial_motif_freq(:,1)==sessid...
+                & ~(per_trial_motif_freq(:,5)>=1 & per_trial_motif_freq(:,7)>=1)...
+                ,2);
+            for tt=reshape(underthrestrl,1,[])
+                covered(floor(trials(tt,1)./30)+(0:7000))=0;
+            end
         end
-    end
+
+        if ~skipfile
+            blame=vcs.blame();
+            if bburst
+                save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+            else
+                save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+            end
+        end
     per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
+    end
     denovoflag=true;
 else % load from file
     per_sess_coverage=struct();
@@ -244,13 +325,25 @@ end
 if denovoflag
     disp("New set of data file generated")
     keyboard();
+    if false
+        save(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq')
+        % chains
+        unique(cellfun(@(x) numel(x),per_trial_motif_cid(:,1)))
+        % loops
+        trlcnt=cellfun(@(x) numel(x),per_trial_motif_cid(:,2))
+        unique(trlcnt(per_trial_motif_freq(:,7)>1))
+        % chained-loops
+        trlcnt=arrayfun(@(x) numel(unique([per_trial_motif_cid{x,1},per_trial_motif_cid{x,2}])),1:size(per_trial_motif_cid,1))
+        unique(trlcnt(per_trial_motif_freq(:,5)>=1 & per_trial_motif_freq(:,7)>=1))
+        
+    end
 end
 covcell=struct2cell(per_sess_coverage);
 covfn=fieldnames(per_sess_coverage);
 covered=struct();
 run_length=struct();
 
-for bi=[150,300,600]
+for bi=600%[150,300,600]
     covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
     run_length.("B"+bi)=[];
     for jj=1:numel(covered.("B"+bi))
@@ -293,6 +386,33 @@ set(gca(),'XScale','log','YScale','log')
 xlabel('Time (ms)')
 ylabel('Probability density')
 
+
+function plot_motif_freq()
+load(fullfile("bzdata","per_trial_motif_spk_freq.mat"))
+motif_n=per_trial_motif_freq(:,5)+per_trial_motif_freq(:,7);
+figure();histogram(motif_n)
+
+boxdata=[];
+sel01_100=motif_n>0 & motif_n<=100;
+boxdata=[boxdata;(per_trial_motif_freq(sel01_100,6)+per_trial_motif_freq(sel01_100,8))./per_trial_motif_freq(sel01_100,4),ones(nnz(sel01_100),1)];
+
+sel100_300=motif_n>100 & motif_n<=300;
+boxdata=[boxdata;(per_trial_motif_freq(sel100_300,6)+per_trial_motif_freq(sel100_300,8))./per_trial_motif_freq(sel100_300,4),ones(nnz(sel100_300),1)*2];
+
+sel300_500=motif_n>300 & motif_n<=500;
+boxdata=[boxdata;(per_trial_motif_freq(sel300_500,6)+per_trial_motif_freq(sel300_500,8))./per_trial_motif_freq(sel300_500,4),ones(nnz(sel300_500),1)*3];
+
+sel500_700=motif_n>500 & motif_n<=700;
+boxdata=[boxdata;(per_trial_motif_freq(sel500_700,6)+per_trial_motif_freq(sel500_700,8))./per_trial_motif_freq(sel500_700,4),ones(nnz(sel500_700),1)*4];
+
+figure('Position',[100,100,300,300])
+boxplot(boxdata(:,1),boxdata(:,2),'Colors','k','Whisker',realmax)
+set(gca(),'XTick',1:4,'XTickLabel',{'1-100','100-300','300-500','500-700'},'XTickLabelRotation',90)
+ylabel('Motif frequency (Hz)')
+xlabel('Number of motifs')
+end
+
+
 %% ========================SHOWCASE===============
 % moved to chain_loops_SC_spk.m
 
@@ -307,32 +427,3 @@ conn.fetch("SELECT COUNT(*) FROM "+keys(1));
 end
 
 
-function extrapolation()
-su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-wrs_mux_meta=ephys.get_wrs_mux_meta();
-
-figure()
-hold on
-for sessid=[14,18,22,33,34,68,100,102,114]
-    sess_scale=nnz(su_meta.sess==sessid & wrs_mux_meta.wave_id>0);
-    load("ChainedLoop"+num2str(sessid)+".mat",'covered')
-    edges = find(diff([0;covered;0]==1));
-    onset = edges(1:2:end-1);  % Start indices
-    run_length =edges(2:2:end)-onset;  % Consecutive ones counts
-    scatter(sess_scale,prctile(run_length,25),'bo')
-    scatter(sess_scale,prctile(run_length,50),'ko')
-    scatter(sess_scale,prctile(run_length,75),'ro')
-end
-% keyboard();
-covered=struct2cell(per_sess_coverage);
-% run_length=[];
-for jj=1:numel(covered)
-    edges = find(diff([0;covered{jj};0]==1));
-    onset = edges(1:2:end-1);  % Start indices
-    disp([jj,min(edges(2:2:end)-onset)]);
-    %     run_length =[run_length; edges(2:2:end)-onset];  % Consecutive ones counts
-    % per_sess_coverage.("S"+num2str(sessid))=run_length;
-end
-
-
-end
