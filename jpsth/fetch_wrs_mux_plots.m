@@ -12,20 +12,20 @@ com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 tcom3_maps=struct();
 tcom6_maps=struct();
 grey_regs=ephys.getGreyRegs('range','grey');
-for typeidx=["mixed","olf","dur"]
-    [fcom3.(type).collection,fcom3.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',typeidx,'com_field','com3');
-    ureg=intersect(grey_regs,fcom3.(typeidx).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom3.(type).collection(:,2));
-    tcom3_maps.(typeidx)=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom3.(type).collection(tcidx,1))));
+for ttype=["mixed","olf","dur"]
+    [fcom3.(ttype).collection,fcom3.(ttype).com_meta]=wave.per_region_COM(...
+        com_map,'sel_type',ttype,'com_field','com3');
+    ureg=intersect(grey_regs,fcom3.(ttype).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom3.(ttype).collection(:,2));
+    tcom3_maps.(ttype)=containers.Map(...
+        ureg,num2cell(cellfun(@(x) x/4, fcom3.(ttype).collection(tcidx,1))));
 
-    [fcom6.(type).collection,fcom6.(type).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',typeidx,'com_field','com6');
-    ureg=intersect(grey_regs,fcom6.(typeidx).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom6.(type).collection(:,2));
-    tcom6_maps.(typeidx)=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom6.(type).collection(tcidx,1))));
+    [fcom6.(ttype).collection,fcom6.(ttype).com_meta]=wave.per_region_COM(...
+        com_map,'sel_type',ttype,'com_field','com6');
+    ureg=intersect(grey_regs,fcom6.(ttype).collection(:,2));
+    [~,tcidx]=ismember(ureg,fcom6.(ttype).collection(:,2));
+    tcom6_maps.(ttype)=containers.Map(...
+        ureg,num2cell(cellfun(@(x) x/4, fcom6.(ttype).collection(tcidx,1))));
 end
 
 

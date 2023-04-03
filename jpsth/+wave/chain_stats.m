@@ -335,8 +335,8 @@ if ~exist('tcom6_maps','var')
     keyboard()
 end
 
-inkey=cellfun(@(x) all(ismember(x,tcom6_maps{2}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel6 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps{2}.values(x)),chains_uf.reg(sel6 & olf_sel & inkey),'UniformOutput',false);
+inkey=cellfun(@(x) all(ismember(x,tcom6_maps.olf.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel6 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps.olf.values(x)),chains_uf.reg(sel6 & olf_sel & inkey),'UniformOutput',false);
 xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel6 & olf_sel & inkey),'UniformOutput',false));
 yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel6 & olf_sel & inkey),'UniformOutput',false));
 cross_sel=cellfun(@(x) numel(unique(x))>1,chains_uf.reg(sel6 & olf_sel & inkey));
@@ -357,11 +357,11 @@ olf6_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,
 
 
 %% dur 6
-inkey=cellfun(@(x) all(ismember(x,tcom6_maps{3}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel6 & dur_sel & inkey)=cellfun(@(x) tcom6_maps{3}.values(x),chains_uf.reg(sel6 & dur_sel & inkey),'UniformOutput',false);
+inkey=cellfun(@(x) all(ismember(x,tcom6_maps.dur.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel6 & dur_sel & inkey)=cellfun(@(x) tcom6_maps.dur.values(x),chains_uf.reg(sel6 & dur_sel & inkey),'UniformOutput',false);
 %% both 6
-inkey=cellfun(@(x) all(ismember(x,tcom6_maps{1}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel6 & both_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps{1}.values(x)),chains_uf.reg(sel6 & both_sel & inkey),'UniformOutput',false);
+inkey=cellfun(@(x) all(ismember(x,tcom6_maps.mixed.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel6 & both_sel & inkey)=cellfun(@(x) cell2mat(tcom6_maps.mixed.values(x)),chains_uf.reg(sel6 & both_sel & inkey),'UniformOutput',false);
 
 xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel6 & both_sel & inkey),'UniformOutput',false));
 yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel6 & both_sel & inkey),'UniformOutput',false));
@@ -385,8 +385,8 @@ mix6_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,
 
 
 %% olf 3
-inkey=cellfun(@(x) all(ismember(x,tcom3_maps{2}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel3 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps{2}.values(x)),chains_uf.reg(sel3 & olf_sel & inkey),'UniformOutput',false);
+inkey=cellfun(@(x) all(ismember(x,tcom3_maps.olf.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel3 & olf_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps.olf.values(x)),chains_uf.reg(sel3 & olf_sel & inkey),'UniformOutput',false);
 
 xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel3 & olf_sel & inkey),'UniformOutput',false));
 yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel3 & olf_sel & inkey),'UniformOutput',false));
@@ -408,12 +408,12 @@ title('Olf, len>4, 3s')
 olf3_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,:),1,2)./4);
 
 %% dur 3
-inkey=cellfun(@(x) all(ismember(x,tcom3_maps{3}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel3 & dur_sel & inkey)=cellfun(@(x) tcom3_maps{3}.values(x),chains_uf.reg(sel3 & dur_sel & inkey),'UniformOutput',false);
+inkey=cellfun(@(x) all(ismember(x,tcom3_maps.dur.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel3 & dur_sel & inkey)=cellfun(@(x) tcom3_maps.dur.values(x),chains_uf.reg(sel3 & dur_sel & inkey),'UniformOutput',false);
 
 %% both 3
-inkey=cellfun(@(x) all(ismember(x,tcom3_maps{1}.keys()),'all'),chains_uf.reg);
-chains_uf.reg_tcom(sel3 & both_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps{1}.values(x)),chains_uf.reg(sel3 & both_sel & inkey),'UniformOutput',false);
+inkey=cellfun(@(x) all(ismember(x,tcom3_maps.mixed.keys()),'all'),chains_uf.reg);
+chains_uf.reg_tcom(sel3 & both_sel & inkey)=cellfun(@(x) cell2mat(tcom3_maps.mixed.values(x)),chains_uf.reg(sel3 & both_sel & inkey),'UniformOutput',false);
 
 xxs=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.tcoms(sel3 & both_sel & inkey),'UniformOutput',false));
 yys=cell2mat(cellfun(@(x) [x(1),x(end)],chains_uf.reg_tcom(sel3 & both_sel & inkey),'UniformOutput',false));

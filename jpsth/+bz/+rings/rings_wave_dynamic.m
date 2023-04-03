@@ -307,7 +307,7 @@ d6hist=histcounts([perchaindur.d6.dur,perchaindur.d3.dur],[0:50:1000,1500,2000],
 
 figure()
 hold on
-sph=plot([0.5:9.5,15:10:195],congru_pdf,'--k');
+sph=plot([0.5:9.5,15:10:195],congru_pdf,'-k');
 % bph=plot([25:50:975,1250,1750],d6hist,'k-');
 
 set(gca(),'XScale','log','YScale','log');
@@ -316,7 +316,7 @@ xlabel('Time (ms)')
 ylabel('Probability density (per loop per ms)')
 legend([sph,bph],{'Single spike loops','Burst spike loops'},'Location','northoutside','Orientation','horizontal')
 if false %supplement for single spike ring-along plot
-    qtrs=prctile(durs,[25,50,75]); % 16.9   22.2   28.3, @2023-03-08
+    qtrs=prctile(durs,[10,50,90]); % 16.9   22.2   28.3, @2023-03-08
     xline(qtrs,'--k',string(qtrs))
     ylim([1e-4,1e-1])
     title('single spike loops')
@@ -387,8 +387,8 @@ multihist=histcounts([statsm.dd3.d3.dur,statsm.dd6.d6.dur],[0:10:100,200:100:600
 % d3hist=histcounts(perchaindur.d3.dur,0:50:600,'Normalization','pdf');
 figure()
 hold on
-sh=plot([0.5:9.5,15:10:95],singlehist,'--k');
-mh=plot([5:10:95,150:100:550],multihist,'-k');
+sh=plot([0.5:9.5,15:10:95],singlehist,'-k');
+% mh=plot([5:10:95,150:100:550],multihist,'-k');
 % plot(25:50:575,d3hist,'--k');
 set(gca(),'XScale','log','YScale','log');
 
@@ -397,8 +397,8 @@ xlabel('Time (ms)');
 ylabel('Probability density');
 legend([sh,mh],{'Single spike chain','Burst spike chain'},'Location','northoutside','Orientation','horizontal')
 if false % supplyment for  single spike time constant alone plot, w/o busrt, w/ median, IQR
-    qtrs=prctile([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[25,50,75]); % 16.6667   21.1000   25.8000, @2023-03-07
-    xline(qtrs,'--k',{'25%','50%','75%'})
+    qtrs=prctile([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[10,50,90]); % 16.6667   21.1000   25.8000, @2023-03-07
+    xline(qtrs,'--k',string(num2cell(qtrs)))
     ylim([1e-4,1e-1])
     title('single spike chains')
 end

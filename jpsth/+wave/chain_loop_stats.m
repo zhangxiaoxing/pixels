@@ -389,27 +389,49 @@ ylabel('Probability density')
 
 function plot_motif_freq()
 load(fullfile("bzdata","per_trial_motif_spk_freq.mat"))
-motif_n=per_trial_motif_freq(:,5)+per_trial_motif_freq(:,7);
-figure();histogram(motif_n)
+if false
+    motif_n=per_trial_motif_freq(:,5)+per_trial_motif_freq(:,7);
+    figure();histogram(motif_n)
 
-boxdata=[];
-sel01_100=motif_n>0 & motif_n<=100;
-boxdata=[boxdata;(per_trial_motif_freq(sel01_100,6)+per_trial_motif_freq(sel01_100,8))./per_trial_motif_freq(sel01_100,4),ones(nnz(sel01_100),1)];
+    boxdata=[];
+    sel01_100=motif_n>0 & motif_n<=100;
+    boxdata=[boxdata;(per_trial_motif_freq(sel01_100,6)+per_trial_motif_freq(sel01_100,8))./per_trial_motif_freq(sel01_100,4),ones(nnz(sel01_100),1)];
 
-sel100_300=motif_n>100 & motif_n<=300;
-boxdata=[boxdata;(per_trial_motif_freq(sel100_300,6)+per_trial_motif_freq(sel100_300,8))./per_trial_motif_freq(sel100_300,4),ones(nnz(sel100_300),1)*2];
+    sel100_300=motif_n>100 & motif_n<=300;
+    boxdata=[boxdata;(per_trial_motif_freq(sel100_300,6)+per_trial_motif_freq(sel100_300,8))./per_trial_motif_freq(sel100_300,4),ones(nnz(sel100_300),1)*2];
 
-sel300_500=motif_n>300 & motif_n<=500;
-boxdata=[boxdata;(per_trial_motif_freq(sel300_500,6)+per_trial_motif_freq(sel300_500,8))./per_trial_motif_freq(sel300_500,4),ones(nnz(sel300_500),1)*3];
+    sel300_500=motif_n>300 & motif_n<=500;
+    boxdata=[boxdata;(per_trial_motif_freq(sel300_500,6)+per_trial_motif_freq(sel300_500,8))./per_trial_motif_freq(sel300_500,4),ones(nnz(sel300_500),1)*3];
 
-sel500_700=motif_n>500 & motif_n<=700;
-boxdata=[boxdata;(per_trial_motif_freq(sel500_700,6)+per_trial_motif_freq(sel500_700,8))./per_trial_motif_freq(sel500_700,4),ones(nnz(sel500_700),1)*4];
+    sel500_700=motif_n>500 & motif_n<=700;
+    boxdata=[boxdata;(per_trial_motif_freq(sel500_700,6)+per_trial_motif_freq(sel500_700,8))./per_trial_motif_freq(sel500_700,4),ones(nnz(sel500_700),1)*4];
 
-figure('Position',[100,100,300,300])
-boxplot(boxdata(:,1),boxdata(:,2),'Colors','k','Whisker',realmax)
-set(gca(),'XTick',1:4,'XTickLabel',{'1-100','100-300','300-500','500-700'},'XTickLabelRotation',90)
-ylabel('Motif frequency (Hz)')
-xlabel('Number of motifs')
+    figure('Position',[100,100,300,300])
+    boxplot(boxdata(:,1),boxdata(:,2),'Colors','k','Whisker',realmax)
+    set(gca(),'XTick',1:4,'XTickLabel',{'1-100','100-300','300-500','500-700'},'XTickLabelRotation',90)
+    ylabel('Motif frequency (Hz)')
+    xlabel('Number of motifs')
+end
+msel=(per_trial_motif_freq(:,5)+per_trial_motif_freq(:,7))>0;
+mfreq=(per_trial_motif_freq(msel,6)+per_trial_motif_freq(msel,8))./per_trial_motif_freq(msel,4);
+pct90=prctile(mfreq,[10,50,90]);
+fh=figure();
+tiledlayout(1,2)
+nexttile
+fh.Position(1:2)=[100,100];
+hold on
+swarmchart(ones(size(mfreq)),mfreq,'k.')
+set(gca,'YScale','log')
+nexttile
+hold on
+boxplot(mfreq,'Whisker',realmax,'Colors','k')
+plot([0.9,1.1],[31,31],'k-')
+xlim([0.5,1.5])
+% set(gca,'YScale','log')
+ylim([0,32])
+title(string(pct90))
+text(1,30,'max @ 221','VerticalAlignment','top','HorizontalAlignment','center')
+ylabel('Motif frequency  (Hz)')
 end
 
 
