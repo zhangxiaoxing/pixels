@@ -55,9 +55,13 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     % 1:session#, 2:trial#, 3:sample, 4:duration, 5:chain motif count,
     % 6: chain activity c6ount, 7: loop motif count, 8:loop activity count
     per_trial_motif_freq=[];
+    % 1:olf_chain motif count, 2:both_chain motif count, 3:dur_chain motif count
+    % 4:olf_chain activity count, 5:both_chain activity count, 6:dur_chain activity count
+    % 7-12: similar, but for loops
+    per_trial_motif_freq_perwave=[];
     per_trial_motif_cid=cell(0);
 
-    for sessid=reshape(usess,1,[])
+    for sessid=[14,18]%reshape(usess,1,[])
         % extract connected components with graph tools;
         ssel=sig.sess==sessid;
         gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
@@ -75,8 +79,12 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
         end
         wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
+
         per_trial_motif_freq=[per_trial_motif_freq;...
-            repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),zeros(nnz(wtsel),4)];
+            repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),...
+            zeros(nnz(wtsel),4)];
+        per_trial_motif_freq_perwave=[per_trial_motif_freq_perwave;...
+            zeros(nnz(wtsel),12)];
         per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),2)];
         coveredNG=false(1000,1); % 2hrs of milli-sec bins
 
@@ -97,38 +105,52 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         switch wid{1}
                             case 's1d3'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                                perwaveidx=[2,5];
                             case 's2d3'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                                perwaveidx=[2,5];
                             case 'olf_s1'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                                perwaveidx=[1,4];
                             case 'olf_s2'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                                perwaveidx=[1,4];
                             case 'dur_d3'
                                 tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
+                                perwaveidx=[3,6];
                         end
                     else
                         switch wid{1}
                             case 's1d6'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                                perwaveidx=[2,5];
                             case 's2d6'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                                perwaveidx=[2,5];
                             case 'olf_s1'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                                perwaveidx=[1,4];
                             case 'olf_s2'
                                 tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                                perwaveidx=[1,4];
                             case 'dur_d6'
                                 tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
+                                perwaveidx=[3,6];
                         end
                     end
                     if ~isempty(tsel)
+                        % chain motif ++
                         per_trial_motif_freq(tsel,5)=per_trial_motif_freq(tsel,5)+1;
+                        per_trial_motif_freq_perwave(tsel,perwaveidx(1))=per_trial_motif_freq_perwave(tsel,perwaveidx(1))+1;
+
                         for ttt=reshape(find(tsel),1,[])
-                            per_trial_motif_cid{ttt,1}=unique([per_trial_motif_cid{ttt,1},onechain.meta{1}]);
+                            per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},onechain.meta(1)];
                         end
 
                         [~,tid]=ismember(onechain.ts(:,1),onechain.ts_id(:,1));
                         activitysel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),onechain.ts_id(tid,5));
                         per_trial_motif_freq(activitysel,6)=per_trial_motif_freq(activitysel,6)+1;
+                        per_trial_motif_freq_perwave(activitysel,perwaveidx(2))=per_trial_motif_freq_perwave(activitysel,perwaveidx(2))+1;
                     end
                     % ==================
                     %check cid in largest network
@@ -169,6 +191,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             [pref3,pref6]=bz.rings.preferred_trials_rings(onechain.rstats{4},trials);
             tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),[pref3;pref6]);
             per_trial_motif_freq(tsel,7)=per_trial_motif_freq(tsel,7)+1;
+            % per wave
+            if strcmp(onechain.rstats{5},'olf')
+                perwaveidx=[7,10];
+            elseif strcmp(onechain.rstats{5},'dur')    
+                perwaveidx=[9,12];
 
             for ttt=reshape(find(tsel),1,[])
                 per_trial_motif_cid{ttt,2}=unique([per_trial_motif_cid{ttt,2},onechain.rstats{3}]);
