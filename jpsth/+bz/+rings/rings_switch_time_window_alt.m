@@ -1,6 +1,4 @@
-% TODO: loop-loop switch
 % Primary developing branch since 2023.1.2
-
 function [single_su_multi_ring,ssmr_meta]=rings_switch_time_window_alt(single_su_multi_ring)
 %data file from rings_time_constant.m
 if false
@@ -109,14 +107,14 @@ function out=stats(single_su_multi_ring)
 cnt3s=cellfun(@(x) size(x,2), struct2cell(single_su_multi_ring.d3));
 cnt6s=cellfun(@(x) size(x,2), struct2cell(single_su_multi_ring.d6));
 % hist3=histcounts(cnt3s,[0:10:100,500],'Normalization','pdf');
-hist6=histcounts([cnt3s;cnt6s],[0:5:15,20:20:100,200],'Normalization','pdf');
+hhist=histcounts([cnt3s;cnt6s],[0.5:200.5],'Normalization','cdf');
 figure()
 hold on;
 % plot(5:10:95,mean([hist3(1:end-1);hist6(1:end-1)]),'-k');
 % plot(95:10:105,mean([hist3(end-1:end);hist6(end-1:end)]),'--k');
-plot([2.5:5:17.5,30:20:90,150],hist6,'-k');
-set(gca(),'YScale','log','XTick',0:50:150)
-ylim([4e-4,0.1])
+plot([1:200],hhist,'-k');
+% set(gca(),'YScale','log','XTick',0:50:150)
+% ylim([4e-4,0.1])
 xlim([0,175])
 xlabel('Number of composite loops')
 ylabel('Probability density')

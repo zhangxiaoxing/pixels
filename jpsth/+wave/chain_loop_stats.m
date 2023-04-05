@@ -7,12 +7,12 @@ skipfile=true;
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 
 optmem=false;
-if ispc
-    [~,sysmem]=memory();
-    if sysmem.PhysicalMemory.Total < 2e10
-        optmem=true;
-    end
-end
+% if ispc
+%     [~,sysmem]=memory();
+%     if sysmem.PhysicalMemory.Total < 2e10
+%         optmem=true;
+%     end
+% end
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
@@ -61,7 +61,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     per_trial_motif_freq_perwave=[];
     per_trial_motif_cid=cell(0);
 
-    for sessid=[14,18]%reshape(usess,1,[])
+    for sessid=reshape(usess,1,[])
         % extract connected components with graph tools;
         ssel=sig.sess==sessid;
         gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
@@ -148,9 +148,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         end
 
                         [~,tid]=ismember(onechain.ts(:,1),onechain.ts_id(:,1));
-                        activitysel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),onechain.ts_id(tid,5));
-                        per_trial_motif_freq(activitysel,6)=per_trial_motif_freq(activitysel,6)+1;
-                        per_trial_motif_freq_perwave(activitysel,perwaveidx(2))=per_trial_motif_freq_perwave(activitysel,perwaveidx(2))+1;
+                        for onetid=reshape(tid,1,[])
+                            activitysel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==onechain.ts_id(onetid,5);
+                            per_trial_motif_freq(activitysel,6)=per_trial_motif_freq(activitysel,6)+1;
+                            per_trial_motif_freq_perwave(activitysel,perwaveidx(2))=per_trial_motif_freq_perwave(activitysel,perwaveidx(2))+1;
+                        end
                     end
                     % ==================
                     %check cid in largest network
@@ -192,13 +194,21 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),[pref3;pref6]);
             per_trial_motif_freq(tsel,7)=per_trial_motif_freq(tsel,7)+1;
             % per wave
-            if strcmp(onechain.rstats{5},'olf')
+            switch onechain.rstats{5}
+                case 'olf'
                 perwaveidx=[7,10];
-            elseif strcmp(onechain.rstats{5},'dur')    
+                case 'both'
+                perwaveidx=[8,11];
+                case 'dur'
                 perwaveidx=[9,12];
+                otherwise
+                    keyboard();
+            end
+
+            per_trial_motif_freq_perwave(tsel,perwaveidx(1))=per_trial_motif_freq_perwave(tsel,perwaveidx(1))+1;
 
             for ttt=reshape(find(tsel),1,[])
-                per_trial_motif_cid{ttt,2}=unique([per_trial_motif_cid{ttt,2},onechain.rstats{3}]);
+                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
             end
 
             u_act_per_trl=unique(onechain.ts_id(onechain.ts_id(:,6)>0,[5 6]),'rows');
@@ -206,6 +216,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             for aa=1:numel(gr)
                 asel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==gr(aa);
                 per_trial_motif_freq(asel,8)=per_trial_motif_freq(asel,8)+gc(aa);
+                per_trial_motif_freq_perwave(asel,perwaveidx(2))=per_trial_motif_freq_perwave(asel,perwaveidx(2))+gc(aa);
             end
             
             %check cid in largest network
@@ -353,7 +364,8 @@ if denovoflag
     disp("New set of data file generated")
     keyboard();
     if false
-        save(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq')
+        blame=vcs.blame();
+        save(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid','blame')
         % chains
         unique(cellfun(@(x) numel(x),per_trial_motif_cid(:,1)))
         % loops
@@ -415,51 +427,29 @@ ylabel('Probability density')
 
 
 function plot_motif_freq()
-load(fullfile("bzdata","per_trial_motif_spk_freq.mat"))
-if false
-    motif_n=per_trial_motif_freq(:,5)+per_trial_motif_freq(:,7);
-    figure();histogram(motif_n)
+load(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid')
 
-    boxdata=[];
-    sel01_100=motif_n>0 & motif_n<=100;
-    boxdata=[boxdata;(per_trial_motif_freq(sel01_100,6)+per_trial_motif_freq(sel01_100,8))./per_trial_motif_freq(sel01_100,4),ones(nnz(sel01_100),1)];
-
-    sel100_300=motif_n>100 & motif_n<=300;
-    boxdata=[boxdata;(per_trial_motif_freq(sel100_300,6)+per_trial_motif_freq(sel100_300,8))./per_trial_motif_freq(sel100_300,4),ones(nnz(sel100_300),1)*2];
-
-    sel300_500=motif_n>300 & motif_n<=500;
-    boxdata=[boxdata;(per_trial_motif_freq(sel300_500,6)+per_trial_motif_freq(sel300_500,8))./per_trial_motif_freq(sel300_500,4),ones(nnz(sel300_500),1)*3];
-
-    sel500_700=motif_n>500 & motif_n<=700;
-    boxdata=[boxdata;(per_trial_motif_freq(sel500_700,6)+per_trial_motif_freq(sel500_700,8))./per_trial_motif_freq(sel500_700,4),ones(nnz(sel500_700),1)*4];
-
-    figure('Position',[100,100,300,300])
-    boxplot(boxdata(:,1),boxdata(:,2),'Colors','k','Whisker',realmax)
-    set(gca(),'XTick',1:4,'XTickLabel',{'1-100','100-300','300-500','500-700'},'XTickLabelRotation',90)
-    ylabel('Motif frequency (Hz)')
-    xlabel('Number of motifs')
-end
-msel=(per_trial_motif_freq(:,5)+per_trial_motif_freq(:,7))>0;
-mfreq=(per_trial_motif_freq(msel,6)+per_trial_motif_freq(msel,8))./per_trial_motif_freq(msel,4);
-pct90=prctile(mfreq,[10,50,90]);
+olfsel=sum(per_trial_motif_freq_perwave(:,1:3),2)>0;
+bothsel=sum(per_trial_motif_freq_perwave(:,7:9),2)>0;
+olffreq=sum(per_trial_motif_freq_perwave(olfsel,4:6),2)./per_trial_motif_freq(olfsel,4);
+bothfreq=sum(per_trial_motif_freq_perwave(bothsel,10:12),2)./per_trial_motif_freq(bothsel,4);
+olfiqrs=prctile(olffreq,[25,50,75]);
+bothiqrs=prctile(bothfreq,[25,50,75]);
 fh=figure();
-tiledlayout(1,2)
-nexttile
 fh.Position(1:2)=[100,100];
 hold on
-swarmchart(ones(size(mfreq)),mfreq,'k.')
-set(gca,'YScale','log')
-nexttile
-hold on
-boxplot(mfreq,'Whisker',realmax,'Colors','k')
-plot([0.9,1.1],[31,31],'k-')
-xlim([0.5,1.5])
-% set(gca,'YScale','log')
-ylim([0,32])
-title(string(pct90))
-text(1,30,'max @ 221','VerticalAlignment','top','HorizontalAlignment','center')
+boxplot([olffreq;bothfreq],[ones(size(olffreq));2*ones(size(bothfreq))],'Whisker',realmax,'Colors','k')
+
+olfiqr=prctile(olffreq,[25,50,75,100]);
+bothiqr=prctile(bothfreq,[25,50,75,100]);
+
+xlim([0.5,2.5])
+ylim([0,30])
+title({sprintf('%0.2f,',olfiqr),sprintf('%0.2f,',bothiqr)});
 ylabel('Motif frequency  (Hz)')
+set(gca,'XTick',1:2,'XTickLabel',{'Olf','Both'})
 end
+
 
 
 %% ========================SHOWCASE===============
