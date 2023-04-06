@@ -250,33 +250,33 @@ dur_uid=[chains_uf.uid{dur_sel}];
 dur_reg=[chains_uf.reg{dur_sel}];
 dur_reg_cat=categorical(dur_reg);
 dur_u_reg_cat=categorical(dur_reg(usel));
-
-figure()
-tiledlayout(2,2)
-nexttile()
-olfh=pie(olf_reg_cat);
-title("Olfactory with repeats")
 if false
+    figure()
+    tiledlayout(2,2)
     nexttile()
-    durh=pie(dur_reg_cat);
-    title("Duration with repeats")
-end
-nexttile()
-mixh=pie(both_reg_cat);
-title("Both-selective with repeats")
-
-nexttile()
-olfh=pie(olf_u_reg_cat);
-title("Olfactory unique neuron")
-if false
+    olfh=pie(olf_reg_cat);
+    title("Olfactory with repeats")
+    if false
+        nexttile()
+        durh=pie(dur_reg_cat);
+        title("Duration with repeats")
+    end
     nexttile()
-    durh=pie(dur_u_reg_cat);
-    title("Duration unique neuron")
-end
-nexttile()
-mixh=pie(both_u_reg_cat);
-title("Both-selective unique neuron")
+    mixh=pie(both_reg_cat);
+    title("Both-selective with repeats")
 
+    nexttile()
+    olfh=pie(olf_u_reg_cat);
+    title("Olfactory unique neuron")
+    if false
+        nexttile()
+        durh=pie(dur_u_reg_cat);
+        title("Duration unique neuron")
+    end
+    nexttile()
+    mixh=pie(both_u_reg_cat);
+    title("Both-selective unique neuron")
+end
 
 %chain vs loop
 load(fullfile('bzdata','sums_ring_stats_all.mat'));
@@ -285,12 +285,12 @@ rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
 lolf_sel=strcmp(rstats(:,9),'olf');
 loop_olf_uid=unique([rstats{lolf_sel,10}]);
 olf_shared=nnz(ismember(chain_olf_uid,loop_olf_uid));
-olf_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_meta.wave_id,5:6));
+olf_su_total=nnz(ismember(wrs_mux_meta.wave_id,5:6)); %ismember(su_meta.reg_tree(5,:).',greys) &
 
 lboth_sel=strcmp(rstats(:,9),'both');
 loop_both_uid=unique([rstats{lboth_sel,10}]);
 both_shared=nnz(ismember(chain_both_uid,loop_both_uid));
-both_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_meta.wave_id,1:4));
+both_su_total=nnz(ismember(wrs_mux_meta.wave_id,1:4));%ismember(su_meta.reg_tree(5,:).',greys) &
 
 % skiped dur stats since no chain with lenth > 5 were recorded
 % ldur_sel=strcmp(rstats(:,9),'dur');
@@ -298,18 +298,48 @@ both_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_met
 % dur_shared=nnz(ismember(chain_dur_uid,loop_dur_uid));
 % dur_su_total=nnz(ismember(su_meta.reg_tree(5,:).',greys) & ismember(wrs_mux_meta.wave_id,7:8));
 
+[ohat,oci]=binofit(numel(chain_olf_uid)+numel(loop_olf_uid)-olf_shared,olf_su_total);
+[bhat,bci]=binofit(numel(chain_both_uid)+numel(loop_both_uid)-both_shared,both_su_total);
+
+osem=sqrt(ohat.*(1-ohat)./olf_su_total);
+bsem=sqrt(bhat.*(1-bhat)./both_su_total);
+%% 
 figure()
-bh=bar([[numel(chain_olf_uid)-olf_shared,olf_shared,numel(loop_olf_uid)-olf_shared]./olf_su_total;...
-    [numel(chain_both_uid)-both_shared,both_shared,numel(loop_both_uid)-both_shared]./both_su_total],...
+hold on;
+bh=bar([ohat,0;0,bhat],'stacked');
+bh(1).FaceColor='w';
+bh(2).FaceColor='w';
+
+errorbar(1:2,[ohat,bhat],[osem,bsem],'k.','CapSize',20)
+% legend(bh,{'Odor only','Encode both'},'Location','northoutside','Orientation','horizontal','FontSize',10)
+ylim([0,0.15])
+xlim([0,3])
+ylabel('Proportion of selective neurons (%)')
+set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.05:0.15,'FontSize',10,'YTickLabel',0:5:15);
+
+
+% [ohat,oci]=binofit(olf_shared,numel(chain_olf_uid)+numel(loop_olf_uid)-olf_shared);
+% [bhat,bci]=binofit(both_shared,numel(chain_both_uid)+numel(loop_both_uid)-both_shared);
+% 
+% osem=sqrt(ohat.*(1-ohat)./(numel(chain_olf_uid)+numel(loop_olf_uid)-olf_shared));
+% bsem=sqrt(bhat.*(1-bhat)./(numel(chain_both_uid)+numel(loop_both_uid)-both_shared));
+
+
+figure()
+hold on;
+bh=bar([[numel(chain_olf_uid)-olf_shared,olf_shared,numel(loop_olf_uid)-olf_shared]./(numel(chain_olf_uid)+numel(loop_olf_uid)-olf_shared);...
+    [numel(chain_both_uid)-both_shared,both_shared,numel(loop_both_uid)-both_shared]./(numel(chain_both_uid)+numel(loop_both_uid)-both_shared)],...
     'stacked');
 bh(1).FaceColor='w';
 bh(2).FaceColor=[0.5,0.5,0.5];
 bh(3).FaceColor='k';
-legend(bh,{'Chain only','Shared','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',10)
-ylim([0,0.175])
+
+legend(bh,{'Chains only','Chains&loops','Loops only'},'Location','northoutside','Orientation','horizontal','FontSize',10)
+ylim([0,1])
 xlim([0.5,2.5])
-ylabel('Proportion of selection neurons (%)')
-set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.05:0.15,'FontSize',10,'YTickLabel',0:5:15);
+ylabel('Proportion of motif neuron (%)')
+set(gca(),'XTick',1:2,'XTickLabel',{'Olfactory','Both'},'YTick',0:0.5:1,'FontSize',10,'YTickLabel',0:50:100);
+
 
 %% non-mem
 % load('chains_nonmem.mat','nonmem_chains')

@@ -66,15 +66,33 @@ else % load from file
     load(fullfile("bzdata","single_su_multi_motif.mat"),'cid_motif_maps','blame')
 end
 
-sums=[];
+global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-for ss=reshape(struct2cell(cid_motif_maps),1,[])
-    sums=[sums,cellfun(@(x) numel(unique(x)), ss{1}.values)];
+wrs_mux_meta=ephys.get_wrs_mux_meta();
+
+olf_sums=[];
+both_sums=[];
+fns=fieldnames(cid_motif_maps);
+for fn=reshape(fns,1,[])
+    sessmap=cid_motif_maps.(fn{1});
+    sesssu=cell2mat(sessmap.keys());
+
+    sesssel=su_meta.sess==str2double(replace(fn{1},'S',''));
+    waveids=wrs_mux_meta.wave_id(sesssel);
+    sesscid=su_meta.allcid(sesssel);
+
+    olf_cid=intersect(sesssu,int32(sesscid(ismember(waveids,5:6))));
+    both_cid=intersect(sesssu,int32(sesscid(ismember(waveids,1:4))));
+
+    olf_sums=[olf_sums;cellfun(@(x) numel(unique(x)), sessmap.values(num2cell(olf_cid)))];
+    both_sums=[both_sums;cellfun(@(x) numel(unique(x)), sessmap.values(num2cell(both_cid)))];
 end
-hhist=histcounts(sums,[0.5:600.5],'Normalization','cdf');
+olfhist=histcounts(olf_sums,[0.5:600.5],'Normalization','cdf');
+bothhist=histcounts(both_sums,[0.5:600.5],'Normalization','cdf');
 figure()
 hold on;
-plot(1:600,hhist,'-k');
+oh=plot(1:600,olfhist,'-k');
+bh=plot(1:600,bothhist,':k','LineWidth',2);
 % set(gca(),'YScale','log','XTick',0:50:150)
 ylim([0,1])
 xlim([0,600])
@@ -82,6 +100,7 @@ xlabel('Number of composite loops')
 ylabel('Probability density')
 title('Single SU in composite loops')
 set(gca,'XScale','log')
+legend([oh,bh],{'Odor-only','Encode-both'},'Location','northoutside','Orientation','horizontal')
 
 
 %% previous implementation
