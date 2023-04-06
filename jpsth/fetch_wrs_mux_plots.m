@@ -291,6 +291,9 @@ wave.chain_sust_tag(chains,'burstInterval',300)
 wave.chain_sust_tag(chains,'burstInterval',600)
 wave.chain_sust_tag(chains,'burstInterval',1500)
 
+
+%% chained loops
+wave.chain_loop_stats
 %% exports
 
 
