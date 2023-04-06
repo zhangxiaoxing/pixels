@@ -3,16 +3,13 @@ per_spk_tag=true;
 bburst=false;
 burstinterval=600;
 skipfile=true;
+load(fullfile('bzdata','disconnected_motifs.mat'),'disconnected')
+disconnKey=cell(0);
+for ii=1:size(disconnected,1)
+    onekey=sprintf('%d-',disconnected{ii,1},disconnected{ii,2});
+    disconnKey=[disconnKey;onekey];
+end
 
-[sig,~]=bz.load_sig_sums_conn_file('pair',false);
-
-optmem=false;
-% if ispc
-%     [~,sysmem]=memory();
-%     if sysmem.PhysicalMemory.Total < 2e10
-%         optmem=true;
-%     end
-% end
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
@@ -62,14 +59,6 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     per_trial_motif_cid=cell(0);
 
     for sessid=reshape(usess,1,[])
-        % extract connected components with graph tools;
-        ssel=sig.sess==sessid;
-        gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
-        [sgbin,binsize]=conncomp(gh);
-        bidx=binsize(sgbin)==max(binsize);
-        largec=subgraph(gh,bidx);
-        conn_cid=str2double(table2cell(largec.Nodes));
-        %^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
         covered=false(1000,1); % 2hrs of milli-sec bins
 
@@ -97,6 +86,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         continue
                     end
                     onechain=sschain.out.(dur).(wid{1}).(cc{1});
+                    
+
                     % ts_id: ts, cid, pos, trial_time, trial
 
                     % per-trial frequency.
@@ -156,10 +147,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     end
                     % ==================
                     %check cid in largest network
-                    if ~all(ismember(onechain.meta{1},conn_cid),'all')
-                        disp("Outside largest component")
-                        continue
-                    end
+
                     if per_spk_tag
                         for cidx=1:size(onechain.ts,2)
                             cid=onechain.meta{1}(cidx);
@@ -179,9 +167,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 end
             end
         end
-        if optmem
-            clear sschain
-        end
+
         %% single spike loop
         for cc=reshape(fieldnames(pstats.congru),1,[])
             if ~startsWith(cc{1},['s',num2str(sessid),'r'])
@@ -220,10 +206,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             end
             
             %check cid in largest network
-            if ~all(ismember(onechain.rstats{3},conn_cid),'all')
-                disp("Outside largest component")
-                continue
-            end
+
             if per_spk_tag
                 for cidx=1:size(onechain.rstats{3},2)
                     cid=onechain.rstats{3}(cidx);
@@ -243,9 +226,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 covered(onset:offset)=true;
             end
         end
-        if optmem
-            clear pstats
-        end
+
         if bburst
             %% multi spike chain
             for dur=["d6","d3"]
@@ -255,11 +236,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                             continue
                         end
                         %check cid in largest network
-                        onechain=bschain.out.(dur).(wid{1}).(cc{1});
-                        if ~all(ismember(onechain.meta{1},conn_cid),'all')
-                            disp("Outside largest component")
-                            continue
-                        end
+                        warning('Not done yet')
                         if per_spk_tag
                             for cidx=1:size(onechain.meta{1},2)
                                 cid=onechain.meta{1}(cidx);
@@ -282,9 +259,6 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 end
             end
 
-            if optmem
-                clear bschain
-            end
 
             %% burst spike loop
             dbfile=fullfile("bzdata","rings_wave_burst_iter_"+burstinterval+".db");
@@ -295,10 +269,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 end
                 chainmeta=table2array(conn.sqlread(replace(cc,'_ts','_meta')));
                 %check cid in largest network
-                if ~all(ismember(chainmeta,conn_cid),'all')
-                    disp("Outside largest component")
-                    continue
-                end
+                warning('Not done yet')
                 %   Not enough memory for larger complete tables
                 maxrid=table2array(conn.fetch("SELECT MAX(Var1) from "+cc));
                 for rid=1:1000:maxrid
@@ -306,7 +277,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     if per_spk_tag
 %                         disp(rid);
                         for cidx=1:numel(chainmeta)
-                            cid=chainmeta(cidx);
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      cid=chainmeta(cidx);
                             cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
                             totag=onechain(onechain(:,2)==cidx,4);
                             [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
