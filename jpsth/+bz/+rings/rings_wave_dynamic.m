@@ -136,7 +136,7 @@ burst_chained_loops_pdf=histcounts(run_length,[0:20:100,200,300:300:1200],'Norma
 %% single spike chained loops
 per_sess_coverage=struct();
 for sessid=[14,18,22,33,34,68,100,102,114]
-    load("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'covered')
+    load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
     per_sess_coverage.("S"+num2str(sessid))=covered;
 end
 covered=cell2mat(struct2cell(per_sess_coverage));
