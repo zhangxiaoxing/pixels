@@ -359,6 +359,7 @@ covered=struct();
 run_length=struct();
 
 if bburst
+    %%
     for bi=600%[150,300,600]
         covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
         run_length.("B"+bi)=[];
@@ -385,29 +386,109 @@ if bburst
     end
     xlim([5,1200])
     ylim([8e-7,0.1])
+    set(gca(),'XScale','log','YScale','log')
+    xlabel('Time (ms)')
+    ylabel('Probability density')
 else
+    %%
+    relax_cosec=true;
+    consecthresh=1500;
     covered=covcell(contains(covfn,"SSS"));
     run_length=[];
     for jj=1:numel(covered)
+        %pass 1
         edges = find(diff([0;covered{jj};0]==1));
         onset = edges(1:2:end-1);  % Start indices
         offset = edges(2:2:end);
+        
+        if relax_cosec
+            % patch through
+            latmat=onset-offset.'; % row->onset, col->offset
+            for onidx=1:numel(onset)
+                consec=find(latmat(onidx,:)>0 & latmat(onidx,:)<=consecthresh);
+                if ~isempty(consec)
+                    offidx=min(consec);
+                    covered{jj}((offset(offidx)-1):onset(onidx))=1;
+                end
+            end
+            % pass 2
+            edges = find(diff([0;covered{jj};0]==1));
+            onset = edges(1:2:end-1);  % Start indices
+            offset = edges(2:2:end);
+        end
         run_length =[run_length; (offset-onset)./10];  % Consecutive ones counts
     end
 
     figure()
     hold on;
-    chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
-    plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
+    if relax_cosec
+        chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
+        plot([0.5:19.5,30:20:190,250:100:1950],chained_loops_pdf,'-k');
+        xlim([2,2000])
+        titie("Consecutive window "+(consecthresh/30)+" msec")
+    else
+        chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
+        plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
+        xlim([2,500])
+    end
     qtrs=prctile(run_length,[10,50,90]);
     xline(qtrs,'--k',string(qtrs)) % 17 24 35
-    xlim([2,300])
+    
     ylim([8e-6,0.1])
+    set(gca(),'XScale','log','YScale','log')
+    xlabel('Time (ms)')
+    ylabel('Probability density')
+end
+
+function relaxed_consecutive()
+    %%
+    covered=covcell(contains(covfn,"SSS"));
+    figure()
+    hold on;
+    cmap=colormap('lines');
+    cidx=1;
+    for consecthresh=[300 600 1500]
+        run_length=[];
+        for jj=1:numel(covered)
+            %pass 1
+            edges = find(diff([0;covered{jj};0]==1));
+            onset = edges(1:2:end-1);  % Start indices
+            offset = edges(2:2:end);
+
+            % patch through
+            latmat=onset-offset.'; % row->onset, col->offset
+            for onidx=1:numel(onset)
+                consec=find(latmat(onidx,:)>0 & latmat(onidx,:)<=consecthresh);
+                if ~isempty(consec)
+                    offidx=min(consec);
+                    covered{jj}((offset(offidx)-1):onset(onidx))=1;
+                end
+            end
+            % pass 2
+            edges = find(diff([0;covered{jj};0]==1));
+            onset = edges(1:2:end-1);  % Start indices
+            offset = edges(2:2:end);
+            run_length =[run_length; (offset-onset)./10];  % Consecutive ones counts
+        end
+        chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
+        plot([0.5:19.5,30:20:190,250:100:1950],chained_loops_pdf,'-','Color',cmap(cidx,:));
+
+        qtrs=prctile(run_length,[10,50,90]);
+        xline(qtrs,'--',string(qtrs),'Color',cmap(cidx,:)) 
+        cidx=cidx+1;
+    end
+
+    xlim([2,2000])
+
+    ylim([8e-6,0.1])
+    set(gca(),'XScale','log','YScale','log')
+    xlabel('Time (ms)')
+    ylabel('Probability density')
+
 
 end
-set(gca(),'XScale','log','YScale','log')
-xlabel('Time (ms)')
-ylabel('Probability density')
+
+
 
 
 function plot_motif_freq()
