@@ -2,14 +2,13 @@
 per_spk_tag=true;
 bburst=false;
 burstinterval=600;
-skipfile=true;
+skipfile=false;
 load(fullfile('bzdata','disconnected_motifs.mat'),'disconnected')
 disconnKey=cell(0);
 for ii=1:size(disconnected,1)
     onekey=sprintf('%d-',disconnected{ii,1},disconnected{ii,2});
     disconnKey=[disconnKey;onekey];
 end
-
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
@@ -75,7 +74,6 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
         per_trial_motif_freq_perwave=[per_trial_motif_freq_perwave;...
             zeros(nnz(wtsel),12)];
         per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),2)];
-        coveredNG=false(1000,1); % 2hrs of milli-sec bins
 
         %% single spike chain
         for dur=["d6","d3"]
@@ -86,7 +84,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         continue
                     end
                     onechain=sschain.out.(dur).(wid{1}).(cc{1});
-                    
+                    currkey=sprintf('%d-',sessid,sort(onechain.meta{1}));
+                    if ismember(currkey,disconnKey)
+                        warning('skipped disconnected motif')
+                        continue
+                    end
 
                     % ts_id: ts, cid, pos, trial_time, trial
 
@@ -160,8 +162,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     end
                     % run length tag
                     for cidx=1:size(onechain.ts,1)
-                        onset=floor(onechain.ts(cidx,1)./30);
-                        offset=ceil(onechain.ts(cidx,end)./30);
+                        onset=floor(onechain.ts(cidx,1)./3); % 0.1ms precision
+                        offset=ceil(onechain.ts(cidx,end)./3); % 0.1ms precision
                         covered(onset:offset)=true;
                     end
                 end
@@ -174,6 +176,13 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 continue
             end
             onechain=pstats.congru.(cc{1});
+
+            currkey=sprintf('%d-',sessid,sort(onechain.rstats{3}));
+            if ismember(currkey,disconnKey)
+                warning('skipped disconnected motif')
+                continue
+            end
+
             % .ts_id(:,6) => loop tag
             % per-trial frequency.
             [pref3,pref6]=bz.rings.preferred_trials_rings(onechain.rstats{4},trials);
@@ -220,8 +229,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             % run length tag
             for tagi=reshape(setdiff(unique(onechain.ts_id(:,6)),0),1,[])
                 tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
-                onset=floor(tseq(1)./30);
-                offset=ceil(tseq(end)./30);
+                onset=floor(tseq(1)./3); % 0.1ms precision
+                offset=ceil(tseq(end)./3); % 0.1ms precision
                 %                 if offset-onset<2,keyboard();end
                 covered(onset:offset)=true;
             end
@@ -251,8 +260,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         end
                         % run length tag
                         for bscid=1:numel(onechain.ts)
-                            onset=floor(onechain.ts{bscid}(1,3)./30);
-                            offset=ceil(onechain.ts{bscid}(end,3)./30);
+                            onset=floor(onechain.ts{bscid}(1,3)./3); % 0.1ms precision
+                            offset=ceil(onechain.ts{bscid}(end,3)./3); % 0.1ms precision
                             covered(onset:offset)=true;
                         end
                     end
@@ -289,21 +298,13 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                             break
                         end
                         tseq=onechain(onechain(:,1)==rrid,4);
-                        onset=floor(tseq(1)./30);
-                        offset=ceil(tseq(end)./30);
+                        onset=floor(tseq(1)./3); % 0.1ms precision
+                        offset=ceil(tseq(end)./3); % 0.1ms precision
                         covered(onset:offset)=true;
                     end
                 end
             end
             conn.close();
-        end
-        if false % WIP % remove unconnected motifs % no effect on time constant
-            underthrestrl=per_trial_motif_freq(per_trial_motif_freq(:,1)==sessid...
-                & ~(per_trial_motif_freq(:,5)>=1 & per_trial_motif_freq(:,7)>=1)...
-                ,2);
-            for tt=reshape(underthrestrl,1,[])
-                covered(floor(trials(tt,1)./30)+(0:7000))=0;
-            end
         end
 
         if ~skipfile
@@ -314,7 +315,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
             end
         end
-    per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
+        if bburst
+            per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
+        else
+            per_sess_coverage.("SSS"+num2str(sessid))=covered;
+        end
     end
     denovoflag=true;
 else % load from file
@@ -353,19 +358,18 @@ covfn=fieldnames(per_sess_coverage);
 covered=struct();
 run_length=struct();
 
-for bi=600%[150,300,600]
-    covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
-    run_length.("B"+bi)=[];
-    for jj=1:numel(covered.("B"+bi))
-        edges = find(diff([0;covered.("B"+bi){jj};0]==1));
-        onset = edges(1:2:end-1);  % Start indices
-        %     disp([jj,min(edges(2:2:end)-onset)]);
-        run_length.("B"+bi) =[run_length.("B"+bi); edges(2:2:end)-onset];  % Consecutive ones counts
-        %     per_sess_coverage.("S"+num2str(sessid))=run_length;
-    end
-end
-
 if bburst
+    for bi=600%[150,300,600]
+        covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
+        run_length.("B"+bi)=[];
+        for jj=1:numel(covered.("B"+bi))
+            edges = find(diff([0;covered.("B"+bi){jj};0]==1));
+            onset = edges(1:2:end-1);  % Start indices
+            %     disp([jj,min(edges(2:2:end)-onset)]);
+            run_length.("B"+bi) =[run_length.("B"+bi); edges(2:2:end)-onset];  % Consecutive ones counts
+            %     per_sess_coverage.("S"+num2str(sessid))=run_length;
+        end
+    end
     figure()
     hold on;
     ph=[];
@@ -382,13 +386,22 @@ if bburst
     xlim([5,1200])
     ylim([8e-7,0.1])
 else
+    covered=covcell(contains(covfn,"SSS"));
+    run_length=[];
+    for jj=1:numel(covered)
+        edges = find(diff([0;covered{jj};0]==1));
+        onset = edges(1:2:end-1);  % Start indices
+        offset = edges(2:2:end);
+        run_length =[run_length; (offset-onset)./10];  % Consecutive ones counts
+    end
+
     figure()
     hold on;
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
     plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
-    qtrs=prctile(run_length,[25,50,75]);
+    qtrs=prctile(run_length,[10,50,90]);
     xline(qtrs,'--k',string(qtrs)) % 17 24 35
-    xlim([3,300])
+    xlim([2,300])
     ylim([8e-6,0.1])
 
 end
