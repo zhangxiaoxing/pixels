@@ -1,7 +1,12 @@
-%
+% tag chain-like spike sequences in population recording data
+% sust(ain)=burst
+% TODO: rename
+
 % load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
 % chains=chains_uf;
 % clear chains_uf;
+
+% TODO: wave consistant, wave inconsistent
 
 function out=chain_sust_tag(chains,opt)
 arguments

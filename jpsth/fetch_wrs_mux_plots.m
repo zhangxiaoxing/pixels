@@ -7,6 +7,11 @@ meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
+
+%% wave & stay
+wave_n_stay=nnz(ismember(wrs_mux_meta.wave_id,5:6) & wrs_mux_meta.p_olf(:,3)<0.05 & all(wrs_mux_meta.p_olf6<0.05,2));
+olf=nnz(ismember(wrs_mux_meta.wave_id,5:6));
+
 % map_cells: mixed_map,olf_map,dur_map
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 tcom3_maps=struct();
