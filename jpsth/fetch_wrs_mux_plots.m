@@ -300,7 +300,7 @@ wave.chain_sust_tag(chains_uf,'burstInterval',600)
 
 % chains, inconsistent (reverse) direction
 
-rev_out_150=wave.chain_sust_tag(chains_uf_rev,'burstInterval',150);
+rev_out_150=wave.chain_sust_tag(chains_uf_rev,'burstInterval',150,'rev',true);
 
 
 
