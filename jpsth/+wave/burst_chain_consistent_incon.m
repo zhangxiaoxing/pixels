@@ -66,7 +66,7 @@ for sessid=reshape(usess,1,[])
                     continue
                 end
                 tsel=[];
-                if dd==3
+                if dur=="d3"
                     switch wid{1}
                         case 's1d3'
                             tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
@@ -104,6 +104,8 @@ for sessid=reshape(usess,1,[])
                     end
                 end
                 if ~isempty(tsel)
+                    onechain=cfstr.(fkey).out.(dur).(wid{1}).(cc{1});
+
                     % chain motif ++
                     per_trial_motif_freq(tsel,5)=per_trial_motif_freq(tsel,5)+1;
                     per_trial_motif_freq_perwave(tsel,perwaveidx(1))=per_trial_motif_freq_perwave(tsel,perwaveidx(1))+1;
@@ -126,7 +128,7 @@ for sessid=reshape(usess,1,[])
                         %                     ucid=[ucid,cid];
                         cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
                         for bscid=1:numel(onechain.ts)
-                            totag=onechain.ts{bscid}(onechain.ts{bscid}(:,1)==cidx,3);
+                            totag=onechain.ts{bscid}(onechain.ts{bscid}(:,1)==cidx,3);dc
                             [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
                             FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+2;
                         end
@@ -142,20 +144,16 @@ for sessid=reshape(usess,1,[])
         end
     end
 
-
-
-
-
-    if ~skipfile
-        blame=vcs.blame();
-        if bburst
-            save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-        else
-            save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-        end
-    end
+%     if ~skipfile
+%         blame=vcs.blame();
+%         if bburst
+%             save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+%         else
+%             save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+%         end
+%     end
     
-    per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
+    per_sess_coverage.(fkey).("B"+burstinterval+"S"+num2str(sessid))=covered;
 
 end
 denovoflag=true;
