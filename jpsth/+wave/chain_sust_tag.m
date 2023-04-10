@@ -13,6 +13,8 @@ arguments
     chains
     opt.ccg (1,1) logical = true
     opt.burstInterval (1,1) double = 300
+    opt.rev (1,1) logical = false
+    opt.stats (1,1) logical = false
 end
 
 % tsidin={0,25,50,75,100,125,150};
@@ -133,8 +135,14 @@ for dur=reshape(fieldnames(out),1,[])
 end
 
 blame=vcs.blame();
-save(fullfile("bzdata","chain_sust_tag_"+opt.burstInterval+".mat"),'out','blame','-v7.3')
-stats(out);
+if opt.rev
+    save(fullfile("bzdata","chain_sust_rev_tag_"+opt.burstInterval+".mat"),'out','blame','-v7.3')
+else
+    save(fullfile("bzdata","chain_sust_tag_"+opt.burstInterval+".mat"),'out','blame','-v7.3')
+end
+if opt.stats
+    stats(out);
+end
 end
 
 function stats(out)
@@ -154,17 +162,13 @@ for dur=reshape(fieldnames(out),1,[])
     statss.("d"+dur)=perchaindur;
 end
 
-d6hist=histcounts([perchaindur.d3.dur,perchaindur.d6.dur],[0:20:100,200:100:600],'Normalization','pdf');
-% d3hist=histcounts(perchaindur.d3.dur,0:50:600,'Normalization','pdf');
+durhist=histcounts([perchaindur.d3.dur,perchaindur.d6.dur],[0:20:100,200:100:600],'Normalization','pdf');
+
 figure()
 hold on
-plot([10:20:90,150:100:550],d6hist,'-k');
+plot([10:20:90,150:100:550],durhist,'-k');
 % plot(25:50:575,d3hist,'--k');
 set(gca(),'XScale','log','YScale','log');
-
-
-
-
 end
 
 

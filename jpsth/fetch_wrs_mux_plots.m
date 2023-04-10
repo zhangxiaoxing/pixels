@@ -287,14 +287,22 @@ bz.rings.rings_su_wave_tcom_corr(sums_all)
 % blame=vcs.blame();
 % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
+load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev')
+
 wave.chain_stats;
 wave.chains_time_constant
 wave.chains_loops_sc
 wave.chain_tag(chains) %statistics
 wave.chain_SC %plot
-wave.chain_sust_tag(chains,'burstInterval',300)
-wave.chain_sust_tag(chains,'burstInterval',600)
-wave.chain_sust_tag(chains,'burstInterval',1500)
+wave.chain_sust_tag(chains_uf,'burstInterval',150)
+wave.chain_sust_tag(chains_uf,'burstInterval',300)
+wave.chain_sust_tag(chains_uf,'burstInterval',600)
+
+% chains, inconsistent (reverse) direction
+
+rev_out_150=wave.chain_sust_tag(chains_uf_rev,'burstInterval',150);
+
+
 
 
 %% chained loops
