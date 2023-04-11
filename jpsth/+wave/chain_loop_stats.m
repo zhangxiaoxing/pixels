@@ -244,8 +244,9 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         if ~startsWith(cc{1},['s',num2str(sessid),'c'])
                             continue
                         end
-                        %check cid in largest network
-                        warning('Not done yet')
+
+                        % TODO: check cid in composite loops
+                        warning('Not done yet');keyboard()
                         if per_spk_tag
                             for cidx=1:size(onechain.meta{1},2)
                                 cid=onechain.meta{1}(cidx);
@@ -494,10 +495,10 @@ end
 function plot_motif_freq()
 load(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid')
 
-olfsel=sum(per_trial_motif_freq_perwave(:,1:3),2)>0;
-bothsel=sum(per_trial_motif_freq_perwave(:,7:9),2)>0;
-olffreq=sum(per_trial_motif_freq_perwave(olfsel,4:6),2)./per_trial_motif_freq(olfsel,4);
-bothfreq=sum(per_trial_motif_freq_perwave(bothsel,10:12),2)./per_trial_motif_freq(bothsel,4);
+olfsel=sum(per_trial_motif_freq_perwave(:,[1 7]),2)>0;
+bothsel=sum(per_trial_motif_freq_perwave(:,[2 8]),2)>0;
+olffreq=sum(per_trial_motif_freq_perwave(olfsel,[4 10]),2)./per_trial_motif_freq(olfsel,4);
+bothfreq=sum(per_trial_motif_freq_perwave(bothsel,[5 11]),2)./per_trial_motif_freq(bothsel,4);
 olfiqrs=prctile(olffreq,[25,50,75]);
 bothiqrs=prctile(bothfreq,[25,50,75]);
 fh=figure();
