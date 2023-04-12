@@ -27,12 +27,16 @@ for sess=1:max(sig.sess)
 end
 
 if opt.wave
-    % TODO: tag wave
+    % tag wave for rings
     su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
     wrs_mux_meta=ephys.get_wrs_mux_meta();
-    rings_wave=struct();
-    [rings_wave.sess,rings_wave.dur,rings_wave.wave]=deal([]);
-    rings_wave.cids=cell(0);
+    rings_wave=cell2struct({[],[],[],cell(0)},{'sess','dur','wave','cids'},2);
+
+    % Separated for historical-compatibility reasons. Consider merge when
+    % ready
+    rings_incon=cell2struct({[],[],[],cell(0)},{'sess','dur','wave','cids'},2);
+    rings_nonmem=cell2struct({[],[],[],cell(0)},{'sess','dur','wave','cids'},2);
+
     for sidx=1:size(rings,1)
         sesscid=su_meta.allcid(su_meta.sess==sidx);
         sesswid=wrs_mux_meta.wave_id(su_meta.sess==sidx);
@@ -41,8 +45,36 @@ if opt.wave
                 rcids=rings{sidx,rSizeIdx}(ridx,:);
                 [~,supos]=ismember(rcids,sesscid);
                 rwids=sesswid(supos);
+%                 keyboard();end;end;end
+                [rwid,seltype]=bz.rings.ring_wave_type(rwids);
+                if strcmp(rwid,'others')
+                    continue
+                end
+
+                if strcmp(rwid,'nonmem')
+                    for dd=[3 6]
+                        rings_nonmem.sess=[rings_nonmem.sess;sidx];
+                        rings_nonmem.cids=[rings_nonmem.cids;{rcids}];
+                        rings_nonmem.wave=[rings_nonmem.wave;'NA'];
+                        rings_nonmem.dur=[rings_nonmem.dur;dd];
+                    end
+                    continue
+                end
+
+                if strcmp(rwid,'incongru')
+                    for dd=[3 6]
+                        rings_incon.sess=[rings_incon.sess;sidx];
+                        rings_incon.cids=[rings_incon.cids;{rcids}];
+                        rings_incon.wave=[rings_incon.wave;'NA'];
+                        rings_incon.dur=[rings_incon.dur;dd];
+                    end
+                    continue
+                end
+
+
                 if ~all(ismember(rwids,1:8))
-                    continue;
+                    % should not happen
+                    keyboard()
                 end
                 if all(rwids==5,'all')
                     wid="olf_s1";
@@ -73,7 +105,8 @@ if opt.wave
                     wid="s2d6";
                     dur=6;
                 else
-                    continue;% incongruent
+                    % unclassified group. should not happen
+                    keyboard()
                 end
 
                 for dd=dur
@@ -86,8 +119,7 @@ if opt.wave
         end
     end
     blame=vcs.blame();
-    save(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave','blame');
-
+    save(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave','rings_incon','rings_nonmem','blame');
 end
 
 blame=vcs.blame();

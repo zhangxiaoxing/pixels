@@ -162,7 +162,13 @@ for burstinterval=[150 300 600]
         end
     end
 
-    
+    %% per_chainid_repeats
+    fsel=per_trial_motif_freq.FWD(:,5)>0;
+    mean(per_trial_motif_freq.FWD(fsel,6)./per_trial_motif_freq.FWD(fsel,5))
+    rsel=per_trial_motif_freq.REV(:,5)>0;
+    mean(per_trial_motif_freq.REV(rsel,6)./per_trial_motif_freq.REV(rsel,5))
+
+
 
     %% motif freq
     if false
