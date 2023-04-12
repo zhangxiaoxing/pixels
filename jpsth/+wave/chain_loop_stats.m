@@ -1,4 +1,7 @@
 % tag spikes in neuron with loop or chain activity
+%% TODO USE BITOR INSTEAD OF ADD
+
+%%
 per_spk_tag=true;
 bburst=false;
 burstinterval=600;
@@ -64,7 +67,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
         [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
         FT_SPIKE.lc_tag=cell(size(FT_SPIKE.timestamp));
         for cidx=1:numel(FT_SPIKE.timestamp)
-            FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}));
+            FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}),'uint8');
         end
         wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
 
@@ -157,7 +160,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                             cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
                             totag=onechain.ts(:,cidx);
                             [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+1;
+                            FT_SPIKE.lc_tag{cidsel}(totagidx)=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx),1,'uint8');
                         end
                     end
                     % run length tag
@@ -223,7 +226,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
                     totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
                     [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                    FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+4;
+                    FT_SPIKE.lc_tag{cidsel}(totagidx)=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx),4,'uint8');
                 end
             end
             % run length tag
@@ -255,7 +258,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                                 for bscid=1:numel(onechain.ts)
                                     totag=onechain.ts{bscid}(onechain.ts{bscid}(:,1)==cidx,3);
                                     [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                                    FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+2;
+                                    FT_SPIKE.lc_tag{cidsel}(totagidx)=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx),2,'uint8');
                                 end
                             end
                         end
@@ -291,7 +294,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                             cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
                             totag=onechain(onechain(:,2)==cidx,4);
                             [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
-                            FT_SPIKE.lc_tag{cidsel}(totagidx)=FT_SPIKE.lc_tag{cidsel}(totagidx)+8;
+                            FT_SPIKE.lc_tag{cidsel}(totagidx)=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx),8,'uint8');
                         end
                     end
                     for rrid=rid:rid+999
