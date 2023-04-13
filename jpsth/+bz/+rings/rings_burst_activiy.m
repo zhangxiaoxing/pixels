@@ -7,15 +7,28 @@ arguments
     opt.burstInterval (1,1) double = 600
     opt.ccg  (1,1) logical = false
     opt.append_saved (1,1) logical = true
+    opt.rings_type (1,:) char {mustBeMember(opt.rings_type,{'congru','incongru','nonmem'}}= 'congru'
 end
-
-load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
-waveids=reshape(unique(rings_wave.wave),1,[]);
-sesses=reshape(unique(rings_wave.sess),1,[]);
+switch opt.rings_type
+    case 'congru'
+        load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
+        outsuffix="rings_wave_burst_iter_";
+        rings_type=rings_wave;
+    case 'incongru'
+        load(fullfile('bzdata','rings_bz_wave.mat'),'rings_incon');
+        rings_type=rings_incon;
+        outsuffix="rings_incon_burst_iter_";
+    case 'nonmem'
+        load(fullfile('bzdata','rings_bz_wave.mat'),'rings_nonmem');
+        rings_type=rings_nonmem;
+        outsuffix="rings_nonmem_burst_iter_";
+end
+waveids=reshape(unique(rings_type.wave),1,[]);
+sesses=reshape(unique(rings_type.sess),1,[]);
 
 %loop entry
 
-dbfile=fullfile("bzdata","rings_wave_burst_iter_"+num2str(opt.burstInterval)+".db");
+dbfile=fullfile("bzdata",outsuffix+num2str(opt.burstInterval)+".db");
 if ~exist(dbfile,'file')
     conn=sqlite(dbfile,"create");
     close(conn);
@@ -43,10 +56,10 @@ for sessid=sesses
                 keyboard();
             end
 
-            sess_indices=reshape(find(rings_wave.sess==sessid & strcmp(rings_wave.wave,wid)),1,[]);
+            sess_indices=reshape(find(rings_type.sess==sessid & strcmp(rings_type.wave,wid)),1,[]);
             
             for cc=sess_indices
-                outkey="d"+duration+wid+"s"+sessid+"r"+numel(rings_wave.cids{cc})+"n"+cc;
+                outkey="d"+duration+wid+"s"+sessid+"r"+numel(rings_type.cids{cc})+"n"+cc;
                 if opt.append_saved
                     if ~isempty(saved_keys) && nnz(startsWith(saved_keys,outkey))==3
                         continue
@@ -54,7 +67,7 @@ for sessid=sesses
                 end
                 disp({sessid,duration,wid,cc})
                 ts_id=[];
-                cids=rings_wave.cids{cc};
+                cids=rings_type.cids{cc};
                 for in_ring_pos=1:numel(cids) 
                     one_ring_sel=spkID==cids(in_ring_pos);
                     rawts=spkTS(one_ring_sel);
@@ -121,11 +134,14 @@ end
 %     saveOne(ts,cids,ts_id,key);
 % end
 end
+
+
+
 function saveOne(ts,cids,ts_id,key,burst_interval)
 if ~isempty(ts)
     % TODO: optional remove shorter chains for each
     % onset-spike
-    dbfile=fullfile("bzdata","rings_wave_burst_iter_"+num2str(burst_interval)+".db");
+    dbfile=fullfile("bzdata",outsuffix+num2str(burst_interval)+".db");
     conn=sqlite(dbfile);
     for tid=1:numel(ts)
         tbl=array2table([repmat(tid,size(ts{tid},1),1),ts{tid}]);
@@ -142,7 +158,7 @@ end
 
 
 function keys=get_saved_sess(burstinterval)
-dbfile=fullfile("bzdata","rings_wave_burst_iter_"+num2str(burstinterval)+".db");
+dbfile=fullfile("bzdata",outsuffix+num2str(burstinterval)+".db");
 if exist(dbfile,'file')
     conn=sqlite(dbfile,'readonly');
     keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));

@@ -1,5 +1,11 @@
 % Generate a list that contains cyclic FCs. Regardless of
 % how frequently the associated structure appears in actual recordings. 
+
+% in use as of 2023.04.13
+
+% TODO: streamline multiple dataset output.
+% TODO: Option to load rings from file.
+
 function rings=ring_list_bz(opt)
 arguments
     opt.shufid {mustBeScalarOrEmpty} =[]
@@ -14,7 +20,9 @@ else
     sig=shufs{opt.shufid};
     fname=sprintf('rings_bz_shuf_%d.mat',opt.shufid);
 end
-
+% if
+% load(fullfile('bzdata','rings_bz.mat'))
+% else
 rings=cell(max(sig.sess),3);
 for sess=1:max(sig.sess)
     disp(sess);
@@ -25,6 +33,7 @@ for sess=1:max(sig.sess)
         rings{sess,ring_size-2}=unique(bz.rings.flexsort(sess_rings),'rows');
     end
 end
+% end
 
 if opt.wave
     % tag wave for rings
