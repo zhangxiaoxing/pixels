@@ -59,8 +59,9 @@ else
         close(conn);
     end
 end
-Q=parallel.FevalFuture.empty();
+
 for sessid=sesses
+    Q=parallel.FevalFuture.empty();
     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
     for duration=[3 6]
         for wid=waveids
@@ -144,7 +145,16 @@ for sessid=sesses
             end
         end
     end
+    qlen=numel(Q);
+    readcounter=0;
+    while readcounter<qlen
+        [qidx,out]=fetchNext(Q);
+        saveOne(out.ts,out.meta{1},out.meta{2},out.meta{3},out.meta{4},outsuffix);
+        readcounter=readcounter+1;
+        Q(qidx)=[];
+    end
 end
+
 if false
     blame=vcs.blame();
     btbl=struct2table(blame);
@@ -152,15 +162,6 @@ if false
     btbl.git_hash=string(btbl.git_hash);
     btbl.git_status=string(btbl.git_status);
     conn.sqlwrite('blame',btbl);
-end
-
-qlen=numel(Q);
-readcounter=0;
-while readcounter<qlen
-    [qidx,out]=fetchNext(Q);
-    saveOne(out.ts,out.meta{1},out.meta{2},out.meta{3},out.meta{4},outsuffix);
-    readcounter=readcounter+1;
-    Q(qidx)=[];
 end
 end
 
