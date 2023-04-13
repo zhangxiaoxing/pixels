@@ -7,23 +7,39 @@ arguments
     opt.burstInterval (1,1) double = 600
     opt.ccg  (1,1) logical = false
     opt.append_saved (1,1) logical = true
-    opt.rings_type (1,:) char {mustBeMember(opt.rings_type,{'congru','incongru','nonmem'}}= 'congru'
+    opt.rings_type (1,:) char {mustBeMember(opt.rings_type,{'congru','incongru','nonmem'})}= 'congru'
 end
+
+warning(sprintf('Current ring type %s, interval %d, continue?',opt.rings_type,opt.burstInterval));
+% keyboard()
+NCPU=maxNumCompThreads;
+if NCPU<32
+    maxNumCompThreads(4);
+else
+    maxNumCompThreads(16);
+end
+    
+
+bp=backgroundPool;
+
 switch opt.rings_type
     case 'congru'
         load(fullfile('bzdata','rings_bz_wave.mat'),'rings_wave');
         outsuffix="rings_wave_burst_iter_";
         rings_type=rings_wave;
+        waveids=reshape(unique(rings_type.wave,'rows'),1,[]);
     case 'incongru'
         load(fullfile('bzdata','rings_bz_wave.mat'),'rings_incon');
         rings_type=rings_incon;
         outsuffix="rings_incon_burst_iter_";
+        waveids={'INCON'};
     case 'nonmem'
         load(fullfile('bzdata','rings_bz_wave.mat'),'rings_nonmem');
         rings_type=rings_nonmem;
         outsuffix="rings_nonmem_burst_iter_";
+        waveids={'NONMEM'};
 end
-waveids=reshape(unique(rings_type.wave),1,[]);
+
 sesses=reshape(unique(rings_type.sess),1,[]);
 
 %loop entry
@@ -35,9 +51,15 @@ if ~exist(dbfile,'file')
 end
 
 if opt.append_saved
-    saved_keys=get_saved_sess(opt.burstInterval);
+    saved_keys=get_saved_sess(opt.burstInterval,outsuffix);
+else
+    if exist(dbfile,'file')
+        delete(dbfile);
+        conn=sqlite(dbfile,"create");
+        close(conn);
+    end
 end
-% Q=parallel.FevalFuture.empty();
+Q=parallel.FevalFuture.empty();
 for sessid=sesses
     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
     for duration=[3 6]
@@ -48,15 +70,21 @@ for sessid=sesses
             end
             if contains(wid,'s1')
                 trial_sel=find(trials(:,5)==4 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                sess_indices=reshape(find(rings_type.sess==sessid & strcmp(rings_type.wave,wid)),1,[]);
             elseif contains(wid,'s2')
                 trial_sel=find(trials(:,5)==8 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                sess_indices=reshape(find(rings_type.sess==sessid & strcmp(rings_type.wave,wid)),1,[]);
             elseif contains(wid,'dur')
                 trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                sess_indices=reshape(find(rings_type.sess==sessid & strcmp(rings_type.wave,wid)),1,[]);
+            elseif contains(wid,'NONMEM') || contains(wid,'INCON')
+                trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                sess_indices=reshape(find(rings_type.sess==sessid),1,[]);
             else
-                keyboard();
+                keyboard()
             end
 
-            sess_indices=reshape(find(rings_type.sess==sessid & strcmp(rings_type.wave,wid)),1,[]);
+            
             
             for cc=sess_indices
                 outkey="d"+duration+wid+"s"+sessid+"r"+numel(rings_type.cids{cc})+"n"+cc;
@@ -97,15 +125,19 @@ for sessid=sesses
                     for kk=1:numel(cids)
                         tsidin{kk}=ts_id(ts_id(:,3)==kk,1);
                     end
-                    % out=relax_tag_long(in,loopIdx,recDepth,loopCnt,perSU,opt)
-%                     ts=bz.rings.relax_tag_long(tsidin,[],[],[],[],"burstInterval",opt.burstInterval);
-                    ts=bz.rings.relax_tag_long_iter(tsidin,"burstInterval",opt.burstInterval);
+%                     ts=bz.rings.relax_tag_long_iter(tsidin,"burstInterval",opt.burstInterval);
 %                     cellqc(ts);
-                    if ~isempty(ts)
-                        saveOne(ts,cids,ts_id,outkey,opt.burstInterval);
-                        clear ts
-                    end
-%                     Q(end+1)=parfeval(ppool,@bz.rings.relax_tag_long,4,tsidin,[],[],[],[],cids,ts_id,outkey,"burstInterval",600);
+%                     if ~isempty(ts)
+%                         saveOne(ts,cids,ts_id,outkey,opt.burstInterval);
+%                         clear ts
+%                     end
+                    wrap=@(tsidin,intv) cell2struct(...
+                        {bz.rings.relax_tag_long_iter(...
+                        tsidin,"burstInterval",intv),...
+                        {cids,ts_id,outkey,intv}},...
+                        {'ts','meta'},2);
+
+                    Q(end+1)=parfeval(bp,wrap,1,tsidin,opt.burstInterval);
                 else
                     error("Incomplete section")
                 end
@@ -122,22 +154,19 @@ if false
     conn.sqlwrite('blame',btbl);
 end
 
-
-%% gather from future
-% dbfile=fullfile("bzdata","rings_wave_burst_"+num2str(opt.burstInterval)+".db");
-% if ~exist(dbfile,'file')
-%     conn=sqlite(dbfile,"create");
-%     close(conn);
-% end
-% for fii=1:numel(Q)
-%     [ts,cids,ts_id,key]=fetchOutputs(Q(fii));
-%     saveOne(ts,cids,ts_id,key);
-% end
+qlen=numel(Q);
+readcounter=0;
+while readcounter<qlen
+    [qidx,out]=fetchNext(Q);
+    saveOne(out.ts,out.meta{1},out.meta{2},out.meta{3},out.meta{4},outsuffix);
+    readcounter=readcounter+1;
+    Q(qidx)=[];
+end
 end
 
 
 
-function saveOne(ts,cids,ts_id,key,burst_interval)
+function saveOne(ts,cids,ts_id,key,burst_interval,outsuffix)
 if ~isempty(ts)
     % TODO: optional remove shorter chains for each
     % onset-spike
@@ -151,13 +180,13 @@ if ~isempty(ts)
     sqlwrite(conn,key+"_tsid",array2table(ts_id))
     close(conn);
     disp(key);
-    keyboard()
+    ts=[];
 end
 
 end
 
 
-function keys=get_saved_sess(burstinterval)
+function keys=get_saved_sess(burstinterval,outsuffix)
 dbfile=fullfile("bzdata",outsuffix+num2str(burstinterval)+".db");
 if exist(dbfile,'file')
     conn=sqlite(dbfile,'readonly');
@@ -205,7 +234,7 @@ end
 function sqliteqc()
 dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 conn=sqlite(dbfile,'readonly');
-prevcid=conn.sqlread("d6s1d6s4r3n1_meta")
+prevcid=conn.sqlread("d6s1d6s4r3n1_meta");
 prevtsid=table2array(conn.sqlread("d6s1d6s4r3n1_ts"));
 for ii=1:max(prevtsid(:,1))
     oner=prevtsid(prevtsid(:,1)==ii,2:end);
