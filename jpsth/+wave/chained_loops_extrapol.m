@@ -3,7 +3,7 @@ per_sess_coverage=struct();
 if exist('dbg','var') && dbg
 else
     %% single spike chain
-    sschain=load('chain_tag.mat','out');
+    sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
     keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
         struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
     keys=vertcat(keys{:});

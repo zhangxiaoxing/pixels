@@ -292,13 +292,14 @@ load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev')
 wave.chain_stats;
 wave.chains_time_constant
 wave.chains_loops_sc
-wave.chain_tag(chains) %statistics
+wave.chain_tag(chains) % per-spk association
 wave.chain_SC %plot
 wave.chain_sust_tag(chains_uf,'burstInterval',150)
 wave.chain_sust_tag(chains_uf,'burstInterval',300)
 wave.chain_sust_tag(chains_uf,'burstInterval',600)
 
 % chains, inconsistent (reverse) direction
+wave.chain_tag(chains_uf_rev,'rev',true) % per-spk association
 
 rev_out_150=wave.chain_sust_tag(chains_uf_rev,'burstInterval',150,'rev',true);
 

@@ -3,7 +3,6 @@
 % spike proportion, i.e. revert spike tag pipeline
 % time constant
 
-
 for burstinterval=[150 300 600]
     %% burst spike chain
     sess=[];
@@ -151,7 +150,7 @@ for burstinterval=[150 300 600]
         end
     end
 
-    keyboard();
+    
     %% appearance
     ukeys=cell2struct({[],[]},{'FWD','REV'},2);
     for fkey=["FWD","REV"]
@@ -161,119 +160,60 @@ for burstinterval=[150 300 600]
             end
         end
     end
+    ukeys.UNIQFWD=unique(ukeys.FWD);
+    ukeys.UNIQREV=unique(ukeys.REV);
 
     %% per_chainid_repeats
-    fsel=per_trial_motif_freq.FWD(:,5)>0;
-    mean(per_trial_motif_freq.FWD(fsel,6)./per_trial_motif_freq.FWD(fsel,5))
-    rsel=per_trial_motif_freq.REV(:,5)>0;
-    mean(per_trial_motif_freq.REV(rsel,6)./per_trial_motif_freq.REV(rsel,5))
+    %     fsel=per_trial_motif_freq.FWD(:,5)>0;
+    %     mean(per_trial_motif_freq.FWD(fsel,6)./per_trial_motif_freq.FWD(fsel,5))
+    %     rsel=per_trial_motif_freq.REV(:,5)>0;
+    %     mean(per_trial_motif_freq.REV(rsel,6)./per_trial_motif_freq.REV(rsel,5))
+
+    figure();
+    tiledlayout('flow')
+    nexttile
+    bar([numel(ukeys.UNIQFWD),numel(ukeys.UNIQREV)])
+    ylabel('Number of chains with burst sequence')
+    set(gca,'XTick',1:2,'XTickLabel',{'Consistent','Inconsistent'})
+    title('Unique chain with spike activity')
 
 
 
-    %% motif freq
-    if false
-        % function plot_motif_freq()
-        % load(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid')
-
-        fh=figure();
-        fh.Position(1:2)=[100,100];
-        tiledlayout(1,2)
-        for fkey=["FWD","REV"]
-            olfsel=per_trial_motif_freq_perwave.(fkey)(:,1)>0;
-            bothsel=per_trial_motif_freq_perwave.(fkey)(:,2)>0;
-            olffreq.(fkey)=per_trial_motif_freq_perwave.(fkey)(olfsel,4)./per_trial_motif_freq.(fkey)(olfsel,4); % col4=>duration
-            bothfreq.(fkey)=per_trial_motif_freq_perwave.(fkey)(bothsel,5)./per_trial_motif_freq.(fkey)(bothsel,4);
-            %         continue
-            nexttile()
-            hold on
-            olfiqrs=prctile(olffreq,[25,50,75]);
-            bothiqrs=prctile(bothfreq,[25,50,75]);
-
-            boxplot([olffreq.(fkey);bothfreq.(fkey)],[ones(size(olffreq.(fkey)));2*ones(size(bothfreq.(fkey)))],'Whisker',realmax,'Colors','k')
-
-            olfiqr=prctile(olffreq.(fkey),[25,50,75,100]);
-            bothiqr=prctile(bothfreq.(fkey),[25,50,75,100]);
-
-            xlim([0.5,2.5])
-            ylim([0,30])
-            title({sprintf('%0.2f,',olfiqr),sprintf('%0.2f,',bothiqr)});
-            ylabel('Motif frequency  (Hz)')
-            set(gca,'XTick',1:2,'XTickLabel',{'Olf','Both'})
-            title(fkey)
-        end
-        sgtitle("Burst interval "+burstinterval);
-    end
-
-    %% spike proportion
-    if false
-        sums=cell2struct({[],[]},{'FWD','REV'},2);
-        for fkey=["FWD","REV"]
-            sessfn=fieldnames(lc_tags.(fkey));
-            for fn=reshape(sessfn,1,[])
-                sessid=str2double(replace(fn{1},'S',''));
-                [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
-
-                sesssel=per_trial_motif_freq.(fkey)(:,1)==sessid;
-                sess_uid=unique(cell2mat([per_trial_motif_cid.(fkey){sesssel,1}]));
-                for onecid=sess_uid
-                    % trial sel
-                    trialsel=cellfun(@(x) ismember(onecid,cell2mat(x)), per_trial_motif_cid.(fkey)(sesssel,1));
-                    trial3sel=intersect(find(trialsel), find(FT_SPIKE.trialinfo(:,8)==3));
-                    trial6sel=intersect(find(trialsel), find(FT_SPIKE.trialinfo(:,8)==6));
-
-                    idsel=strcmp(FT_SPIKE.label,num2str(onecid));
-                    tssel=(ismember(FT_SPIKE.trial{idsel},trial3sel) & FT_SPIKE.time{idsel}>1 & FT_SPIKE.time{idsel}<=4)...
-                        |(ismember(FT_SPIKE.trial{idsel},trial6sel) & FT_SPIKE.time{idsel}>1 & FT_SPIKE.time{idsel}<=7);
-                    %                 if any(lc_tags.(ftype).(fn{1}){idsel}(tssel)==4)
-                    %                     disp(4)
-                    %                     keyboard()
-                    %                 end
-
-                    fc_tagged=nnz(bitand(lc_tags.(fkey).(fn{1}){idsel}(tssel),1));
-                    burst_tagged=nnz(bitand(lc_tags.(fkey).(fn{1}){idsel}(tssel),2));
-                    % 1:sess, 2:cid, 3:chain fc spk count, 4: chain burst spk count, 5:total spk count
-                    sums.(fkey)=[sums.(fkey);sessid,onecid,fc_tagged,burst_tagged,nnz(tssel)];
-                end
-            end
-        end
-        % mean
-        [mean(sums.FWD(:,3:4)./sums.FWD(:,5)),mean(sums.REV(:,3:4)./sums.REV(:,5))]
-        % median
-        [median(sums.FWD(:,3:4)./sums.FWD(:,5)),median(sums.REV(:,3:4)./sums.REV(:,5))]
-
-    end
+    
     %% time constant
-    figure()
+%     figure()
+    nexttile
     hold on;
     ph=[];
-    cmap=[1,0,0;0,0,1];
+    cmap=[1,0,0;0,0,0];
     cidx=1;
+
+    run_length=struct();
+    covered=struct();
+    
     for fkey=["FWD","REV"]
         covcell=struct2cell(per_sess_coverage.(fkey));
         covfn=fieldnames(per_sess_coverage.(fkey));
-        covered=struct();
-        run_length=struct();
 
-        covered.("B"+burstinterval)=covcell(contains(covfn,"B"+burstinterval));
-        run_length.("B"+burstinterval)=[];
-        for jj=1:numel(covered.("B"+burstinterval))
-            edges = find(diff([0;covered.("B"+burstinterval){jj};0]==1));
+        covered.("B"+burstinterval).(fkey)=covcell(contains(covfn,"B"+burstinterval));
+        run_length.("B"+burstinterval).(fkey)=[];
+        for jj=1:numel(covered.("B"+burstinterval).(fkey))
+            edges = find(diff([0;covered.("B"+burstinterval).(fkey){jj};0]==1));
             onset = edges(1:2:end-1);  % Start indices
             %     disp([jj,min(edges(2:2:end)-onset)]);
-            run_length.("B"+burstinterval) =[run_length.("B"+burstinterval); (edges(2:2:end)-onset)./10];  % Consecutive ones counts
+            run_length.("B"+burstinterval).(fkey) =[run_length.("B"+burstinterval).(fkey); (edges(2:2:end)-onset)./10];  % Consecutive ones counts
             %     per_sess_coverage.("S"+num2str(sessid))=run_length;
         end
 
-
-        
-        chained_loops_pdf=histcounts(run_length.("B"+burstinterval),[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
+        chained_loops_pdf=histcounts(run_length.("B"+burstinterval).(fkey),[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
         ph(cidx)=plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-','Color',cmap(cidx,:));
-        qtrs=prctile(run_length.("B"+burstinterval),[10,50,90]);
+        qtrs=prctile(run_length.("B"+burstinterval).(fkey),[10,50,90]);
         %     qtrs19=prctile(run_length,[10,20,80,90]);
         xline(qtrs,'--',string(qtrs),'Color',cmap(cidx,:)) % 17 24 35
         cidx=cidx+1;
     end
-    title("Burst interval "+burstinterval)
+    p=ranksum(run_length.("B"+burstinterval).FWD,run_length.("B"+burstinterval).REV);
+    title(sprintf('p = %0.3f',p))
     legend(ph,{'Consistent','Inconsistent'})
     xlim([5,1200])
     ylim([8e-7,0.1])
@@ -281,45 +221,108 @@ for burstinterval=[150 300 600]
     xlabel('Time (ms)')
     ylabel('Probability density')
 
-end
 
 
 
+    %% motif freq
 
-function others()
-%%
+    % function plot_motif_freq()
+    % load(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid')
 
-denovoflag=true;
-% else % load from file
-%     per_sess_coverage=struct();
-%     for bi=[150,300,600]
-%         for sessid=[14,18,22,33,34,68,100,102,114]
-%             if bburst
-%                 load(fullfile("bzdata","ChainedLoop"+bi+"S"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
-%             else
-%                 load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
-%             end
-%             per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
-%         end
-%     end
-%     denovoflag=false;
+%     fh=figure();
+%     fh.Position(1:2)=[100,100];
+%     tiledlayout(1,2)
+    aax=struct();
+    for fkey=["FWD","REV"]
+        olfsel=per_trial_motif_freq_perwave.(fkey)(:,1)>0;
+        bothsel=per_trial_motif_freq_perwave.(fkey)(:,2)>0;
+        olffreq.(fkey)=per_trial_motif_freq_perwave.(fkey)(olfsel,4)./per_trial_motif_freq.(fkey)(olfsel,4); % col4=>duration
+        bothfreq.(fkey)=per_trial_motif_freq_perwave.(fkey)(bothsel,5)./per_trial_motif_freq.(fkey)(bothsel,4);
+        %         continue
+        aax.(fkey)=nexttile();
+        hold on
+%         olfiqrs=prctile(olffreq.(fkey),[25,50,75]);
+%         bothiqrs=prctile(bothfreq.(fkey),[25,50,75]);
 
-if denovoflag
-    disp("New set of data file generated")
-    keyboard();
-    if false
-        blame=vcs.blame();
-        save(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid','blame')
-        % chains
-        unique(cellfun(@(x) numel(x),per_trial_motif_cid(:,1)))
-        % loops
-        trlcnt=cellfun(@(x) numel(x),per_trial_motif_cid(:,2))
-        unique(trlcnt(per_trial_motif_freq(:,7)>1))
-        % chained-loops
-        trlcnt=arrayfun(@(x) numel(unique([per_trial_motif_cid{x,1},per_trial_motif_cid{x,2}])),1:size(per_trial_motif_cid,1))
-        unique(trlcnt(per_trial_motif_freq(:,5)>=1 & per_trial_motif_freq(:,7)>=1))
+        boxplot([olffreq.(fkey);bothfreq.(fkey)],[ones(size(olffreq.(fkey)));2*ones(size(bothfreq.(fkey)))],'Colors','k','OutlierSize',4,'Symbol','c+')
 
+        olfiqr=prctile(olffreq.(fkey),[25,50,75,100]);
+        bothiqr=prctile(bothfreq.(fkey),[25,50,75,100]);
+
+        spanolf=olfiqr(3)+1.5*(diff(olfiqr(1:2:3)));
+        spanboth=bothiqr(3)+1.5*(diff(bothiqr(1:2:3)));
+
+        yspan.(fkey)=max([spanboth;spanolf])*1.25;
+
+        xlim([0.5,2.5])
+        ylabel('Motif frequency  (Hz)')
+        set(gca,'XTick',1:2,'XTickLabel',{'Olf','Both'})
+        if fkey=="FWD"
+            title("Total consistent motif freq");
+        else
+            title("Total inconsistent motif freq");
+        end
     end
-end
+
+    cellfun(@(x) set(x,'YLim',[0,max(struct2array(yspan))]),struct2cell(aax))
+
+
+
+    %% spike proportion
+    
+    sums=cell2struct({[],[]},{'FWD','REV'},2);
+    for fkey=["FWD","REV"]
+        sessfn=fieldnames(lc_tags.(fkey));
+        for fn=reshape(sessfn,1,[])
+            sessid=str2double(replace(fn{1},'S',''));
+            [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
+
+            sesssel=per_trial_motif_freq.(fkey)(:,1)==sessid;
+            sess_uid=unique(cell2mat([per_trial_motif_cid.(fkey){sesssel,1}]));
+            for onecid=sess_uid
+                % trial sel
+                trialsel=cellfun(@(x) ismember(onecid,cell2mat(x)), per_trial_motif_cid.(fkey)(sesssel,1));
+                trial3sel=intersect(find(trialsel), find(FT_SPIKE.trialinfo(:,8)==3));
+                trial6sel=intersect(find(trialsel), find(FT_SPIKE.trialinfo(:,8)==6));
+
+                idsel=strcmp(FT_SPIKE.label,num2str(onecid));
+                tssel=(ismember(FT_SPIKE.trial{idsel},trial3sel) & FT_SPIKE.time{idsel}>1 & FT_SPIKE.time{idsel}<=4)...
+                    |(ismember(FT_SPIKE.trial{idsel},trial6sel) & FT_SPIKE.time{idsel}>1 & FT_SPIKE.time{idsel}<=7);
+                %                 if any(lc_tags.(ftype).(fn{1}){idsel}(tssel)==4)
+                %                     disp(4)
+                %                     keyboard()
+                %                 end
+
+                fc_tagged=nnz(bitand(lc_tags.(fkey).(fn{1}){idsel}(tssel),1));
+                burst_tagged=nnz(bitand(lc_tags.(fkey).(fn{1}){idsel}(tssel),2));
+                % 1:sess, 2:cid, 3:chain fc spk count, 4: chain burst spk count, 5:total spk count
+                sums.(fkey)=[sums.(fkey);sessid,onecid,fc_tagged,burst_tagged,nnz(tssel)];
+            end
+        end
+    end
+    % mean
+%     [mean(sums.FWD(:,3:4)./sums.FWD(:,5)),mean(sums.REV(:,3:4)./sums.REV(:,5))]
+%     % median
+%     [median(sums.FWD(:,3:4)./sums.FWD(:,5)),median(sums.REV(:,3:4)./sums.REV(:,5))]
+
+    boxdata=[sums.FWD(:,3)./sums.FWD(:,5),ones(size(sums.FWD(:,3)));sums.REV(:,3)./sums.REV(:,5),2*ones(size(sums.REV(:,3)))];
+    nexttile()
+    boxplot(boxdata(:,1),boxdata(:,2),'Colors','k','Symbol','c+','OutlierSize',4)
+    %     ylim([0,0.05])
+
+    prcdata=[prctile(boxdata(boxdata(:,2)==1),[25,75]);...
+        prctile(boxdata(boxdata(:,2)==2),[25,75])];
+    ylim([0,1.25*max(prcdata(:,2)+1.5*diff(prcdata,1,2))])
+
+    set(gca,'XTick',1:2,'XTickLabel',{'Consistent','inconsistent'},'YTick',0:0.02:0.04,'YTickLabel',0:2:4)
+    ylabel('Proportion of associated spikes (%)')
+    title('Proportion of spikes')
+
+
+    sgtitle('Burst interval')
 
 end
+
+
+
+

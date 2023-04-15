@@ -7,6 +7,7 @@ function out=chain_tag(chains,opt)
 arguments
     chains
     opt.ccg (1,1) logical = true
+    opt.rev (1,1) logical = false
 end
 %% DEBUG
 % out=chain_alt(chains);
@@ -14,7 +15,7 @@ end
 if opt.ccg
     load('sums_conn_10.mat','sums_conn_str');
 end
-%% build up 
+%% build chains
 % all_chains=fieldnames(pstats.congru);
 waveids=reshape(unique(chains.wave),1,[]);
 sesses=reshape(unique(chains.sess),1,[]);
@@ -117,7 +118,13 @@ for dur=reshape(fieldnames(out),1,[])
 end
 
 blame=vcs.blame();
-save('chain_tag.mat','out','blame')
+if opt.rev
+    save(fullfile('bzdata','chain_rev_tag.mat'),'out','blame');
+else
+    save(fullfile('bzdata','chain_tag.mat'),'out','blame');
+end
+
+
 stats(out);
 end
 

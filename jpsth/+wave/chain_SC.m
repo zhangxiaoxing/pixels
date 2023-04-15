@@ -1,5 +1,5 @@
 if false
-    chainStr=load('chain_tag.mat','out');
+    load(fullfile('bzdata','chain_tag.mat'),'out');
 elseif false
     bumpStr=load('chain_sust_tag_600.mat','out');
     out=bumpStr.out;

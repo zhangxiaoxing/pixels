@@ -118,7 +118,7 @@ if false
 end
 
 %% single spike chain
-load('chain_tag.mat','out')
+load(fullfile('bzdata','chain_tag.mat'),'out');
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
 for dur=reshape(fieldnames(out),1,[])

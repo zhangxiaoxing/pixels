@@ -3,7 +3,7 @@ global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
 %% single spike chain
-sschain=load('chain_tag.mat','out');
+sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
 keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
     struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
 keys=vertcat(keys{:});

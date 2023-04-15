@@ -21,7 +21,7 @@ dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 
 if isempty(sschain) || isempty(bschain) || isempty(pstats)
     % single spike chain
-    sschain=load('chain_tag.mat','out');
+    sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
     % multi spike
     bschain=load(fullfile("bzdata","chain_sust_tag_600.mat"),'out');
     % single spike loop

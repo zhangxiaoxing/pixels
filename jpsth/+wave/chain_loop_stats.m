@@ -16,7 +16,7 @@ end
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
     %% single spike chain
-    sschain=load('chain_tag.mat','out');
+    sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
     keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
         struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
     keys=vertcat(keys{:});
