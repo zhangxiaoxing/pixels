@@ -322,6 +322,63 @@ if false %supplement for single spike ring-along plot
     title('single spike loops')
 end
 
+%=======================================================================
+%% congruent vs nonmem burst spike
+% congru
+dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
+conn=sqlite(dbfile,"readonly");
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+ukey=keys(endsWith(keys,'_ts'));
+span=@(x) x(end)-x(1);
+
+cperchaindur=struct();
+[cperchaindur.d6.size,cperchaindur.d6.dur,cperchaindur.d3.size,cperchaindur.d3.dur,cperchaindur.d6.int,cperchaindur.d3.int]=deal([]);
+for onekey=reshape(ukey,1,[])
+    dur=regexp(onekey,'^d\d','match','once');
+    allts=table2array(conn.sqlread(onekey));
+    maxid=allts(end,1);
+    cperchaindur.(dur{1}).size=[cperchaindur.(dur{1}).size,arrayfun(@(x) nnz(allts(:,1)==x),1:maxid)];
+    cperchaindur.(dur{1}).dur=[cperchaindur.(dur{1}).dur,arrayfun(@(x) span(allts(allts(:,1)==x,4)),1:maxid)./30];
+end
+close(conn)
+congruhist=histcounts([cperchaindur.d6.dur,cperchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
+
+% nonmem
+dbfile=fullfile("bzdata","rings_nonmem_burst_iter_600.db");
+conn=sqlite(dbfile,"readonly");
+keys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+ukey=keys(endsWith(keys,'_ts'));
+
+nperchaindur=struct();
+[nperchaindur.d6.size,nperchaindur.d6.dur,nperchaindur.d3.size,nperchaindur.d3.dur,nperchaindur.d6.int,nperchaindur.d3.int]=deal([]);
+for onekey=reshape(ukey,1,[])
+    dur=regexp(onekey,'^d\d','match','once');
+    allts=table2array(conn.sqlread(onekey));
+    maxid=allts(end,1);
+    nperchaindur.(dur{1}).size=[nperchaindur.(dur{1}).size,arrayfun(@(x) nnz(allts(:,1)==x),1:maxid)];
+    nperchaindur.(dur{1}).dur=[nperchaindur.(dur{1}).dur,arrayfun(@(x) span(allts(allts(:,1)==x,4)),1:maxid)./30];
+end
+close(conn)
+non_burst_loop=histcounts([nperchaindur.d6.dur,nperchaindur.d3.dur],[0:50:1000,1500,2000],'Normalization','pdf');
+
+figure()
+hold on
+cph=plot([25:50:975,1250,1750],congruhist,'-r');
+nph=plot([25:50:975,1250,1750],non_burst_loop,'k-');
+
+set(gca(),'XScale','log','YScale','log');
+ylim([1e-8,0.1]);
+xlabel('Time (ms)')
+ylabel('Probability density (per loop per ms)')
+
+cqtrs=prctile([cperchaindur.d6.dur,cperchaindur.d3.dur],[10,50,90]); % 16.9   22.2   28.3, @2023-03-08
+nqtrs=prctile([nperchaindur.d6.dur,nperchaindur.d3.dur],[10,50,90]);
+xline(cqtrs,'--r',string(cqtrs))
+xline(nqtrs,'--k',string(nqtrs))
+legend([cph,nph],{'Congruent bursting loops','Nonmem. bursting loops'},'Location','northoutside','Orientation','vertical')
+p=ranksum([cperchaindur.d6.dur,cperchaindur.d3.dur],[nperchaindur.d6.dur,nperchaindur.d3.dur])
+title('Congru.& nonmem. bursting loops, p<0.001')
+
 end
 
 function composite_loops()
