@@ -48,36 +48,36 @@ sumdata.FC=(qcmat(:,2)-250)./30; % #2 is peak TS, offset left half of symmatric 
 
 %% wave bump width 
 % skipped for now
-if false
-    bump3=[];
-    bump6=[];
-    com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
-    for fn=reshape(fieldnames(com_map),1,[])
-        for subfn=reshape(fieldnames(com_map.(fn{1})),1,[])
-            if isfield(com_map.(fn{1}).(subfn{1}),'fwhm3')
-                bump3=[bump3,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm3.values())];
-            end
-            if isfield(com_map.(fn{1}).(subfn{1}),'fwhm6')
-                bump6=[bump6,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm6.values())];
-            end
+
+bump3=[];
+bump6=[];
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+for fn=reshape(fieldnames(com_map),1,[])
+    for subfn=reshape(fieldnames(com_map.(fn{1})),1,[])
+        if isfield(com_map.(fn{1}).(subfn{1}),'fwhm3')
+            bump3=[bump3,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm3.values())];
+        end
+        if isfield(com_map.(fn{1}).(subfn{1}),'fwhm6')
+            bump6=[bump6,cell2mat(com_map.(fn{1}).(subfn{1}).fwhm6.values())];
         end
     end
+end
 
-    bxx=0.125:0.25:6.25;
+bxx=0.125:0.25:6.25;
 %     bump3hist=histcounts(bump3,bxx,'Normalization','probability');
 %     bump6hist=histcounts(bump6,bxx,'Normalization','probability');
-    bumps.hist=histcounts([bump3,bump6],bxx,'Normalization','pdf');
-    bumps.mean3=mean(bump3).*1000;
-    bumps.sem3=std(bump3)./sqrt(numel(bump3)).*1000;
-    bumps.mean6=mean(bump6).*1000;
-    bumps.sem6=std(bump6)./sqrt(numel(bump6)).*1000;
+bumps.hist=histcounts([bump3,bump6],bxx,'Normalization','pdf');
+bumps.mean3=mean(bump3).*1000;
+bumps.sem3=std(bump3)./sqrt(numel(bump3)).*1000;
+bumps.mean6=mean(bump6).*1000;
+bumps.sem6=std(bump6)./sqrt(numel(bump6)).*1000;
 
-end
+
 
 %% burst chained loops
 per_sess_coverage=struct();
 for sessid=[14,18,22,33,34,68,100,102,114]
-    load("ChainedLoop"+num2str(sessid)+".mat",'covered')
+    load(fullfile("bzdata","ChainedLoop600S"+num2str(sessid)+".mat"),'covered')
     per_sess_coverage.("S"+num2str(sessid))=covered;
 end
 covered=cell2mat(struct2cell(per_sess_coverage));
@@ -89,23 +89,24 @@ sumdata.BSChLoop = edges(2:2:end)-onset;  % Consecutive ones counts
 %% single spike chained loops
 per_sess_coverage=struct();
 for sessid=[14,18,22,33,34,68,100,102,114]
-    load("SingleSpikeChainedLoop"+num2str(sessid)+".mat",'covered')
+    load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
     per_sess_coverage.("S"+num2str(sessid))=covered;
 end
 covered=cell2mat(struct2cell(per_sess_coverage));
 
 edges = find(diff([0;covered;0]==1));
 onset = edges(1:2:end-1);  % Start indices
-sumdata.SSChLoop = edges(2:2:end)-onset;  % Consecutive ones counts
+sumdata.SSChLoop = (edges(2:2:end)-onset)./10;  % Consecutive ones counts
 
 
 %% single spike composite loops
-
-hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
-C=struct2cell(hrstats.stats).';
-expd=[C{:}];
-expdd=[expd{:}];
-sumdata.SSCoL=expdd;
+if false
+    hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
+    C=struct2cell(hrstats.stats).';
+    expd=[C{:}];
+    expdd=[expd{:}];
+    sumdata.SSCoL=expdd;
+end
 
 %% burst spike composite loops
 % skipped for now
@@ -167,15 +168,21 @@ end
 sumdata.SSChLoop(:,2)=5;
 sumdata.BSChLoop(:,2)=6;
 
-sumdata.sums=[sumdata.FC;sumdata.SSchain;sumdata.ssl;sumdata.SSCoL;sumdata.SSChLoop;sumdata.BSChLoop];
+sumdata.sums=[sumdata.FC;sumdata.SSchain;sumdata.ssl;sumdata.SSChLoop;sumdata.BSChLoop];
 
 figure()
 hold on
 boxplot(sumdata.sums(:,1),sumdata.sums(:,2),'Colors','k','Whisker',realmax)
 
 set(gca(),'YScale','log','YTick',10.^[-1:4],'XTick',1:6,'XTickLabel',...
-    {'FC','SSC','SSL','SSCoL','SSChL','BSChL'});
-ylim([8e-2,2e3])
+    {'FC','SSC','SSL','SSChL','BSChL'}); % boxplot of everything
+yline([3000,6000],'k-.') % 3s and 6s constant
+
+yline([bumps.mean3,bumps.mean6],'k:');
+fill([xlim(),fliplr(xlim())],bumps.mean3+[-bumps.sem3,-bumps.sem3,bumps.sem3,bumps.sem3],'k','EdgeColor','none','FaceAlpha','0.2')
+fill([xlim(),fliplr(xlim())],bumps.mean6+[-bumps.sem6,-bumps.sem6,bumps.sem6,bumps.sem6],'k','EdgeColor','none','FaceAlpha','0.2')
+
+ylim([8e-2,1e4])
 ylabel('Time (ms)')
 
 

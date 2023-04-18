@@ -4,10 +4,10 @@
 % blame=vcs.blame();
 % save('chains_shuf.mat','shuf_chains','blame')
 
-function shuf_out=COM_chain_shuf(sel_meta,shuf_idices,opt)
+function shuf_chains=COM_chain_shuf(sel_meta,shuf_idices,opt)
 arguments
     sel_meta
-    shuf_idices (1,:) double = 1:10
+    shuf_idices (1,:) double = 1:100
     opt.reverse (1,1) logical = false
 end
 % global_init
@@ -16,8 +16,9 @@ end
 % meta_str=ephys.util.load_meta('skip_stats',true);
 % warning('partial iteration for illustration')
 load('bz_ring_shufs.mat','shufs');
-shuf_out=cell(max(shuf_idices),1);
+shuf_chains=cell(max(shuf_idices),1);
 for shufid=shuf_idices
+    disp("SHUF"+shufid);
     chains=cell(0);
     sig_str=shufs{shufid};
     all_sess=reshape(unique(sig_str.sess),1,[]);
@@ -98,7 +99,7 @@ for shufid=shuf_idices
         out.cids=[out.cids;split_chains.cids];
         out.tcoms=[out.tcoms;split_chains.tcoms];
     end
-    shuf_out{shufid}=out;
+    shuf_chains{shufid}=out;
 end
 end
 

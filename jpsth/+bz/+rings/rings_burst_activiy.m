@@ -126,6 +126,9 @@ for sessid=sesses
                     for kk=1:numel(cids)
                         tsidin{kk}=ts_id(ts_id(:,3)==kk,1);
                     end
+                    if any(cellfun(@(x) numel(x),tsidin)==0)
+                        continue
+                    end
 %                     ts=bz.rings.relax_tag_long_iter(tsidin,"burstInterval",opt.burstInterval);
 %                     cellqc(ts);
 %                     if ~isempty(ts)

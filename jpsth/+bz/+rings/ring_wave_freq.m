@@ -1,8 +1,13 @@
 % calculate relative appearance frequence of rings vs shuffled control
-function ring_wave_freq(wrs_mux_meta)
+function ring_wave_freq(wrs_mux_meta,opt)
+arguments
+    wrs_mux_meta
+    opt.appearance
+    opt.repeats (1,1) double = 10
+end
 sums=bz.rings.rings_wave(wrs_mux_meta,'shufid',0);
-sums_shuf=cell(10,1);
-for rpt=1:10
+sums_shuf=cell(opt.repeats,1);
+for rpt=1:opt.repeats
     sums_shuf{rpt}=bz.rings.rings_wave(wrs_mux_meta,'shufid',rpt);
 end
 wavetype=struct();
@@ -10,7 +15,7 @@ wavetype_shuf=struct();
 [wavetype_shuf.congru,wavetype_shuf.incongru,wavetype_shuf.nonmem]=deal([]);
 for type={'congru','incongru','nonmem'}
     wavetype.(type{1})=nnz(strcmp(sums(:,4),type));
-    for rpt=1:10
+    for rpt=1:opt.repeats
         wavetype_shuf.(type{1})=[wavetype_shuf.(type{1}),nnz(strcmp(sums_shuf{rpt}(:,4),type))];
     end
 end
@@ -28,7 +33,7 @@ seltype_shuf=struct();
 [seltype_shuf.olf,seltype_shuf.dur]=deal([]);
 for type={'olf','dur'}
     seltype.(type{1})=nnz(strcmp(sums(:,5),type));
-    for rpt=1:10
+    for rpt=1:opt.repeats
         seltype_shuf.(type{1})=[seltype_shuf.(type{1}),nnz(strcmp(sums_shuf{rpt}(:,5),type))];
     end
 end

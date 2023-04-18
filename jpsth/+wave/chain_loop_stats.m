@@ -1,5 +1,4 @@
 % tag spikes in neuron with loop or chain activity
-%% TODO USE BITOR INSTEAD OF ADD
 
 %%
 per_spk_tag=true;
@@ -364,7 +363,7 @@ run_length=struct();
 
 if bburst
     %%
-    for bi=600%[150,300,600]
+    for bi=[150,300,600]
         covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
         run_length.("B"+bi)=[];
         for jj=1:numel(covered.("B"+bi))
@@ -383,7 +382,7 @@ if bburst
     for bi=[150,300,600]    
         chained_loops_pdf=histcounts(run_length.("B"+bi),[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
         ph(end+1)=plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-','Color',cmap(cidx,:));
-        qtrs=prctile(run_length.("B"+bi),[25,50,75]);
+        qtrs=prctile(run_length.("B"+bi),[10,50,90]);
         %     qtrs19=prctile(run_length,[10,20,80,90]);
         xline(qtrs,'--',string(qtrs),'Color',cmap(cidx,:)) % 17 24 35
         cidx=cidx+1;

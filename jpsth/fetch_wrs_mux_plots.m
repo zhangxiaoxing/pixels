@@ -5,6 +5,19 @@ meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
+
+
+on=nnz(ismember(wrs_mux_meta.wave_id,5:6));
+bn=nnz(ismember(wrs_mux_meta.wave_id,1:4));
+dn=nnz(ismember(wrs_mux_meta.wave_id,7:8));
+alln=numel(wrs_mux_meta.wave_id);
+
+[~,~,p]=crosstab([zeros(on,1);ones(alln-on,1);...
+    zeros(bn,1);ones(alln-bn,1);...
+    zeros(dn,1);ones(alln-dn,1)],...
+    [ones(alln,1);2*ones(alln,1);3*ones(alln,1)])
+
+
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
 
@@ -288,6 +301,10 @@ bz.rings.rings_su_wave_tcom_corr(sums_all)
 % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
 load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev')
+
+
+nnz(cellfun(@(x) numel(unique(x)),chains_uf.cids)>4)
+nnz(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids)>4)
 
 wave.chain_stats;
 wave.chains_time_constant

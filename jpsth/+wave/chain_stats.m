@@ -102,6 +102,9 @@ countbin=2.5:12.5;
     shufmm=mean(shuf_hist);
     shufsd=std(shuf_hist);
 
+    mean(sum(shuf_hist(:,3:end),2))
+    std(sum(shuf_hist(:,3:end),2))
+
 %     nexttile()
     hold on
     fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
