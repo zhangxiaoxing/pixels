@@ -5,6 +5,40 @@ arguments
     opt.appearance
     opt.repeats (1,1) double = 10
 end
+
+nonmem_keys=struct();
+for bi=[150,300,600]
+    nonmem_keys.("B"+bi)=[];
+    dbfile=fullfile("bzdata","rings_nonmem_burst_iter_"+bi+".db");
+    conn=sqlite(dbfile,'readonly');
+    bikeys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+    metakeys=bikeys(endsWith(bikeys,"_meta"));
+    for mki=1:numel(metakeys)
+        sessionstr=regexp(metakeys(mki),'s\d+(?=r)','match','once');
+        cuid=sort(table2array(conn.sqlread(metakeys(mki))));
+        onekey=sessionstr+"-"+string(sprintf('%d-',cuid));
+        nonmem_keys.("B"+bi)=[nonmem_keys.("B"+bi);onekey];
+    end
+    conn.close();
+end
+
+nonmem_keys=struct();
+for bi=[150,300,600]
+    nonmem_keys.("B"+bi)=[];
+    dbfile=fullfile("bzdata","rings_wave_burst_iter_"+bi+".db");
+    conn=sqlite(dbfile,'readonly');
+    bikeys=table2array(conn.fetch("SELECT name FROM sqlite_master WHERE type='table'"));
+    metakeys=bikeys(endsWith(bikeys,"_meta"));
+    for mki=1:numel(metakeys)
+        sessionstr=regexp(metakeys(mki),'s\d+(?=r)','match','once');
+        cuid=sort(table2array(conn.sqlread(metakeys(mki))));
+        onekey=sessionstr+"-"+string(sprintf('%d-',cuid));
+        nonmem_keys.("B"+bi)=[nonmem_keys.("B"+bi);onekey];
+    end
+    conn.close();
+end
+
+
 sums=bz.rings.rings_wave(wrs_mux_meta,'shufid',0);
 sums_shuf=cell(opt.repeats,1);
 for rpt=1:opt.repeats
