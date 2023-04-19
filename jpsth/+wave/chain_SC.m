@@ -1,10 +1,11 @@
 if false
     load(fullfile('bzdata','chain_tag.mat'),'out');
-elseif false
-    bumpStr=load('chain_sust_tag_600.mat','out');
-    out=bumpStr.out;
-    chain_len_thres=6;
 elseif true
+    fstr=load(fullfile('bzdata','chain_sust_tag_150.mat'),'out');
+    out=fstr.out;
+    chain_len_thres=5;
+    accu_spk_thres=10;
+elseif false
     load('rings_wave_burst_600.mat','out')
     chain_len_thres=3;
 end
@@ -23,10 +24,11 @@ for dur=reshape(fieldnames(out),1,[])
         for cnid=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
             % length selection
             chain_len=numel(out.(dur{1}).(wv{1}).(cnid{1}).meta{1});
-            if chain_len <chain_len_thres
+            accu_spk=cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
+            if chain_len <chain_len_thres || max(accu_spk)<accu_spk_thres
                 continue
             end
-
+            
             % region selection
             if contains(cnid,'r')
                 currsess=str2double(regexp(cnid,'(?<=s)[0-9]*(?=r)','match','once'));
@@ -62,38 +64,27 @@ for dur=reshape(fieldnames(out),1,[])
                     [gc,gr]=groupcounts(trls);
                     gridx=reshape(find(gc>1),1,[]);
                     ttlist=gr(gridx);
-                else % bump-wave
-                    cndur=cellfun(@(x) diff(x([1,end],3),1,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
-                    [maxdur,maxidx]=max(cndur);
-                    if maxdur>7500 % 500 ms
-                        onsetSUIdx=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,1); % first SU index in chain/loops
-                        pos_within=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,1);
-                        tsidsel=out.(dur{1}).(wv{1}).(cnid{1}).ts{maxidx}(1,2);
-                        ttlist=tsidOnset{pos_within}(tsidsel,5); % current trial
-                        % TODO: same trial, longest for each diff onset
-                        % TODO: match trial for different 
+                else % bursting wave
+                    %                     cndur=cellfun(@(x) diff(x([1,end],3)),out.(dur{1}).(wv{1}).(cnid{1}).ts);
+                    %                     cndursel=find(cndur>1000); % TODO: select by squence count
+                    %                     cn_tsid_sel=cellfun(@(x) x(1,1:2),out.(dur{1}).(wv{1}).(cnid{1}).ts(cndursel),'UniformOutput',false);
+                    %                     cn_trl_list=cellfun(@(x) tsidOnset{x(1)}(x(2),5),cn_tsid_sel);
+                    cn_tsid_sel=cellfun(@(x) x(1,1:3),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false); % first tagged spike, in chain idx and per-su-ts-idx
+                    cn_trl_list=cellfun(@(x) tsidOnset{x(1)}(x(2),5),cn_tsid_sel);% corresponding trial
+                    trl_su_tspos=unique(cell2mat(arrayfun(@(x) [cn_trl_list(x),cn_tsid_sel{x}],(1:numel(cn_trl_list)).','UniformOutput',false)),'rows'); % [trial, in-chain-idx, per-su-idx]
 
-                        cn_tsid_sel=cellfun(@(x) x(1,1:2),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false);
-                        cn_trl_list=cellfun(@(x) tsidOnset{x(1)}(x(2),5),cn_tsid_sel);
-                        onset_set=cell2mat(cn_tsid_sel(cn_trl_list==ttlist(1)).'); % [supos,pos_within_SU]
-                        
-                        same_onset=onset_set(:,1)==pos_within & onset_set(:,2)==tsidsel;
-                        supp_onset=onset_set(~same_onset,:);
-                        suppIdx=[];
-                        for ii=1:size(supp_onset,1)
-                            onset_sel=find(all(cell2mat(cn_tsid_sel.')==supp_onset(ii,:),2));
-                            [~,oneid]=max(cndur(onset_sel));
-                            suppIdx=[suppIdx,onset_sel(oneid)];
-                        end
-                    else
-                        tsidsel=[];
-                        ttlist=[];
-                    end
+                    tsdiff=diff(trl_su_tspos,1,1);
+
+                    trl_su_tspos(tsdiff(:,1)==0 & tsdiff(:,2)==0 & tsdiff(:,4)<150,:)=[];
+
+                    [gc,gr]=groupcounts(trl_su_tspos(:,1));
                 end
-                trls=tsidOnset{pos_within}(tsidsel,5);
 
-                % TODO plot raster
-                for tt=ttlist
+                % plot raster
+                cn_tsid_all=cellfun(@(x) x(1,1:2),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false);
+                for tt=(gr(gc>1)).'
+                    trl_ts=cellfun(@(x) tsidOnset{x(1)}(x(2),5),cn_tsid_all)==tt;
+                    join_ts=cell2mat(out.(dur{1}).(wv{1}).(cnid{1}).ts(trl_ts).');
                     figure('Position',[32,32,1440,240])
                     hold on;
                     for jj=1:chain_len
@@ -107,17 +98,9 @@ for dur=reshape(fieldnames(out),1,[])
                                 plot(ts(tickpos),jj,'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
                             end
                         else
-                            for iidx=[suppIdx,maxidx]
-                                bts=out.(dur{1}).(wv{1}).(cnid{1}).ts{iidx};
-                                % TODO: merge same trial different onset chains
-                                suts=bts(bts(:,1)==jj,3);
-                                [~,tickpos]=ismember(suts,cntsid(cntsid(:,3)==jj & cntsid(:,5)==tt,1));
-                                if iidx==maxidx
-                                    plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
-                                else
-                                    plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#00FF',dec2hex(jj,2)]);
-                                end
-                            end
+                            suts=unique(join_ts(join_ts(:,1)==jj,3));
+                            [~,tickpos]=ismember(suts,cntsid(cntsid(:,3)==jj & cntsid(:,5)==tt,1));
+                            plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
                         end
                     end
                     ylim([0.5,jj+0.5])
@@ -126,7 +109,7 @@ for dur=reshape(fieldnames(out),1,[])
                     title({"Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1}+", trial "+num2str(tt),...
                         num2str(cncids)});
                     set(gca(),"YTick",1:jj,"YTickLabel",cnreg,'YDir','reverse')
-                    keyboard()
+%                     keyboard()
                 end
 
                 % TODO plot ccgs

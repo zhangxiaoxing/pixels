@@ -1,3 +1,5 @@
+% something related to wave?
+
 function ax=plotOne(data,subidx,ttext,opt)
 arguments
     data double
