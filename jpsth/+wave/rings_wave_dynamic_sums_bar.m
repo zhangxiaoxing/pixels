@@ -22,6 +22,7 @@ end
 
 %% burst loops ===============================
 if false % skip lower level burst stats at the moment
+    % TODO: update to new SQLite format
     load('rings_wave_burst_600.mat','out');
     perchaindur=struct();
     [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);

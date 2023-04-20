@@ -5,6 +5,7 @@ arguments
     opt.close (1,1) logical = false
     opt.path (1,:) = ''
     opt.fn (1,:) char = 'pct_decoding.pdf'
+    opt.multi (1,1) logical = false
 end
 
 if isempty(opt.path)
@@ -31,7 +32,7 @@ else
     annostr=opt.tag;
 end
 fhandles=get(groot(),'Children');
-if numel(fhandles)>1
+if numel(fhandles)>1 && ~opt.multi
     warning("more than 1 figures, continue?")
     keyboard()
 end

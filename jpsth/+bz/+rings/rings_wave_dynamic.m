@@ -34,7 +34,7 @@ end
 single_loop_pdf=per_ring_hist.congru./(sum(per_ring_hist.congru).*diff([0:1:10,20:10:200]));
 
 %% burst loops
-
+% TODO: update to new SQLite format
 load('rings_wave_burst_600.mat','out');
 perchaindur=struct();
 [perchaindur.d6.size,perchaindur.d6.dur,perchaindur.d3.size,perchaindur.d3.dur,perchaindur.d6.int,perchaindur.d3.int]=deal([]);
