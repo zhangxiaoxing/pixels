@@ -6,7 +6,7 @@ switch statstype
         fstr=load(fullfile('bzdata','chain_sust_tag_150.mat'),'out');
         out=fstr.out;
         chain_len_thres=5;
-        accu_spk_thres=12;
+        accu_spk_thres=15;
     otherwise
         disp("data type mismatch")
         keyboard()
@@ -28,10 +28,11 @@ for dur=reshape(fieldnames(out),1,[])
             cncids=out.(dur{1}).(wv{1}).(cnid{1}).meta{1};
             chain_len=numel(cncids);
             accu_spk=cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
-            if chain_len <chain_len_thres || max(accu_spk)<accu_spk_thres
+            [spkcount,max_ts]=max(accu_spk);
+            if chain_len <chain_len_thres || spkcount<accu_spk_thres
                 continue
             end
-            
+            maxcnts=out.(dur{1}).(wv{1}).(cnid{1}).ts{max_ts};
             % region selection
             currsess=str2double(regexp(cnid,'(?<=s)[0-9]*(?=c)','match','once'));
             if currsess~=memsess
@@ -68,12 +69,16 @@ for dur=reshape(fieldnames(out),1,[])
                     trl_su_tspos=unique(cell2mat(arrayfun(@(x) [cn_trl_list(x),cn_first_tagged{x}],(1:numel(cn_trl_list)).','UniformOutput',false)),'rows'); % [trial, in-chain-idx, per-su-idx]
 
                     tsdiff=diff(trl_su_tspos,1,1);
-                    trl_su_tspos(tsdiff(:,1)==0 & tsdiff(:,2)==0 & tsdiff(:,4)<150,:)=[];
+                    trl_su_tspos(tsdiff(:,1)==0 & tsdiff(:,2)==0 & tsdiff(:,4)<300,:)=[];
                     [gc,gr]=groupcounts(trl_su_tspos(:,1));
+                    maxtrl=cn_trl_list(max_ts);
+                    if gc(gr==maxtrl)<2
+                        continue
+                    end
                 end
 
                 % plot raster
-                for tt=(gr(gc>1)).'
+                for tt=maxtrl%(gr(gc>1)).'
                     trl_ts=cellfun(@(x) tsid_per_cid{x(1)}(x(2),5),cn_first_tagged)==tt;
                     join_ts=cell2mat(out.(dur{1}).(wv{1}).(cnid{1}).ts(trl_ts).');
                     figure('Position',[32,32,1440,240])
@@ -92,6 +97,10 @@ for dur=reshape(fieldnames(out),1,[])
                             suts=unique(join_ts(join_ts(:,1)==jj,3));
                             [~,tickpos]=ismember(suts,cn_tsid(cn_tsid(:,3)==jj & cn_tsid(:,5)==tt,1));
                             plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
+
+                            [~,tickpos]=ismember(maxcnts(maxcnts(:,1)==jj,3),cn_tsid(cn_tsid(:,3)==jj & cn_tsid(:,5)==tt,1));
+                            plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#',dec2hex(jj,2),'FF00']);
+
                         end
                     end
                     ylim([0.5,jj+0.5])
