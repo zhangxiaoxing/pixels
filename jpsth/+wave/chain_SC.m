@@ -6,7 +6,7 @@ switch statstype
         fstr=load(fullfile('bzdata','chain_sust_tag_150.mat'),'out');
         out=fstr.out;
         chain_len_thres=5;
-        accu_spk_thres=15;
+        accu_spk_thres=10;
     otherwise
         disp("data type mismatch")
         keyboard()
@@ -27,8 +27,8 @@ for dur=reshape(fieldnames(out),1,[])
             % length selection
             cncids=out.(dur{1}).(wv{1}).(cnid{1}).meta{1};
             chain_len=numel(cncids);
-            accu_spk=cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
-            [spkcount,max_ts]=max(accu_spk);
+            per_seq_spk=cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
+            [spkcount,max_ts]=max(per_seq_spk);
             if chain_len <chain_len_thres || spkcount<accu_spk_thres
                 continue
             end
@@ -64,21 +64,26 @@ for dur=reshape(fieldnames(out),1,[])
                     gridx=reshape(find(gc>1),1,[]);
                     ttlist=gr(gridx);
                 else % bursting wave
+
                     cn_first_tagged=cellfun(@(x) x(1,1:3),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false); % first tagged spike, in chain idx and per-su-ts-idx
                     cn_trl_list=cellfun(@(x) tsid_per_cid{x(1)}(x(2),5),cn_first_tagged);% corresponding trial
                     trl_su_tspos=unique(cell2mat(arrayfun(@(x) [cn_trl_list(x),cn_first_tagged{x}],(1:numel(cn_trl_list)).','UniformOutput',false)),'rows'); % [trial, in-chain-idx, per-su-idx]
 
+                    burst_trl=cn_trl_list(per_seq_spk>=accu_spk_thres);
+                    trl_su_tspos=trl_su_tspos(ismember(trl_su_tspos(:,1),burst_trl),:);
+
                     tsdiff=diff(trl_su_tspos,1,1);
-                    trl_su_tspos(tsdiff(:,1)==0 & tsdiff(:,2)==0 & tsdiff(:,4)<300,:)=[];
+                    trl_su_tspos(tsdiff(:,1)==0 & tsdiff(:,2)==0 & tsdiff(:,3)==1 & tsdiff(:,4)<300,:)=[];
+                    
                     [gc,gr]=groupcounts(trl_su_tspos(:,1));
-                    maxtrl=cn_trl_list(max_ts);
-                    if gc(gr==maxtrl)<2
-                        continue
-                    end
+%                     maxtrl=cn_trl_list(max_ts);
+%                     if gc(gr==maxtrl)<2
+%                         continue
+%                     end
                 end
 
                 % plot raster
-                for tt=maxtrl%(gr(gc>1)).'
+                for tt=(gr(gc>1)).'
                     trl_ts=cellfun(@(x) tsid_per_cid{x(1)}(x(2),5),cn_first_tagged)==tt;
                     join_ts=cell2mat(out.(dur{1}).(wv{1}).(cnid{1}).ts(trl_ts).');
                     figure('Position',[32,32,1440,240])
@@ -98,8 +103,8 @@ for dur=reshape(fieldnames(out),1,[])
                             [~,tickpos]=ismember(suts,cn_tsid(cn_tsid(:,3)==jj & cn_tsid(:,5)==tt,1));
                             plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
 
-                            [~,tickpos]=ismember(maxcnts(maxcnts(:,1)==jj,3),cn_tsid(cn_tsid(:,3)==jj & cn_tsid(:,5)==tt,1));
-                            plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#',dec2hex(jj,2),'FF00']);
+%                             [~,tickpos]=ismember(maxcnts(maxcnts(:,1)==jj,3),cn_tsid(cn_tsid(:,3)==jj & cn_tsid(:,5)==tt,1));
+%                             plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#',dec2hex(jj,2),'FF00']);
 
                         end
                     end
