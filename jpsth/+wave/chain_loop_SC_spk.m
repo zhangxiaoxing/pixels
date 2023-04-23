@@ -55,8 +55,8 @@ if ~opt.by_cover_rate
 
     [~,maxids]=sort(run_length,'descend');
     maxid=maxids(maxidx);
-    maxonset=onset(maxid).*30;
-    maxoffset=edges(maxid*2).*30;
+    maxonset=onset(maxid).*3;
+    maxoffset=edges(maxid*2).*3;
     trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
 elseif ~opt.all_trial_stats
     % sort by cover rate
