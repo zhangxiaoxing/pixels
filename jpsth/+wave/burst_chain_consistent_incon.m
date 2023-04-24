@@ -331,5 +331,13 @@ ylabel('Number of occurrence')
 legend(bh,{'Consistent','Inconsistent'},'Location','northoutside','Orientation','horizontal')
 title('Burst chain occurrence')
 
+[~,~,p150]=crosstab([zeros(appear.B150.FWD,1);ones(appear.B150.REV,1);ones(appear.B150.FWD,1);zeros(appear.B150.REV,1)],...
+    [zeros(appear.B150.FWD+appear.B150.REV,1);ones(appear.B150.FWD+appear.B150.REV,1)]);
 
+[~,~,p300]=crosstab([zeros(appear.B300.FWD,1);ones(appear.B300.REV,1);ones(appear.B300.FWD,1);zeros(appear.B300.REV,1)],...
+    [zeros(appear.B300.FWD+appear.B300.REV,1);ones(appear.B300.FWD+appear.B300.REV,1)]);
 
+[~,~,p600]=crosstab([zeros(appear.B600.FWD,1);ones(appear.B600.REV,1);ones(appear.B600.FWD,1);zeros(appear.B600.REV,1)],...
+    [zeros(appear.B600.FWD+appear.B600.REV,1);ones(appear.B600.FWD+appear.B600.REV,1)]);
+
+disp([p150,p300,p600])

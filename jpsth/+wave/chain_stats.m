@@ -215,7 +215,7 @@ for chartIdx=1:2
 
     xlim([3,10])
     ylim([1,3000])
-    xlabel('Number neuron in wave-link')
+    xlabel('Number neuron in chains')
     ylabel('Total occurance')
     set(gca(),'XTick',4:2:10,'YScale','log')
 %     title(ttls{chartIdx});
@@ -224,7 +224,6 @@ end
 
 
 %% per-wave stats-per-region stats pie chart
-
 
 % repeated occurance
 chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
@@ -294,6 +293,8 @@ lboth_sel=strcmp(rstats(:,9),'both');
 loop_both_uid=unique([rstats{lboth_sel,10}]);
 both_shared=nnz(ismember(chain_both_uid,loop_both_uid));
 both_su_total=nnz(ismember(wrs_mux_meta.wave_id,1:4));%ismember(su_meta.reg_tree(5,:).',greys) &
+
+% TODO: return data for further processing here
 
 % skiped dur stats since no chain with lenth > 5 were recorded
 % ldur_sel=strcmp(rstats(:,9),'dur');
