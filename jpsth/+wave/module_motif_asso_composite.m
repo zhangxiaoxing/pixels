@@ -26,12 +26,13 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     
     stats.chain=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
     stats.loop=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
+    degree_sums=[];
     for sessid=reshape(usess,1,[])
         disp(sessid)
         [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
 
         wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
-        per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),2)];
+        per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),3)];
 
         per_trial_motif_freq=[per_trial_motif_freq;...
             repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),...
@@ -90,7 +91,9 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     end
                     stats.chain.(ttag)=[stats.chain.(ttag);{sessid},onechain.meta(1)];
                     if ~isempty(tsel)
+                        
                         for ttt=reshape(find(tsel),1,[])
+                            per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
                             per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},onechain.meta(1)];
                         end
                     end
@@ -120,6 +123,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             end
 
             for ttt=reshape(find(tsel),1,[])
+                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
                 per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
             end
                 %check cid in largest network
@@ -149,15 +153,18 @@ for tt=1:size(per_trial_motif_cid,1)
     end
 
     % build graph network
-    edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,:}],'UniformOutput',false).'),'rows'));
+    edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,1:2}],'UniformOutput',false).'),'rows'));
     gh=graph(edges(:,1),edges(:,2));
+    % TODO: in degree out degree
+    % TODO digraph?
+    degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},gh.numnodes,1),str2double(table2array(gh.Nodes)),gh.degree];
     conncomp=gh.conncomp();
     % check module in network
     if any(conncomp~=1)
         comps=unique(conncomp);
         counter=zeros(numel(comps),1);
         gnodes=cellfun(@(x) str2double(x),gh.Nodes.Name);
-        for mm=[per_trial_motif_cid{tt,:}]
+        for mm=[per_trial_motif_cid{tt,1:2}]
             [~,nidx]=ismember(mm{1},gnodes);
             compidx=unique(conncomp(nidx));
             if numel(compidx)==1
@@ -177,8 +184,9 @@ for tt=1:size(per_trial_motif_cid,1)
         end
     end
 end
-save(fullfile('bzdata','disconnected_motifs.mat'),"disconnected","blame")
 
+
+save(fullfile('bzdata','disconnected_motifs.mat'),"disconnected","blame")
 disconn_count=[];
 for di=1:size(disconnected,1)
     if any(cell2mat(stats.chain.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.olf(:,2)))
@@ -215,5 +223,45 @@ for wv=["olf","both"] % dur
     disp(wv+string(mm))
 end
 
-
+%% plot per region degree
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+uuid=unique(degree_sums(:,[1,5]),'rows');
+per_reg=struct();
+missing_reg=[];
+for uididx=1:size(uuid,1)
+    % average cross trial
+    su_trl_sel=(degree_sums(:,1)==uuid(uididx,1) & degree_sums(:,5)==uuid(uididx,2));
+    su_mm=mean(degree_sums(su_trl_sel,6));
+    % region
+    metaidx=find(su_meta.sess==uuid(uididx,1) & su_meta.allcid==uuid(uididx,2));
+    if ~isempty(metaidx)
+        sureg=su_meta.reg_tree(5,metaidx);
+    else
+        
+        error("ERROR");
+    end
+   
+    % per region data add
+    if ~ismissing(sureg)
+        if ~isfield(per_reg,sureg{1})
+            per_reg.(sureg{1})=[];
+        end
+        per_reg.(sureg{1})=[per_reg.(sureg{1});su_mm];
+    else
+        missing_reg=[missing_reg;su_mm];
+    end
+end
+%stats
+num_su=cellfun(@(x) numel(x),struct2cell(per_reg));
+per_reg_mm=cellfun(@(x) mean(x),struct2cell(per_reg));
+per_reg_std=cellfun(@(x) std(x),struct2cell(per_reg));
+per_reg_sem=per_reg_std./sqrt(num_su);
+thresh_sel=num_su>5;
+%figure
+figure();
+hold on;
+bh=bar(per_reg_mm(thresh_sel),'FaceColor','w');
+xlbl_raw=fieldnames(per_reg);
+set(gca,'XTick',1:nnz(thresh_sel),'XTickLabel',xlbl_raw(thresh_sel));
+errorbar(bh.XData,bh.YData,per_reg_sem(thresh_sel),'k.')
 
