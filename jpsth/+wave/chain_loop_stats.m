@@ -1,15 +1,24 @@
 % tag spikes in neuron with loop or chain activity
+% TODO: remove su based on shared motif didn't meet expectation while WIP.
+% streamline relative code sniplet.
+
 
 %%
 per_spk_tag=true;
 bburst=false;
 burstinterval=600;
 skipfile=false;
+skip_shared_su=true;
 load(fullfile('bzdata','disconnected_motifs.mat'),'disconnected')
 disconnKey=cell(0);
 for ii=1:size(disconnected,1)
     onekey=sprintf('%d-',disconnected{ii,1},disconnected{ii,2});
     disconnKey=[disconnKey;onekey];
+end
+
+if skip_shared_su
+    [olf_shared,both_shared]=wave.SU_remove_network();
+    su_shared=intersect(olf_shared,both_shared);
 end
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
@@ -86,6 +95,15 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         continue
                     end
                     onechain=sschain.out.(dur).(wid{1}).(cc{1});
+                    if skip_shared_su
+                        motifukey=sessid*100000+onechain.meta{1};
+                        if any(ismember(motifukey,su_shared))
+                            disp("skipped shared motif neuron")
+                            continue
+                        end
+                    end
+
+
                     currkey=sprintf('%d-',sessid,sort(onechain.meta{1}));
                     if ismember(currkey,disconnKey)
                         warning('skipped disconnected motif')
@@ -178,6 +196,13 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 continue
             end
             onechain=pstats.congru.(cc{1});
+            if skip_shared_su
+                motifukey=sessid*100000+onechain.rstats{3};
+                if any(ismember(motifukey,su_shared))
+                    disp("skipped shared motif neuron")
+                    continue
+                end
+            end
 
             currkey=sprintf('%d-',sessid,sort(onechain.rstats{3}));
             if ismember(currkey,disconnKey)
@@ -314,6 +339,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             blame=vcs.blame();
             if bburst
                 save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+            elseif skip_shared_su
+                save(fullfile("bzdata","RemoveSUSingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
             else
                 save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
             end
@@ -331,10 +358,14 @@ else % load from file
         for sessid=[14,18,22,33,34,68,100,102,114]
             if bburst
                 load(fullfile("bzdata","ChainedLoop"+bi+"S"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
+                per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
+            elseif skip_shared_su
+                load(fullfile("bzdata","RemoveSUSingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered');
+                per_sess_coverage.("SSS"+num2str(sessid))=covered;
             else
                 load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
+                per_sess_coverage.("SSS"+num2str(sessid))=covered;
             end
-            per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
         end
     end
     denovoflag=false;
@@ -394,7 +425,7 @@ if bburst
     ylabel('Probability density')
 else
     %%
-    relax_cosec=true;
+    relax_cosec=false;
     consecthresh=1500;
     covered=covcell(contains(covfn,"SSS"));
     run_length=[];
@@ -442,6 +473,13 @@ else
     xlabel('Time (ms)')
     ylabel('Probability density')
 end
+
+function remove_before_after
+figure()
+boxplot([ss.run_length;rmv.run_length])
+end
+
+
 
 function relaxed_consecutive()
     %%
@@ -522,7 +560,6 @@ end
 
 %% ========================SHOWCASE===============
 % moved to chain_loops_SC_spk.m
-
 
 function db_test()
 dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");

@@ -31,7 +31,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
         [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
 
         wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
-        per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),2)];
+        per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),3)];
 
         per_trial_motif_freq=[per_trial_motif_freq;...
             repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),...
@@ -90,6 +90,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     end
                     stats.chain.(ttag)=[stats.chain.(ttag);{sessid},onechain.meta(1)];
                     if ~isempty(tsel)
+                        per_trial_motif_cid{ttt,3}=[sessid];
                         for ttt=reshape(find(tsel),1,[])
                             per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},onechain.meta(1)];
                         end
