@@ -1,9 +1,15 @@
 % tag spikes in neuron with loop or chain activity
 % olf, enc-both disconnect, composite proportion, bargraph
-% TODO: overall refactoring, sleep
+% TODO: overall refactoring
+% TODO: rename file
+
 skipfile=false;
 stats=struct();
 if true%~exist('inited','var') || ~inited  % denovo data generation
+    per_trl_nodes=cell(0);
+    complexity_sums=[];
+    degree_sums=[];
+    
     %% single spike chain
     sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
     keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
@@ -90,8 +96,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     end
                     stats.chain.(ttag)=[stats.chain.(ttag);{sessid},onechain.meta(1)];
                     if ~isempty(tsel)
-                        per_trial_motif_cid{ttt,3}=[sessid];
                         for ttt=reshape(find(tsel),1,[])
+                            per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
                             per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},onechain.meta(1)];
                         end
                     end
@@ -121,6 +127,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             end
 
             for ttt=reshape(find(tsel),1,[])
+                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
                 per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
             end
                 %check cid in largest network
@@ -150,15 +157,17 @@ for tt=1:size(per_trial_motif_cid,1)
     end
 
     % build graph network
-    edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,:}],'UniformOutput',false).'),'rows'));
+    edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,1:2}],'UniformOutput',false).'),'rows'));
     gh=graph(edges(:,1),edges(:,2));
+    degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},gh.numnodes,1),str2double(table2array(gh.Nodes)),gh.degree];
     conncomp=gh.conncomp();
+    % TODO digraph?
     % check module in network
     if any(conncomp~=1)
         comps=unique(conncomp);
         counter=zeros(numel(comps),1);
         gnodes=cellfun(@(x) str2double(x),gh.Nodes.Name);
-        for mm=[per_trial_motif_cid{tt,:}]
+        for mm=[per_trial_motif_cid{tt,1:2}]
             [~,nidx]=ismember(mm{1},gnodes);
             compidx=unique(conncomp(nidx));
             if numel(compidx)==1
@@ -176,10 +185,20 @@ for tt=1:size(per_trial_motif_cid,1)
                 end
             end
         end
+        subs=reshape(find(counter>1),1,[]);
+    else
+        subs=1;
+    end
+
+    for subsidx=subs
+        subgh=gh.subgraph(conncomp==subsidx);
+        complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,max(max(subgh.distances))];
+        per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
     end
 end
-save(fullfile('bzdata','disconnected_motifs.mat'),"disconnected","blame")
 
+
+save(fullfile('bzdata','motifs_graph_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
 disconn_count=[];
 for di=1:size(disconnected,1)
     if any(cell2mat(stats.chain.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.olf(:,2)))
@@ -216,5 +235,71 @@ for wv=["olf","both"] % dur
     disp(wv+string(mm))
 end
 
+%% plot per region degree
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+uuid=unique(degree_sums(:,[1,5]),'rows');
+per_reg=struct();
+missing_reg=[];
+for uididx=1:size(uuid,1)
+    % average cross trial
+    su_trl_sel=(degree_sums(:,1)==uuid(uididx,1) & degree_sums(:,5)==uuid(uididx,2));
+    su_mm=mean(degree_sums(su_trl_sel,6));
+    % region
+    metaidx=find(su_meta.sess==uuid(uididx,1) & su_meta.allcid==uuid(uididx,2));
+    if ~isempty(metaidx)
+        sureg=su_meta.reg_tree(5,metaidx);
+    else
+        
+        error("ERROR");
+    end
+   
+    % per region data add
+    if ~ismissing(sureg)
+        if ~isfield(per_reg,sureg{1})
+            per_reg.(sureg{1})=[];
+        end
+        per_reg.(sureg{1})=[per_reg.(sureg{1});su_mm];
+    else
+        missing_reg=[missing_reg;su_mm];
+    end
+end
+%stats
+num_su=cellfun(@(x) numel(x),struct2cell(per_reg));
+thresh_sel=num_su>=5;
 
+per_reg_mm=cellfun(@(x) mean(x),subsref(struct2cell(per_reg),substruct('()',{thresh_sel})));
+per_reg_std=cellfun(@(x) std(x),subsref(struct2cell(per_reg),substruct('()',{thresh_sel})));
+per_reg_sem=per_reg_std./sqrt(num_su(thresh_sel));
 
+others_mm=mean(cell2mat(subsref(struct2cell(per_reg),substruct('()',{~thresh_sel}))));
+others_sem=std(cell2mat(subsref(struct2cell(per_reg),substruct('()',{~thresh_sel}))))./sqrt(nnz(~thresh_sel));
+
+[plotmm,plotidx]=sort([per_reg_mm;others_mm],'descend');
+plotsem=[per_reg_sem;others_sem];
+%figure
+figure();
+hold on;
+bh=bar(plotmm,'FaceColor','w');
+xlbl=[subsref(fieldnames(per_reg),substruct('()',{thresh_sel}));'Others'];
+set(gca,'XTick',1:(nnz(thresh_sel)+1),'XTickLabel',xlbl(plotidx));
+errorbar(bh.XData,bh.YData,plotsem(plotidx),'k.')
+ylabel('Average node degree')
+title('Per region neuron degrees')
+
+%% overall graph stats
+ukeys=string.empty(0,1);
+uniq_net=[];
+for nidx=1:size(complexity_sums,1)
+    onekey=string(sprintf('%d-',per_trl_nodes{nidx,1},sort(per_trl_nodes{nidx,2})));
+    if ~ismember(onekey,ukeys)
+        ukeys=[ukeys;onekey];
+        uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:7])];
+    end
+end
+figure()
+scatter(uniq_net(:,3),uniq_net(:,4))
+xlabel('Node (neuron) number')
+ylabel('Edge (FC) number')
+
+figure()
+boxplot([uniq_net(:,3);uniq_net(:,4)],[ones(size(uniq_net(:,3)));2*ones(size(uniq_net(:,3)))])

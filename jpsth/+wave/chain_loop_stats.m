@@ -9,7 +9,7 @@ bburst=false;
 burstinterval=600;
 skipfile=false;
 skip_shared_su=true;
-load(fullfile('bzdata','disconnected_motifs.mat'),'disconnected')
+load(fullfile('bzdata','motifs_graph_stats.mat'),'disconnected')
 disconnKey=cell(0);
 for ii=1:size(disconnected,1)
     onekey=sprintf('%d-',disconnected{ii,1},disconnected{ii,2});
