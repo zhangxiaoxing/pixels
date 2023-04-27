@@ -192,7 +192,7 @@ for tt=1:size(per_trial_motif_cid,1)
 
     for subsidx=subs
         subgh=gh.subgraph(conncomp==subsidx);
-        complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,max(max(subgh.distances))];
+        complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
         per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
     end
 end
@@ -293,13 +293,20 @@ for nidx=1:size(complexity_sums,1)
     onekey=string(sprintf('%d-',per_trl_nodes{nidx,1},sort(per_trl_nodes{nidx,2})));
     if ~ismember(onekey,ukeys)
         ukeys=[ukeys;onekey];
-        uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:7])];
+        uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:end])];
     end
 end
 figure()
-scatter(uniq_net(:,3),uniq_net(:,4))
-xlabel('Node (neuron) number')
-ylabel('Edge (FC) number')
+scatter(uniq_net(:,3),uniq_net(:,4),'ko','filled')
+xlabel('Neuron (node) number')
+ylabel('FC (edge) number')
+set(gca,'XScale','log','YScale','log','XTick',[5:5:40])
+xlim([4,50])
+ylim([4,250])
+title('SS composite loops neuron vs FC')
 
 figure()
-boxplot([uniq_net(:,3);uniq_net(:,4)],[ones(size(uniq_net(:,3)));2*ones(size(uniq_net(:,3)))])
+boxplot(uniq_net(:,5),'Colors','k','Whisker',inf,'Widths',1)
+ylim([0,1])
+set(gca,'XTick',[],'YTick',0:0.25:1,'YTickLabel',0:25:100)
+ylabel('Network density')

@@ -82,7 +82,7 @@ bothboxdata=[reshape(sums(bothsel,4:6)./sums(bothsel,8),[],1),...
 
 
 figure()
-tiledlayout(1,2)
+tiledlayout(1,3)
 nexttile()
 hold on
 boxplot(olfboxdata(:,1),olfboxdata(:,2),'Colors','k','Whisker',realmax)
@@ -97,6 +97,19 @@ set(gca(),'XTick',1:3,'XTickLabel',{'Ch','Lp','ChL'},'YTick',0:0.1:0.5,'YTickLab
 ylim([0,0.5])
 ylabel('Percentage of spikes during delay')
 title('Encode both')
+nexttile()
+hold on
+boxplot([olfboxdata(olfboxdata(:,2)==3,1);bothboxdata(bothboxdata(:,2)==3,1)],...
+    [ones(nnz(olfboxdata(:,2)==3),1);2.*ones(nnz(bothboxdata(:,2)==3),1)],'Colors','k','Whisker',realmax)
+set(gca(),'XTick',1:2,'XTickLabel',{'OLF','Both'},'YTick',0:0.1:0.5,'YTickLabel',0:10:50)
+xlim([0.5,2.5])
+ylim([0,0.5])
+ylabel('Percentage of spikes during delay')
+title('Cumulated')
+
+
+
+
 
 
 
