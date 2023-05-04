@@ -11,4 +11,6 @@ scatter(nonmem(:,1),nonmem(:,2),400,'ko','filled')
 xlim([0.5,9.5]);
 ylim([0.5,9.5]);
 lbl={'S1,3s','S1,6s','S2,3s','S2,6s','S1','S2','3s','6s','Non-memory'}
-set(gca,'XTick',1:9,'XTickLabel',lbl,'YTick',1:9,'YTickLabel',lbl)
+set(gca,'XTick',1:9,'XTickLabel',lbl,'YTick',1:9,'YTickLabel',lbl,'XTickLabelRotation',90)
+xlabel('Leading neuron preferred condition')
+ylabel('following neuron preferred condition')
