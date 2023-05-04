@@ -92,13 +92,18 @@ end
 
 [r,p]=corr(xxdata,yydata);
 title(sprintf(' r = %.3f, p = %.3f',r,p));
+
+coord=[xxdata,yydata];
+coord(:,3)=1;
+regres=coord(:,[1,3])\coord(:,2);
+xx=minmax(xxdata.');
+
 if all(strcmp(opt.xyscale,'log'),'all')
-    coord=[xxdata,yydata];
-    coord(:,3)=1;
-    regres=coord(:,[1,3])\coord(:,2);
-    xx=minmax(xxdata.');
     yy=10.^(xx.*regres(1)+regres(2));
     plot(10.^xx,yy,'--k');
+else
+    yy=xx.*regres(1)+regres(2);
+    plot(xx,yy,'--k');
 end
 %==============================================================
 nexttile(6);
@@ -115,7 +120,7 @@ set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
 xxdata=bardata(:,7);
 yydata=bardata(:,13);
 if strcmp(opt.xyscale{1},'log')
-xxdata=log10(xxdata);
+    xxdata=log10(xxdata);
 end
 if strcmp(opt.xyscale{2},'log')
     yydata=log10(yydata);
@@ -127,8 +132,13 @@ coord=[xxdata,yydata];
 coord(:,3)=1;
 regres=coord(:,[1,3])\coord(:,2);
 xx=minmax(xxdata.');
-yy=10.^(xx.*regres(1)+regres(2));
-plot(10.^xx,yy,'--k');
+if all(strcmp(opt.xyscale,'log'))
+    yy=10.^(xx.*regres(1)+regres(2));
+    plot(10.^xx,yy,'--k');
+else
+    yy=xx.*regres(1)+regres(2);
+    plot(xx,yy,'--k');
+end
 
 
 %==============================================================
@@ -157,25 +167,43 @@ coord=[xxdata,yydata];
 coord(:,3)=1;
 regres=coord(:,[1,3])\coord(:,2);
 xx=minmax(xxdata.');
-yy=10.^(xx.*regres(1)+regres(2));
-plot(10.^xx,yy,'--k');
+if all(strcmp(opt.xyscale,'log'))
+    yy=10.^(xx.*regres(1)+regres(2));
+    plot(10.^xx,yy,'--k');
+else
+    yy=xx.*regres(1)+regres(2);
+    plot(xx,yy,'--k');
+end
 
 
 %             exportgraphics(fh.corr1,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
 
+
+
+%%======================
+th=nexttile(4);
+tbl=cell(0);
+if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
+    tbl=[tbl;'Stats';opt.stats_type];
+end
+if isfield(opt,'data_type') && ~isempty(opt.data_type)
+    tbl=[tbl;'Data';opt.data_type];
+end
+tbl=[tbl;'Range';opt.range];
+ephys.util.figtable(fh,th,tbl)
+
+
 %======================
-
-
 nexttile(1,[1,3]);
 hold on
 if opt.skip_dur
     bh=bar(bardata(:,[10,7]),1,'grouped');
     if ~opt.skip_error_bar
-        errorbar(bh(2).XEndPoints,bh(3).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
+        errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
         errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
     end
-    bh(2).FaceColor='b';% mixed
-    bh(1).FaceColor='r';% olf
+    bh(2).FaceColor='k';% mixed
+    bh(1).FaceColor='w';% olf
 else
     bh=bar(bardata(:,[10,13,7]),1,'grouped');
     if ~opt.skip_error_bar
@@ -194,37 +222,42 @@ else
     ylim([0,0.6])
 end
 set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
-%% colorize region
+% colorize region
 ymax=max(ylim());
 for rr=1:numel(regstr)
     c=ephys.getRegColor(regstr{rr},'large_area',true);
     text(rr,ymax,regstr{rr},'HorizontalAlignment','center','VerticalAlignment','bottom','Color',c,'Rotation',90)
 end
-
-
 % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
-legend(bh,legends([2,3,1]),'Location','northoutside','Orientation','horizontal');
-% cellfun(@(x) [x{6},' ',x{7}],idmap.reg2tree.values(regstr),'UniformOutput',false);
-%%------------------------
-% nexttile(6,[1,2]);
-% hold on
-% [~,sidx]=sort(summat(:,1),'descend');
-% bh=bar(summat(sidx,1),'FaceColor',ones(1,3)/2);
-% if ~opt.skip_error_bar
-%     errorbar(bh.XEndPoints,bh.YEndPoints,diff(summat(sidx,[1,4]),1,2),diff(summat(sidx,[1,5]),1,2),'k.');
-% end
-% set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(sidx),'XTickLabelRotation',90,'Yscale',opt.xyscale{2})
-% legend(bh,{'Total'},'Location','northeast','Orientation','horizontal');
+legend(bh,legends([2,1]),'Location','northoutside','Orientation','horizontal');
 
 
-%%======================
-th=nexttile(4);
-tbl=cell(0);
-if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
-    tbl=[tbl;'Stats';opt.stats_type];
+%% individual duration distribution
+
+if opt.skip_dur
+    [~,duridx]=sort(bardata(:,13),'descend');
+    figure()
+    bh=bar(bardata(duridx,13),1,'grouped');
+    if ~opt.skip_error_bar
+        errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(duridx,10:11),1,2),diff(bardata(duridx,[13,15]),1,2),'k.');
+    end
+    bh(1).FaceColor='w';% olf
+
+    set(gca(),'YScale',opt.xyscale{2})
+    if any(strcmp(opt.xyscale,'log'),'all')
+
+    else
+        ylim([0,0.2])
+    end
+    set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(duridx),'XTickLabelRotation',90)
+    %% colorize region
+    ymax=max(ylim());
+    for rr=1:numel(regstr)
+        c=ephys.getRegColor(regstr{duridx(rr)},'large_area',true);
+        text(rr,ymax,regstr{duridx(rr)},'HorizontalAlignment','center','VerticalAlignment','bottom','Color',c,'Rotation',90)
+    end
+    % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
+    legend(bh,legends([3]),'Location','northoutside','Orientation','horizontal');
 end
-if isfield(opt,'data_type') && ~isempty(opt.data_type)
-    tbl=[tbl;'Data';opt.data_type];
-end
-tbl=[tbl;'Range';opt.range];
-ephys.util.figtable(fh,th,tbl)
+
+
