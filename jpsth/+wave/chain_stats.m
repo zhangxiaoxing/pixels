@@ -121,7 +121,7 @@ countbin=2.5:12.5;
     end
     ylim([1,4000])
     xlabel('Number of neurons in chains')
-    ylabel('Total occurance')
+    ylabel('Total occurrence')
     set(gca(),'YScale','log')
     xlim([2.5,8.5])
 %     title(curr_tag)
@@ -172,7 +172,7 @@ for chartIdx=[1,3]
     xlim([3,10])
     ylim([0,max(ylim())])
     xlabel('Number neuron in wave-link')
-    ylabel('Total occurance')
+    ylabel('Total occurrence')
     set(gca(),'XTick',4:2:10)
 %     title(ttls{chartIdx});
 end
@@ -216,7 +216,7 @@ for chartIdx=1:2
     xlim([3,10])
     ylim([1,3000])
     xlabel('Number neuron in chains')
-    ylabel('Total occurance')
+    ylabel('Total occurrence')
     set(gca(),'XTick',4:2:10,'YScale','log')
 %     title(ttls{chartIdx});
 end
@@ -225,7 +225,7 @@ end
 
 %% per-wave stats-per-region stats pie chart
 
-% repeated occurance
+% repeated occurrence
 chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
 len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
 
@@ -479,7 +479,7 @@ ylim([-0.6,0.6])
 set(gca(),'XTick',0:3,'XTickLabel',{'O3','O6','B3','B6'},'YTick',-0.5:0.5:0.5)
 ylabel('Neuron-region wave timing slope')
 
-%% occurance of chain neuron per region neuron
+%% occurrence of chain neuron per region neuron
 % partially overlap with previous code block
 
 % chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
@@ -529,13 +529,13 @@ for curr_tag=["within","cross"]
     bar(olf_ratio.(curr_tag)(1:5))
     set(gca(),'XTick',1:5,'XTickLabel',greys(olf_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
     ylim([0.001,10]);
-    ylabel('Occurance per neuron')
+    ylabel('occurrence per neuron')
     title("olf "+curr_tag)
     nexttile()
     bar(both_ratio.(curr_tag)(1:5))
     set(gca(),'XTick',1:5,'XTickLabel',greys(both_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
     ylim([0.001,10]);
-    ylabel('Occurance per neuron')
+    ylabel('occurrence per neuron')
     title("both "+curr_tag)
 end
 

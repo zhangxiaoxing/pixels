@@ -1,11 +1,13 @@
-function loop_occurance_per_reg_su(sums_all,su_meta,opt)
+function loop_occurrence_per_reg_su(sums_all,su_meta,opt)
 arguments
     sums_all
     su_meta
-    opt.pie (1,1) logical = true
+    opt.pie (1,1) logical = false
     opt.bar (1,1) logical = true
+    opt.barn (1,1) double = 3
     opt.loopPerSU (1,1) logical = true
 end
+
 
 % su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 % load(fullfile('bzdata','sums_ring_stats_all.mat'));
@@ -42,12 +44,12 @@ id_both_cross=[rstats{bothsel & ~within_sel,10}];
 uid_both_cross_reg=bothreg_cross(ia);
 
 
-lbls={{'Olfactory within region','Sum of duplicates in loops'};...
-    {'Olfactory cross region','Sum of duplicates in loops'};...
+lbls={{'Olfactory within region','Sum of total node in loops'};...
+    {'Olfactory cross region','Sum of total node in loops'};...
     {'Olfactory within region','Unique neurons in loops'};...
     {'Olfactory cross region','Unique neurons in loops'};...
-    {'Both within region','Sum of duplicates in loops'};...
-    {'Both cross region','Sum of duplicates in loops'};...
+    {'Both within region','Sum of total node in loops'};...
+    {'Both cross region','Sum of total node in loops'};...
     {'Both within region','Unique neurons in loops'};...
     {'Both cross region','Unique neurons in loops'}};
 dsets={olfreg_within,olfreg_cross,uid_olf_within_reg,uid_olf_cross_reg,...
@@ -79,18 +81,23 @@ if opt.bar
             ratios=[ratios,dset_cnt./reg_su_cnt];
         end
         [sratios,sidx]=sort(ratios,'descend','MissingPlacement','last');
-        if any(contains(lbls{cnt},'within'),'all')
-            bar(sratios(1:2))
-            set(gca(),"XTick",1:2,"XTickLabel",loop_reg(sidx(1:2)),...
-            "XTickLabelRotation",90,'YScale','log','YLim',[0.001,1])
-        else
-            bar(sratios(1:5))
-            set(gca(),"XTick",1:5,"XTickLabel",loop_reg(sidx(1:5)),...
-            "XTickLabelRotation",90,'YScale','log','YLim',[0.001,1])
+        
+        if opt.barn>numel(sratios)
+            opt.barn=numel(sratios);
         end
-        xlim([0.25,5.75]);
 
-        ylabel('Occurance in loops per neuron')
+        bar(sratios(1:opt.barn),'FaceColor','k')
+        set(gca(),"XTick",1:opt.barn,"XTickLabel",loop_reg(sidx(1:opt.barn)),...
+            "XTickLabelRotation",90,'YScale','log')
+
+        xlim([0.25,opt.barn+0.75]);
+        if opt.barn<=3
+            ylim([0.001,1])
+        else
+            ylim([5e-4,1])
+        end
+
+        ylabel('occurrence in loops per neuron')
         title(lbls{cnt});
 
 
@@ -99,35 +106,35 @@ if opt.bar
 end
 
 if opt.loopPerSU  % loops per su, classed by region
-ddsets={id_olf_within,uid_olf_within,uid_olf_within_reg;...
-    id_olf_cross,uid_olf_cross,uid_olf_cross_reg;...
-       id_both_within,uid_both_within,uid_both_within_reg;...
-       id_both_cross,uid_both_cross,uid_both_cross_reg};
-lbls={{'Olfactory within region'};...
-    {'Olfactory cross region'};...
-    {'Both within region'};...
-    {'Both cross region'}};
+    ddsets={id_olf_within,uid_olf_within,uid_olf_within_reg;...
+        id_olf_cross,uid_olf_cross,uid_olf_cross_reg;...
+        id_both_within,uid_both_within,uid_both_within_reg;...
+        id_both_cross,uid_both_cross,uid_both_cross_reg};
+    lbls={{'Olfactory within region'};...
+        {'Olfactory cross region'};...
+        {'Both within region'};...
+        {'Both cross region'}};
 
-    
-    
+
+
     figure()
     tiledlayout(2,2)
     for didx=1:4
         nexttile();
-        mean_occurance=[];
+        mean_occurrence=[];
         for creg=loop_reg
             reg_sel=ddsets{didx,3}==creg;
             if nnz(reg_sel)>0
                 uids=ddsets{didx,2}(reg_sel);
                 loops_cnt=nnz(ismember(ddsets{didx,1},uids));
-                mean_occurance=[mean_occurance;loops_cnt./nnz(reg_sel)];
+                mean_occurrence=[mean_occurrence;loops_cnt./nnz(reg_sel)];
             else
-                mean_occurance=[mean_occurance;0];
+                mean_occurrence=[mean_occurrence;0];
             end
         end
-        bar(mean_occurance)
+        bar(mean_occurrence)
         set(gca(),"XTick",1:11,"XTickLabel",loop_reg,"XTickLabelRotation",90)
-        ylabel('Occurance in loops per unique neuron')
+        ylabel('occurrence in loops per unique neuron')
         title(lbls{didx});
     end
 end

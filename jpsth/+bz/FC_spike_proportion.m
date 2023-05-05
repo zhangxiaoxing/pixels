@@ -59,4 +59,15 @@ for sessid=reshape(usess,1,[])
 end
 blame=vcs.blame();
 save(fullfile("bzdata","FC_spike_proportion.mat"),'sums','blame')
-prctile(double(sums(:,3))./double(sums(:,4)),[25 50 75])
+% prctile(double(sums(:,3))./double(sums(:,4)),[25 50 75])
+fc_spk_frac=double(sums(:,3))./double(sums(:,4));
+prctile(fc_spk_frac,[25 50 75])
+
+fh=figure();
+bh=boxplot(fc_spk_frac,'Colors','k','Whisker',inf,'Widths',0.8);
+fh.Children.Children.Children(7).LineStyle='-';
+fh.Children.Children.Children(6).LineStyle='-';
+% xlim([0.75,1.25])
+ylabel('FC spikes / all spikes (%)')
+set(gca,'YTick',0:0.2:1,'YTickLabel',0:20:100,'XTick',[])
+

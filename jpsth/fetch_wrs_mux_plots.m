@@ -287,7 +287,7 @@ load(fullfile('bzdata','sums_ring_stats_all.mat'));
 % bz.rings.rings_reg_pie(sums_all)
 % bz.rings.rings_freq
 bz.rings.rings_time_constant(sums_all)
-bz.rings.loop_occurance_per_reg_su(sums_all,su_meta);
+bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta);
 bz.rings.rings_wave_dynamic(sums_all)
 bz.rings.rings_su_wave_tcom_corr(sums_all)
 
