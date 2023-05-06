@@ -1,3 +1,4 @@
+%% data collection
 rev_stats=true;
 
 % global_init;
@@ -12,7 +13,7 @@ load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame');
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
 % wave.COM_chain_shuf(wrs_mux_meta);
 load('chains_shuf.mat','shuf_chains')
-%% region tag
+% region tag
 global_init;
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 greys=ephys.getGreyRegs('range','grey');
@@ -63,6 +64,35 @@ disp([...
 nnz(chains_uf.reg_sel=="within" & cellfun(@(x) numel(x)>4,chains_uf.cids)),...
 nnz(chains_uf.reg_sel=="cross" & cellfun(@(x) numel(x)>4,chains_uf.cids))...
 ]);
+
+
+% repeated occurrence
+chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
+len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
+
+olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel; % & (chains_uf.reg_sel==curr_tag)
+olf_uid=[chains_uf.uid{olf_sel}];
+[chain_olf_uid,usel]=unique(olf_uid);
+
+olf_reg=[chains_uf.reg{olf_sel}];
+olf_reg_cat=categorical(olf_reg);
+olf_u_reg_cat=categorical(olf_reg(usel));
+
+
+both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
+both_uid=[chains_uf.uid{both_sel}];
+[chain_both_uid,usel]=unique(both_uid);
+both_reg=[chains_uf.reg{both_sel}];
+both_reg_cat=categorical(both_reg);
+both_u_reg_cat=categorical(both_reg(usel));
+
+
+dur_sel=ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag 
+dur_uid=[chains_uf.uid{dur_sel}];
+[chain_dur_uid,usel]=unique(dur_uid);
+dur_reg=[chains_uf.reg{dur_sel}];
+dur_reg_cat=categorical(dur_reg);
+dur_u_reg_cat=categorical(dur_reg(usel));
 
 
 %% total number of chains
@@ -225,33 +255,7 @@ end
 
 %% per-wave stats-per-region stats pie chart
 
-% repeated occurrence
-chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
-len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
 
-olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel; % & (chains_uf.reg_sel==curr_tag)
-olf_uid=[chains_uf.uid{olf_sel}];
-[chain_olf_uid,usel]=unique(olf_uid);
-
-olf_reg=[chains_uf.reg{olf_sel}];
-olf_reg_cat=categorical(olf_reg);
-olf_u_reg_cat=categorical(olf_reg(usel));
-
-
-both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
-both_uid=[chains_uf.uid{both_sel}];
-[chain_both_uid,usel]=unique(both_uid);
-both_reg=[chains_uf.reg{both_sel}];
-both_reg_cat=categorical(both_reg);
-both_u_reg_cat=categorical(both_reg(usel));
-
-
-dur_sel=ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag 
-dur_uid=[chains_uf.uid{dur_sel}];
-[chain_dur_uid,usel]=unique(dur_uid);
-dur_reg=[chains_uf.reg{dur_sel}];
-dur_reg_cat=categorical(dur_reg);
-dur_u_reg_cat=categorical(dur_reg(usel));
 if false
     figure()
     tiledlayout(2,2)
@@ -511,8 +515,9 @@ for curr_tag=["within","cross"]
 
     olf_ratio.(curr_tag)=[];
     both_ratio.(curr_tag)=[];
-    for rr=greys
-        su_cnt=nnz(strcmp(su_meta.reg_tree(5,:),rr));
+    all_chain_regs.(curr_tag)=unique([struct2array(olf_u_reg_cat),struct2array(both_u_reg_cat)]);
+    for rr=all_chain_regs.(curr_tag)
+        su_cnt=nnz(strcmp(su_meta.reg_tree(5,:),char(rr)));
         chains_occur_olf=nnz(olf_reg_cat.(curr_tag)==rr);
         chains_occur_both=nnz(both_reg_cat.(curr_tag)==rr);
         olf_ratio.(curr_tag)=[olf_ratio.(curr_tag);chains_occur_olf./su_cnt];
@@ -526,18 +531,42 @@ figure()
 tiledlayout(2,2)
 for curr_tag=["within","cross"]
     nexttile()
-    bar(olf_ratio.(curr_tag)(1:5))
-    set(gca(),'XTick',1:5,'XTickLabel',greys(olf_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
+    bary=zeros(1,3);
+    barn=min(numel(olf_ratio.(curr_tag)),3);
+    bary(1:barn)=olf_ratio.(curr_tag)(1:barn);
+    bar(bary);
+    set(gca(),'XTick',1:barn,'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)(1:barn)),'YScale','log','XTickLabelRotation',90);
     ylim([0.001,10]);
     ylabel('occurrence per neuron')
     title("olf "+curr_tag)
     nexttile()
-    bar(both_ratio.(curr_tag)(1:5))
-    set(gca(),'XTick',1:5,'XTickLabel',greys(both_srt.(curr_tag)(1:5)),'YScale','log','XTickLabelRotation',90);
+    bary=zeros(1,3);
+    barn=min(numel(both_ratio.(curr_tag)),3);
+    bary(1:barn)=both_ratio.(curr_tag)(1:barn);
+    bar(bary);
+    set(gca(),'XTick',1:barn,'XTickLabel',all_chain_regs.(curr_tag)(both_srt.(curr_tag)(1:barn)),'YScale','log','XTickLabelRotation',90);
     ylim([0.001,10]);
     ylabel('occurrence per neuron')
     title("both "+curr_tag)
 end
+
+figure()
+tiledlayout(1,2)
+
+nexttile()
+bar(olf_ratio.cross,'FaceColor','k')
+set(gca(),'XTick',1:numel(olf_ratio.cross),'XTickLabel',greys(olf_srt.cross),'YScale','log','XTickLabelRotation',90);
+ylim([0.0001,10]);
+ylabel('occurrence per neuron')
+title("olf cross")
+nexttile()
+bar(both_ratio.cross,'FaceColor','k')
+set(gca(),'XTick',1:numel(both_ratio.cross),'XTickLabel',greys(both_srt.cross),'YScale','log','XTickLabelRotation',90);
+ylim([0.0001,10]);
+ylabel('occurrence per neuron')
+title("both cross")
+
+
 
 %% showcase
 

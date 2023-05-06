@@ -1,7 +1,7 @@
 function [com_str_,com_str_h2]=get_pct_com_map(pct_meta,opt)
 arguments
     pct_meta  (1,1) struct
-    opt.onepath (1,:) char = '' % process one session under the given non-empty path
+    opt.one_sess (1,:) double = [] % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
     opt.err (1,1) logical = false %u stats in error trials
@@ -17,14 +17,10 @@ persistent com_str opt_ pct_meta_
 assert(~(opt.rnd_half && opt.err), 'Unable to handle 2Fold CV and error trial in same run')
 if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,pct_meta) 
     meta=ephys.util.load_meta('skip_stats',true);
-    if strlength(opt.onepath)==0
+    if isempty(opt.one_sess)
         usess=unique(meta.sess);
     else
-        dpath=regexp(opt.onepath,'(?<=SPKINFO[\\/]).*$','match','once');
-        if isempty(dpath)
-            dpath=opt.onepath;
-        end
-        usess=ephys.path2sessid(dpath);
+        usess=opt.one_sess;
     end
 
     homedir=ephys.util.getHomedir('type','raw');

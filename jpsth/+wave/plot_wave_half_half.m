@@ -1,20 +1,33 @@
+% WIP, fix before use
+
 function fhp=plot_wave_half_half(sel_meta,opt)
 arguments
     sel_meta
     opt.sess_id (1,1) double {mustBePositive,mustBeInteger} = 102
+    opt.multi_mod (1,1) logical = true
 end
 for sess=opt.sess_id
     %     while true
     fs=sprintf('s%d',sess);
-    com_map=wave.get_com_map(sel_meta,'onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',true,'delay',6,'wave','anyContext2');
-    if ~isfield(com_map,fs)
-        disp([sess,0,0])
-        continue
+    if opt.multi_mod
+        [com_map_1h,com_map_2h]=wave.get_pct_com_map(sel_meta,'curve',true,'early_smooth',false,'rnd_half',true,'one_sess',102);
+        samp_key_S1=com_map.(fs).olf_s1.com6.keys;
+        samp_key_S2=com_map.(fs).olf_s2.com6.keys;
+        COMS1=cell2mat(com_map.(fs).olf_s1.com6.values);
+        COMS2=cell2mat(com_map.(fs).olf_s2.com6.values);
+    else
+        com_map=wave.get_com_map(sel_meta,'onepath',['SPKINFO/',ephys.sessid2path(sess)],'curve',true,'rnd_half',true,'delay',6,'wave','anyContext2');
+        if ~isfield(com_map,fs)
+            disp([sess,0,0])
+            continue
+        end
+        samp_key_S1=intersect(cell2mat(com_map.(fs).c1a.keys),cell2mat(com_map.(fs).c1b.keys));
+        samp_key_S2=intersect(cell2mat(com_map.(fs).c2a.keys),cell2mat(com_map.(fs).c2b.keys));
+        COMS1=cell2mat(values(com_map.(fs).c1a,num2cell(samp_key_S1)));
+        COMS2=cell2mat(values(com_map.(fs).c2a,num2cell(samp_key_S2)));
     end
-    samp_key_S1=intersect(cell2mat(com_map.(fs).c1a.keys),cell2mat(com_map.(fs).c1b.keys));
-    samp_key_S2=intersect(cell2mat(com_map.(fs).c2a.keys),cell2mat(com_map.(fs).c2b.keys));
-    COMS1=cell2mat(values(com_map.(fs).c1a,num2cell(samp_key_S1)));
-    COMS2=cell2mat(values(com_map.(fs).c2a,num2cell(samp_key_S2)));
+
+
     if numel([samp_key_S1,samp_key_S2])<100
         disp([sess,numel([samp_key_S1,samp_key_S2]),0])
         continue
