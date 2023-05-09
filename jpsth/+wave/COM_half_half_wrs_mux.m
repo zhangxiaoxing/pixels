@@ -3,34 +3,58 @@ arguments
     opt.filename (1,:) char = 'com_halfs_100.mat'
     opt.err_filename (1,:) char = 'com_error.mat'
     opt.plot (1,1) logical = true
+    opt.skip_dur (1,1) logical = true
 end
 
 fstr=load(opt.filename);
 estr=load(opt.err_filename);
 r_olf_dur_mux=stats_file(fstr.com_halfs,estr.com_map_err); %correct shuffle error
-
-gg=[repmat(1,1,100),repmat(3,1,100),repmat(5,1,100),...
-    repmat(7,1,300),...
-    repmat(2,1,100),repmat(4,1,100),repmat(6,1,100)]; % group vector for box plot
+if opt.skip_dur
+    r_olf_dur_mux=r_olf_dur_mux(:,[1,3,4,6,7,9]);
+    gg=[repmat(1,1,100),repmat(3,1,100),repmat(5,1,200),...
+        repmat(2,1,100),repmat(4,1,100)]; % group vector for box plot
+else
+    gg=[repmat(1,1,100),repmat(3,1,100),repmat(5,1,100),...
+        repmat(7,1,300),...
+        repmat(2,1,100),repmat(4,1,100),repmat(6,1,100)]; % group vector for box plot
+end
 
 fh=figure('Color','w','Position',[32,32,275,235]);
 hold on
-boxplot(reshape(r_olf_dur_mux,1,[]),gg);
+boxplot(reshape(r_olf_dur_mux,1,[]),gg,'Colors','k','Whisker',inf);
 ylabel('TCOM Pearson''s r')
-set(gca(),'XTick',1:7,'XTickLabel',{'OlfC','OlfE','DurC','DurE','MuxC','MuxE','Shuffle'},'YTick',0:0.5:1);
+if opt.skip_dur
+    set(gca(),'XTick',1:5,'XTickLabel',{'OlfC','OlfE','MuxC','MuxE','Shuffle'},'YTick',0:0.5:1);
+    xlim([0.5,5.5]);
+    title(sprintf('wrs%.3f,',...
+        ranksum(r_olf_dur_mux(:,1),r_olf_dur_mux(:,3)),...
+        ranksum(r_olf_dur_mux(:,2),r_olf_dur_mux(:,4)),...
+        ranksum(r_olf_dur_mux(:,1),[r_olf_dur_mux(:,5);r_olf_dur_mux(:,6)]),...
+        ranksum(r_olf_dur_mux(:,2),[r_olf_dur_mux(:,5);r_olf_dur_mux(:,6)])));
+else
+    pwrs=arrayfun(@(x) ranksum(r_olf_dur_mux(:,x),r_olf_dur_mux(:,x+6)), 1:3);%correct error
+    set(gca(),'XTick',1:7,'XTickLabel',{'OlfC','OlfE','DurC','DurE','MuxC','MuxE','Shuffle'},'YTick',0:0.5:1);
+    xlim([0.5,7.5]);
+    title([sprintf('wrs%.3f,',pwrs),sprintf('anova%.3f',panova)])
+end
 yline(0,'-k')
-xlim([0.5,7.5]);
 ylim([-0.1,1.25])
 
-pwrs=arrayfun(@(x) ranksum(r_olf_dur_mux(:,x),r_olf_dur_mux(:,x+6)), 1:3);%correct error
+
+
 panova=anovan(reshape(r_olf_dur_mux,[],1),gg.','display','off'); % cross all grp
-title([sprintf('wrs%.3f,',pwrs),sprintf('anova%.3f',panova)])
+
 % fh=figure('Color','w','Position',[32,32,275,235]);
 % hold on
 % swarmchart(gg,reshape(r_olf_dur_mux,1,[]),1);
 end
 
-function r_olf_dur_mux=stats_file(com_halfs,com_err)
+function r_olf_dur_mux=stats_file(com_halfs,com_err,opt)
+arguments
+    com_halfs
+    com_err
+    opt.skip_dur
+end
 r_olf_dur_mux=nan(size(com_halfs,1),9);
 for rpti=1:size(com_halfs)
     com_1h=com_halfs{rpti,1};

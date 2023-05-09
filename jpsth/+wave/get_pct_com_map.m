@@ -89,9 +89,12 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
             com_str.(['s',num2str(sessid)]).(ff).fwhm3=containers.Map('KeyType','int32','ValueType','any');
             com_str.(['s',num2str(sessid)]).(ff).fwhm6=containers.Map('KeyType','int32','ValueType','any');
 
-            if opt.curve && ~opt.rnd_half
+            if opt.curve % && ~opt.rnd_half
                 for cc=["s1d3","s2d3","s1d6","s2d6"]
                     com_str.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+                    if opt.rnd_half
+                        com_str_h2.(['s',num2str(sessid)]).(ff).(cc)=containers.Map('KeyType','int32','ValueType','any');
+                    end
                 end
             end
 
@@ -177,7 +180,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                 else
                     classnn=classnnR;
                 end
-                if opt.curve && ~opt.rnd_half
+                if opt.curve % && ~opt.rnd_half
                     for typeidx=1:4
                         cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                         if typeidx<3
@@ -186,6 +189,7 @@ function com_str=per_su_process(sess,suid,msel,fr,trls,com_str,type,opt)
                             com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
                         end
                     end
+                    % TODO: 2nd Half
                 end
             if contains(type,'d3')
                 com_str.(sess).(type).com4plot(suid(su))=com;
@@ -263,7 +267,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
             else
                 classnn=classnnR;
             end
-            if opt.curve && ~opt.rnd_half
+            if opt.curve % && ~opt.rnd_half
                 for typeidx=1:4
                     cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                     if typeidx<3
@@ -272,6 +276,7 @@ function com_str=per_su_process_olf(sess,suid,msel,fr,trls,com_str,type,opt)
                         com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
                     end
                 end
+                % TODO: 2nd Half
             end
             if contains(type,'s1')
                 ppref=classnnR(1,1:12);
@@ -342,7 +347,7 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
             else
                 classnn=classnnR;
             end
-            if opt.curve && ~opt.rnd_half
+            if opt.curve % && ~opt.rnd_half
                 for typeidx=1:4
                     cc=subsref(["s1d3","s2d3","s1d6","s2d6"],struct(type='()',subs={{typeidx}}));
                     if typeidx<3
@@ -351,6 +356,7 @@ function com_str=per_su_process_dur(sess,suid,msel,fr,trls,com_str,type,opt)
                         com_str.(sess).(type).(cc)(suid(su))=classnn(typeidx,:);
                     end
                 end
+                % TODO: 2nd Half
             end
 
             if contains(type,'d3')

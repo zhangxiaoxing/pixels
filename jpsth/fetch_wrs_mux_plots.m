@@ -150,9 +150,14 @@ if false
     blame=vcs.blame();
     save('com_error.mat','com_map_err','blame');
 end
-wave_half_half_fh=wave.plot_wave_half_half(sens_meta);
-stats_half_half_fh=wave.COM_half_half(sens_meta);
 
+while true
+    wave_half_half_fh=wave.plot_wave_half_half(wrs_mux_meta,'minr',0.90);
+    if ~isempty(wave_half_half_fh)
+        break;
+    end
+end
+stats_half_half_fh=wave.COM_half_half_wrs_mux();
 
 %% wave 
 for hbound=0.7

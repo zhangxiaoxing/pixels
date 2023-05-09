@@ -5,10 +5,11 @@
 
 skipfile=false;
 stats=struct();
+per_trl_nodes=cell(0);
+complexity_sums=[];
+degree_sums=[];
+
 if true%~exist('inited','var') || ~inited  % denovo data generation
-    per_trl_nodes=cell(0);
-    complexity_sums=[];
-    degree_sums=[];
     
     %% single spike chain
     sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
@@ -197,8 +198,9 @@ for tt=1:size(per_trial_motif_cid,1)
     end
 end
 
-
-save(fullfile('bzdata','motifs_graph_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
+if false
+    save(fullfile('bzdata','motifs_graph_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
+end
 disconn_count=[];
 for di=1:size(disconnected,1)
     if any(cell2mat(stats.chain.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.olf(:,2)))
@@ -304,6 +306,17 @@ set(gca,'XScale','log','YScale','log','XTick',[5:5:40])
 xlim([4,50])
 ylim([4,250])
 title('SS composite loops neuron vs FC')
+
+
+figure()
+hold on
+boxplot([complexity_sums(:,5);complexity_sums(:,6)],[ones(size(complexity_sums,1),1);2*ones(size(complexity_sums,1),1)],'Colors','k','Whisker',inf,'Widths',0.8)
+set(gca,'YScale','log')
+ylim([1,1000])
+xlim([0.5,2.5])
+
+
+
 
 figure()
 boxplot(uniq_net(:,5),'Colors','k','Whisker',inf,'Widths',1)
