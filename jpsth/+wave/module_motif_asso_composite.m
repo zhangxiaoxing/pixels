@@ -308,12 +308,22 @@ ylim([4,250])
 title('SS composite loops neuron vs FC')
 
 
-figure()
+figure('Position',[100,100,250,250])
+tiledlayout(1,2)
+nexttile
 hold on
-boxplot([complexity_sums(:,5);complexity_sums(:,6)],[ones(size(complexity_sums,1),1);2*ones(size(complexity_sums,1),1)],'Colors','k','Whisker',inf,'Widths',0.8)
+boxplot(complexity_sums(:,5),'Colors','k','Whisker',inf,'Widths',0.5)
 set(gca,'YScale','log')
 ylim([1,1000])
-xlim([0.5,2.5])
+xlim([0.5,1.5])
+ylabel('Number of neurons')
+nexttile
+hold on
+boxplot(complexity_sums(:,6),'Colors','k','Whisker',inf,'Widths',0.5)
+set(gca,'YScale','log')
+ylim([1,1000])
+xlim([0.5,1.5])
+ylabel('Number of FCs')
 
 
 

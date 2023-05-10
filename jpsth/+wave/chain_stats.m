@@ -471,7 +471,7 @@ ylabel('Region wave-timing (s)')
 title('Both, len>4, 3s')
 mix3_slop=diff(yys(cross_sel & long_sel,:),1,2)./(diff(xxs(cross_sel & long_sel,:),1,2)./4);
 
-%% su tcom vs region tcom slop stats
+%% su tcom vs region tcom slope stats
 
 figure()
 hold on

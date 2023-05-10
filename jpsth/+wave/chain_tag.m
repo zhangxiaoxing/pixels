@@ -6,12 +6,17 @@
 function out=chain_tag(chains,opt)
 arguments
     chains
-    opt.ccg (1,1) logical = true
+    opt.ccg (1,1) logical = false
     opt.rev (1,1) logical = false
+    opt.shuf_trl (1,1) logical = false
+    opt.shuf_idx (1,1) double = [];
 end
 %% DEBUG
 % out=chain_alt(chains);
 %%
+if opt.shuf_trl && isempty(opt.shuf_idx)
+    error("index is necessary for shuffled data")
+end
 if opt.ccg
     load('sums_conn_10.mat','sums_conn_str');
 end
@@ -69,8 +74,23 @@ for sessid=sesses
                 end
                 % optional remove non-wave spikes
                 ts_id=ts_id(ts_id(:,4)>=1 & ts_id(:,4)<(duration+1) & ismember(ts_id(:,5),trial_sel),:);
-%                 ts_id=sortrows(ts_id,1);
-                ts=chain_alt(ts_id(:,[1 3]));
+                if opt.shuf_trl
+                    ts_id_shuf=[];
+                    for in_chain_pos=1:numel(cids)
+                        nodesel=ts_id(:,3)==in_chain_pos;
+                        trl_onset=arrayfun(@(x) trials(x,1),ts_id(nodesel,5));
+                        delta_ts=ts_id(nodesel,1)-trl_onset;
+
+                        shufmap=containers.Map(num2cell(trial_sel),num2cell(randsample(trial_sel,numel(trial_sel))));
+                        shuf_trl=cell2mat(shufmap.values(num2cell(ts_id(nodesel,5))));
+                        shuf_onset=arrayfun(@(x) trials(x,1),shuf_trl);
+                        ts_id_shuf=[ts_id_shuf;sortrows([shuf_onset+delta_ts,ts_id(nodesel,2:end)],1)];
+                    end
+                
+                    ts=chain_alt(ts_id_shuf(:,[1 3]));
+                else
+                    ts=chain_alt(ts_id(:,[1 3]));
+                end
                 if ~isempty(ts)
                     
                     outkey="s"+sessid+"c"+cc;
@@ -101,18 +121,19 @@ for sessid=sesses
         end
     end
 end
-
-for dur=reshape(fieldnames(out),1,[])
-    for wv=reshape(fieldnames(out.(dur{1})),1,[])
-        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-            ccgs=out.(dur{1}).(wv{1}).(lp{1}).ccgs;
-            ccg_qual=[];
-            for ii=1:size(ccgs,1)
-                ccg_qual=[ccg_qual;bz.good_ccg(ccgs(ii,:))];
-                %1:Polarity 2:Time of peak 3:Noise peaks 4:FWHM 5:rising
-                %edge 6:falling edge
+if opt.ccg
+    for dur=reshape(fieldnames(out),1,[])
+        for wv=reshape(fieldnames(out.(dur{1})),1,[])
+            for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+                ccgs=out.(dur{1}).(wv{1}).(lp{1}).ccgs;
+                ccg_qual=[];
+                for ii=1:size(ccgs,1)
+                    ccg_qual=[ccg_qual;bz.good_ccg(ccgs(ii,:))];
+                    %1:Polarity 2:Time of peak 3:Noise peaks 4:FWHM 5:rising
+                    %edge 6:falling edge
+                end
+                out.(dur{1}).(wv{1}).(lp{1}).ccg_qual=ccg_qual;
             end
-            out.(dur{1}).(wv{1}).(lp{1}).ccg_qual=ccg_qual;
         end
     end
 end
@@ -120,6 +141,8 @@ end
 blame=vcs.blame();
 if opt.rev
     save(fullfile('bzdata','chain_rev_tag.mat'),'out','blame');
+elseif opt.shuf_trl
+    save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','blame');
 else
     save(fullfile('bzdata','chain_tag.mat'),'out','blame');
 end
