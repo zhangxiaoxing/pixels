@@ -1,5 +1,5 @@
 %% find structurally potential loops in FC data
-
+% TODO use graph function instead
 function out=find_rings_bz(in,msize)
 arguments
     in (:,2) double {mustBeNonempty(in)} %sig or pair

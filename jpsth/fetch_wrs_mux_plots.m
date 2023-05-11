@@ -313,6 +313,7 @@ nnz(cellfun(@(x) numel(unique(x)),chains_uf.cids)>4)
 nnz(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids)>4)
 
 wave.chain_stats;
+wave.chain_stats_regs.m
 wave.chains_time_constant
 wave.chains_loops_sc
 wave.chain_tag(chains) % per-spk association

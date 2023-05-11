@@ -1,3 +1,5 @@
+%TODO shuffled data
+
 function loop_occurrence_per_reg_su(sums_all,su_meta,opt)
 arguments
     sums_all
