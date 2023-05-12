@@ -3,10 +3,15 @@
 function out=ring_list_bz_alt(opt)
 arguments
     opt.poolsize (1,1) double = 2
+    opt.ignore_reg (1,1) logical = false
 end
     [sig,~]=bz.load_sig_sums_conn_file('pair',false);
-    sig_reg_sel=all(ismember(sig.reg(:,1,:),[343,567]),3);
 
+    if opt.ignore_reg
+        sig_reg_sel=true(size(sig.sess));
+    else
+        sig_reg_sel=all(ismember(sig.reg(:,1,:),[343,567]),3);
+    end
     sig.sess=sig.sess(sig_reg_sel);
     sig.reg=sig.reg(sig_reg_sel,:,:);
     sig.suid=sig.suid(sig_reg_sel,:);
