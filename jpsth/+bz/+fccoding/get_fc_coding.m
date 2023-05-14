@@ -1,3 +1,5 @@
+% called in bz.fccoding.plot_coding
+
 function [metas,stats]=get_fc_coding(sel_meta,opt)
 arguments
     sel_meta

@@ -1,6 +1,7 @@
 % obsolete code
 % abandoned as of 22.11.09
-
+% called from fc.plot_fc_decoding.m
+% use bz.fccoding.plot_coding
 function dec=get_fc_decoding(sel_meta,opt)
 
 arguments

@@ -1,6 +1,6 @@
 % Assume to be the up-to-date version 2023.03.26
 
-function plot_coding(sel_meta,opt)
+function out=plot_coding(sel_meta,opt)
 arguments
     sel_meta
     opt.plot_trial_frac (1,1) logical = false
@@ -11,6 +11,8 @@ arguments
     opt.wave_dir (1,1) logical = false
     opt.dtype (1,:) char {mustBeMember(opt.dtype,{'olf','dur'})} ='olf'
     opt.nrpt (1,1) double = 100
+    opt.skip_plot (1,1) logical = false
+    opt.nfc_grp (1,:) double = [10 50 100 200 300 400 500]
 end
 
 % [~,~,ratiomap]=ref.get_pv_sst();
@@ -19,10 +21,10 @@ idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
 % {FWD/RWD,H2L/L2H/Local, S1/S2*correct/error*3s/6s}
 % congru, incongru, nonmem
-
+out=[];
 if opt.plot_svm
     dtype=opt.dtype;
-    nfc_grp=[10 50 100 200 300 400 500];
+    nfc_grp=opt.nfc_grp;
 
     NTRIAL=20;
     NERR=2;
@@ -78,7 +80,10 @@ if opt.plot_svm
         dec_result.(sprintf('FC%d',N_pair))=result;
         incong_result.(sprintf('FC%d',N_pair))=inc_result;
     end
-
+    out=dec_result;
+    if opt.skip_plot
+        return
+    end
     assignin('base','dec_result',dec_result)
     warning('decoding data variable dec_result exported to base work space')
 

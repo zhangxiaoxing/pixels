@@ -25,7 +25,6 @@ out.cvcorr=cell(1,bins);
 out.shufcorr=cell(1,bins);
 out.errcorr=cell(1,bins);
 
-
 %     errcorr{bin+3}=[];
 
 for rpt=1:rpts

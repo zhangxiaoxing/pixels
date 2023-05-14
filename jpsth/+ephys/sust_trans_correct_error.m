@@ -115,7 +115,7 @@ for typeIdx=1:2%1:numel(types)
 
             zcpref=(mean(cpref(:))-delaymm)./delaystd;
             if zcpref<0 && typeIdx==2
-                keyboard()
+%                     keyboard()
             end
             zcnonpref=(mean(cnonpref(:))-delaymm)./delaystd; % for AUC curve maybe not necessary
             zepref=(mean(epref(:))-delaymm)./delaystd;
@@ -219,7 +219,7 @@ if opt.plot_per_su
         ylabel('Probability')
         text(max(xlim()),max(ylim()),num2str(size(stats.(ff).sust,1)),'HorizontalAlignment','right','VerticalAlignment','top');
         [~,p]=ttest2(stats.(ff).sust(:,1),stats.(ff).sust(:,2));
-        text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
+        text(min(xlim()),max(ylim()),num2str([p,mean(stats.(ff).sust(:,1)),mean(stats.(ff).sust(:,2))]),'HorizontalAlignment','left','VerticalAlignment','top');
 
         nexttile(2)
         hold on;
@@ -242,7 +242,7 @@ if opt.plot_per_su
         ylabel('Probability')
         text(max(xlim()),max(ylim()),num2str(size(stats.(ff).transient,1)),'HorizontalAlignment','right','VerticalAlignment','top');
         [~,p]=ttest2(stats.(ff).transient(:,1),stats.(ff).transient(:,2));
-        text(min(xlim()),max(ylim()),num2str(p),'HorizontalAlignment','left','VerticalAlignment','top');
+        text(min(xlim()),max(ylim()),num2str([p,mean(stats.(ff).transient(:,1)),mean(stats.(ff).transient(:,2))]),'HorizontalAlignment','left','VerticalAlignment','top');
 
         %sust auc
         [xsc,ysc,~,aucsc]=perfcurve(...
