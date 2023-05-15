@@ -6,7 +6,7 @@
 function out=chain_tag(chains,opt)
 arguments
     chains
-    opt.ccg (1,1) logical = false
+    opt.ccg (1,1) logical = true
     opt.rev (1,1) logical = false
     opt.shuf_trl (1,1) logical = false
     opt.shuf_idx (1,1) double = [];

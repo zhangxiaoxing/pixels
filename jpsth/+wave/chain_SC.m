@@ -1,7 +1,11 @@
-statstype="burstchain";
+statstype="chain";
+skipccg=false;
+
 switch statstype
     case "chain"
         load(fullfile('bzdata','chain_tag.mat'),'out');
+        chain_len_thres=6;
+        accu_spk_thres=6;
     case"burstchain"
         fstr=load(fullfile('bzdata','chain_sust_tag_150.mat'),'out');
         out=fstr.out;
@@ -12,8 +16,9 @@ switch statstype
         keyboard()
 end
 
-skipccg=true;
-warning("Skip ccg on matebook due to missing toolbox");
+if skipccg
+    warning("Skip ccg on matebook due to missing toolbox");
+end
 
 global_init;
 
@@ -27,12 +32,18 @@ for dur=reshape(fieldnames(out),1,[])
             % length selection
             cncids=out.(dur{1}).(wv{1}).(cnid{1}).meta{1};
             chain_len=numel(cncids);
-            per_seq_spk=cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
-            [spkcount,max_ts]=max(per_seq_spk);
-            if chain_len <chain_len_thres || spkcount<accu_spk_thres
+            if chain_len <chain_len_thres
                 continue
             end
-            maxcnts=out.(dur{1}).(wv{1}).(cnid{1}).ts{max_ts};
+            if statstype~="chain"
+                per_seq_spk=cellfun(@(x) size(x,1),out.(dur{1}).(wv{1}).(cnid{1}).ts);
+                [spkcount,max_ts]=max(per_seq_spk);
+                if spkcount<accu_spk_thres
+                    continue
+                end
+                maxcnts=out.(dur{1}).(wv{1}).(cnid{1}).ts{max_ts};
+            end
+
             % region selection
             currsess=str2double(regexp(cnid,'(?<=s)[0-9]*(?=c)','match','once'));
             if currsess~=memsess
@@ -60,9 +71,10 @@ for dur=reshape(fieldnames(out),1,[])
                 tsid_per_cid=arrayfun(@(x) cn_tsid(cn_tsid(:,3)==x,:),1:numel(cncids),'UniformOutput',false); 
                 if isnumeric(out.(dur{1}).(wv{1}).(cnid{1}).ts) % one spike chain
                     [~,tsidsel]=ismember(out.(dur{1}).(wv{1}).(cnid{1}).ts(:,1),tsid_per_cid{1}(:,1));
-                    [gc,gr]=groupcounts(trls);
-                    gridx=reshape(find(gc>1),1,[]);
-                    ttlist=gr(gridx);
+                    cn_trl_list=tsid_per_cid{1}(tsidsel,5);
+                    [gc,gr]=groupcounts(cn_trl_list);
+%                     gridx=reshape(find(gc>1),1,[]);
+%                     ttlist=gr(gridx);
                 else % bursting wave
 
                     cn_first_tagged=cellfun(@(x) x(1,1:3),out.(dur{1}).(wv{1}).(cnid{1}).ts,'UniformOutput',false); % first tagged spike, in chain idx and per-su-ts-idx
@@ -84,8 +96,11 @@ for dur=reshape(fieldnames(out),1,[])
 
                 % plot raster
                 for tt=(gr(gc>1)).'
-                    trl_ts=cellfun(@(x) tsid_per_cid{x(1)}(x(2),5),cn_first_tagged)==tt;
-                    join_ts=cell2mat(out.(dur{1}).(wv{1}).(cnid{1}).ts(trl_ts).');
+                    if statstype~="chain"
+                        trl_ts=cellfun(@(x) tsid_per_cid{x(1)}(x(2),5),cn_first_tagged)==tt;
+                        join_ts=cell2mat(out.(dur{1}).(wv{1}).(cnid{1}).ts(trl_ts).');
+                    end
+
                     figure('Position',[32,32,1440,240])
                     hold on;
                     for jj=1:chain_len
@@ -93,7 +108,7 @@ for dur=reshape(fieldnames(out),1,[])
                         plot(ts,jj*ones(size(ts)),'|','Color',['#',dec2hex(jj,6)])
                         % overlap chain activity
                         if isnumeric(out.(dur{1}).(wv{1}).(cnid{1}).ts)
-                            for kk=reshape(find(trls==tt),1,[])
+                            for kk=reshape(find(cn_trl_list==tt),1,[])
                                 suts=out.(dur{1}).(wv{1}).(cnid{1}).ts(kk,jj);
                                 [~,tickpos]=ismember(suts,cn_tsid(cn_tsid(:,3)==jj & cn_tsid(:,5)==tt,1));
                                 plot(ts(tickpos),jj,'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
@@ -124,20 +139,25 @@ for dur=reshape(fieldnames(out),1,[])
                 if skipccg || ~any(gc>1) 
                     continue
                 end
+
+                [spkID,~,~,~,~,~]=ephys.getSPKID_TS(currsess,'keep_trial',false);
                 figure()
                 tiledlayout('flow')
                 for ii=1:size(out.(dur{1}).(wv{1}).(cnid{1}).ccgs,1)
                     nexttile()
                     hold on
-                    plot(out.(dur{1}).(wv{1}).(cnid{1}).ccgs(ii,201:301))
-                    xline(51,'--k')
-                    xlim([1,101]);
+                    normfactor=2500./nnz(spkID==out.(dur{1}).(wv{1}).(cnid{1}).meta{1}(ii)); % Hz in 0.4ms bin, 1000/0.4
+                    plot(-100:0.4:100,out.(dur{1}).(wv{1}).(cnid{1}).ccgs(ii,:).*normfactor,'-r')
+                    xline([-10,0,10,],'--k')
+                    xlim([-12,24]);
+                    xlabel('Latency (ms)')
+                    ylabel('Firing rate (Hz)')
                 end
                 sgtitle("Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1});
                 keyboard();
 
             else
-                disp(strict_sel)
+%                 disp(strict_sel)
 %                 keyboard()
             end
         end

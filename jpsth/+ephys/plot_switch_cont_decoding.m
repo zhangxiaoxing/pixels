@@ -1,3 +1,5 @@
+% No longer primary branch as of 2023.05.13. Data still checks out.
+
 function plot_switch_cont_decoding(wrs_mux_meta,opt)
 arguments
     wrs_mux_meta

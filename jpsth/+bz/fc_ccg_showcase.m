@@ -7,7 +7,7 @@ load('sums_conn_10.mat','sums_conn_str');
 ccgsess=cellfun(@(x) ephys.path2sessid(x),{sums_conn_str.folder});
 
 for ii=1:numel(sess)
-    [spkID,spkTS,trials,~,~,~]=ephys.getSPKID_TS(sess(ii),'keep_trial',false);
+    [spkID,~,~,~,~,~]=ephys.getSPKID_TS(sess(ii),'keep_trial',false);
     lead_cnt=nnz(spkID==cids(ii));
 
     ccgsel=ccgsess==sess(ii);
