@@ -152,6 +152,7 @@ if opt.vs_shuf
         errorbar(bh(2).XEndPoints,bh(2).YData,shufsem(1:barn),'k.')
 
         zscores=abs(sratios(1:barn)-shufmm(1:barn))./shufstd(1:barn);
+        disp(zscores)
         text(find(zscores>norminv(0.9995)),repmat(9,nnz(zscores>norminv(0.9995)),1),'***','HorizontalAlignment','center')
         text(find(zscores>norminv(0.995)),repmat(3.16,nnz(zscores>norminv(0.995)),1),'**','HorizontalAlignment','center')
         text(find(zscores>norminv(0.975)),repmat(1,nnz(zscores>norminv(0.975)),1),'*','HorizontalAlignment','center')
