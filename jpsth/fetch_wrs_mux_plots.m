@@ -215,6 +215,8 @@ mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(tcom6_maps,gather_config.cor
 %     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
 %     'feat_tag',{'Mixed'},'corr2',true,'plot2',true,'corr1',false);
 % 
+end
+
 
 %% TCOM and proportion correlation % 4 panel scatters
 pct_tcom_fh3=struct();

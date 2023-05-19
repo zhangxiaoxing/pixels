@@ -1,6 +1,6 @@
 sessid=100;
 maxid=4;
-[mmax,ttrial]=wave.chain_loop_SC_spk(false,sessid,maxid,'skip_plot',true);
+[mmax,ttrial,meta]=wave.chain_loop_SC_spk(false,sessid,maxid,'skip_plot',true);
 % predefined layout using gephi and Ordered-Graph-Layout
 %% nodes
 gephilayout=jsondecode(fileread(fullfile("+gephi","SS_chain_loop_230315.json")));

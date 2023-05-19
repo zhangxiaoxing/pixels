@@ -4,8 +4,8 @@ skipccg=false;
 switch statstype
     case "chain"
         load(fullfile('bzdata','chain_tag.mat'),'out');
-        chain_len_thres=6;
-        accu_spk_thres=6;
+        chain_len_thres=5;
+        accu_spk_thres=5;
     case"burstchain"
         fstr=load(fullfile('bzdata','chain_sust_tag_150.mat'),'out');
         out=fstr.out;
@@ -55,7 +55,7 @@ for dur=reshape(fieldnames(out),1,[])
             
             [~,supos]=ismember(cncids,sesscid);
             cnreg=sessreg(supos);
-            if ~all(ismember(cnreg,greys),'all') || numel(unique(cnreg))<2
+            if ~all(ismember(cnreg,greys),'all') % || numel(unique(cnreg))<2
                 continue
             end
             if skipccg
@@ -154,7 +154,7 @@ for dur=reshape(fieldnames(out),1,[])
                     ylabel('Firing rate (Hz)')
                 end
                 sgtitle("Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1});
-                keyboard();
+                appendfig('fn','chain_sc.pdf','close',true,'multi',true,'path',fullfile('Z:'))
 
             else
 %                 disp(strict_sel)

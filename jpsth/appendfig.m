@@ -29,7 +29,7 @@ if opt.datetime
     datestr=subsref(char(datetime()),struct('type',{'()'},'subs',{{[1:6,12:17]}}));
     annostr=strjoin({opt.tag,datestr});
 else
-    annostr=opt.tag;
+    annostr=opt.tag; 
 end
 fhandles=get(groot(),'Children');
 if numel(fhandles)>1 && ~opt.multi

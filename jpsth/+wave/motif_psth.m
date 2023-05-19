@@ -6,7 +6,7 @@
 for sessid=[68,100,102,114]
     currentTrls=[];
     for maxid=1:10
-        [ttrial,~,meta]=wave.chain_loop_SC_spk(false,sessid,maxid,'skip_plot',true,'by_cover_rate',true);
+        [ttrial,~,meta]=wave.chain_loop_SC_spk(false,sessid,maxid,'skip_plot',true,'by_cover_rate',true,'all_trial_stats',true);
         if ismember(meta(1),currentTrls) || isempty(ttrial)
             continue
         end

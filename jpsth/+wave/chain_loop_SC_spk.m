@@ -58,11 +58,11 @@ if ~opt.by_cover_rate
     maxonset=onset(maxid).*3;
     maxoffset=edges(maxid*2).*3;
     trialid=find(maxonset-FT_SPIKE.trialinfo(:,1)>0,1,'last');
-elseif ~opt.all_trial_stats
+elseif opt.all_trial_stats
     % sort by cover rate
-    delayonset=ceil(FT_SPIKE.trialinfo(:,1)./30)+1000;
-    delayonset((delayonset+3000)>numel(covered))=[];
-    coveredbins=arrayfun(@(x) nnz(covered(x:x+3000)),delayonset);
+    delayonset=ceil(FT_SPIKE.trialinfo(:,1)./3)+10000; 
+    delayonset((delayonset+30000)>numel(covered))=[];
+    coveredbins=arrayfun(@(x) nnz(covered(x:x+30000)),delayonset);
     [~,maxids]=sort(coveredbins,'descend');
     trialid=maxids(maxidx);
     maxid=coveredbins(trialid);
@@ -71,7 +71,8 @@ elseif ~opt.all_trial_stats
 else % for statistics
     delayonset=ceil(FT_SPIKE.trialinfo(:,1)./30)+1000;
     delayonset((delayonset+3000)>numel(covered))=[];
-    trialid=[]
+    trialid=[];
+    maxid=[];
     maxonset=FT_SPIKE.trialinfo(trialid,1)+30000;
     maxoffset=FT_SPIKE.trialinfo(trialid,2);
 end
@@ -186,6 +187,7 @@ if ~exist('bburst','var') || bburst
         end
     end
 end
+
 if ~bburst && (all(~strcmp(in_maximum_tags(:,1),'SSC')) || all(~strcmp(in_maximum_tags(:,1),'SSL')))
     warning("All chains or all loops")
 end
