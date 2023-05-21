@@ -7,7 +7,7 @@
 function [out,chains]=COM_chain(sel_meta,opt)
 arguments
     sel_meta
-    opt.strict (1,1) logical = false %strict FC criteria
+    opt.strict (1,1) logical = false %strict ccg criteria
     opt.reverse (1,1) logical = false
 end
 % global_init
@@ -136,12 +136,14 @@ end
     sub_chain=chain_one(onecon,typesel,curr_com_map,reverse);
 end
     
-function chains=chain_one(onecon,typesel,curr_com_map,reverse)
+function chains=chain_one(onecon,typesel,curr_com_map,reverse,opt)
 arguments
     onecon
     typesel
     curr_com_map
-    reverse % (1,1) logical = false
+    reverse (1,1) logical = false
+    opt.per_region (1,1) logical = true
+
 end
 chains=cell(0);
 if nnz(typesel)<3,return;end
@@ -174,101 +176,5 @@ for i=upre
     end
 end
 end
-
-function plotOneSC(chains)
-if false && numel(chains)>0
-    for ii=1:numel(chains)
-        split_chains=wave.recursive_chain(chains{ii},[]); %one su per order
-        for pp=1:2:size(split_chains,1)
-            onechain=split_chains(pp:pp+1,:);
-            if onechain(2,end)-onechain(2,1)<4
-                continue
-            end
-            fh=figure('Color','w','Position',[100,100,500,500]); %illustration
-            subplot(2,2,3);
-            hold on;
-            % envelop
-            yyaxis left
-            suids=onechain(1,:);
-            hm=[];
-            for mm=1:numel(suids)
-                oneheat=conv2(onecom.(skey{1}).(sprintf('%sheat',samp))(suids(mm)),gk,'same');
-                hm=[hm;oneheat;zeros(5,size(oneheat,2))];
-            end
-            colormap(flip(colormap('gray')));
-            imagesc(hm);
-            set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6,'YTick',[])
-            xlim([0,24])
-            ylim([0,size(hm,1)-5]);
-            xlabel('Delay time (s)');
-            ylabel('Example trials')
-            %                     colorbar()
-            %FC
-            yyaxis right
-            for jj=1:size(onechain,2)
-                text(onechain(2,jj),jj,num2str(onechain(1,jj)));
-                plot(onechain(2,jj),jj,'ko','MarkerFaceColor','k');
-            end
-            for jj=1:size(onechain,2)-1
-                plot(onechain(2,jj:jj+1),[jj;jj+1],'r-');
-            end
-            ylim([0.5,size(onechain,2)+0.5]);
-            xlim([0,24]);
-            set(gca(),'XTick',[0,8,16,24],'XTickLabel',[0,2,4,6],'YTick',0:numel(onechain)+1)
-            xlabel('COM time in delay (s)')
-            ylabel('Functional coupling order in wave ->');
-            title(sprintf('Session %s, sample %s',skey{1},samp));
-
-
-            for kk=1:size(onechain,2)-1
-                conn=onechain(1,kk:kk+1);
-                subplot(2,size(onechain,2)-1,kk);
-                ccgsel=onecon(:,1)==conn(1) & onecon(:,2)==conn(2);
-                plot(oneccg(ccgsel,:),'-r');
-                arrayfun(@(x) xline(x,'--k'),[226,251,276]);
-                xlim([191,311]);
-                set(gca(),'XTick',201:25:301,'XTickLabel',-20:10:20)
-                fpath=replace(regexp(sums_conn_str(fidx).folder,'(?<=SPKINFO/).*','match','once'),'/','\');
-                reg1=meta_str.reg_tree{5,startsWith(meta_str.allpath,fpath)...
-                    & meta_str.allcid==uint16(conn(1))};
-                reg2=meta_str.reg_tree{5,startsWith(meta_str.allpath,fpath)...
-                    & meta_str.allcid==uint16(conn(2))};
-
-                text(191,max(ylim()),{num2str(conn(1)),reg1},'HorizontalAlignment','left','VerticalAlignment','top');
-                text(301,max(ylim()),{num2str(conn(2)),reg2},'HorizontalAlignment','right','VerticalAlignment','top');
-
-            end
-            subplot(2,2,4)
-            hold on
-            suids=onechain(1,:);
-            if false
-                cmap=colormap('cool');
-                deltac=floor(size(cmap,1)./numel(suids));
-                for mm=1:numel(suids)
-                    plot((onecom.(skey{1}).(sprintf('%scurve',samp))(suids(mm))),...
-                        '-','Color',cmap((mm-1)*deltac+1,:));
-                    xline(onecom.(skey{1}).(wvtype)(suids(mm)),'--','Color',cmap((mm-1)*deltac+1,:));
-                end
-                set(gca(),'XTick',0:8:24,'XTickLabel',0:2:6)
-                xlabel('Delay time (s)');
-                ylabel('Normalized firing rate [0,1]');
-            end
-            sgtitle(sprintf('fidx %d chain %d-%d',fidx,ii,pp));
-            if opt.batch
-                exportgraphics(fh,sprintf('SC\\SCB%05d.png',figidx),'Resolution',300);
-                %                         keyboard()
-            else
-                keyboard()
-                exportgraphics(fh,'SC\SC_select.pdf');
-            end
-            figidx=figidx+1;
-            close(fh);
-        end
-    end
-else
-    disp('Empty Chain');
-end
-end
-
 
 

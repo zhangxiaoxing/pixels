@@ -9,7 +9,8 @@ arguments
     opt.ccg (1,1) logical = true
     opt.rev (1,1) logical = false
     opt.shuf_trl (1,1) logical = false
-    opt.shuf_idx (1,1) double = [];
+    opt.shuf_idx (1,1) double = []
+    opt.per_reg_wave (1,1) logical = true
 end
 %% DEBUG
 % out=chain_alt(chains);
