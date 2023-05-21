@@ -259,11 +259,11 @@ end
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-[fcstats3,fh6]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',6,'condense_plot',true);
-[fcstats3,fh3]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',3,'condense_plot',true);
+[fcstats6,fh6]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',6,'condense_plot',true);
+[fcstats3,fh3]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'condense_plot',true);
 
-fcstats3=fc.fc_com_reg_wave_old(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
-[fcstats3,fh3]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',3,'condense_plot',true);
+fcstats6=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
+fcstats3=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom3_maps,'condense_plot',true);
 
 fc.wave_stay_disappear(wrs_mux_meta)
 

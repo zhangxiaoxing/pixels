@@ -1,8 +1,8 @@
-function [fc_com_pvsst_stats,fh]=fc_com_reg_wave(wave_meta,com_map,tcom_maps,opt)
+function [fc_com_pvsst_stats,fh]=fc_com_reg_wave(wave_meta,su_com_map,reg_com_maps,opt)
 arguments
     wave_meta
-    com_map
-    tcom_maps (1,1) struct
+    su_com_map
+    reg_com_maps (1,1) struct
     opt.condense_plot (1,1) logical = false
     opt.omit_reg_wave (1,1) logical = true
     opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
@@ -33,10 +33,10 @@ for sii=reshape(usess,1,[]) %iterate through sessions
 
 
     for ff=ffs
-        if isfield(com_map.(['s',num2str(sii)]),ff)
-            sukeys=com_map.(['s',num2str(sii)]).(ff).(durkey).keys(); % prefered SUid
+        if isfield(su_com_map.(['s',num2str(sii)]),ff)
+            sukeys=su_com_map.(['s',num2str(sii)]).(ff).(durkey).keys(); % prefered SUid
             susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
-            com_sess_pct(susel)=cell2mat(com_map.(['s',num2str(sii)]).(ff).(durkey).values(num2cell(suid(susel)))); % out put is nx2 in dim
+            com_sess_pct(susel)=cell2mat(su_com_map.(['s',num2str(sii)]).(ff).(durkey).values(num2cell(suid(susel)))); % out put is nx2 in dim
         end
     end
     fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];
@@ -61,12 +61,12 @@ if false
         nexttile();
         hold on
 
-        sel_tcom_map=tcom_maps.(fns{typeIdx});
+        reg_tcom_map=reg_com_maps.(fns{typeIdx});
 
-        avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
+        avail_regs=cell2mat(idmap.reg2ccfid.values(reg_tcom_map.keys()));
         reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
 
-        reg_wave_timing=cellfun(@(x) sel_tcom_map(x{1}),...
+        reg_wave_timing=cellfun(@(x) reg_tcom_map(x{1}),...
             idmap.ccfid2reg.values(...
             num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
         fc_com_pvsst_stats(:,6:7)=nan;
@@ -101,12 +101,12 @@ barmm=[];
 barci=[];
 if false %forward and reverse
     for typeIdx=1:3
-        sel_tcom_map=tcom_maps.(fns{typeIdx});
+        reg_tcom_map=reg_com_maps.(fns{typeIdx});
 
-        avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
+        avail_regs=cell2mat(idmap.reg2ccfid.values(reg_tcom_map.keys()));
         reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
 
-        reg_wave_timing=cellfun(@(x) sel_tcom_map(x{1}),...
+        reg_wave_timing=cellfun(@(x) reg_tcom_map(x{1}),...
             idmap.ccfid2reg.values(...
             num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
         fc_com_pvsst_stats(:,6:7)=nan;
@@ -142,13 +142,13 @@ if false %forward and reverse
     end
 else% same and diff % TODO
     for typeIdx=1:3 
-        sel_tcom_map=tcom_maps.(fns{typeIdx});
-        avail_regs=cell2mat(idmap.reg2ccfid.values(sel_tcom_map.keys()));
+        reg_tcom_map=reg_com_maps.(fns{typeIdx});
+        avail_regs=cell2mat(idmap.reg2ccfid.values(reg_tcom_map.keys()));
         reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
-        reg_wave_timing=cellfun(@(x) sel_tcom_map(x{1}),...
+        reg_wave_timing=cellfun(@(x) reg_tcom_map(x{1}),...
             idmap.ccfid2reg.values(...
             num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
-        fc_com_pvsst_stats(:,6:7)=nan;
+        fc_com_pvsst_stats(:,6:7)=nan; % ensure unique data source
         fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing ;
         fini_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
         typesel=typesel_mat(:,typeIdx);
@@ -167,12 +167,12 @@ else% same and diff % TODO
         [diff_reg_hat,diff_reg_ci]=binofit(nnz(reg_latency>0 & diff_reg_sel),nnz(diff_reg_sel));
 
        barcnt=[barcnt;...
-            nnz(fc_latency>0 & same_reg_sel),...
-            nnz(same_reg_sel),...
-            nnz(fc_latency>0 & diff_reg_sel),...
-            nnz(diff_reg_sel),...
-            nnz(reg_latency>0 & diff_reg_sel),...
-            nnz(diff_reg_sel)...
+            nnz(fc_latency>0 & same_reg_sel),... % 1
+            nnz(same_reg_sel),... % 2
+            nnz(fc_latency>0 & diff_reg_sel),... % 3
+            nnz(diff_reg_sel),... % 4
+            nnz(reg_latency>0 & diff_reg_sel),... % 5
+            nnz(diff_reg_sel)... % 6
             ];
         barmm=[barmm;...
             same_hat,1-same_hat,...
@@ -188,7 +188,7 @@ if opt.condense_plot
     tiledlayout(1,3);
     nexttile(1,[1,2])
     hold on
-    bh=bar(1:3,barmm(:,5:6),'grouped');
+    bh=bar(1:3,barmm(:,5:6),'grouped');   % diff region, by reg_tcom
     errorbar([bh.XEndPoints],[bh.YEndPoints],...
         [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
         [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
@@ -214,7 +214,7 @@ else
         bh=bar(1:3,[barmm(ii,[1 3 5]);barmm(ii,[2 4 6])],'grouped');
         %TODO update
         errorbar([bh.XEndPoints],[bh.YEndPoints],...
-            [barci(ii,[1 3 5]),1-barci(ii,[1 3 6])]-[bh.YEndPoints],...
+            [barci(ii,[1 3 5]),1-barci(ii,[2 4 6])]-[bh.YEndPoints],...
             [barci(ii,[2 4 6]),1-barci(ii,[2 4 6])]-[bh.YEndPoints],'k.')
         ylim([0,0.75])
         yline(0.5,'k--')

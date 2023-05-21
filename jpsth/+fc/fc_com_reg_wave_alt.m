@@ -1,4 +1,7 @@
-function fc_com_pvsst_stats=fc_com_reg_wave_old(wave_meta,su_com_map,reg_com_map,opt)
+% TODO: lacking su_com and reg_com delay-duration coordination. Use 
+% fc.fc_com_reg_wave.m instead
+
+function fc_com_pvsst_stats=fc_com_reg_wave_alt(wave_meta,su_com_map,reg_com_map,opt)
 arguments
     wave_meta
     su_com_map
