@@ -18,7 +18,6 @@ alln=numel(wrs_mux_meta.wave_id);
     [ones(alln,1);2*ones(alln,1);3*ones(alln,1)])
 
 
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
 
 
 %% wave & stay
@@ -26,6 +25,8 @@ wave_n_stay=nnz(ismember(wrs_mux_meta.wave_id,5:6) & wrs_mux_meta.p_olf(:,3)<0.0
 olf=nnz(ismember(wrs_mux_meta.wave_id,5:6));
 
 %% map_cells: mixed_map,olf_map,dur_map
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 tcom3_maps=struct();
 tcom6_maps=struct();
@@ -259,8 +260,14 @@ end
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-[fcstats6,fh6]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom6_maps,'delay',6,'condense_plot',true);
-[fcstats3,fh3]=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'condense_plot',true);
+fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,'delay',6);
+fh=fc.fc_com_reg_wave.plot(fcstats6,tcom6_maps,'condense_plot',true);
+
+fcstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,'delay',3);
+fh=fc.fc_com_reg_wave.plot(fcstats3,tcom3_maps,'condense_plot',true);
+
+
+fcstats3=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'condense_plot',true);
 
 fcstats6=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
 fcstats3=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom3_maps,'condense_plot',true);
