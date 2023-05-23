@@ -8,7 +8,8 @@ arguments
     opt.skip_error_bar (1,1) logical = true
     opt.xyscale (1,2) cell = {'Linear','Linear'}
     opt.skip_export (1,1) logical = true
-    opt.skip_dur (1,1) logical = true
+    opt.skip_dur (1,1) logical = false
+    opt.only_odor (1,1) logical = true
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
@@ -25,7 +26,7 @@ for reg=reshape(ureg,1,[])
     olf_cnt=nnz(regsel & ismember(pct_meta.wave_id,5:6));
     dur_cnt=nnz(regsel & ismember(pct_meta.wave_id,7:8));
     legends={'Mixed modality','Olfactory only','Duration only'};
-            
+
     grp=idmap.reg2tree(reg{1});
     sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,mixed_cnt,olf_cnt,dur_cnt];
     %====================1=========================2============3=========4==================================5========
@@ -70,133 +71,140 @@ end
 %===============================================================
 fh=figure('Color','w','Position',[32,32,1280,640]);
 th=tiledlayout(2,4);
-nexttile(5);
-hold on
 
-for ll=1:size(bardata,1)
-    c=ephys.getRegColor(regstr{ll},'large_area',true);
-    scatter(bardata(ll,10),bardata(ll,7),4,c,'filled','o')
-    text(bardata(ll,10),bardata(ll,7),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
-end
-xlabel(legends{2})
-ylabel(legends{1})
-set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
-xxdata=bardata(:,10);
-yydata=bardata(:,7);
-if strcmp(opt.xyscale{1},'log')
-    xxdata=log10(xxdata);
-end
-if strcmp(opt.xyscale{2},'log')
-    yydata=log10(yydata);
-end
+if ~opt.only_odor
+    nexttile(5);
+    hold on
+    for ll=1:size(bardata,1)
+        c=ephys.getRegColor(regstr{ll},'large_area',true);
+        scatter(bardata(ll,10),bardata(ll,7),4,c,'filled','o')
+        text(bardata(ll,10),bardata(ll,7),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+    end
+    xlabel(legends{2})
+    ylabel(legends{1})
+    set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
+    xxdata=bardata(:,10);
+    yydata=bardata(:,7);
+    if strcmp(opt.xyscale{1},'log')
+        xxdata=log10(xxdata);
+    end
+    if strcmp(opt.xyscale{2},'log')
+        yydata=log10(yydata);
+    end
 
-[r,p]=corr(xxdata,yydata);
-title(sprintf(' r = %.3f, p = %.3f',r,p));
+    [r,p]=corr(xxdata,yydata);
+    title(sprintf(' r = %.3f, p = %.3f',r,p));
 
-coord=[xxdata,yydata];
-coord(:,3)=1;
-regres=coord(:,[1,3])\coord(:,2);
-xx=minmax(xxdata.');
+    coord=[xxdata,yydata];
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    xx=minmax(xxdata.');
 
-if all(strcmp(opt.xyscale,'log'),'all')
-    yy=10.^(xx.*regres(1)+regres(2));
-    plot(10.^xx,yy,'--k');
+    if all(strcmp(opt.xyscale,'log'),'all')
+        yy=10.^(xx.*regres(1)+regres(2));
+        plot(10.^xx,yy,'--k');
+    else
+        yy=xx.*regres(1)+regres(2);
+        plot(xx,yy,'--k');
+    end
+    %==============================================================
+    nexttile(6);
+    hold on
+
+    for ll=1:size(bardata,1)
+        c=ephys.getRegColor(regstr{ll},'large_area',true);
+        scatter(bardata(ll,7),bardata(ll,13),4,c,'filled','o')
+        text(bardata(ll,7),bardata(ll,13),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+    end
+    xlabel(legends{1})
+    ylabel(legends{3})
+    set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
+    xxdata=bardata(:,7);
+    yydata=bardata(:,13);
+    if strcmp(opt.xyscale{1},'log')
+        xxdata=log10(xxdata);
+    end
+    if strcmp(opt.xyscale{2},'log')
+        yydata=log10(yydata);
+    end
+    [r,p]=corr(xxdata,yydata);
+    title(sprintf(' r = %.3f, p = %.3f',r,p));
+
+    coord=[xxdata,yydata];
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    xx=minmax(xxdata.');
+    if all(strcmp(opt.xyscale,'log'))
+        yy=10.^(xx.*regres(1)+regres(2));
+        plot(10.^xx,yy,'--k');
+    else
+        yy=xx.*regres(1)+regres(2);
+        plot(xx,yy,'--k');
+    end
+
+
+    %==============================================================
+    nexttile(7);
+    hold on
+
+    for ll=1:size(bardata,1)
+        c=ephys.getRegColor(regstr{ll},'large_area',true);
+        scatter(bardata(ll,10),bardata(ll,13),4,c,'filled','o')
+        text(bardata(ll,10),bardata(ll,13),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
+    end
+    xlabel(legends{2})
+    ylabel(legends{3})
+    set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
+    xxdata=bardata(:,10);
+    yydata=bardata(:,13);
+    if strcmp(opt.xyscale{1},'log')
+        xxdata=log10(xxdata);
+    end
+    if strcmp(opt.xyscale{2},'log')
+        yydata=log10(yydata);
+    end
+    [r,p]=corr(xxdata,yydata);
+    title(sprintf(' r = %.3f, p = %.3f',r,p));
+    coord=[xxdata,yydata];
+    coord(:,3)=1;
+    regres=coord(:,[1,3])\coord(:,2);
+    xx=minmax(xxdata.');
+    if all(strcmp(opt.xyscale,'log'))
+        yy=10.^(xx.*regres(1)+regres(2));
+        plot(10.^xx,yy,'--k');
+    else
+        yy=xx.*regres(1)+regres(2);
+        plot(xx,yy,'--k');
+    end
+
+
+    %%======================
+    th=nexttile(4);
+    tbl=cell(0);
+    if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
+        tbl=[tbl;'Stats';opt.stats_type];
+    end
+    if isfield(opt,'data_type') && ~isempty(opt.data_type)
+        tbl=[tbl;'Data';opt.data_type];
+    end
+    tbl=[tbl;'Range';opt.range];
+    ephys.util.figtable(fh,th,tbl)
 else
-    yy=xx.*regres(1)+regres(2);
-    plot(xx,yy,'--k');
+    th=nexttile(4);
+    tbl={'Odor only';'grey'};
+    ephys.util.figtable(fh,th,tbl)
 end
-%==============================================================
-nexttile(6);
-hold on
-
-for ll=1:size(bardata,1)
-    c=ephys.getRegColor(regstr{ll},'large_area',true);
-    scatter(bardata(ll,7),bardata(ll,13),4,c,'filled','o')
-    text(bardata(ll,7),bardata(ll,13),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
-end
-xlabel(legends{1})
-ylabel(legends{3})
-set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
-xxdata=bardata(:,7);
-yydata=bardata(:,13);
-if strcmp(opt.xyscale{1},'log')
-    xxdata=log10(xxdata);
-end
-if strcmp(opt.xyscale{2},'log')
-    yydata=log10(yydata);
-end
-[r,p]=corr(xxdata,yydata);
-title(sprintf(' r = %.3f, p = %.3f',r,p));
-
-coord=[xxdata,yydata];
-coord(:,3)=1;
-regres=coord(:,[1,3])\coord(:,2);
-xx=minmax(xxdata.');
-if all(strcmp(opt.xyscale,'log'))
-    yy=10.^(xx.*regres(1)+regres(2));
-    plot(10.^xx,yy,'--k');
-else
-    yy=xx.*regres(1)+regres(2);
-    plot(xx,yy,'--k');
-end
-
-
-%==============================================================
-nexttile(7);
-hold on
-
-for ll=1:size(bardata,1)
-    c=ephys.getRegColor(regstr{ll},'large_area',true);
-    scatter(bardata(ll,10),bardata(ll,13),4,c,'filled','o')
-    text(bardata(ll,10),bardata(ll,13),regstr{ll},'HorizontalAlignment','center','VerticalAlignment','top','Color',c);
-end
-xlabel(legends{2})
-ylabel(legends{3})
-set(gca,'XScale',opt.xyscale{1},'YScale',opt.xyscale{2})
-xxdata=bardata(:,10);
-yydata=bardata(:,13);
-if strcmp(opt.xyscale{1},'log')
-xxdata=log10(xxdata);
-end
-if strcmp(opt.xyscale{2},'log')
-    yydata=log10(yydata);
-end
-[r,p]=corr(xxdata,yydata);
-title(sprintf(' r = %.3f, p = %.3f',r,p));
-coord=[xxdata,yydata];
-coord(:,3)=1;
-regres=coord(:,[1,3])\coord(:,2);
-xx=minmax(xxdata.');
-if all(strcmp(opt.xyscale,'log'))
-    yy=10.^(xx.*regres(1)+regres(2));
-    plot(10.^xx,yy,'--k');
-else
-    yy=xx.*regres(1)+regres(2);
-    plot(xx,yy,'--k');
-end
-
-
-%             exportgraphics(fh.corr1,sprintf('frac_allen_scatter_selec%d_epoch%d.pdf',featii,epochii),'ContentType','vector')
-
-
-
-%%======================
-th=nexttile(4);
-tbl=cell(0);
-if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
-    tbl=[tbl;'Stats';opt.stats_type];
-end
-if isfield(opt,'data_type') && ~isempty(opt.data_type)
-    tbl=[tbl;'Data';opt.data_type];
-end
-tbl=[tbl;'Range';opt.range];
-ephys.util.figtable(fh,th,tbl)
-
 
 %======================
 nexttile(1,[1,3]);
 hold on
-if opt.skip_dur
+if opt.only_odor
+    bh=bar(bardata(:,10),0.75);
+    if ~opt.skip_error_bar
+        errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
+    end
+    bh(1).FaceColor='k';% olf
+elseif opt.skip_dur
     bh=bar(bardata(:,[10,7]),1,'grouped');
     if ~opt.skip_error_bar
         errorbar(bh(2).XEndPoints,bh(2).YEndPoints,diff(bardata(:,7:8),1,2),diff(bardata(:,[7,9]),1,2),'k.');
@@ -217,7 +225,7 @@ else
 end
 set(gca(),'YScale',opt.xyscale{2})
 if any(strcmp(opt.xyscale,'log'),'all')
-    
+
 else
     ylim([0,0.6])
 end

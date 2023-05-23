@@ -13,22 +13,8 @@ arguments
 
 end
 %% global
-
-%     %TODO do not repeat>>>>>>>>>>>>>>>>
-%     sens_efsz=max(abs(eff_meta.cohen_d_olf),[],2);
-%     sens_win=[min(sens_efsz)./2,prctile(sens_efsz,[20:20:100])];
-% 
-%     dur_efsz=max(abs(eff_meta.cohen_d_dur),[],2);
-%     dur_win=[min(dur_efsz)./2,prctile(dur_efsz,[20:20:100])];
-%     % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-% 
-%     pct_meta=pct.get_pct_meta(eff_meta,sens_efsz,sens_win,dur_efsz,dur_win);
-% 
-%     com_map=wave.get_pct_com_map(pct_meta,'curve',true);
-
-
+fss=reshape(fieldnames(com_map),1,[]);
 for plot_id=opt.comb_set
-    fss=reshape(fieldnames(com_map),1,[]);
     imdata=struct();
     switch plot_id
         case 1 % multiplexed
