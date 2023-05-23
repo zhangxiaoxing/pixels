@@ -110,6 +110,37 @@ for plot_id=opt.comb_set
                     end
                 end
             end
+        case 3
+            fh.("wave"+string(plot_id))=figure('Color','w','Position',[32,32,800,400]);
+            tiledlayout(2,2)
+            tags=["olf_s1","olf_s2"];
+            for prefidx=1:2
+                pref=tags(prefidx);
+                imdata.(pref)=struct();
+                imdata.(pref).com=[];
+                for ff=["s1","s2" ]
+                    imdata.(pref).(ff)=[];
+                end
+                for fs1=fss
+                    fs=char(fs1);
+                    if ~isfield(com_map.(fs),pref)
+                        continue
+                    end
+                    curr_key=com_map.(fs).(pref).com.keys();
+                    imdata.(pref).com=cat(1,imdata.(pref).com,...
+                        cell2mat(values(com_map.(fs).(pref).com,curr_key.')));
+                    for ff=["s1","s2"]
+                        imdata.(pref).(ff)=cat(1,imdata.(pref).(ff),cell2mat(com_map.(fs).(pref).(ff).values(curr_key.')));
+                    end
+                end
+
+                ffs=["s1","s2"];
+                for ffidx=1:2
+                    [~,sortidx]=sort(imdata.(pref).com);
+                    nexttile((prefidx-1)*2+ffidx);
+                    plotOne(imdata.(pref).(ffs(ffidx))(sortidx,:),'scale',opt.scale,'gauss2d',opt.gauss2d);
+                end
+            end
             
     end
 end

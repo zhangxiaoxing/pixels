@@ -4,31 +4,24 @@
 keyboard()
 global_init;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-
 wrs_meta=ephys.get_wrs_meta('fdr',true);
+
+com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
+
+grey_regs=ephys.getGreyRegs('range','grey');
+[fcom.olf.collection,fcom.olf.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','olf','com_field','com');
+ureg=intersect(grey_regs,fcom.olf.collection(:,2));
+[~,tcidx]=ismember(ureg,fcom.olf.collection(:,2));
+reg_com_maps.olf=containers.Map(...
+    ureg,num2cell(cellfun(@(x) x/4, fcom.olf.collection(tcidx,1))));
+
 % on=nnz(ismember(wrs_meta.wave_id,5:6));
 % alln=numel(wrs_meta.wave_id);
 
 
 %% wave & stay
 wave_n_stay=nnz(ismember(wrs_meta.wave_id,5:6) & wrs_meta.p_olf(:,3)<0.05 & all(wrs_meta.p_olf(:,4:6)<0.05,2));
-
-%% map_cells: mixed_map,olf_map,dur_map
-com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
-
-% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-reg_com_maps=struct();
-grey_regs=ephys.getGreyRegs('range','grey');
-
-[fcom.olf.collection,fcom.olf.com_meta]=wave.per_region_COM(...
-    com_map,'sel_type',ttype,'com_field','com');
-ureg=intersect(grey_regs,fcom.olf.collection(:,2));
-[~,tcidx]=ismember(ureg,fcom.olf.collection(:,2));
-reg_com_maps.olf=containers.Map(...
-    ureg,num2cell(cellfun(@(x) x/4, fcom.olf.collection(tcidx,1))));
-
-
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % olf >>>>>>>>>>>>>>>>>>>>>>>>>
@@ -82,13 +75,11 @@ fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,
 %% duration switch trial v continuation trial
 ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'olf')
 
-%<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-
-%% Figure 2
+%% sust trans
 % TODO olf only
-fh=ephys.sust_trans_bar_w_mix(wrs_mux_meta);
-fh=ephys.sust_trans_correct_error(wrs_mux_meta);
+fh=ephys.sust_trans_bar_w_mix(wrs_meta);
+fh=ephys.sust_trans_correct_error(wrs_meta);
 
 %% wave-half-half
 if false
@@ -116,8 +107,8 @@ end
 stats_half_half_fh=wave.COM_half_half_wrs_mux();
 
 %% wave 
-for hbound=0.7
-    fh=wave.plot_pct_wave(wrs_meta,com_map,'comb_set',2,'scale',[0,hbound],'gauss2d',true);
+for hbound=0.8
+    fh=wave.plot_pct_wave(wrs_meta,com_map,'comb_set',3,'scale',[0,hbound],'gauss2d',true);
     sgtitle(gcf(),"single-mod 0:"+num2str(hbound))
 end
 
@@ -140,34 +131,34 @@ mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(reg_com_maps,gather_config.c
 
 
 %% TCOM and proportion correlation % 4 panel scatters
-pct_tcom_fh3=struct();
-pct_tcom_fh6=struct();
-for typeidx=1:3
-    type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
-    conn_reg=subsref(["AON","AON","PIR"],struct(type='()',subs={{typeidx}}));
-    ureg=intersect(ephys.getGreyRegs('range','grey'),...
-        fcom3.(type).collection(:,2));
-    ffrac.collection=...
-        [num2cell(cellfun(@(x) x(1),map_cells.(type).values(ureg))),...
-        ureg,...
-        num2cell(ones(numel(ureg),1)*5),...
-        num2cell(cellfun(@(x) x(3),map_cells.(type).values(ureg)))];
-
-    [pct_tcom_fh3,t3]=wave.per_region_COM_frac(...
-        fcom3.(type),ffrac,...
-        'hier_reg',conn_reg,...
-        'corr',gather_config.corr_type,...
-        'sel_type',type);
-    sgtitle(pct_tcom_fh3,type+" 3sec")
-    
-    [pct_tcom_fh6,t6]=wave.per_region_COM_frac(...
-        fcom.(type),ffrac,...
-        'hier_reg',conn_reg,...
-        'corr',gather_config.corr_type,...
-        'sel_type',type);
-    sgtitle(pct_tcom_fh6,type+" 6sec")
-
-end
+% pct_tcom_fh3=struct();
+% pct_tcom_fh6=struct();
+% for typeidx=1:3
+%     type=subsref(["mixed","olf","dur"],struct(type='()',subs={{typeidx}}));
+%     conn_reg=subsref(["AON","AON","PIR"],struct(type='()',subs={{typeidx}}));
+%     ureg=intersect(ephys.getGreyRegs('range','grey'),...
+%         fcom3.(type).collection(:,2));
+%     ffrac.collection=...
+%         [num2cell(cellfun(@(x) x(1),map_cells.(type).values(ureg))),...
+%         ureg,...
+%         num2cell(ones(numel(ureg),1)*5),...
+%         num2cell(cellfun(@(x) x(3),map_cells.(type).values(ureg)))];
+% 
+%     [pct_tcom_fh3,t3]=wave.per_region_COM_frac(...
+%         fcom3.(type),ffrac,...
+%         'hier_reg',conn_reg,...
+%         'corr',gather_config.corr_type,...
+%         'sel_type',type);
+%     sgtitle(pct_tcom_fh3,type+" 3sec")
+%     
+%     [pct_tcom_fh6,t6]=wave.per_region_COM_frac(...
+%         fcom.(type),ffrac,...
+%         'hier_reg',conn_reg,...
+%         'corr',gather_config.corr_type,...
+%         'sel_type',type);
+%     sgtitle(pct_tcom_fh6,type+" 6sec")
+% 
+% end
 
 
 %% Functional coupling
@@ -180,8 +171,8 @@ end
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-fcstats=fc.fc_com_reg_wave.stats(wrs_meta,com_map,'delay',6);
-fh=fc.fc_com_reg_wave.plot(fcstats6,reg_com_maps,'condense_plot',true);
+fcstats=fc.fc_com_reg_wave.stats(wrs_meta,com_map,'odor_only',true);
+fh=fc.fc_com_reg_wave.plot(fcstats,reg_com_maps,'condense_plot',true,'odor_only',true);
 
 if false
     inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
@@ -193,11 +184,14 @@ end
 % wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
-fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem
-fh4.fig.Children.Subtitle.String='Excitatory';
-fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
-fh4i.fig.Children.Subtitle.String='Inhibitory';
+if false
+    fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem
+    fh4.fig.Children.Subtitle.String='Excitatory';
+    fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
+    fh4i.fig.Children.Subtitle.String='Inhibitory';
+end
 bz.conn_prob_spatial_dist(sig,pair);
+
 %% FC_Decoding
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')

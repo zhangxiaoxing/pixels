@@ -8,6 +8,7 @@ classdef fc_com_reg_wave < handle
                 wave_meta
                 su_com_map
                 opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
+                opt.odor_only (1,1) logical = false
             end
 
             [sig,~]=bz.load_sig_sums_conn_file();
@@ -23,14 +24,18 @@ classdef fc_com_reg_wave < handle
                 regsess=squeeze(sig.reg(sesssel,5,:));
 
                 com_sess_pct=nan(size(suid));
-                if opt.delay==6
-                    ffs=["s1d6","s2d6","olf_s1","olf_s2","dur_d6"];
-                    durkey='com6';
-                elseif opt.delay==3
-                    ffs=["s1d3","s2d3","olf_s1","olf_s2","dur_d3"];
-                    durkey='com3';
+                if opt.odor_only
+                    ffs=["olf_s1","olf_s2"];
+                    durkey='com';
+                else
+                    if opt.delay==6
+                        ffs=["s1d6","s2d6","olf_s1","olf_s2","dur_d6"];
+                        durkey='com6';
+                    elseif opt.delay==3
+                        ffs=["s1d3","s2d3","olf_s1","olf_s2","dur_d3"];
+                        durkey='com3';
+                    end
                 end
-
                 for ff=ffs
                     if isfield(su_com_map.(['s',num2str(sii)]),ff)
                         sukeys=su_com_map.(['s',num2str(sii)]).(ff).(durkey).keys(); % prefered SUid
@@ -50,14 +55,15 @@ classdef fc_com_reg_wave < handle
                 reg_com_maps
                 opt.condense_plot (1,1) logical = false
                 opt.omit_reg_wave (1,1) logical = true
+                opt.odor_only (1,1) logical = false
             end
             fns={'olf','dur','mixed'};
             idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
 
             congrusel=pct.su_pairs.get_congru(fc_com_pvsst_stats(:,10:11));
             % incongsel=pct.su_pairs.get_incongru(fc_com_pvsst_stats(:,10:11));
-            mixed_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);
             olf_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);
+            mixed_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);
             dur_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);
             typesel_mat=[olf_congru,dur_congru,mixed_congru];
 
@@ -108,6 +114,9 @@ classdef fc_com_reg_wave < handle
                 end
             else% same and diff % TODO
                 for typeIdx=1:3
+                    if opt.odor_only && typeIdx>1
+                        continue
+                    end
                     reg_tcom_map=reg_com_maps.(fns{typeIdx});
                     avail_regs=cell2mat(idmap.reg2ccfid.values(reg_tcom_map.keys()));
                     reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
@@ -154,17 +163,30 @@ classdef fc_com_reg_wave < handle
                 tiledlayout(1,3);
                 nexttile(1,[1,2])
                 hold on
-                bh=bar(1:3,barmm(:,5:6),'grouped');   % diff region, by reg_tcom
-                errorbar([bh.XEndPoints],[bh.YEndPoints],...
-                    [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
-                    [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
+                if opt.odor_only
+                    bh=bar(1,barmm(1,5:6),'grouped');   % diff region, by reg_tcom
+                    errorbar([bh.XEndPoints],[bh.YEndPoints],...
+                        [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
+                        [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
+                    set(gca(),'XTick',1,'XTickLabel',{'Olfactory'},...
+                        'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
+                else
+                    bh=bar(1:3,barmm(:,5:6),'grouped');   % diff region, by reg_tcom
+                    errorbar([bh.XEndPoints],[bh.YEndPoints],...
+                        [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
+                        [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
+                    set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Mixed'},...
+                        'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
+                    xlim([0.5,3.5])
+                end
                 ylim([0,0.75])
                 yline(0.5,'k--')
-                set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Mixed'},...
-                    'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
-                xlim([0.5,3.5])
+                
                 binocdfp=nan(1,3);
                 for typeidx=1:3
+                    if typeidx>1 && opt.odor_only
+                        continue
+                    end
                     binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
                     binocdfp(typeidx)=2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5);
                 end
