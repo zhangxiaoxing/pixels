@@ -4,23 +4,25 @@
 % spikes belong to some activity loops, which was much higher than
 % the shuffled level (). 
 
-function pstats=rings_time_constant(sums_all,opt)
+function pstats=rings_time_constant(sums_all,sel_meta,opt)
 arguments
     sums_all
+    sel_meta
     opt.load_file (1,1) logical = false
+    opt.skip_save (1,1) logical = false
 end
 % function cong_dir=rings_su_tcom_order(sums_all) % modified from
 % persistent sums_all
 % if isempty(sums_all)
 %     load(fullfile('bzdata','sums_ring_stats_all.mat'));
 % end
+
 if ~opt.load_file
     pstats=struct();
     pstats.congru=struct();
     pstats.nonmem=struct();
 
     su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-    wrs_mux_meta=ephys.get_wrs_mux_meta();
 
     rstats=cell(0,11);
     for rsize=3:5
@@ -30,7 +32,7 @@ if ~opt.load_file
             if curr_sess~=one_rsize{ridx,1}
                 curr_sess=one_rsize{ridx,1};
                 sesscid=su_meta.allcid(su_meta.sess==curr_sess);
-                sesswaveid=wrs_mux_meta.wave_id(su_meta.sess==curr_sess);
+                sesswaveid=sel_meta.wave_id(su_meta.sess==curr_sess);
                 sess_wave_map=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
             end
             curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize{ridx,3})));
@@ -122,9 +124,11 @@ if ~opt.load_file
             end
         end
     end
-%     keyboard();
-    blame=vcs.blame();
-    save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
+    %     keyboard();
+    if ~opt.skip_save
+        blame=vcs.blame();
+        save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
+    end
 else
     load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame')
 end
@@ -132,7 +136,7 @@ plotStats(pstats)
 end
 
 
-function plotStats(pstats)
+function plotStats(pstats,skip_save)
 fn=fieldnames(pstats.congru);
 sess=str2double(string(regexp(fn,'(?<=s)\d+(?=r.*)','match')));
 waveid=[3 6];
@@ -292,8 +296,10 @@ for wid=1:8
         %    max([stats{:}])
     end
 end
-blame=vcs.blame();
-save(fullfile('bzdata','hebbian_ring.mat'),'stats','blame')
+if ~skip_save
+    blame=vcs.blame();
+    save(fullfile('bzdata','hebbian_ring.mat'),'stats','blame')
+end
 C=struct2cell(stats).';
 expd=[C{:}];
 expdd=[expd{:}];

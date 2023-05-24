@@ -4,11 +4,13 @@
 % blame=vcs.blame();
 % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
-function [out,chains]=COM_chain(sel_meta,opt)
+function [out,chains]=COM_chain(sel_meta,su_com_map,opt)
 arguments
     sel_meta
+    su_com_map
     opt.strict (1,1) logical = false %strict ccg criteria
     opt.reverse (1,1) logical = false
+    opt.odor_only (1,1) logical = false
 end
 % global_init
 load('sums_conn_10.mat','sums_conn_str');
@@ -39,63 +41,77 @@ for fidx=1:numel(sums_conn_str)
         oneccg=sums_conn_str(fidx).ccg_sc;
         onecon=sums_conn_str(fidx).sig_con;
     end
-    %TODO nonmem,incongruent possible?
-    onecom=wave.get_pct_com_map(sel_meta,'onepath',sums_conn_str(fidx).folder,'curve',true); %per su center of mass, normalized FR
-    skey=fieldnames(onecom);
-    if isempty(skey), continue;end
-    
-    for wvtype=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
-        if ~isfield(onecom.(skey{1}),wvtype)
-            continue
+    %TODO nonmem,incongruent possible if relax criteria?
+
+    %     onecom=wave.get_pct_com_map(sel_meta,'onepath',sums_conn_str(fidx).folder,'curve',true); %per su center of mass, normalized FR
+    %     skey=fieldnames(onecom);
+    %     if isempty(skey), continue;end
+    skey="s"+sessid;
+    if ~isfield(su_com_map,skey)
+        continue
+    end
+
+    if opt.odor_only
+        if isfield(su_com_map.(skey),"olf_s1")
+            sub_chain=map2subchain(su_com_map,skey,'olf_s1',[],'com',onecon,opt.reverse);
+            chains=extend_chain(chains,sessid,"olf_s1",NaN,sub_chain);
         end
-        switch wvtype
-            case "s1d3"
-                sub_chain=map2subchain(onecom,skey,'s1d3','olf_s1','com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                sub_chain=map2subchain(onecom,skey,'s1d3','dur_d3','com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-
-            case "s1d6"
-                sub_chain=map2subchain(onecom,skey,'s1d6','olf_s1','com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-                sub_chain=map2subchain(onecom,skey,'s1d6','dur_d6','com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-            case "s2d3"
-                sub_chain=map2subchain(onecom,skey,'s2d3','olf_s2','com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                sub_chain=map2subchain(onecom,skey,'s2d3','dur_d3','com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-
-            case "s2d6"
-                sub_chain=map2subchain(onecom,skey,'s2d6','olf_s2','com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-                sub_chain=map2subchain(onecom,skey,'s2d6','dur_d6','com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-            case "olf_s1"
-                sub_chain=map2subchain(onecom,skey,'olf_s1',[],'com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                sub_chain=map2subchain(onecom,skey,'olf_s1',[],'com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-            case "olf_s2"
-                sub_chain=map2subchain(onecom,skey,'olf_s2',[],'com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                sub_chain=map2subchain(onecom,skey,'olf_s2',[],'com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-            case "dur_d3"
-                sub_chain=map2subchain(onecom,skey,'dur_d3',[],'com3',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-
-            case "dur_d6"
-                sub_chain=map2subchain(onecom,skey,'dur_d6',[],'com6',onecon,opt.reverse);
-                chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-            otherwise
-                keyboard()
+        if isfield(su_com_map.(skey),"olf_s2")
+            sub_chain=map2subchain(su_com_map,skey,'olf_s2',[],'com',onecon,opt.reverse);
+            chains=extend_chain(chains,sessid,"olf_s2",NaN,sub_chain);
         end
+    else
+        for wvtype=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
+            if ~isfield(su_com_map.(skey{1}),wvtype)
+                continue
+            end
+            switch wvtype
+                case "s1d3"
+                    sub_chain=map2subchain(su_com_map,skey,'s1d3','olf_s1','com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+                    sub_chain=map2subchain(su_com_map,skey,'s1d3','dur_d3','com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+
+                case "s1d6"
+                    sub_chain=map2subchain(su_com_map,skey,'s1d6','olf_s1','com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+                    sub_chain=map2subchain(su_com_map,skey,'s1d6','dur_d6','com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+
+                case "s2d3"
+                    sub_chain=map2subchain(su_com_map,skey,'s2d3','olf_s2','com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+                    sub_chain=map2subchain(su_com_map,skey,'s2d3','dur_d3','com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+
+                case "s2d6"
+                    sub_chain=map2subchain(su_com_map,skey,'s2d6','olf_s2','com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+                    sub_chain=map2subchain(su_com_map,skey,'s2d6','dur_d6','com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+
+                case "olf_s1"
+                    sub_chain=map2subchain(su_com_map,skey,'olf_s1',[],'com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+                    sub_chain=map2subchain(su_com_map,skey,'olf_s1',[],'com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+
+                case "olf_s2"
+                    sub_chain=map2subchain(su_com_map,skey,'olf_s2',[],'com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+                    sub_chain=map2subchain(su_com_map,skey,'olf_s2',[],'com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+
+                case "dur_d3"
+                    sub_chain=map2subchain(su_com_map,skey,'dur_d3',[],'com3',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
+
+                case "dur_d6"
+                    sub_chain=map2subchain(su_com_map,skey,'dur_d6',[],'com6',onecon,opt.reverse);
+                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
+            end
+        end
+
     end
 end
 
@@ -133,9 +149,9 @@ else
         cell2mat(onecom.(skey{1}).(fn2).(fn_sub).values())];
     curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
 end
-    sub_chain=chain_one(onecon,typesel,curr_com_map,reverse);
+sub_chain=chain_one(onecon,typesel,curr_com_map,reverse);
 end
-    
+
 function chains=chain_one(onecon,typesel,curr_com_map,reverse,opt)
 arguments
     onecon

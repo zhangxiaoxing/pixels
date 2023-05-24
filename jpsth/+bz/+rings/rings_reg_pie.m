@@ -1,15 +1,15 @@
 % TODO: pivot input to un-tagged format, for compatibility with shuffled
 % data
 
-function rstats=rings_reg_pie(rings,su_meta,opt)
+function rstats=rings_reg_pie(rings,su_meta,sel_meta,opt)
 arguments
     rings
     su_meta
+    sel_meta
     opt.plot (1,1) logical=true
     opt.congru (1,1) logical=true
 end
 
-wrs_mux_meta=ephys.get_wrs_mux_meta();
 rstats=cell(0,10);
 for rsize=3:5
     one_rsize=rings(:,rsize-2);
@@ -18,7 +18,7 @@ for rsize=3:5
             continue
         end
         sesscid=su_meta.allcid(su_meta.sess==curr_sess);
-        sesswaveid=wrs_mux_meta.wave_id(su_meta.sess==curr_sess);
+        sesswaveid=sel_meta.wave_id(su_meta.sess==curr_sess);
         sess_part=su_meta.reg_tree(1,su_meta.sess==curr_sess);
         sess_reg=su_meta.reg_tree(5,su_meta.sess==curr_sess);
 
@@ -26,6 +26,7 @@ for rsize=3:5
         sess_part_map=containers.Map(num2cell(sesscid),sess_part);
         sess_reg_map=containers.Map(num2cell(sesscid),sess_reg);
         for insessid=1:size(rings{curr_sess,rsize-2},1)
+            error("major revision in data structure, unfinished yet")
             curr_waveid=cell2mat(sess_wave_map.values(num2cell(rings{curr_sess,rsize-2}(insessid,:))));
             curr_part=sess_part_map.values(num2cell(rings{curr_sess,rsize-2}(insessid,:)));
             curr_reg=sess_reg_map.values(num2cell(rings{curr_sess,rsize-2}(insessid,:)));

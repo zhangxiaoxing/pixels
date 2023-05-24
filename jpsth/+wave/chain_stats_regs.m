@@ -1,20 +1,22 @@
+function chain_stats_regs(chains_input,su_meta,opt)
+arguments
+    chains_input
+    su_meta
+    opt.len_thresh (1,1) double = 4
+    opt.odor_only (1,1) logical = 1
+end
 shuf_sum=struct([]);
-
 %% data collect
-global_init;
-wrs_mux_meta=ephys.get_wrs_mux_meta();
 greys=ephys.getGreyRegs('range','grey');
-su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
-% wave.COM_chain_shuf(wrs_mux_meta);
+
 load('chains_shuf.mat','shuf_chains')
 for shuf_idx=[1:100,0]
     if shuf_idx>0
         chains_uf=shuf_chains{shuf_idx};
     else
-        load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
+        chains_uf=chains_input;
     end
 
     % region tag
@@ -41,14 +43,14 @@ for shuf_idx=[1:100,0]
         end
     end %sess
     % within & cross count
-    disp([...
-        nnz(chains_uf.reg_sel=="within" & cellfun(@(x) numel(x)>4,chains_uf.cids)),...
-        nnz(chains_uf.reg_sel=="cross" & cellfun(@(x) numel(x)>4,chains_uf.cids))...
-        ]);
+%     disp([...
+%         nnz(chains_uf.reg_sel=="within" & cellfun(@(x) numel(x)>=opt.len_thresh,chains_uf.cids)),...
+%         nnz(chains_uf.reg_sel=="cross" & cellfun(@(x) numel(x)>=opt.len_thresh,chains_uf.cids))...
+%         ]);
 
     % repeated occurrence
     chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
-    len_sel=cellfun(@(x) numel(x),chains_uf.cids)>4;
+    len_sel=cellfun(@(x) numel(x),chains_uf.cids)>=opt.len_thresh;
 
     olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel; % & (chains_uf.reg_sel==curr_tag)
     olf_uid=[chains_uf.uid{olf_sel}];
@@ -122,6 +124,9 @@ for curr_tag=["within","cross"]
     ylim([0.001,10]);
     ylabel('occurrence per neuron')
     title("olf "+curr_tag)
+    if opt.odor_only
+        continue
+    end
     nexttile()
     bary=zeros(1,3);
     barn=min(numel(both_ratio.(curr_tag)),3);
@@ -132,7 +137,7 @@ for curr_tag=["within","cross"]
     ylabel('occurrence per neuron')
     title("both "+curr_tag)
 end
- 
+
 
 %% full list vs shuffle
 
@@ -148,7 +153,7 @@ for curr_tag=["within","cross"]
     for onereg=reshape(regsel,1,[])
         for ii=1:numel(shuf_sum)
             shufmat(ii,regidx)=shuf_sum(ii).olf_ratio.(curr_tag)(strcmp(shuf_sum(ii).all_chain_regs.(curr_tag),char(onereg)));
-        end             
+        end
         regidx=regidx+1;
     end
     bh=bar(1:numel(regsel),[olf_ratio.(curr_tag)(barsel),mean(shufmat).'],'grouped');
@@ -171,7 +176,10 @@ for curr_tag=["within","cross"]
     text(find(zscores>norminv(0.9995)),repmat(9,nnz(zscores>norminv(0.9995)),1),'***','HorizontalAlignment','center')
     text(find(zscores>norminv(0.995)),repmat(3.16,nnz(zscores>norminv(0.995)),1),'**','HorizontalAlignment','center')
     text(find(zscores>norminv(0.975)),repmat(1,nnz(zscores>norminv(0.975)),1),'*','HorizontalAlignment','center')
-
+    
+    if opt.odor_only
+        continue
+    end
 
     nexttile()
     hold on
@@ -201,5 +209,4 @@ for curr_tag=["within","cross"]
     text(find(zscores>norminv(0.995)),repmat(3.16,nnz(zscores>norminv(0.995)),1),'**','HorizontalAlignment','center')
     text(find(zscores>norminv(0.975)),repmat(1,nnz(zscores>norminv(0.975)),1),'*','HorizontalAlignment','center')
 end
-
-
+end

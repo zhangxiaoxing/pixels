@@ -125,8 +125,8 @@ else % W/o burst
         zscore.(type{1})=(wavetype.(type{1})-shuffmm)./shufstd;
     end
     zscoremat=cell2mat(struct2cell(zscore));
-    zscoremm=mean(zscoremat,2);
-    zscorestd=std(zscoremat,0,2);
+    zscoremm=arrayfun(@(x) mean(zscoremat(x,isfinite(zscoremat(x,:)))),1:size(zscoremat,1));
+    zscorestd=arrayfun(@(x) std(zscoremat(x,isfinite(zscoremat(x,:)))),1:size(zscoremat,1));
     zscoresem=zscorestd./sqrt(1000);
 
     ranksum(zscoremat(1,:),zscoremat(3,:))

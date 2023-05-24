@@ -1,16 +1,17 @@
-% load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
-chains=chains_uf;
-clear chains_uf;
+% Duplicates of same function in motif_dynamic.m
+% Pending removal as of 2023.5.24
+
+function chains_tcom_span(chains)
 wids=reshape(unique(chains.wave),1,[]);
 t_span=struct();
-for dur=3:3:6
-    for wid=wids
+for wid=wids
+    for dur=3:3:6
         lsel=cellfun(@(x) numel(x)>4,chains.cids);
         wsel=chains.wave==wid & chains.dur==dur;
         dtcom=cellfun(@(x) x(end)-x(1),chains.tcoms(lsel & wsel));
-%         if ~isfield(t_span,wid+num2str(dur))
-%             t_span.(wid+num2str(dur))=[];
-%         end
+        %         if ~isfield(t_span,wid+num2str(dur))
+        %             t_span.(wid+num2str(dur))=[];
+        %         end
         if ~isempty(dtcom)
             t_span.("d"+num2str(dur)).(wid)=dtcom;
         end
@@ -27,3 +28,4 @@ plot([100:200:900,1500:1000:5500],hist3,'--k')
 plot([100:200:900,1500:1000:5500],hist6,'-k')
 set(gca(),'XScale','log','YScale','log');
 ylim([1e-5,0.1])
+end

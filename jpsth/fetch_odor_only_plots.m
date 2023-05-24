@@ -1,9 +1,9 @@
 % 37.72 w/o FDR, 17.53 w/FDR
+keyboard()
 
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-keyboard()
 global_init;
-meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_meta=ephys.get_wrs_meta('fdr',true);
 
 com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
@@ -29,7 +29,7 @@ wave_n_stay=nnz(ismember(wrs_meta.wave_id,5:6) & wrs_meta.p_olf(:,3)<0.05 & all(
 % idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
 idx=[510];
 for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
+    scfh=ephys.sens_dur_SC(ii,su_meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
         sgtitle(scfh, "SU #"+num2str(ii)+", OLF");
 %         keyboard();
@@ -167,12 +167,12 @@ mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(reg_com_maps,gather_config.c
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
 
-%% FIG 3 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-fcstats=fc.fc_com_reg_wave.stats(wrs_meta,com_map,'odor_only',true);
-fh=fc.fc_com_reg_wave.plot(fcstats,reg_com_maps,'condense_plot',true,'odor_only',true);
+fcstats=fc.fc_com_reg_wave.stats(wrs_meta,com_map,reg_com_maps,'odor_only',true);
+[barmm,barci,barcnt]=fc.fc_com_reg_wave.sums(fcstats,'odor_only',true);
+fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt,'condense_plot',false,'odor_only',true,'omit_reg_wave',false);
+
 
 if false
     inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
@@ -206,55 +206,53 @@ bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 
+
+%% chain
+chains_fwd=wave.COM_chain(wrs_meta,com_map,'odor_only',true);
+chains_rev=wave.COM_chain(wrs_meta,com_map,'odor_only',true,'reverse',true);
+
+nnz(cellfun(@(x) numel(unique(x)),chains_fwd.cids)>5)
+nnz(cellfun(@(x) numel(unique(x)),chains_rev.cids)>5)
+
+wave.chain_stats(chains_fwd,chains_rev,su_meta,wrs_meta);
+wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",6,"odor_only",true)
+if false
+    out=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',6); % per-spk association
+    save(fullfile('bzdata','chain_tag_fdr_6.mat'),'out','blame')
+else
+    load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out','blame')
+end
+wave.motif_dynamic.single_spike_chains(out)
+
+wave.chains_loops_sc
+wave.chain_SC %plot
+
 %% loops
 % sums_all
-bz.rings.ring_wave_freq(wrs_mux_meta); 
-load(fullfile('bzdata','sums_ring_stats_all.mat'));
-% bz.rings.rings_reg_pie(sums_all)
-% bz.rings.rings_freq
-bz.rings.rings_time_constant(sums_all)
+bz.rings.ring_wave_freq(wrs_meta,'denovo',true,'burst',false,'repeats',3); 
+
+load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
+bz.rings.rings_time_constant(sums_all,wrs_meta,'load_file',false,'skip_save',true);
+
 bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta);
 bz.rings.rings_wave_dynamic(sums_all)
 bz.rings.rings_su_wave_tcom_corr(sums_all)
 
-%TODO: assembly time constant olf, both, 3s 6s
-
-%% chain
-
-% global_init;
-% chains_uf=wave.COM_chain(sel_meta);
-% chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
-% blame=vcs.blame();
-% save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
-
-load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev')
 
 
-nnz(cellfun(@(x) numel(unique(x)),chains_uf.cids)>4)
-nnz(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids)>4)
+%% w/ bursts
 
-wave.chain_stats;
-wave.chain_stats_regs.m
-wave.chains_time_constant
-wave.chains_loops_sc
-wave.chain_tag(chains) % per-spk association
-wave.chain_SC %plot
-wave.chain_sust_tag(chains_uf,'burstInterval',150)
-wave.chain_sust_tag(chains_uf,'burstInterval',300)
-wave.chain_sust_tag(chains_uf,'burstInterval',600)
+wave.chain_sust_tag(chains_fwd,'burstInterval',150)
+wave.chain_sust_tag(chains_fwd,'burstInterval',300)
+wave.chain_sust_tag(chains_fwd,'burstInterval',600)
 
 % chains, inconsistent (reverse) direction
-wave.chain_tag(chains_uf_rev,'rev',true) % per-spk association
+wave.chain_tag(chains_rev,'rev',true) % per-spk association
 
-rev_out_150=wave.chain_sust_tag(chains_uf_rev,'burstInterval',150,'rev',true);
-
-
+rev_out_150=wave.chain_sust_tag(chains_rev,'burstInterval',150,'rev',true);
 
 
 %% chained loops
 wave.chain_loop_stats
 %% exports
-
-
-
 

@@ -9,13 +9,15 @@ arguments
     opt.ccg (1,1) logical = true
     opt.rev (1,1) logical = false
     opt.shuf_trl (1,1) logical = false
-    opt.shuf_idx (1,1) double = []
+    opt.shuf_idx (1,1) double = 0
     opt.per_reg_wave (1,1) logical = true
+    opt.len_thresh (1,1) logical = 4
+    opt.skip_save (1,1) logical = false
 end
 %% DEBUG
 % out=chain_alt(chains);
 %%
-if opt.shuf_trl && isempty(opt.shuf_idx)
+if opt.shuf_trl && opt.shuf_idx==0
     error("index is necessary for shuffled data")
 end
 if opt.ccg
@@ -45,7 +47,7 @@ for sessid=sesses
                 keyboard();
             end
             
-            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>4),1,[]);
+            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>opt.len_thresh),1,[]);
 
             for cc=sess_indices
                 ts_id=[];
@@ -139,15 +141,16 @@ if opt.ccg
     end
 end
 
-blame=vcs.blame();
-if opt.rev
-    save(fullfile('bzdata','chain_rev_tag.mat'),'out','blame');
-elseif opt.shuf_trl
-    save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','blame');
-else
-    save(fullfile('bzdata','chain_tag.mat'),'out','blame');
+if ~opt.skip_save
+    blame=vcs.blame();
+    if opt.rev
+        save(fullfile('bzdata','chain_rev_tag.mat'),'out','blame');
+    elseif opt.shuf_trl
+        save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','blame');
+    else
+        save(fullfile('bzdata','chain_tag.mat'),'out','blame');
+    end
 end
-
 
 stats(out);
 end
