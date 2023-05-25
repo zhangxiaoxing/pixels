@@ -1,8 +1,10 @@
 %TODO shuffled data
 
-function loop_occurrence_per_reg_su(su_meta,opt)
+function loop_occurrence_per_reg_su(sums_all,su_meta,sel_meta,opt)
 arguments
+    sums_all
     su_meta
+    sel_meta
     opt.pie (1,1) logical = false
     opt.bar (1,1) logical = true
     opt.barn (1,1) double = 3
@@ -24,11 +26,11 @@ lbls={{'Olfactory within region','Sum of total node in loops'};...
 
 dsets_shuf=cell(100,8);
 % loop_reg_shuf=[];
-for shufrpt=[1:100,0]
+for shufrpt=0:100
     if shufrpt==0
-        rstats=bz.rings.rings_reg_pie(fstr.rings,su_meta,'plot',false);
+        rstats=bz.rings.rings_reg_pie(sums_all,su_meta,sel_meta,'plot',false); % 116X3
     else
-        rstats=bz.rings.rings_reg_pie(fstr.rings_shuf{shufrpt},su_meta,'plot',false);
+        rstats=bz.rings.rings_reg_pie(fstr.rings_shuf{shufrpt},su_meta,sel_meta,'plot',false);
     end
     if rem(shufrpt,10)==0
         disp(shufrpt)

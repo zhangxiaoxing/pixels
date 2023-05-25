@@ -383,6 +383,41 @@ classdef  motif_dynamic < handle
 
         end
 
+        %% single spike loops
+        function single_spike_loops(pstats)
+            pstats=rmfield(pstats,"nonmem");
+            durs=[];
+            for cc=reshape(fieldnames(pstats.congru),1,[])
+                onechain=pstats.congru.(cc{1});
+                for cidx=1:size(onechain.rstats{3},2)
+                    % run length tag
+                    for tagi=reshape(setdiff(unique(onechain.ts_id.Loop_tag),0),1,[])
+                        tseq=onechain.ts_id.TS(onechain.ts_id.Loop_tag==tagi);
+                        durs=[durs,double((tseq(end)-tseq(1)))./30];
+                    end
+                end
+            end
+            
+            congru_pdf=histcounts(durs,[0:9,10:10:200],'Normalization','pdf');
+
+            figure()
+            hold on
+            sph=plot([0.5:9.5,15:10:195],congru_pdf,'-k');
+
+            set(gca(),'XScale','log','YScale','log');
+            ylim([1e-5,0.1]);
+            xlabel('Time (ms)')
+            ylabel('Probability density (per loop per ms)')
+
+            qtrs=prctile(durs,[10,50,90]); % 16.9   22.2   28.3, @2023-03-08
+            xline(qtrs,'--k',string(qtrs))
+            ylim([1e-4,1e-1])
+            title('single spike loops')
+        end
+
+
+
+
         function composite_loops()
             hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
             C=struct2cell(hrstats.stats).';

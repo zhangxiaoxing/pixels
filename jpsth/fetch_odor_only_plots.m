@@ -19,7 +19,6 @@ reg_com_maps.olf=containers.Map(...
 % on=nnz(ismember(wrs_meta.wave_id,5:6));
 % alln=numel(wrs_meta.wave_id);
 
-
 %% wave & stay
 wave_n_stay=nnz(ismember(wrs_meta.wave_id,5:6) & wrs_meta.p_olf(:,3)<0.05 & all(wrs_meta.p_olf(:,4:6)<0.05,2));
 
@@ -162,11 +161,14 @@ mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(reg_com_maps,gather_config.c
 
 
 %% Functional coupling
+fh4=bz.inter_wave_pct(wrs_meta); %congru vs incongru vs nonmem
+fh4.fig.Children.Subtitle.String='Excitatory';
 
-%% TODO: COM_CHAIN
-% K:\code\jpsth\+wave\COM_chain_SC.m
 
-
+if false
+    fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
+    fh4i.fig.Children.Subtitle.String='Inhibitory';
+end
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 fcstats=fc.fc_com_reg_wave.stats(wrs_meta,com_map,reg_com_maps,'odor_only',true);
@@ -184,12 +186,7 @@ end
 % wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
-if false
-    fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem
-    fh4.fig.Children.Subtitle.String='Excitatory';
-    fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
-    fh4i.fig.Children.Subtitle.String='Inhibitory';
-end
+
 bz.conn_prob_spatial_dist(sig,pair);
 
 %% FC_Decoding
@@ -203,9 +200,7 @@ bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 % 
 % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
 
-
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
-
 
 %% chain
 chains_fwd=wave.COM_chain(wrs_meta,com_map,'odor_only',true);
@@ -220,7 +215,7 @@ if false
     out=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',6); % per-spk association
     save(fullfile('bzdata','chain_tag_fdr_6.mat'),'out','blame')
 else
-    load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out','blame')
+    load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out')
 end
 wave.motif_dynamic.single_spike_chains(out)
 
@@ -232,11 +227,22 @@ wave.chain_SC %plot
 bz.rings.ring_wave_freq(wrs_meta,'denovo',true,'burst',false,'repeats',3); 
 
 load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
-bz.rings.rings_time_constant(sums_all,wrs_meta,'load_file',false,'skip_save',true);
+if false
+    pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_meta,'load_file',false,'skip_save',true);
+else
+    load(fullfile('bzdata','loops_stats_fdr_6.mat'),'pstats')
+end
+wave.motif_dynamic.single_spike_loops(pstats)
+bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta,wrs_meta);
 
-bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta);
-bz.rings.rings_wave_dynamic(sums_all)
-bz.rings.rings_su_wave_tcom_corr(sums_all)
+if false
+    bz.rings.rings_su_wave_tcom_corr(sums_all)
+end
+
+%% chained loops
+
+wave.module_motif_asso_composite
+wave.chain_loop_stats
 
 
 
@@ -252,7 +258,6 @@ wave.chain_tag(chains_rev,'rev',true) % per-spk association
 rev_out_150=wave.chain_sust_tag(chains_rev,'burstInterval',150,'rev',true);
 
 
-%% chained loops
-wave.chain_loop_stats
+
 %% exports
 

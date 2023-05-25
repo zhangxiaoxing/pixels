@@ -1,6 +1,6 @@
 % tag spikes in neuron with loop or chain activity
-% TODO: remove su based on shared motif didn't meet expectation while WIP.
-% streamline relative code sniplet.
+% TODO: remove su based on shared motif didn't meet expectation. WIP.
+% streamline related/duplicate code sniplet.
 
 
 %%

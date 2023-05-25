@@ -18,8 +18,8 @@ both_uid=[chains_uf.uid{both_sel}];
 % dur_uid=[chains_uf.uid{dur_sel}];
 % [chain_dur_uid,~]=unique(dur_uid);
 
-load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
-rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
+load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all'); % 1X3
+rstats=bz.rings.rings_reg_pie(sums_all,'plot',false); % 1X3
 
 lolf_sel=strcmp(rstats(:,9),'olf');
 loop_olf_uid=unique([rstats{lolf_sel,10}]);

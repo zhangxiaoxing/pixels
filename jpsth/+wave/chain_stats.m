@@ -266,8 +266,8 @@ end
 
 %chain vs loop
 if false
-    load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
-    rstats=bz.rings.rings_reg_pie(sums_all,su_meta,sel_meta,'plot',false);
+    load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');% 1X3
+    rstats=bz.rings.rings_reg_pie(sums_all,su_meta,sel_meta,'plot',false);% 1X3
 
     lolf_sel=strcmp(rstats(:,9),'olf');
     loop_olf_uid=unique([rstats{lolf_sel,10}]);

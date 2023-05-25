@@ -1,28 +1,32 @@
 % tag spikes in neuron with loop or chain activity
 % olf, enc-both disconnect, composite proportion, bargraph
 % TODO: overall refactoring
-% TODO: rename file
 
+readfile=false;
 skipfile=false;
 stats=struct();
 per_trl_nodes=cell(0);
 complexity_sums=[];
 degree_sums=[];
 
+
 if true%~exist('inited','var') || ~inited  % denovo data generation
     
     %% single spike chain
-    sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
+    if readfile
+        sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
+        load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
+    else
+        sschain.out=out;
+    end
     keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
         struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
     keys=vertcat(keys{:});
     ssc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
 
     %% single spike loop
-    load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
     pstats=rmfield(pstats,"nonmem");
     ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
-
     usess=intersect(ssc_sess,ssl_sess);
 
     % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8

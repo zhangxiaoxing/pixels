@@ -10,8 +10,8 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'early_smooth',false);
 
 
-load(fullfile('bzdata','sums_ring_stats_all.mat'));
-rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);
+load(fullfile('bzdata','sums_ring_stats_all.mat'));% 1X3
+rstats=bz.rings.rings_reg_pie(sums_all,'plot',false);% 1X3
 clear sums_all
 rstats(:,5)=num2cell(cellfun(@(x) all(ismember(x,greys),"all"),rstats(:,8)));
 
