@@ -3,7 +3,7 @@
 % chains=chains_uf;
 % clear chains_uf;
 
-function out=chain_tag(chains,opt)
+function [out,notfound]=chain_tag(chains,opt)
 arguments
     chains
     opt.ccg (1,1) logical = true
@@ -11,7 +11,7 @@ arguments
     opt.shuf_trl (1,1) logical = false
     opt.shuf_idx (1,1) double = 0
     opt.per_reg_wave (1,1) logical = true
-    opt.len_thresh (1,1) logical = 4
+    opt.len_thresh (1,1) double = 4
     opt.skip_save (1,1) logical = false
 end
 %% DEBUG
@@ -23,6 +23,8 @@ end
 if opt.ccg
     load('sums_conn_10.mat','sums_conn_str');
 end
+
+notfound=cell(0);
 %% build chains
 % all_chains=fieldnames(pstats.congru);
 waveids=reshape(unique(chains.wave),1,[]);
@@ -47,7 +49,7 @@ for sessid=sesses
                 keyboard();
             end
             
-            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>opt.len_thresh),1,[]);
+            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=opt.len_thresh),1,[]);
 
             for cc=sess_indices
                 ts_id=[];
@@ -119,6 +121,8 @@ for sessid=sesses
                         end
                         out.("d"+duration).(wid).(outkey).ccgs=chainccg;
                     end
+                else
+                    notfound=[notfound;{sessid},{cc},{cids}];
                 end
             end
         end
@@ -152,25 +156,25 @@ if ~opt.skip_save
     end
 end
 
-stats(out);
+% stats(out);
 end
-
-function stats(out)
-for dur=reshape(fieldnames(out),1,[])
-    perchaindur=struct();
-    [perchaindur.size,perchaindur.dur]=deal([]);
-    for wv=reshape(fieldnames(out.(dur{1})),1,[])
-        for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-            perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
-            perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
-        end
-    end
-    statss.("d"+dur)=perchaindur;
-end
-
-disp([max(cell2mat(statss.dd3.dur)),max(cell2mat(statss.dd6.dur))])
-
-end
+% 
+% function stats(out)
+% for dur=reshape(fieldnames(out),1,[])
+%     perchaindur=struct();
+%     [perchaindur.size,perchaindur.dur]=deal([]);
+%     for wv=reshape(fieldnames(out.(dur{1})),1,[])
+%         for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
+%             perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
+%             perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
+%         end
+%     end
+%     statss.("d"+dur)=perchaindur;
+% end
+% 
+% disp([max(cell2mat(statss.dd3.dur)),max(cell2mat(statss.dd6.dur))])
+% 
+% end
 
 
 function out=chain_alt(in)

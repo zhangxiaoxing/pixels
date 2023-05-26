@@ -4,7 +4,7 @@ keyboard()
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-wrs_meta=ephys.get_wrs_meta('fdr',true);
+wrs_meta=ephys.get_wrs_meta('fdr',false);
 
 com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
 
@@ -23,18 +23,18 @@ reg_com_maps.olf=containers.Map(...
 wave_n_stay=nnz(ismember(wrs_meta.wave_id,5:6) & wrs_meta.p_olf(:,3)<0.05 & all(wrs_meta.p_olf(:,4:6)<0.05,2));
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-% olf >>>>>>>>>>>>>>>>>>>>>>>>>
 % #510
 % idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
-idx=[510];
-for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,su_meta,'skip_raster',false,'skip_fill',true);%
-    if ~isempty(scfh)
-        sgtitle(scfh, "SU #"+num2str(ii)+", OLF");
-%         keyboard();
+if false
+    idx=[510];
+    for ii=reshape(idx,1,[])
+        scfh=ephys.sens_dur_SC(ii,su_meta,'skip_raster',false,'skip_fill',true);%
+        if ~isempty(scfh)
+            sgtitle(scfh, "SU #"+num2str(ii)+", OLF");
+            %         keyboard();
+        end
     end
 end
-
 
 
 % %% svm decoding
@@ -69,17 +69,20 @@ else
     [~,~,p]=crosstab(1:2000>1000,[dur4odor.olf.c_result_50su;dur4odor.olf.e_result_50su])
     [~,~,p]=crosstab(1:2000>1000,[dur4dur.dur.c_result_50su;dur4dur.dur.e_result_50su])
 end
-fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
+if false
+    fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
+    %% duration switch trial v continuation trial
+    ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'olf')
+end
 
-%% duration switch trial v continuation trial
-ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'olf')
 
 
 %% sust trans
 % TODO olf only
-fh=ephys.sust_trans_bar_w_mix(wrs_meta);
-fh=ephys.sust_trans_correct_error(wrs_meta);
-
+if false %TODO update functions
+    fh=ephys.sust_trans_bar_w_mix(wrs_meta);
+    fh=ephys.sust_trans_correct_error(wrs_meta);
+end
 %% wave-half-half
 if false
     rpt=100;
@@ -96,15 +99,15 @@ if false
     blame=vcs.blame();
     save('com_error.mat','com_map_err','blame');
 end
-
-while true
-    wave_half_half_fh=wave.plot_wave_half_half(wrs_mux_meta,'minr',0.90);
-    if ~isempty(wave_half_half_fh)
-        break;
+if false % TODO: udpate functions
+    while true
+        wave_half_half_fh=wave.plot_wave_half_half(wrs_mux_meta,'minr',0.90);
+        if ~isempty(wave_half_half_fh)
+            break;
+        end
     end
+    stats_half_half_fh=wave.COM_half_half_wrs_mux();
 end
-stats_half_half_fh=wave.COM_half_half_wrs_mux();
-
 %% wave 
 for hbound=0.8
     fh=wave.plot_pct_wave(wrs_meta,com_map,'comb_set',3,'scale',[0,hbound],'gauss2d',true);
@@ -113,16 +116,14 @@ end
 
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-%% Proportion, TCOM related
+%% Proportion, GLM
 [map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_meta,'xyscale',{'linear','linear'},'only_odor',true); % only need map_cells for tcom-frac corr
-% ch=gcf().Children.Children;
-% ch(3).YLim=[0,0.6];
 map_cells=rmfield(map_cells,{'mixed','dur'});
-
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,gather_config.corr_log_log, ...
     'range','grey','data_type','pct-frac','stats_type','percentile');
 
-%% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+%% TCOM, GLM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % joint 3s-6s trials
 mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(reg_com_maps,gather_config.corr_ln_log, ...
     'range','grey','data_type','wrs-TCOM','stats_type','wrs');
@@ -164,7 +165,6 @@ mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(reg_com_maps,gather_config.c
 fh4=bz.inter_wave_pct(wrs_meta); %congru vs incongru vs nonmem
 fh4.fig.Children.Subtitle.String='Excitatory';
 
-
 if false
     fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
     fh4i.fig.Children.Subtitle.String='Inhibitory';
@@ -175,7 +175,6 @@ fcstats=fc.fc_com_reg_wave.stats(wrs_meta,com_map,reg_com_maps,'odor_only',true)
 [barmm,barci,barcnt]=fc.fc_com_reg_wave.sums(fcstats,'odor_only',true);
 fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt,'condense_plot',false,'odor_only',true,'omit_reg_wave',false);
 
-
 if false
     inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
     %skipped for current manuscript
@@ -185,48 +184,48 @@ end
 % separate wave timing cdf
 % wave.mix_single_wave_timing
 
-%>>> jump to TCOM section as needed
-
-bz.conn_prob_spatial_dist(sig,pair);
+if false %TODO: update functions
+    bz.conn_prob_spatial_dist(sig,pair);
 
 %% FC_Decoding
-bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
-bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 
-%% FC_TCOM_hierachy
-% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
-% 
-% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
-% 
-% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
+    bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
+    bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 
-bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
-
+    %% FC_TCOM_hierachy
+    % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
+    % 
+    % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
+    % 
+    % [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
+    
+    bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
+end
 %% chain
 chains_fwd=wave.COM_chain(wrs_meta,com_map,'odor_only',true);
 chains_rev=wave.COM_chain(wrs_meta,com_map,'odor_only',true,'reverse',true);
 
-nnz(cellfun(@(x) numel(unique(x)),chains_fwd.cids)>5)
-nnz(cellfun(@(x) numel(unique(x)),chains_rev.cids)>5)
-
+[gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_fwd.cids))
+[gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_rev.cids))
 wave.chain_stats(chains_fwd,chains_rev,su_meta,wrs_meta);
-wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",6,"odor_only",true)
+
+
+keyboard();
+wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",7,"odor_only",true)
 if false
-    out=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',6); % per-spk association
+    [sschain.out,unfound]=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',7); % per-spk association
     save(fullfile('bzdata','chain_tag_fdr_6.mat'),'out','blame')
 else
-    load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out')
+    sschain=load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out');
 end
-wave.motif_dynamic.single_spike_chains(out)
+wave.motif_dynamic.single_spike_chains(sschain.out)
 
-wave.chains_loops_sc
-wave.chain_SC %plot
 
 %% loops
 % sums_all
-bz.rings.ring_wave_freq(wrs_meta,'denovo',true,'burst',false,'repeats',3); 
-
 load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
+bz.rings.ring_wave_freq(wrs_meta,'denovo',true,'burst',false,'repeats',5); 
+
 if false
     pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_meta,'load_file',false,'skip_save',true);
 else
@@ -241,10 +240,16 @@ end
 
 %% chained loops
 
-wave.module_motif_asso_composite
-wave.chain_loop_stats
+disconnected=wave.module_motif_asso_composite(sschain,pstats);
+run_length=wave.chain_loop_stats(sschain,pstats,disconnected);
 
 
+return
+
+
+%%
+wave.chains_loops_sc
+wave.chain_SC %plot
 
 %% w/ bursts
 

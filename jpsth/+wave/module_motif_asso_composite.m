@@ -2,8 +2,14 @@
 % olf, enc-both disconnect, composite proportion, bargraph
 % TODO: overall refactoring
 
-readfile=false;
-skipfile=false;
+function [disconnected,degree_sums,complexity_sums]=module_motif_asso_composite(sschain,pstats,opt)
+arguments
+    sschain
+    pstats
+    opt.readfile=false;
+    opt.skipfile=true;
+end
+
 stats=struct();
 per_trl_nodes=cell(0);
 complexity_sums=[];
@@ -11,13 +17,11 @@ degree_sums=[];
 
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
-    
+
     %% single spike chain
-    if readfile
+    if opt.readfile
         sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
         load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
-    else
-        sschain.out=out;
     end
     keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
         struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
@@ -25,7 +29,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     ssc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
 
     %% single spike loop
-    pstats=rmfield(pstats,"nonmem");
+    if isfield(pstats,'nonmem'), pstats=rmfield(pstats,"nonmem");end
     ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
     usess=intersect(ssc_sess,ssl_sess);
 
@@ -34,7 +38,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     %% per-session entrance
     per_trial_motif_cid=cell(0);
     per_trial_motif_freq=[];
-    
+
     stats.chain=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
     stats.loop=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
     for sessid=reshape(usess,1,[])
@@ -49,7 +53,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             zeros(nnz(wtsel),4)];
 
         %% single spike chain
-        
+
         for dur=["d6","d3"]
             dd=str2double(replace(dur,"d",""));
             for wid=reshape(fieldnames(sschain.out.(dur)),1,[])
@@ -135,10 +139,10 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
                 per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
             end
-                %check cid in largest network
+            %check cid in largest network
         end
     end
-    if ~skipfile
+    if ~opt.skipfile
         blame=vcs.blame();
         save(fullfile("bzdata","SingleSpikeChainedLoopCid.mat"),'per_trial_motif_cid','per_trial_motif_freq','blame','stats')
     end
@@ -155,18 +159,22 @@ for tt=1:size(per_trial_motif_cid,1)
     end
 
     if numel(per_trial_motif_cid{tt,1})+numel(per_trial_motif_cid{tt,2})==1
-        % single chain or loop
-        % Logically should be dealt with, but practically no instance
-        % found.
-        keyboard()
+        tkey=sprintf('%d-',per_trial_motif_freq(tt,1),cell2mat([per_trial_motif_cid{tt,1:2}]));
+        if ~ismember(tkey,processed)
+            disconnected=[disconnected;{per_trial_motif_freq(tt,1)},per_trial_motif_cid{tt,1:2}];
+            processed=[processed;tkey];
+        end
+        continue
     end
 
     % build graph network
     edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,1:2}],'UniformOutput',false).'),'rows'));
     gh=graph(edges(:,1),edges(:,2));
-    degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},gh.numnodes,1),str2double(table2array(gh.Nodes)),gh.degree];
+    %   Moved to enforce composite requirement
+    %   TODO: optional switch?
+    %   degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},gh.numnodes,1),str2double(table2array(gh.Nodes)),gh.degree];
     conncomp=gh.conncomp();
-    % TODO digraph?
+    % TODO: digraph?
     % check module in network
     if any(conncomp~=1)
         comps=unique(conncomp);
@@ -199,6 +207,7 @@ for tt=1:size(per_trial_motif_cid,1)
         subgh=gh.subgraph(conncomp==subsidx);
         complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
         per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
+        degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},subgh.numnodes,1),str2double(table2array(subgh.Nodes)),subgh.degree];
     end
 end
 
@@ -217,7 +226,10 @@ for di=1:size(disconnected,1)
         disconn_count=[disconn_count;"bothloop"];
     end
 end
+
+
 figure()
+
 tiledlayout(1,2)
 mcount=struct();
 for wv=["olf","both"] % dur
@@ -225,7 +237,11 @@ for wv=["olf","both"] % dur
     hold on
     for motif=["chain","loop"]
         ulist=unique(arrayfun(@(kii) string(sprintf('%d-',stats.(motif).(wv){kii,1},sort(stats.(motif).(wv){kii,2}))),1:size(stats.(motif).(wv),1)));
-        disconn_n=nnz(contains(disconn_count,wv) & contains(disconn_count,motif));
+        if isempty(disconn_count)
+            disconn_n=0;
+        else
+            disconn_n=nnz(contains(disconn_count,wv) & contains(disconn_count,motif));
+        end
         mcount.(wv).(motif)=[numel(ulist),disconn_n];
     end
     mm=[(mcount.(wv).chain(1)-mcount.(wv).chain(2))./mcount.(wv).chain(1),...
@@ -255,10 +271,10 @@ for uididx=1:size(uuid,1)
     if ~isempty(metaidx)
         sureg=su_meta.reg_tree(5,metaidx);
     else
-        
+
         error("ERROR");
     end
-   
+
     % per region data add
     if ~ismissing(sureg)
         if ~isfield(per_reg,sureg{1})
@@ -330,10 +346,9 @@ xlim([0.5,1.5])
 ylabel('Number of FCs')
 
 
-
-
-figure()
+figure('Position',[100,100,150,400])
 boxplot(uniq_net(:,5),'Colors','k','Whisker',inf,'Widths',1)
 ylim([0,1])
 set(gca,'XTick',[],'YTick',0:0.25:1,'YTickLabel',0:25:100)
 ylabel('Network density')
+end

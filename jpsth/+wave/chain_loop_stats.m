@@ -2,21 +2,27 @@
 % TODO: remove su based on shared motif didn't meet expectation. WIP.
 % streamline related/duplicate code sniplet.
 
-
-%%
+function run_length=chain_loop_stats(sschain,pstats,disconnected,opt)
+arguments
+sschain
+pstats
+disconnected
+opt.skipfile (1,1) logical = true
+opt.bburst (1,1) logical = false;
+opt.skip_shared_su (1,1) logical = false;
+end
 per_spk_tag=true;
-bburst=false;
-burstinterval=600;
-skipfile=false;
-skip_shared_su=true;
-load(fullfile('bzdata','motifs_graph_stats.mat'),'disconnected')
+% burstinterval=600;
+%     save(fullfile('bzdata','motifs_graph_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
+
+
 disconnKey=cell(0);
 for ii=1:size(disconnected,1)
     onekey=sprintf('%d-',disconnected{ii,1},disconnected{ii,2});
     disconnKey=[disconnKey;onekey];
 end
 
-if skip_shared_su
+if opt.skip_shared_su
     [olf_shared,both_shared]=wave.SU_remove_network();
     su_shared=intersect(olf_shared,both_shared);
 end
@@ -24,20 +30,20 @@ end
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
     %% single spike chain
-    sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
+%     sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
     keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
         struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
     keys=vertcat(keys{:});
     ssc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
     
     %% single spike loop
-    load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
-    pstats=rmfield(pstats,"nonmem");
+%     load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
+    if isfield(pstats,'nonmem'),pstats=rmfield(pstats,"nonmem");end
     ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
 
     usess=intersect(ssc_sess,ssl_sess);
 
-    if bburst
+    if opt.bburst
         %% burst spike chain
         bschain=load(fullfile("bzdata","chain_sust_tag_"+burstinterval+".mat"),'out');
         keys=[struct2cell(structfun(@(x) fieldnames(x), bschain.out.d6, 'UniformOutput', false));...
@@ -95,7 +101,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         continue
                     end
                     onechain=sschain.out.(dur).(wid{1}).(cc{1});
-                    if skip_shared_su
+                    if opt.skip_shared_su
                         motifukey=sessid*100000+onechain.meta{1};
                         if any(ismember(motifukey,su_shared))
                             disp("skipped shared motif neuron")
@@ -196,7 +202,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 continue
             end
             onechain=pstats.congru.(cc{1});
-            if skip_shared_su
+            if opt.skip_shared_su
                 motifukey=sessid*100000+onechain.rstats{3};
                 if any(ismember(motifukey,su_shared))
                     disp("skipped shared motif neuron")
@@ -233,8 +239,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
             end
 
-            u_act_per_trl=unique(onechain.ts_id(onechain.ts_id(:,6)>0,[5 6]),'rows');
-            [gc,gr]=groupcounts(u_act_per_trl(:,1));
+            u_act_per_trl=unique(onechain.ts_id(onechain.ts_id.Loop_tag>0,{'Trial','Loop_tag'}),'rows');
+            [gc,gr]=groupcounts(u_act_per_trl.Trial);
             for aa=1:numel(gr)
                 asel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==gr(aa);
                 per_trial_motif_freq(asel,8)=per_trial_motif_freq(asel,8)+gc(aa);
@@ -248,14 +254,15 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                     cid=onechain.rstats{3}(cidx);
                     %             ucid=[ucid,cid];
                     cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                    totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
+%                     totag=onechain.ts_id(onechain.ts_id(:,6)>0 & onechain.ts_id(:,2)==cid,1);
+                    totag=onechain.ts_id.TS(onechain.ts_id.Loop_tag>0 & onechain.ts_id.CID==cid);
                     [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
                     FT_SPIKE.lc_tag{cidsel}(totagidx)=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx),4,'uint8');
                 end
             end
             % run length tag
-            for tagi=reshape(setdiff(unique(onechain.ts_id(:,6)),0),1,[])
-                tseq=onechain.ts_id(onechain.ts_id(:,6)==tagi,1);
+            for tagi=reshape(setdiff(unique(onechain.ts_id.Loop_tag),0),1,[])
+                tseq=onechain.ts_id.TS(onechain.ts_id.Loop_tag==tagi);
                 onset=floor(tseq(1)./3); % 0.1ms precision
                 offset=ceil(tseq(end)./3); % 0.1ms precision
                 %                 if offset-onset<2,keyboard();end
@@ -263,7 +270,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             end
         end
 
-        if bburst
+        if opt.bburst
             %% multi spike chain
             for dur=["d6","d3"]
                 for wid=reshape(fieldnames(bschain.out.(dur)),1,[])
@@ -335,17 +342,17 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             conn.close();
         end
 
-        if ~skipfile
+        if ~opt.skipfile
             blame=vcs.blame();
-            if bburst
+            if opt.bburst
                 save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-            elseif skip_shared_su
+            elseif opt.skip_shared_su
                 save(fullfile("bzdata","RemoveSUSingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
             else
                 save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
             end
         end
-        if bburst
+        if opt.bburst
             per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
         else
             per_sess_coverage.("SSS"+num2str(sessid))=covered;
@@ -356,10 +363,10 @@ else % load from file
     per_sess_coverage=struct();
     for bi=[150,300,600]
         for sessid=[14,18,22,33,34,68,100,102,114]
-            if bburst
+            if opt.bburst
                 load(fullfile("bzdata","ChainedLoop"+bi+"S"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
                 per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
-            elseif skip_shared_su
+            elseif opt.skip_shared_su
                 load(fullfile("bzdata","RemoveSUSingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered');
                 per_sess_coverage.("SSS"+num2str(sessid))=covered;
             else
@@ -372,7 +379,7 @@ else % load from file
 end
 if denovoflag
     disp("New set of data file generated")
-    keyboard();
+%     keyboard();
     if false
         blame=vcs.blame();
         save(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid','blame')
@@ -392,7 +399,7 @@ covfn=fieldnames(per_sess_coverage);
 covered=struct();
 run_length=struct();
 
-if bburst
+if opt.bburst
     %%
     for bi=[150,300,600]
         covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
@@ -473,6 +480,8 @@ else
     xlabel('Time (ms)')
     ylabel('Probability density')
 end
+end
+
 
 function remove_before_after
 figure()
@@ -530,8 +539,6 @@ function relaxed_consecutive()
 end
 
 
-
-
 function plot_motif_freq()
 load(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid')
 
@@ -569,5 +576,4 @@ keys(1)
 conn.fetch("SELECT COUNT(*) FROM "+keys(1));
 %         rids=table2array(conn.fetch("SELECT DISTINCT Var1 from d6s1d6s22r3n274_ts"));
 end
-
 
