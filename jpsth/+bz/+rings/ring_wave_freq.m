@@ -1,7 +1,7 @@
 % calculate relative appearance frequence of rings vs shuffled control
-function ring_wave_freq(wrs_mux_meta,opt)
+function ring_wave_freq(sel_meta,opt)
 arguments
-    wrs_mux_meta
+    sel_meta
     opt.burst (1,1) logical = false
     opt.repeats (1,1) double = 100
     opt.denovo (1,1) logical = false
@@ -43,7 +43,7 @@ if opt.burst
     if opt.denovo
         sums_shuf=cell(opt.repeats,1);
         for rpt=1:opt.repeats
-            sums_shuf{rpt}=bz.rings.rings_wave(wrs_mux_meta,'shufid',rpt);
+            sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt);
         end
     else
         load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf')
@@ -98,12 +98,14 @@ if opt.burst
 else % W/o burst
     
     if opt.denovo
-        sums=bz.rings.rings_wave(wrs_mux_meta,'shufid',0);
+        sums=bz.rings.rings_wave(sel_meta,'shufid',0);
         sums_shuf=cell(opt.repeats,1);
         for rpt=1:opt.repeats
-            sums_shuf{rpt}=bz.rings.rings_wave(wrs_mux_meta,'shufid',rpt);
+            sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt);
         end
     else
+        warning("Be cautious of data inconsistency")
+        keyboard()
         load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf','sums')
     end
     wavetype=struct();

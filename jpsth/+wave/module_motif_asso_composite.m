@@ -31,7 +31,7 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     %% single spike loop
     if isfield(pstats,'nonmem'), pstats=rmfield(pstats,"nonmem");end
     ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
-    usess=intersect(ssc_sess,ssl_sess);
+    usess=union(ssc_sess,ssl_sess);
 
     % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
 
@@ -216,13 +216,13 @@ if false
 end
 disconn_count=[];
 for di=1:size(disconnected,1)
-    if any(cell2mat(stats.chain.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.olf(:,2)))
+    if ~isempty(stats.chain.olf) && any(cell2mat(stats.chain.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.olf(:,2)))
         disconn_count=[disconn_count;"olfchain"];
-    elseif any(cell2mat(stats.chain.both(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.both(:,2)))
+    elseif ~isempty(stats.chain.both) && any(cell2mat(stats.chain.both(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.both(:,2)))
         disconn_count=[disconn_count;"bothchain"];
-    elseif any(cell2mat(stats.loop.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.loop.olf(:,2)))
+    elseif ~isempty(stats.loop.olf) && any(cell2mat(stats.loop.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.loop.olf(:,2)))
         disconn_count=[disconn_count;"olfloop"];
-    elseif any(cell2mat(stats.loop.both(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.loop.both(:,2)))
+    elseif ~isempty(stats.loop.both) && any(cell2mat(stats.loop.both(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.loop.both(:,2)))
         disconn_count=[disconn_count;"bothloop"];
     end
 end
