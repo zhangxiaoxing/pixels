@@ -6,6 +6,7 @@ global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_meta=ephys.get_wrs_meta('fdr',false);
 %% TCOM
+
 com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
 
 grey_regs=ephys.getGreyRegs('range','grey');
@@ -209,24 +210,24 @@ chains_rev=wave.COM_chain(wrs_meta,com_map,'odor_only',true,'reverse',true);
 [gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_fwd.cids));
 [gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_rev.cids));
 
-clen=sort(intersect(grf,grr),'descend');
-for ii=reshape(clen,1,[])
-    if ismember(ii,grf) && ismember(ii,grr) && gcf(grf==ii)<gcr(grr==ii)
+for ii=reshape(union(grf,grr),1,[])
+    if ~ismember(ii,grr) || gcf(grf==ii)>gcr(grr==ii)
+        len_thresh=ii;
         break
     end
-    len_thresh=ii;
 end
 
 wave.chain_stats(chains_fwd,chains_rev,su_meta,wrs_meta);
 
+[gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_fwd.cids));
+[gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_rev.cids));
 
-keyboard();
+
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",true)
+[sschain.out,unfound]=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',len_thresh); % per-spk association
 if false
-    [sschain.out,unfound]=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',len_thresh); % per-spk association
-    save(fullfile('bzdata','chain_tag_fdr_6.mat'),'sschain','blame')
-else
-%     sschain=load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out');
+    save(fullfile('bzdata','chain_tag_fdr_6.mat'),'out','blame')
+    sschain=load(fullfile('bzdata','chain_tag_fdr_6.mat'),'out');
 end
 wave.motif_dynamic.single_spike_chains(sschain.out)
 
@@ -235,12 +236,9 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 % sums_all
 load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
 bz.rings.ring_wave_freq(wrs_meta,'denovo',true,'burst',false,'repeats',20); 
-
+pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_meta,'load_file',false,'skip_save',true);
 if false
-    pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_meta,'load_file',false,'skip_save',true);
-%     save
-else
-%     load(fullfile('bzdata','loops_stats_fdr_6.mat'),'pstats')
+    load(fullfile('bzdata','loops_stats_fdr_6.mat'),'pstats')
 end
 wave.motif_dynamic.single_spike_loops(pstats)
 bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta,wrs_meta);
