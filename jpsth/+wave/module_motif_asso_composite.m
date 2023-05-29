@@ -6,8 +6,9 @@ function [disconnected,degree_sums,complexity_sums]=module_motif_asso_composite(
 arguments
     sschain
     pstats
-    opt.readfile=false;
-    opt.skipfile=true;
+    opt.readfile (1,1) logical=false
+    opt.skipfile (1,1) logical=true
+    opt.merge_odor_sel (1,1) logical = true
 end
 
 stats=struct();
@@ -228,11 +229,21 @@ for di=1:size(disconnected,1)
 end
 
 
-figure()
+if opt.merge_odor_sel
+    stats.chain.olf=[stats.chain.olf;stats.chain.both];
+    stats.loop.olf=[stats.loop.olf;stats.loop.both];
+    stats.chain=rmfield(stats.chain,'both');
+    stats.loop=rmfield(stats.loop,'both');
+end
 
+figure()
 tiledlayout(1,2)
 mcount=struct();
+
 for wv=["olf","both"] % dur
+    if opt.merge_odor_sel && wv=="both"
+        break
+    end
     nexttile()
     hold on
     for motif=["chain","loop"]

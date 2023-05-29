@@ -1,10 +1,11 @@
-% 37.72 w/o FDR, 17.53 w/FDR
+
 keyboard()
 
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-wrs_meta=ephys.get_wrs_meta('fdr',false);
+wrs_meta=ephys.get_wrs_mux_meta('odor_only',true,'load_file',false,'save_file',false);
+wrs_meta.p_olf=[wrs_meta.p_olf,wrs_meta.p_olf6];
 %% TCOM
 
 com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
@@ -206,21 +207,7 @@ end
 %% chain
 chains_fwd=wave.COM_chain(wrs_meta,com_map,'odor_only',true);
 chains_rev=wave.COM_chain(wrs_meta,com_map,'odor_only',true,'reverse',true);
-
-[gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_fwd.cids));
-[gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_rev.cids));
-
-for ii=reshape(union(grf,grr),1,[])
-    if ~ismember(ii,grr) || gcf(grf==ii)>gcr(grr==ii)
-        len_thresh=ii;
-        break
-    end
-end
-
 wave.chain_stats(chains_fwd,chains_rev,su_meta,wrs_meta);
-
-[gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_fwd.cids));
-[gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_rev.cids));
 
 
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",true)
@@ -252,8 +239,11 @@ end
 disconnected=wave.module_motif_asso_composite(sschain,pstats);
 run_length=wave.chain_loop_stats(sschain,pstats,disconnected);
 
-
 return
+
+
+
+
 
 
 %%

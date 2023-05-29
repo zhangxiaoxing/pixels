@@ -1,7 +1,7 @@
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 keyboard()
 global_init;
-meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
@@ -54,7 +54,7 @@ end
 % idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
 idx=[510];
 for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
+    scfh=ephys.sens_dur_SC(ii,su_meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
         sgtitle(scfh, "SU #"+num2str(ii)+", OLF");
 %         keyboard();
@@ -66,7 +66,7 @@ end
 % idx=find(ismember(wrs_mux_meta.wave_id,7:8) & any(wrs_mux_meta.p_dur<1e-4,2));
 idx=[2617];
 for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
+    scfh=ephys.sens_dur_SC(ii,su_meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
         sgtitle(scfh, "SU #"+num2str(ii)+", DUR");
         if false
@@ -82,7 +82,7 @@ end
 % idx=find(ismember(wrs_mux_meta.wave_id,1:4) & any(wrs_mux_meta.p_mux(:,1:2)<1e-2,2));
 idx=[5818 23639];
 for ii=reshape(idx,1,[])
-    scfh=ephys.sens_dur_SC(ii,meta,'skip_raster',false,'skip_fill',true);%
+    scfh=ephys.sens_dur_SC(ii,su_meta,'skip_raster',false,'skip_fill',true);%
     if ~isempty(scfh)
         sgtitle(scfh,"Cross bin, SU #"+num2str(ii)+", mux");
         if false
@@ -130,14 +130,15 @@ end
 fh=ephys.plot_decode_correct_error(odor4odor,odor4dur,dur4odor,dur4dur,mux4odor,mux4dur);
 
 %% duration switch trial v continuation trial
-ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'olf')
-ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'dur')
-ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'mix')
-
+if false
+    ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'olf')
+    ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'dur')
+    ephys.plot_switch_cont_decoding(wrs_mux_meta,"type",'mix')
+end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-%% Figure 2
+%% Sustained vs transient, AUROC
 fh=ephys.sust_trans_bar_w_mix(wrs_mux_meta);
 fh=ephys.sust_trans_correct_error(wrs_mux_meta);
 
@@ -256,8 +257,6 @@ end
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
 
-%% FIG 3 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,'delay',6);
@@ -265,7 +264,6 @@ fh=fc.fc_com_reg_wave.plot(fcstats6,tcom6_maps,'condense_plot',true);
 
 fcstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,'delay',3);
 fh=fc.fc_com_reg_wave.plot(fcstats3,tcom3_maps,'condense_plot',true);
-
 
 fcstats3=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'condense_plot',true);
 
@@ -284,10 +282,12 @@ end
 % wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
-fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem
+fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem bar lot
 fh4.fig.Children.Subtitle.String='Excitatory';
-fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
-fh4i.fig.Children.Subtitle.String='Inhibitory';
+if false
+    fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
+    fh4i.fig.Children.Subtitle.String='Inhibitory';
+end
 bz.conn_prob_spatial_dist(sig,pair);
 %% FC_Decoding
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
@@ -306,14 +306,16 @@ bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 %% loops
 % sums_all
 bz.rings.ring_wave_freq(wrs_mux_meta); 
-load(fullfile('bzdata','sums_ring_stats_all.mat'));% 1X3
+load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');% 1X3
+pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true);
+
 % bz.rings.rings_reg_pie(sums_all)% 1X3
 % bz.rings.rings_freq
-bz.rings.rings_time_constant(sums_all)
-bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta);
-bz.rings.rings_wave_dynamic(sums_all)
-bz.rings.rings_su_wave_tcom_corr(sums_all)
-
+if false
+    bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta);
+    bz.rings.rings_wave_dynamic(sums_all)
+    bz.rings.rings_su_wave_tcom_corr(sums_all)
+end
 %TODO: assembly time constant olf, both, 3s 6s
 
 %% chain
@@ -326,15 +328,26 @@ bz.rings.rings_su_wave_tcom_corr(sums_all)
 
 load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev')
 
+[gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf.cids));
+[gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids));
 
-nnz(cellfun(@(x) numel(unique(x)),chains_uf.cids)>4)
-nnz(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids)>4)
+for ii=reshape(union(grf,grr),1,[])
+    if ~ismember(ii,grr) || gcf(grf==ii)>gcr(grr==ii)
+        len_thresh=ii;
+        break
+    end
+end
 
-wave.chain_stats;
-wave.chain_stats_regs.m
+wave.chain_stats(chains_uf,chains_uf_rev,su_meta,wrs_mux_meta);
+wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
+
+[sschain.out,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true); % per-spk association
+
+
+if false
 wave.chains_time_constant
 wave.chains_loops_sc
-wave.chain_tag(chains) % per-spk association
+
 wave.chain_SC %plot
 wave.chain_sust_tag(chains_uf,'burstInterval',150)
 wave.chain_sust_tag(chains_uf,'burstInterval',300)
@@ -344,14 +357,21 @@ wave.chain_sust_tag(chains_uf,'burstInterval',600)
 wave.chain_tag(chains_uf_rev,'rev',true) % per-spk association
 
 rev_out_150=wave.chain_sust_tag(chains_uf_rev,'burstInterval',150,'rev',true);
-
+end
 
 
 
 %% chained loops
+
+disconnected=wave.module_motif_asso_composite(sschain,pstats);
+run_length=wave.chain_loop_stats(sschain,pstats,disconnected);
+
+
+
 wave.chain_loop_stats
 %% exports
 
 
 
+pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
 

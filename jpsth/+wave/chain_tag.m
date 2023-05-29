@@ -13,6 +13,7 @@ arguments
     opt.per_reg_wave (1,1) logical = true
     opt.len_thresh (1,1) double = 4
     opt.skip_save (1,1) logical = false
+    opt.odor_only (1,1) logical = false
 end
 %% DEBUG
 % out=chain_alt(chains);
@@ -41,14 +42,24 @@ for sessid=sesses
             end
             if contains(wid,'s1')
                 trial_sel=find(trials(:,5)==4 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                outid="olf_s1";
             elseif contains(wid,'s2')
                 trial_sel=find(trials(:,5)==8 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                outid="olf_s2";
             elseif contains(wid,'dur')
-                trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
-            else
-                keyboard();
+                if opt.odor_only
+                    continue
+                else
+                    trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
+                end
+%             else
+%                 keyboard();
             end
             
+            if ~opt.odor_only
+                outid=wid;
+            end
+
             sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=opt.len_thresh),1,[]);
 
             for cc=sess_indices
@@ -96,12 +107,13 @@ for sessid=sesses
                 else
                     ts=chain_alt(ts_id(:,[1 3]));
                 end
+
                 if ~isempty(ts)
                     
                     outkey="s"+sessid+"c"+cc;
-                    out.("d"+duration).(wid).(outkey).ts=ts;
-                    out.("d"+duration).(wid).(outkey).meta={cids,chains.tcoms(cc)};
-                    out.("d"+duration).(wid).(outkey).ts_id=ts_id;
+                    out.("d"+duration).(outid).(outkey).ts=ts;
+                    out.("d"+duration).(outid).(outkey).meta={cids,chains.tcoms(cc)};
+                    out.("d"+duration).(outid).(outkey).ts_id=ts_id;
 
                     % TODO: ccg
                     if opt.ccg
@@ -119,7 +131,7 @@ for sessid=sesses
                             end
                             chainccg=[chainccg;ccg(sigsel,:)];
                         end
-                        out.("d"+duration).(wid).(outkey).ccgs=chainccg;
+                        out.("d"+duration).(outid).(outkey).ccgs=chainccg;
                     end
                 else
                     notfound=[notfound;{sessid},{cc},{cids}];
