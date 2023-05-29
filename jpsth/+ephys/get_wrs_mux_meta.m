@@ -1,3 +1,4 @@
+
 function out_=get_wrs_mux_meta(opt)
 arguments
     opt.permutation (1,1) logical = false
@@ -23,7 +24,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         sesskeys=cell2mat(sessmap.keys());
         [out.m_pref_id,out.o_pref_id,out.d_pref_id,out.p_mux,out.p_olf,out.p_dur,out.class_fr]=deal([]);
         if opt.extend6s
-            [out.m_pref_id6,out.p_olf6,out.class_fr6]=deal([]);
+            [out.o_pref_id6,out.p_olf6,out.class_fr6]=deal([]);
         end
         for sessid=sesskeys
             disp(sessid);
@@ -94,14 +95,17 @@ if isempty(out) || ~isequaln(opt,opt_)
                         class_cell={-1,s1d6fr,-1,s2d6fr};
                         class_mm=cellfun(@(x) mean(x),class_cell);
                         class_fr6(1,:,bin-7)=class_mm;
-                        [~,binmpref]=max(class_mm);  % highest condition
-
+                        if class_mm(2)>=class_mm(4)  % highest condition
+                            binopref=5;
+                        else
+                            binopref=6;
+                        end
                         % determine monomodal
-                        pref_id6(bin-7)=binmpref;
+                        pref_id6(bin-7)=binopref;
                         ppolf6(bin-7)=ranksum(cell2mat(class_cell(2).'),cell2mat(class_cell(4).'));
                         %                         end
                     end
-                    out.m_pref_id6=[out.m_pref_id6;pref_id6];
+                    out.o_pref_id6=[out.o_pref_id6;pref_id6];
                     out.p_olf6=[out.p_olf6;ppolf6];
                     out.class_fr6=[out.class_fr6;class_fr6];
                 end
@@ -142,6 +146,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         if opt.odor_only
             out.wave_id(ismember(out.wave_id,1:2))=5;
             out.wave_id(ismember(out.wave_id,3:4))=6;
+            out.wave_id(ismember(out.wave_id,7:8))=0;
         end
 
         if  opt.save_file

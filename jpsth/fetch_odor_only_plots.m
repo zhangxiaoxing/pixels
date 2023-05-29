@@ -5,7 +5,13 @@ keyboard()
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_meta=ephys.get_wrs_mux_meta('odor_only',true,'load_file',false,'save_file',false);
-wrs_meta.p_olf=[wrs_meta.p_olf,wrs_meta.p_olf6];
+pp=[wrs_meta.p_olf,wrs_meta.p_olf6];
+ss=[wrs_meta.o_pref_id,wrs_meta.o_pref_id6];
+switchsel=arrayfun(@(x) any(ss(x,pp(x,:)<0.05)==5) & any(ss(x,pp(x,:)<0.05)==6),1:size(pp,1));
+wrs_meta.wave_id(switchsel)=-1;
+wrs_meta.p_olf=pp;
+
+
 %% TCOM
 
 com_map=wave.get_olf_com_map(wrs_meta,'curve',true);
