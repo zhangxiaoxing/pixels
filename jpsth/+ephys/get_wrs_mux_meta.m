@@ -10,7 +10,7 @@ arguments
     opt.extend6s (1,1) logical = true
     opt.tag_ext6s_mem (1,1) logical = false
     opt.plot_venn (1,1) logical = false
-    opt.odor_only (1,1) logical = true
+%     opt.odor_only (1,1) logical = true
 end
 
 persistent out opt_
@@ -143,11 +143,11 @@ if isempty(out) || ~isequaln(opt,opt_)
         end
         
         out.wave_id=wave_id;
-        if opt.odor_only
-            out.wave_id(ismember(out.wave_id,1:2))=5;
-            out.wave_id(ismember(out.wave_id,3:4))=6;
-            out.wave_id(ismember(out.wave_id,7:8))=0;
-        end
+%         if opt.odor_only
+%             out.wave_id(ismember(out.wave_id,1:2))=5;
+%             out.wave_id(ismember(out.wave_id,3:4))=6;
+%             out.wave_id(ismember(out.wave_id,7:8))=0;
+%         end
 
         if  opt.save_file
             wrs_mux_meta=out;

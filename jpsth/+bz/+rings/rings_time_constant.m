@@ -11,6 +11,7 @@ classdef rings_time_constant <handle
                 sel_meta
                 opt.load_file (1,1) logical = false
                 opt.skip_save (1,1) logical = false
+                opt.odor_only (1,1) logical = false
             end
             % function cong_dir=rings_su_tcom_order(sums_all) % modified from
             % persistent sums_all
@@ -40,9 +41,11 @@ classdef rings_time_constant <handle
 
                         [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
 
-                        if ~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem')
+                        if (~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem'))...
+                                ||(opt.odor_only && strcmp(seltype,'dur'))
                             continue
                         end
+
                         rstats=[rstats;one_rsize(ridx,:),curr_waveid,seltype,rsize,rwid];
                         %  ////////////////^^^^^^^^^^\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
                         % {sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)}

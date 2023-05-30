@@ -52,40 +52,29 @@ for shuf_idx=[1:100,0]
     chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
     len_sel=cellfun(@(x) numel(x),chains_uf.cids)>=opt.len_thresh;
 
-    olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel; % & (chains_uf.reg_sel==curr_tag)
-    olf_uid=[chains_uf.uid{olf_sel}];
-
-
-    both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
-    both_uid=[chains_uf.uid{both_sel}];
-
-    dur_sel=ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
-    dur_uid=[chains_uf.uid{dur_sel}];
-
-
     for curr_tag=["within","cross"]
-        olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel & (chains_uf.reg_sel==curr_tag);
 
-        olf_uid=[chains_uf.uid{olf_sel}];
-        [chain_olf_uid,usel]=unique(olf_uid);
+        if opt.odor_only
+            olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2","s1d3","s2d3","s1d6","s2d6"]) & len_sel & (chains_uf.reg_sel==curr_tag);
+            both_u_reg_cat=struct();
+        else
+            olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel & (chains_uf.reg_sel==curr_tag);
+        end
+            olf_uid=[chains_uf.uid{olf_sel}];
+            [chain_olf_uid,usel]=unique(olf_uid);
 
-        olf_reg=[chains_uf.reg{olf_sel}];
-        olf_reg_cat.(curr_tag)=categorical(olf_reg);
-        olf_u_reg_cat.(curr_tag)=categorical(olf_reg(usel));
+            olf_reg=[chains_uf.reg{olf_sel}];
+            olf_reg_cat.(curr_tag)=categorical(olf_reg);
+            olf_u_reg_cat.(curr_tag)=categorical(olf_reg(usel));
 
-        both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel & chains_uf.reg_sel==curr_tag;
-        both_uid=[chains_uf.uid{both_sel}];
-        [chain_both_uid,usel]=unique(both_uid);
-        both_reg=[chains_uf.reg{both_sel}];
-        both_reg_cat.(curr_tag)=categorical(both_reg);
-        both_u_reg_cat.(curr_tag)=categorical(both_reg(usel));
-
-        % dur_sel=ismember(chains_uf.wave,["dur_d3","dur_d6"]) & len_sel; % & chains_uf.reg_sel==curr_tag
-        % dur_uid=[chains_uf.uid{dur_sel}];
-        % [chain_dur_uid,usel]=unique(dur_uid);
-        % dur_reg=[chains_uf.reg{dur_sel}];
-        % dur_reg_cat=categorical(dur_reg);
-        % dur_u_reg_cat=categorical(dur_reg(usel));
+        if ~opt.odor_only
+            both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel & chains_uf.reg_sel==curr_tag;
+            both_uid=[chains_uf.uid{both_sel}];
+            [chain_both_uid,usel]=unique(both_uid);
+            both_reg=[chains_uf.reg{both_sel}];
+            both_reg_cat.(curr_tag)=categorical(both_reg);
+            both_u_reg_cat.(curr_tag)=categorical(both_reg(usel));
+        end
 
         olf_ratio.(curr_tag)=[];
         both_ratio.(curr_tag)=[];
@@ -97,13 +86,17 @@ for shuf_idx=[1:100,0]
         for rr=all_chain_regs.(curr_tag)
             su_cnt=nnz(strcmp(su_meta.reg_tree(5,:),char(rr)));
             chains_occur_olf=nnz(olf_reg_cat.(curr_tag)==rr);
-            chains_occur_both=nnz(both_reg_cat.(curr_tag)==rr);
             olf_ratio.(curr_tag)=[olf_ratio.(curr_tag);chains_occur_olf./su_cnt];
-            both_ratio.(curr_tag)=[both_ratio.(curr_tag);chains_occur_both./su_cnt];
+            if ~opt.odor_only
+                chains_occur_both=nnz(both_reg_cat.(curr_tag)==rr);
+                both_ratio.(curr_tag)=[both_ratio.(curr_tag);chains_occur_both./su_cnt];
+            end
         end
         if shuf_idx==0
             [olf_ratio.(curr_tag),olf_srt.(curr_tag)]=sort(olf_ratio.(curr_tag),'descend');
-            [both_ratio.(curr_tag),both_srt.(curr_tag)]=sort(both_ratio.(curr_tag),'descend');
+            if ~opt.odor_only
+                [both_ratio.(curr_tag),both_srt.(curr_tag)]=sort(both_ratio.(curr_tag),'descend');
+            end
         end
     end
     if shuf_idx>0

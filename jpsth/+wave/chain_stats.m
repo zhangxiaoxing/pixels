@@ -1,5 +1,5 @@
 %% data collection
-function chain_stats(chains_uf,chains_uf_rev,su_meta,sel_meta)
+function chain_stats(chains_uf,chains_uf_rev,su_meta)
 rev_stats=true;
 
 % vs shuffle
@@ -137,6 +137,7 @@ xlim([2.5,8.5])
 %     title(curr_tag)
 % end
 sgtitle("Total number of congruent chains")
+grid on
 
 %% wave vs wave, 3s vs 6s
 if false

@@ -10,7 +10,12 @@ arguments
     opt.barn (1,1) double = 3
     opt.loopPerSU (1,1) logical = true
     opt.vs_shuf (1,1) logical = true
+    opt.odor_only (1,1) logical = false
 end
+if opt.odor_only
+    error("Not ready")
+end
+
 
 su_reg=categorical(su_meta.reg_tree(5,:));
 fstr=load(fullfile('bzdata','rings_bz_vs_shuf.mat'));
@@ -88,9 +93,9 @@ end
 if opt.bar
     figure()
     tiledlayout(1,4)
-    cnt=1;
 
-    for dset=dsets([1,2,5,6])
+    for dsetidx=[1,2,5,6]
+        dset=dsets(dsetidx);
         nexttile()
         ratios=[];
         for creg=loop_reg
@@ -117,8 +122,7 @@ if opt.bar
         end
 
         ylabel('occurrence in loops per neuron')
-        title(lbls{cnt});
-        cnt=cnt+1;
+        title(lbls{dsetidx});
     end
 end
 

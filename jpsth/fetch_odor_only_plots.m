@@ -4,12 +4,12 @@ keyboard()
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-wrs_meta=ephys.get_wrs_mux_meta('odor_only',true,'load_file',false,'save_file',false);
-pp=[wrs_meta.p_olf,wrs_meta.p_olf6];
-ss=[wrs_meta.o_pref_id,wrs_meta.o_pref_id6];
-switchsel=arrayfun(@(x) any(ss(x,pp(x,:)<0.05)==5) & any(ss(x,pp(x,:)<0.05)==6),1:size(pp,1));
-wrs_meta.wave_id(switchsel)=-1;
-wrs_meta.p_olf=pp;
+wrs_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false);
+% pp=[wrs_meta.p_olf,wrs_meta.p_olf6];
+% ss=[wrs_meta.o_pref_id,wrs_meta.o_pref_id6];
+% switchsel=arrayfun(@(x) any(ss(x,pp(x,:)<0.05)==5) & any(ss(x,pp(x,:)<0.05)==6),1:size(pp,1));
+% wrs_meta.switched(switchsel)=1;
+% wrs_meta.p_olf=pp;
 
 
 %% TCOM
@@ -215,6 +215,15 @@ chains_fwd=wave.COM_chain(wrs_meta,com_map,'odor_only',true);
 chains_rev=wave.COM_chain(wrs_meta,com_map,'odor_only',true,'reverse',true);
 wave.chain_stats(chains_fwd,chains_rev,su_meta,wrs_meta);
 
+[gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_fwd.cids));
+[gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_rev.cids));
+
+for ii=reshape(union(grf,grr),1,[])
+    if ~ismember(ii,grr) || gcf(grf==ii)>gcr(grr==ii)
+        len_thresh=ii;
+        break
+    end
+end
 
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",true)
 [sschain.out,unfound]=wave.chain_tag(chains_fwd,'skip_save',true,'len_thresh',len_thresh); % per-spk association
@@ -229,12 +238,12 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 % sums_all
 load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');
 bz.rings.ring_wave_freq(wrs_meta,'denovo',true,'burst',false,'repeats',20); 
-pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_meta,'load_file',false,'skip_save',true);
+pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_meta,'load_file',false,'skip_save',true,'odor_only',true);
 if false
     load(fullfile('bzdata','loops_stats_fdr_6.mat'),'pstats')
 end
 wave.motif_dynamic.single_spike_loops(pstats)
-bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta,wrs_meta);
+bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta,wrs_meta,'odor_only',false);
 
 if false
     bz.rings.rings_su_wave_tcom_corr(sums_all)
