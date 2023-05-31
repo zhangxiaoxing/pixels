@@ -2,13 +2,37 @@
 % olf, enc-both disconnect, composite proportion, bargraph
 % TODO: overall refactoring
 classdef composite_thin_down < handle
+
     methods (Static)
-        function [per_trial_motif_cid,per_trial_motif_freq,stats]=merge_motif(sschain,pstats)
+        function chains=getChains(sschain,dur,fns,sessid)
+            chains=cell(0);
+            for fn=fns
+                sesssel=startsWith(fieldnames(sschain.out.(dur).(fn)),['s',num2str(sessid),'c']);
+                if ~any(sesssel)
+                    continue
+                else
+                    chains=[chains;...
+                        cellfun(@(x) x.meta{1},...
+                        subsref(struct2cell(sschain.out.(dur).(fn)),substruct('()',{sesssel})),...
+                        'UniformOutput',false)...
+                        ];
+                end
+            end
+        end
+
+        function loops=getLoops(pstats,wids,sessid)
+            sesssel=startsWith(fieldnames(pstats.congru),['s',num2str(sessid),'r']);
+            sess_loops=subsref(struct2cell(pstats.congru),substruct('()',{sesssel}));
+            wave_sel=cellfun(@(x) all(ismember(x.rstats{4},wids)),sess_loops);
+            loops=cellfun(@(x) x.rstats{3},sess_loops(wave_sel),'UniformOutput',false);
+        end
+
+        function per_sess_condition=merge_motif(sschain,pstats)
             arguments
                 sschain
                 pstats
             end
-            stats=struct();
+
             %% single spike chain
             keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
                 struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
@@ -20,117 +44,35 @@ classdef composite_thin_down < handle
             ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
             usess=union(ssc_sess,ssl_sess);
 
-            % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
-
             %% per-session entrance
-            per_trial_motif_cid=cell(0);
-            per_trial_motif_freq=[];
-
-            stats.chain=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
-            stats.loop=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
+            per_sess_condition=struct();
 
             for sessid=reshape(usess,1,[])
-
-                [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
-
-                wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
-                per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),3)];
-
-                per_trial_motif_freq=[per_trial_motif_freq;...
-                    repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),...
-                    zeros(nnz(wtsel),4)];
-
                 %% single spike chain
+                % four conditions
+                % s1d3
+                per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"],sessid);
+                per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid);
+                
+                % d3s2
+                per_sess_condition.("s"+sessid+"s1d6").chains=wave.composite_thin_down.getChains(sschain,"d6",["olf_s1","s1d6"],sessid);
+                per_sess_condition.("s"+sessid+"s1d6").loops=wave.composite_thin_down.getLoops(pstats,[2 5],sessid);
 
-                for dur=["d6","d3"]
-                    dd=str2double(replace(dur,"d",""));
-                    for wid=reshape(fieldnames(sschain.out.(dur)),1,[])
-                        for cc=reshape(fieldnames(sschain.out.(dur).(wid{1})),1,[])
-                            if ~startsWith(cc{1},['s',num2str(sessid),'c'])
-                                continue
-                            end
-                            onechain=sschain.out.(dur).(wid{1}).(cc{1});
-                            % ts_id: ts, cid, pos, trial_time, trial
+                % d6s1
+                per_sess_condition.("s"+sessid+"s2d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s2","s2d3"],sessid);
+                per_sess_condition.("s"+sessid+"s2d3").loops=wave.composite_thin_down.getLoops(pstats,[3 6],sessid);
 
-                            % per-trial frequency.
-                            tsel=[];
-                            if dd==3
-                                switch wid{1}
-                                    case 's1d3'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
-                                        ttag='both';
-                                    case 's2d3'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
-                                        ttag='both';
-                                    case 'olf_s1'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
-                                        ttag='olf';
-                                    case 'olf_s2'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
-                                        ttag='olf';
-                                    case 'dur_d3'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
-                                        ttag='dur';
-                                end
-                            else
-                                switch wid{1}
-                                    case 's1d6'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
-                                        ttag='both';
-                                    case 's2d6'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
-                                        ttag='both';
-                                    case 'olf_s1'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
-                                        ttag='olf';
-                                    case 'olf_s2'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
-                                        ttag='olf';
-                                    case 'dur_d6'
-                                        tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
-                                        ttag='dur';
-                                end
-                            end
-                            stats.chain.(ttag)=[stats.chain.(ttag);{sessid},onechain.meta(1)];
-                            if ~isempty(tsel)
-                                for ttt=reshape(find(tsel),1,[])
-                                    % sessid,find(wtsel)==trial#,delay_dur,find(tsel)==in_sheet_pos
-                                    per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
-                                    per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},onechain.meta(1)];
-                                end
-                            end
-                        end
-                    end
-
-                end
-
-                %% single spike loop
-                cclist=reshape(fieldnames(pstats.congru),1,[]);
-                cclist=cclist(startsWith(cclist,['s',num2str(sessid),'r']));
-                for cc=cclist
-                    onechain=pstats.congru.(cc{1});
-                    % .ts_id(:,6) => loop tag
-                    % per-trial frequency.
-                    [pref3,pref6]=bz.rings.preferred_trials_rings(onechain.rstats{4},trials);
-                    tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),[pref3;pref6]);
-
-                    stats.loop.(onechain.rstats{5})=[stats.loop.(onechain.rstats{5});{sessid},onechain.rstats(3)];
-
-                    for ttt=reshape(find(tsel),1,[])
-                        per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
-                        per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
-                    end
-                    %check cid in largest network
-                end
+                % d6s2
+                per_sess_condition.("s"+sessid+"s2d6").chains=wave.composite_thin_down.getChains(sschain,"d6",["olf_s2","s2d6"],sessid);
+                per_sess_condition.("s"+sessid+"s2d6").loops=wave.composite_thin_down.getLoops(pstats,[4 6],sessid);
             end
-
         end
-
-        function stats=stats_remove(per_trial_motif_cid,per_trial_motif_freq,opt)
+        
+        function stats=stats_remove(per_sess_condition,opt)
             arguments
-                per_trial_motif_cid
-                per_trial_motif_freq
-                opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','HIP','D10'})} = ''
+                per_sess_condition
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D10','D5'})} = ''
+                opt.UID = []
             end
             
             stats=struct();
@@ -143,41 +85,48 @@ classdef composite_thin_down < handle
 
             switch opt.remove
                 case 'chains'
-                    per_trial_motif_cid(:,1)={[]};
+                    fns=fieldnames(per_sess_condition);
+                    strcell=struct2cell(per_sess_condition);
+                    cellstr=cellfun(@(x) cell2struct({cell(0);x.loops},{'chains','loops'}),strcell,'UniformOutput',false);
+                    per_sess_condition=cell2struct(cellstr,fns);
                 case 'loops'
-                    per_trial_motif_cid(:,2)={[]};
-                otherwise
-                    if ~isempty(opt.remove)
-                        warning("Unfinished")
-                        keyboard()
-                    end
+                    fns=fieldnames(per_sess_condition);
+                    strcell=struct2cell(per_sess_condition);
+                    cellstr=cellfun(@(x) cell2struct({x.chains;cell(0)},{'chains','loops'}),strcell,'UniformOutput',false);
+                    per_sess_condition=cell2struct(cellstr,fns);
             end
             
 
-            dupkey=cell(0);
-            for tt=1:size(per_trial_motif_cid,1)
-                if numel(per_trial_motif_cid{tt,1})+numel(per_trial_motif_cid{tt,2})<=1
+            fns=fieldnames(per_sess_condition);
+            for fn=reshape(fns,1,[])
+                if numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<=1
                     continue
                 end
-                ukey=sprintf('%d_',per_trial_motif_cid{tt,3}(1),unique(cell2mat([per_trial_motif_cid{tt,1:2}])));
-                if ismember(ukey,dupkey)
-                    continue
-                end
-                dupkey=[dupkey;ukey];
 
                 % build graph network
-                edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,1:2}],'UniformOutput',false).'),'rows'));
-                gh=graph(edges(:,1),edges(:,2));
-                conncomp=gh.conncomp();
+                edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                    [per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops],...
+                    'UniformOutput',false)),'rows'));
+                if strcmp(opt.remove,'UID')
+                    assert(~isempty(opt.UID), "missing UID input");
+                end
 
+                gh=graph(edges(:,1),edges(:,2));
+                if strcmp(opt.remove,'D10')
+                    gh=gh.rmnode(gh.Nodes.Name(gh.degree>=10));
+                elseif strcmp(opt.remove,'D5')
+                    gh=gh.rmnode(gh.Nodes.Name(gh.degree>=5));
+                end
+                
+                conncomp=gh.conncomp();
                 % check module in network
                 if any(conncomp~=1)
                     comps=unique(conncomp);
                     counter=zeros(numel(comps),1);
                     gnodes=cellfun(@(x) str2double(x),gh.Nodes.Name);
-                    for mm=[per_trial_motif_cid{tt,1:2}]
-                        [~,nidx]=ismember(mm{1},gnodes);
-                        compidx=unique(conncomp(nidx));
+                    for mm=[per_sess_condition.(fn{1}).chains.',per_sess_condition.(fn{1}).loops.']
+                        [isinn,nidx]=ismember(mm{1},gnodes);
+                        compidx=unique(conncomp(nidx(isinn)));
                         counter(compidx)=counter(compidx)+1;
                     end
                     subs=reshape(find(counter>1),1,[]);
@@ -186,12 +135,15 @@ classdef composite_thin_down < handle
                 end
                 
                 %{subg#, subg.Node#}
-                skey=['s',ukey(1:end-1)];
-                stats.(skey)=cell2struct({cell(0)},{'subg'});
                 for subsidx=subs
+                    if nnz(conncomp==subsidx)<2
+                        continue
+                    end
                     subgh=gh.subgraph(conncomp==subsidx);
-                    stats.(skey).subg=[stats.(skey).subg,{subsidx,subgh.numnodes}];
-
+                    if ~isfield(stats,fn{1}) || ~isfield(stats.(fn{1}),'subg')
+                        stats.(fn{1})=cell2struct({cell(0)},{'subg'});
+                    end
+                    stats.(fn{1}).subg=[stats.(fn{1}).subg,{subsidx,subgh.numnodes}];
                     if false
                         complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
                         per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
@@ -201,14 +153,49 @@ classdef composite_thin_down < handle
             end
         end
 
-        function examples()
-            noremove=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq)
-            removechain=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq,'remove','chains')
-            removeloops=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq,'remove','loops')
+        function out=match_one(noremove,rmv)
+            out=cell2struct({0;0;0;0},{'complete','partial','split','noeffect'});
+            nrfns=reshape(fieldnames(noremove),1,[]);
+            for fn=nrfns
+                if isfield(rmv,fn{1})
+                    if numel(rmv.(fn{1}).subg)>numel(noremove.(fn{1}).subg)
+                        out.split=out.split+1;
+                    elseif rmv.(fn{1}).subg{1,2}<noremove.(fn{1}).subg{1,2}
+                        out.partial=out.partial+1;
+                    else
+                        out.noeffect=out.noeffect+1;
+                    end
+                else
+                    out.complete=out.complete+1;
+                end
+            end
+        end
 
-            numel(fieldnames(noremove))
-            numel(fieldnames(removechain))
-            numel(fieldnames(removeloops))
+        function demo(sschain,pstats)
+            per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
+            noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
+            removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
+            removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','loops');
+            removeD10=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D10');
+            removeD5=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D5');
+
+            nochain=wave.composite_thin_down.match_one(noremove,removechain);
+            noloop=wave.composite_thin_down.match_one(noremove,removeloops);
+            noD10=wave.composite_thin_down.match_one(noremove,removeD10);
+            noD5=wave.composite_thin_down.match_one(noremove,removeD5);
+            nrfns=reshape(fieldnames(noremove),1,[]);
+    
+            bmat=[0,0,0,numel(nrfns);...
+                nochain.complete,nochain.split,nochain.partial,nochain.noeffect;...
+                noloop.complete,noloop.split,noloop.partial,noloop.noeffect;...
+                noD10.complete,noD10.split,noD10.partial,noD10.noeffect;...
+                noD5.complete,noD5.split,noD5.partial,noD5.noeffect];
+            figure()
+            bh=bar(fliplr(bmat),'stacked');
+            legend(bh,{'Unaffected','Shrinked','Splitted','Abolished'},'Location','northoutside','Orientation','horizontal')
+            set(gca(),'XTick',1:5,'XTickLabel',{'Observed','Remove chains','Remove loops','Remove deg>10','Remove deg>5'},'YTick',0:5:25,'YTickLabel',0:20:100)
+            ylabel('Percent (%)')
+
         end
 
 
