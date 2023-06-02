@@ -11,29 +11,36 @@ arguments
     opt.shuf_trl (1,1) logical = false
     opt.shuf_idx (1,1) double = 0
     opt.per_reg_wave (1,1) logical = true
-    opt.len_thresh (1,1) double = 4
+    opt.len_thresh (1,1) double = 5
     opt.skip_save (1,1) logical = false
     opt.odor_only (1,1) logical = false
+    opt.extend_trial (1,1) logical = false
+    opt.skip_ts_id (1,1) logical = false
+    opt.DEBUG (1,1) logical = false
 end
-%% DEBUG
-% out=chain_alt(chains);
-%%
-if opt.shuf_trl && opt.shuf_idx==0
-    error("index is necessary for shuffled data")
+
+if opt.shuf_trl  
+    assert(opt.shuf_idx>0,"index is necessary for shuffled data")
 end
+
+ch_len=cellfun(@(x) numel(x),chains.cids);
+waveids=reshape(unique(chains.wave(ch_len>opt.len_thresh)),1,[]);
+sesses=reshape(unique(chains.sess(ch_len>opt.len_thresh)),1,[]);
+
 if opt.ccg
     load('sums_conn_10.mat','sums_conn_str');
 end
 
+
 notfound=cell(0);
 %% build chains
 % all_chains=fieldnames(pstats.congru);
-waveids=reshape(unique(chains.wave),1,[]);
-sesses=reshape(unique(chains.sess),1,[]);
-ch_len=cellfun(@(x) numel(x),chains.cids);
 
 for sessid=sesses
-    [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
+    if opt.DEBUG && sessid>33
+        break
+    end
+    [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
     for duration=[3 6]
         for wid=waveids
             if (contains(wid,'d3') && duration==6) ...
@@ -52,8 +59,6 @@ for sessid=sesses
                 else
                     trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
                 end
-%             else
-%                 keyboard();
             end
             
             if ~opt.odor_only
@@ -61,7 +66,8 @@ for sessid=sesses
             end
 
             sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=opt.len_thresh),1,[]);
-
+            if isempty(sess_indices), continue;end
+            [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
             for cc=sess_indices
                 ts_id=[];
                 cids=chains.cids{cc};
@@ -89,7 +95,9 @@ for sessid=sesses
                         ext_trl]); % 5
                 end
                 % optional remove non-wave spikes
-                ts_id=ts_id(ts_id(:,4)>=1 & ts_id(:,4)<(duration+1) & ismember(ts_id(:,5),trial_sel),:);
+                if ~opt.extend_trial
+                    ts_id=ts_id(ts_id(:,4)>=1 & ts_id(:,4)<(duration+1) & ismember(ts_id(:,5),trial_sel),:);
+                end
                 if opt.shuf_trl
                     ts_id_shuf=[];
                     for in_chain_pos=1:numel(cids)
@@ -109,13 +117,16 @@ for sessid=sesses
                 end
 
                 if ~isempty(ts)
-                    
                     outkey="s"+sessid+"c"+cc;
                     out.("d"+duration).(outid).(outkey).ts=ts;
                     out.("d"+duration).(outid).(outkey).meta={cids,chains.tcoms(cc)};
-                    out.("d"+duration).(outid).(outkey).ts_id=ts_id;
+                    if opt.skip_ts_id
+                        out.("d"+duration).(outid).(outkey).trials=trials;
+                    else
+                        out.("d"+duration).(outid).(outkey).ts_id=table(uint32(ts_id(:,1)),uint16(ts_id(:,2)),uint8(ts_id(:,3)),ts_id(:,4),uint16(ts_id(:,5)),'VariableNames',{'TS','CID','POS','Time','Trial'});
+                    end
 
-                    % TODO: ccg
+                    % CCG
                     if opt.ccg
                         cursess=chains.sess(cc);
                         sesspath=ephys.sessid2path(cursess);
@@ -223,4 +234,37 @@ end
 end
 
 
+function replay(sschain)
+for dd=reshape(fieldnames(sschain.out),1,[])
+    for ww=reshape(fieldnames(sschain.out.(dd{1})),1,[])
+        for cc=reshape(fieldnames(sschain.out.(dd{1}).(ww{1})),1,[])
+            onechain=sschain_trl.(dd{1}).(ww{1}).(cc{1});
+            % [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
+            
+            dur_pref=str2double(dd{1}(2:end));
+            if contains(ww,'s1')
+                pref_trl=sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,5)==4 & sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,8)==dur_pref;
+            elseif contains(ww,'s2')
+                pref_trl=sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,5)==8 & sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,8)==dur_pref;
+            else
+                keyboard()
+            end
 
+            trl_align=nan(size(onechain.ts,1),14);
+            sps=30000;
+            for mii=1:size(onechain.ts,1)
+                nxt_trl=find(onechain.trials(:,1)>onechain.ts(mii,1),1,"first");
+                if nxt_trl==1 % before first
+                    trl_align(mii,:)=[-1,-1,-1,-1,-1,-1,-1,nxt_trl,(onechain.trials(nxt_trl,1)-onechain.ts(mii,1))./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
+                elseif isempty(nxt_trl) % after last
+                    prev_trl=size(onechain.trials,1);
+                    trl_align(mii,:)=[prev_trl,(onechain.ts(mii,1)-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),-1,-1,-1,-1,-1,-1,-1];
+                else % in session
+                    prev_trl=nxt_trl-1;
+                    trl_align(mii,:)=[prev_trl,(onechain.ts(mii,1)-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),nxt_trl,(onechain.trials(nxt_trl,1)-onechain.ts(mii,1))./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
+                end
+            end
+        end
+    end
+end
+end

@@ -7,6 +7,7 @@ arguments
     opt.only_delay (1,1) logical = false
     opt.skip_spike (1,1) logical = false
     opt.align_test (1,1) logical = false
+    opt.jagged (1,1) logical = false
 end
 
 persistent spkID spkTS trials SU_id folder fidx_  FT_SPIKE opt_
@@ -61,6 +62,8 @@ if isempty(fidx_)...
                 cfg.trl=[trials(:,1)+sps,trials(:,1)+7*sps,zeros(size(trials,1),1),trials];
             elseif opt.align_test
                 cfg.trl=[trials(:,2)-1*sps,trials(:,2)+13*sps,zeros(size(trials,1),1)-1*sps,trials];
+            elseif opt.jagged
+                cfg.trl=[trials(:,1)-3*sps,trials(:,1)+(trials(:,8)+10)*sps,zeros(size(trials,1),1)-3*sps,trials];
             else
                 cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
             end

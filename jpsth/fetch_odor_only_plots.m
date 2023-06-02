@@ -254,7 +254,16 @@ end
 disconnected=wave.module_motif_asso_composite(sschain,pstats);
 run_length=wave.chain_loop_stats(sschain,pstats,disconnected);
 
+
+
+%% systematic deconstruction
+
+wave.composite_thin_down(sschain,pstats)
+wave.composite_thin_down.demo
+wave.composite_thin_down
+
 return
+
 
 
 

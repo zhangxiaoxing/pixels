@@ -15,6 +15,7 @@ arguments
     opt.burstInterval (1,1) double = 300
     opt.rev (1,1) logical = false
     opt.stats (1,1) logical = false
+    opt.len_thresh (1,1) double = 5
 end
 
 % tsidin={0,25,50,75,100,125,150};
@@ -27,11 +28,11 @@ end
 %% set up
 % all_chains=fieldnames(pstats.congru);
 ch_len=cellfun(@(x) numel(x),chains.cids);
-waveids=reshape(unique(chains.wave(ch_len>4)),1,[]);
-sesses=reshape(unique(chains.sess(ch_len>4)),1,[]);
+waveids=reshape(unique(chains.wave(ch_len>opt.len_thresh)),1,[]);
+sesses=reshape(unique(chains.sess(ch_len>opt.len_thresh)),1,[]);
 
 for sessid=sesses
-    [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
+    [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
     for duration=[3 6]
         for wid=waveids
             if (contains(wid,'d3') && duration==6) ...
@@ -47,9 +48,9 @@ for sessid=sesses
             else
                 keyboard();
             end
-
-            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>4),1,[]);
-
+            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>opt.len_thresh),1,[]);
+            if isempty(sess_indices), continue;end
+            [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
             for cc=sess_indices
                 ts_id=[];
                 cids=chains.cids{cc};
@@ -92,7 +93,7 @@ for sessid=sesses
                     outkey="s"+sessid+"c"+cc;
                     out.("d"+duration).(wid).(outkey).ts=ts;
                     out.("d"+duration).(wid).(outkey).meta={cids,chains.tcoms(cc)};
-                    out.("d"+duration).(wid).(outkey).ts_id=ts_id;
+                    out.("d"+duration).(wid).(outkey).ts_id=table(uint32(ts_id(:,1)),uint16(ts_id(:,2)),uint8(ts_id(:,3)),ts_id(:,4),uint16(ts_id(:,5)),'VariableNames',{'TS','CID','POS','Time','Trial'});
 
                     % TODO: ccg
                     if opt.ccg

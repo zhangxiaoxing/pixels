@@ -338,10 +338,13 @@ for ii=reshape(union(grf,grr),1,[])
     end
 end
 
-wave.chain_stats(chains_uf,chains_uf_rev,su_meta,wrs_mux_meta);
+wave.chain_stats(chains_uf,chains_uf_rev,su_meta);
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
 
-[sschain.out,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true); % per-spk association
+[sschain.out,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',false); % per-spk association
+
+[sschain_trl,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
+
 
 
 if false
@@ -370,7 +373,6 @@ run_length=wave.chain_loop_stats(sschain,pstats,disconnected);
 
 wave.chain_loop_stats
 %% exports
-
 
 
 pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
