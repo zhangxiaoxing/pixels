@@ -17,6 +17,7 @@ arguments
     opt.extend_trial (1,1) logical = false
     opt.skip_ts_id (1,1) logical = false
     opt.DEBUG (1,1) logical = false
+    opt.anti_dir (1,1) logical = false
 end
 
 if opt.shuf_trl  
@@ -113,7 +114,13 @@ for sessid=sesses
                 
                     ts=chain_alt(ts_id_shuf(:,[1 3]));
                 else
-                    ts=chain_alt(ts_id(:,[1 3]));
+                    if opt.anti_dir
+                        anti_ts_id=ts_id(:,[1 3]);
+                        anti_ts_id(:,2)=(numel(cids)+1)-anti_ts_id(:,2);
+                        ts=chain_alt(anti_ts_id);
+                    else
+                        ts=chain_alt(ts_id(:,[1 3]));
+                    end
                 end
 
                 if ~isempty(ts)
@@ -234,12 +241,16 @@ end
 end
 
 
-function replay(sschain)
-for dd=reshape(fieldnames(sschain.out),1,[])
-    for ww=reshape(fieldnames(sschain.out.(dd{1})),1,[])
-        for cc=reshape(fieldnames(sschain.out.(dd{1}).(ww{1})),1,[])
+function replay(sschain_trl)
+for dd=reshape(fieldnames(sschain_trl),1,[])
+    for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
+        for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])    
+            sessid=str2double(regexp(cc{1},'(?<=s)\d{1,3}(?=c)','match','once'));
+            %TODO: move to pre-processing?
+            [~,SPKTS,~,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
+    
+
             onechain=sschain_trl.(dd{1}).(ww{1}).(cc{1});
-            % [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
             
             dur_pref=str2double(dd{1}(2:end));
             if contains(ww,'s1')
@@ -249,9 +260,12 @@ for dd=reshape(fieldnames(sschain.out),1,[])
             else
                 keyboard()
             end
-
-            trl_align=nan(size(onechain.ts,1),14);
+            
             sps=30000;
+
+            % [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]% [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
+            trl_align=nan(size(onechain.ts,1),14);
+            
             for mii=1:size(onechain.ts,1)
                 nxt_trl=find(onechain.trials(:,1)>onechain.ts(mii,1),1,"first");
                 if nxt_trl==1 % before first
@@ -264,7 +278,35 @@ for dd=reshape(fieldnames(sschain.out),1,[])
                     trl_align(mii,:)=[prev_trl,(onechain.ts(mii,1)-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),nxt_trl,(onechain.trials(nxt_trl,1)-onechain.ts(mii,1))./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
                 end
             end
+            
+
+            % 1:prefer leading ITI, 2:prefer delay, 3:prefer following ITI, 4:nonprefer leading
+            % ITI, 5:nonprefer delay, 6:nonprefer following ITI, 7:much  earlier,
+            % 8:much later
+            len=size(onechain.ts,2);
+            lastTrl=size(onechain.trials,1);
+            freqstats=struct();
+            pref_trl_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+            pref_trl_after_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=(trl_align(:,4)+1);
+            
+            freqstats.pref_delay_correct=[nnz(pref_trl_delay).*len,(sum(trl_align(pref_trl_delay,4)))];
+            freqstats.pref_after_delay_correct=[nnz(pref_trl_after_delay).*len,sum(sum(trl_align(pref_trl_after_delay,[2 9]),2)-trl_align(pref_trl_after_delay,4)-2)];
+
+            lastSps=SPKTS(end);
+            freqstats.before_session=[nnz(trl_align(:,8)==1 & trl_align(:,9)>60).*len,(onechain.trials(1,1)./sps-60)];
+            freqstats.after_session=[nnz(trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len,((lastSps-onechain.trials(end,2))./sps-60-1)];
+
+            sschain_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
+            sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
         end
     end
 end
+
+
+
+
+
+
+
+
 end
