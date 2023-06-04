@@ -241,7 +241,7 @@ end
 end
 
 
-function replay(sschain_trl)
+function sschain_trl=replay(sschain_trl)
 for dd=reshape(fieldnames(sschain_trl),1,[])
     for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
         for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])    
@@ -249,21 +249,23 @@ for dd=reshape(fieldnames(sschain_trl),1,[])
             %TODO: move to pre-processing?
             [~,SPKTS,~,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
     
-
             onechain=sschain_trl.(dd{1}).(ww{1}).(cc{1});
             
             dur_pref=str2double(dd{1}(2:end));
             if contains(ww,'s1')
-                pref_trl=sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,5)==4 & sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,8)==dur_pref;
+                samp_pref=4;
             elseif contains(ww,'s2')
-                pref_trl=sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,5)==8 & sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,8)==dur_pref;
+                samp_pref=8;
             else
+                disp('no wave id')
                 keyboard()
             end
-            
+
+            pref_trl=sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,5)==samp_pref & sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,8)==dur_pref;
+
             sps=30000;
 
-            % [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]% [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
+            % [nearest before; nearest after] * [trl_id,dT, samp, delay,wt,correct,prefer]% [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
             trl_align=nan(size(onechain.ts,1),14);
             
             for mii=1:size(onechain.ts,1)
@@ -279,22 +281,39 @@ for dd=reshape(fieldnames(sschain_trl),1,[])
                 end
             end
             
-
-            % 1:prefer leading ITI, 2:prefer delay, 3:prefer following ITI, 4:nonprefer leading
-            % ITI, 5:nonprefer delay, 6:nonprefer following ITI, 7:much  earlier,
-            % 8:much later
             len=size(onechain.ts,2);
             lastTrl=size(onechain.trials,1);
             freqstats=struct();
-            pref_trl_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
-            pref_trl_after_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=(trl_align(:,4)+1);
-            
-            freqstats.pref_delay_correct=[nnz(pref_trl_delay).*len,(sum(trl_align(pref_trl_delay,4)))];
-            freqstats.pref_after_delay_correct=[nnz(pref_trl_after_delay).*len,sum(sum(trl_align(pref_trl_after_delay,[2 9]),2)-trl_align(pref_trl_after_delay,4)-2)];
+            % delay correct
+            pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+            pref_delay_trls=all(onechain.trials(:,9:10)==1,2) & onechain.trials(:,5)==samp_pref & onechain.trials(:,8)==dur_pref;
+            freqstats.pref_delay_correct=[nnz(pref_delay).*len,sum(onechain.trials(pref_delay_trls,8))];
+
+            % delay error
+            pref_delay_err=trl_align(:,6)==0 & trl_align(:,7)==1 & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+            pref_delay_err_trls=onechain.trials(:,10)==0 & onechain.trials(:,5)==samp_pref & onechain.trials(:,8)==dur_pref;
+            freqstats.pref_delay_error=[nnz(pref_delay_err).*len,sum(onechain.trials(pref_delay_err_trls,8))];
+
+            % delay non-prefered
+            nonpref_delay=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+            nonpref_delay_trls=all(onechain.trials(:,9:10)==1,2) & onechain.trials(:,5)~=samp_pref;
+            freqstats.nonpref_delay_correct=[nnz(nonpref_delay).*len,(sum(onechain.trials(nonpref_delay_trls,8)))];
+
+            % 1/samp delay 1/test 2/rwd?
+            % decision/test correct
+            pref_test=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=(trl_align(:,4)+1) & trl_align(:,2)<(trl_align(:,4)+2);
+            freqstats.pref_test=[nnz(pref_test).*len,nnz(pref_delay_trls)]; % 1 sec per trl
+
+
+            % after delay correct
+            onechain.trials(end+1,:)=onechain.trials(end,2)+14*sps;
+            pref_after=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=(trl_align(:,4)+4); % 1s samp, 1s test, 2s rwd
+            freqstats.pref_after=[nnz(pref_after).*len,sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
+            onechain.trials(end,:)=[];
 
             lastSps=SPKTS(end);
-            freqstats.before_session=[nnz(trl_align(:,8)==1 & trl_align(:,9)>60).*len,(onechain.trials(1,1)./sps-60)];
-            freqstats.after_session=[nnz(trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len,((lastSps-onechain.trials(end,2))./sps-60-1)];
+            freqstats.before_session=[nnz(trl_align(:,8)==1 & trl_align(:,9)>60).*len,onechain.trials(1,1)./sps-60];
+            freqstats.after_session=[nnz(trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len,(lastSps-onechain.trials(end,2))./sps-60-1];
 
             sschain_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
             sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
@@ -302,10 +321,32 @@ for dd=reshape(fieldnames(sschain_trl),1,[])
     end
 end
 
+stats=[];
+for dd=reshape(fieldnames(sschain_trl),1,[])
+    for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
+        for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])  
+            stats=[stats,cellfun(@(x) x(1)./x(2),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+        end
+    end
+end
+
+figure();
+boxplot(stats.','Colors','k','Symbol','c.')
+ylim([0,1.5])
+set(gca(),'XTick',1:7,'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear')
+for jj=2:7
+    pp=ranksum(stats(1,:),stats(jj,:));
+    text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
+end
 
 
-
-
+figure();
+hold on
+for ii=1:7
+    swarmchart(repmat(ii,size(stats,2),1),stats(ii,:),16,'.')
+end
+ylim([-0.1,1.5])
+set(gca(),'XTick',1:7,'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear','TickLabelInterpreter','none')
 
 
 
