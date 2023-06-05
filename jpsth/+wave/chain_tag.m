@@ -321,7 +321,7 @@ classdef chain_tag < handle
                             sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
 
                         % succeed ITI nonpref
-                        nonpref_succeed_iti=(all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref) ... % WT, nonpref
+                        nonpref_succeed_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref ... % WT, nonpref
                             & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
                             & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14)); % 1s samp, 1s test, 2s rwd
                         freqstats.nonpref_succeed_ITI=[nnz(nonpref_succeed_iti).*len,...
@@ -332,15 +332,16 @@ classdef chain_tag < handle
                         % TODO: precede preferred, non preferred
 %                       
 %                         % precede ITI pref correct
-                        onechain.trials=[repmat(onechain.trials(1,1)-14*sps,1,14);onechain.trials];
-                        pref_precede_iti=all(trl_align(:,12:14)==1,2) & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
-                        freqstats.pref_precede_ITI=[nnz(pref_precede_iti).*len,sum((onechain.trials(pref_delay_trls,1)-onechain.trials(find(pref_delay_trls)-1,2))./sps-3)]; %rwd + test
+                        onechain.trials=[repmat(onechain.trials(1,1)-14*sps,1,10);onechain.trials];
+                        pref_precede_iti=all(trl_align(:,12:14)==1,2)...
+                            & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                        freqstats.pref_precede_ITI=[nnz(pref_precede_iti).*len,sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
 % 
 %                         %  precede ITI nonpref
-%                         nonpref_late_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref & trl_align(:,2)>=(trl_align(:,4)+4); % 1s samp, 1s test, 2s rwd
-%                         freqstats.nonpref_late_ITI=[nnz(nonpref_late_iti).*len,sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)];
-
-
+                        nonpref_precede_iti=all(trl_align(:,12:13)==1) & trl_align(:,10)~=samp_pref...
+                            & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                        freqstats.nonpref_precede_ITI=[nnz(nonpref_precede_iti).*len,sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)]; %rwd + test
+                        onechain.trials(:,1)=[];
 
                         % long before and after 
                         lastSps=SPKTS(end);
@@ -365,7 +366,7 @@ classdef chain_tag < handle
             figure();
             boxplot(stats.','Colors','k','Symbol','c.')
             ylim([0,1.5])
-            set(gca(),'XTick',1:7,'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear')
+            set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear')
             for jj=2:7
                 pp=ranksum(stats(1,:),stats(jj,:));
                 text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
@@ -374,12 +375,11 @@ classdef chain_tag < handle
 
             figure();
             hold on
-            for ii=1:7
+            for ii=1:size(stats,1)
                 swarmchart(repmat(ii,size(stats,2),1),stats(ii,:),16,'.')
             end
             ylim([-0.1,1.5])
-            set(gca(),'XTick',1:7,'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear','TickLabelInterpreter','none')
-
+            set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear','TickLabelInterpreter','none')
         end
     end
 end
