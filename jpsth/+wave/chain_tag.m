@@ -1,3 +1,4 @@
+% [sschain_trl,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
 %
 % load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
 % chains=chains_uf;
@@ -18,7 +19,7 @@ classdef chain_tag < handle
                 opt.extend_trial (1,1) logical = false
                 opt.skip_ts_id (1,1) logical = false
                 opt.DEBUG (1,1) logical = false
-                opt.anti_dir (1,1) logical = false
+                opt.anti_dir (1,1) logical = false % TODO: consistent chain,reverse direction
             end
 
             if opt.shuf_trl
@@ -128,6 +129,7 @@ classdef chain_tag < handle
                                 outkey="s"+sessid+"c"+cc;
                                 out.("d"+duration).(outid).(outkey).ts=ts;
                                 out.("d"+duration).(outid).(outkey).meta={cids,chains.tcoms(cc)};
+                                
                                 if opt.skip_ts_id
                                     out.("d"+duration).(outid).(outkey).trials=trials;
                                 else
@@ -242,7 +244,7 @@ classdef chain_tag < handle
         end
 
 
-        function sschain_trl=replay(sschain_trl,ttl)
+        function [sschain_trl,stats,raw]=replay(sschain_trl,ttl)
             arguments
                 sschain_trl
                 ttl (1,:) char = 'chains'
@@ -250,10 +252,7 @@ classdef chain_tag < handle
             for dd=reshape(fieldnames(sschain_trl),1,[])
                 for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
                     for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])
-                        sessid=str2double(regexp(cc{1},'(?<=s)\d{1,3}(?=c)','match','once'));
-                        %TODO: move to pre-processing?
-                        [~,SPKTS,~,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
-
+                        
                         onechain=sschain_trl.(dd{1}).(ww{1}).(cc{1});
 
                         dur_pref=str2double(dd{1}(2:end));
@@ -266,7 +265,7 @@ classdef chain_tag < handle
                             keyboard()
                         end
 
-                        pref_trl=sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,5)==samp_pref & sschain_trl.(dd{1}).(ww{1}).(cc{1}).trials(:,8)==dur_pref;
+                        pref_trl=onechain.trials(:,5)==samp_pref & onechain.trials(:,8)==dur_pref;
 
                         sps=30000;
 
@@ -320,6 +319,13 @@ classdef chain_tag < handle
                         freqstats.pref_succeed_ITI=[nnz(pref_succeed_iti).*len,...
                             sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
 
+                        % succeed ITI pref error
+                        pref_succeed_iti_err=trl_align(:,6)==0 & trl_align(:,7)==1 ...
+                            & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
+                            & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+                        freqstats.pref_succeed_ITI_err=[nnz(pref_succeed_iti_err).*len,...
+                            sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
+
                         % succeed ITI nonpref
                         nonpref_succeed_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref ... % WT, nonpref
                             & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
@@ -329,24 +335,34 @@ classdef chain_tag < handle
 
                         onechain.trials(end,:)=[];
 
-                        % TODO: precede preferred, non preferred
-%                       
-%                         % precede ITI pref correct
+                        % precede preferred, non preferred
+                       
+                        % precede ITI pref correct
                         onechain.trials=[repmat(onechain.trials(1,1)-14*sps,1,10);onechain.trials];
                         pref_precede_iti=all(trl_align(:,12:14)==1,2)...
                             & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
                         freqstats.pref_precede_ITI=[nnz(pref_precede_iti).*len,sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
-% 
-%                         %  precede ITI nonpref
-                        nonpref_precede_iti=all(trl_align(:,12:13)==1) & trl_align(:,10)~=samp_pref...
+
+                        % precede ITI pref error
+                        pref_succeed_iti_err=trl_align(:,13)==0 & trl_align(:,14)==1 ...
+                            & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                        freqstats.pref_precede_ITI_err=[nnz(pref_succeed_iti_err).*len,sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
+
+                        %  precede ITI nonpref
+                        nonpref_precede_iti=all(trl_align(:,12:13)==1,2) & trl_align(:,10)~=samp_pref...
                             & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
                         freqstats.nonpref_precede_ITI=[nnz(nonpref_precede_iti).*len,sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)]; %rwd + test
-                        onechain.trials(:,1)=[];
+                        onechain.trials(1,:)=[];
+                        % 
+                        % if nnz(nonpref_precede_iti)==0 && nnz(nonpref_succeed_iti)>0
+                        %     keyboard()
+                        % end
 
                         % long before and after 
-                        lastSps=SPKTS(end);
+                        sessid=str2double(regexp(cc{1},'(?<=s)\d{1,3}(?=c)','match','once'));
+                        rec_dur=wave.chain_tag.sessid2length(sessid);
                         freqstats.before_session=[nnz(trl_align(:,8)==1 & trl_align(:,9)>60).*len,onechain.trials(1,1)./sps-60];
-                        freqstats.after_session=[nnz(trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len,(lastSps-onechain.trials(end,2))./sps-60-1];
+                        freqstats.after_session=[nnz(trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len,(rec_dur-onechain.trials(end,2))./sps-60-1];
 
                         sschain_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
                         sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
@@ -355,10 +371,13 @@ classdef chain_tag < handle
             end
 
             stats=[];
+            raw=cell2struct({[];[]},{'count','time'});
             for dd=reshape(fieldnames(sschain_trl),1,[])
                 for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
                     for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])
                         stats=[stats,cellfun(@(x) x(1)./x(2),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                     end
                 end
             end
@@ -367,11 +386,12 @@ classdef chain_tag < handle
             boxplot(stats.','Colors','k','Symbol','c.')
             ylim([0,1.5])
             set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear')
-            for jj=2:7
+            for jj=2:size(stats,1)
                 pp=ranksum(stats(1,:),stats(jj,:));
                 text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
             end
             title(ttl)
+            ylabel('Motif spike frequency (Hz)')
 
             figure();
             hold on
@@ -380,6 +400,24 @@ classdef chain_tag < handle
             end
             ylim([-0.1,1.5])
             set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear','TickLabelInterpreter','none')
+        end
+        function rec_dur=sessid2length(sessidx)
+            persistent sessidx_ rec_dur_
+            if isempty(sessidx_) || sessidx~=sessidx_
+                metaf=dir(fullfile(...
+                    ephys.util.getHomedir('type','raw'),...
+                    replace(ephys.sessid2path(sessidx,'criteria','WT'),'\',filesep()),...
+                    "*.ap.meta"));
+                ts=textscan(...
+                    fopen(fullfile(metaf.folder,metaf.name)),...
+                    '%s','Delimiter',{'\n'});
+                rec_dur=str2double(replace(ts{1}{startsWith(ts{1},'fileSizeBytes')},'fileSizeBytes=',''))...
+                    ./385/2;
+                rec_dur_=rec_dur;
+                sessidx_=sessidx;
+            else
+                rec_dur=rec_dur_;
+            end
         end
     end
 end
