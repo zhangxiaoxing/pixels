@@ -16,7 +16,7 @@ classdef chain_tag < handle
                 opt.len_thresh (1,1) double = 5
                 opt.skip_save (1,1) logical = false
                 opt.odor_only (1,1) logical = false
-                opt.extend_trial (1,1) logical = false
+                opt.extend_trial (1,1) logical = false % include all recording time or only preferred delay
                 opt.skip_ts_id (1,1) logical = false
                 opt.DEBUG (1,1) logical = false
                 opt.anti_dir (1,1) logical = false % TODO: consistent chain,reverse direction
@@ -244,10 +244,12 @@ classdef chain_tag < handle
         end
 
 
-        function [sschain_trl,stats,raw]=replay(sschain_trl,ttl)
+        function [sschain_trl,stats,raw]=replay(sschain_trl,opt)
             arguments
                 sschain_trl
-                ttl (1,:) char = 'chains'
+                opt.title (1,:) char = 'chains'
+                opt.var_len (1,1) logical = false
+
             end
             for dd=reshape(fieldnames(sschain_trl),1,[])
                 for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
@@ -271,23 +273,31 @@ classdef chain_tag < handle
 
                         % [nearest before; nearest after] * [trl_id,dT, samp, delay,wt,correct,prefer]% [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
                         trl_align=nan(size(onechain.ts,1),14);
-
+                        
                         for mii=1:size(onechain.ts,1)
-                            nxt_trl=find(onechain.trials(:,1)>onechain.ts(mii,1),1,"first");
+                            if opt.var_len
+                                one_onset=onechain.ts{mii}(1);
+                            else
+                                one_onset=onechain.ts(mii,1);
+                            end
+                            nxt_trl=find(onechain.trials(:,1)>one_onset,1,"first");
                             if nxt_trl==1 % before first
-                                trl_align(mii,:)=[-1,-1,-1,-1,-1,-1,-1,nxt_trl,(onechain.trials(nxt_trl,1)-onechain.ts(mii,1))./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
+                                trl_align(mii,:)=[-1,-1,-1,-1,-1,-1,-1,nxt_trl,(onechain.trials(nxt_trl,1)-one_onset)./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
                             elseif isempty(nxt_trl) % after last
                                 prev_trl=size(onechain.trials,1);
-                                trl_align(mii,:)=[prev_trl,(onechain.ts(mii,1)-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),-1,-1,-1,-1,-1,-1,-1];
+                                trl_align(mii,:)=[prev_trl,(one_onset-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),-1,-1,-1,-1,-1,-1,-1];
                             else % in session
                                 prev_trl=nxt_trl-1;
-                                trl_align(mii,:)=[prev_trl,(onechain.ts(mii,1)-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),nxt_trl,(onechain.trials(nxt_trl,1)-onechain.ts(mii,1))./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
+                                trl_align(mii,:)=[prev_trl,(one_onset-onechain.trials(prev_trl,1))./sps,onechain.trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),nxt_trl,(onechain.trials(nxt_trl,1)-one_onset)./sps,onechain.trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
                             end
                         end
-
-                        len=size(onechain.ts,2);
                         lastTrl=size(onechain.trials,1);
                         freqstats=struct();
+
+                        if ~opt.var_len
+                            len=size(onechain.ts,2);
+                        end
+                        % TODO: total spikes on variable length
 
                         % delay correct
                         pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
@@ -390,7 +400,7 @@ classdef chain_tag < handle
                 pp=ranksum(stats(1,:),stats(jj,:));
                 text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
             end
-            title(ttl)
+            title(opt.title)
             ylabel('Motif spike frequency (Hz)')
 
             figure();

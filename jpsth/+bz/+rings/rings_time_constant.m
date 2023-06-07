@@ -5,20 +5,21 @@
 % the shuffled level ().
 classdef rings_time_constant <handle
     methods (Static)
-        function pstats=stats(sums_all,sel_meta,opt)
+        function [pstats,tag_compress]=stats(sums_all,sel_meta,opt)
             arguments
                 sums_all  % w/ loop tags
                 sel_meta
                 opt.load_file (1,1) logical = false
                 opt.skip_save (1,1) logical = false
                 opt.odor_only (1,1) logical = false
+                opt.compress (1,1) logical = false
             end
             % function cong_dir=rings_su_tcom_order(sums_all) % modified from
             % persistent sums_all
             % if isempty(sums_all)
             %     load(fullfile('bzdata','sums_ring_stats_all.mat'));
             % end
-
+            tag_compress=struct();
             if ~opt.load_file
                 pstats=struct();
                 pstats.congru=struct();
@@ -60,6 +61,12 @@ classdef rings_time_constant <handle
                     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
                     rid=find(cell2mat(rstats(:,1))==sessid);
                     for ri=reshape(rid,1,[])
+                        if opt.compress && any(ismember(rstats{ri,7},[0 7 8]),'all')
+                            % TODO: generate data for non-mem rings
+                            % no difference between 3s or 6s
+                            continue
+                        end
+
                         ts_id=[];
                         cids=rstats{ri,3};
                         disp({sessid,ri});
@@ -100,7 +107,7 @@ classdef rings_time_constant <handle
                             tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>=1 & ts_id(:,4)<4) ...
                                 | (ismember(ts_id(:,5),d6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
                             rsums=ts_id(tssel,:);
-                            
+
                             for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
                                 if nnz(rsums(:,6)==ii)<=numel(cids)
                                     rsums(rsums(:,6)==ii,6)=0;
@@ -110,25 +117,48 @@ classdef rings_time_constant <handle
                             pstats.nonmem.(uidtag).ts_id=...
                                 table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
                                 'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
+
                             pstats.nonmem.(uidtag).rstats=rstats(ri,[1:3,7:10]);
                             pstats.nonmem.(uidtag).trials=trials;
                         else
                             % in-delay selection
-                            % TODO: optional switch
-                            [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
-                            tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4)...
-                                | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
-                            rsums=ts_id(tssel,:);
-                            % remove trial-time cut-off loops
-                            for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
-                                if nnz(rsums(:,6)==ii)<=numel(cids)
-                                    rsums(rsums(:,6)==ii,6)=0;
+                            if opt.compress
+                                % TODO: complete output codes
+                                onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                                onemeta=rstats(ri,[1 3 7]);
+                                % 3s 6s or both
+                                if all(ismember(rstats{ri,7},[1 2 5]),'all')
+                                    pref_samp='olf_s1';
+                                elseif all(ismember(rstats{ri,7},[3 4 6]),'all')
+                                    pref_samp='olf_s2';
+                                else % TODO: verify and remove if unnecessary
+                                    warning("Incongruent ring under congruent context")
+                                    keyboard()
                                 end
-                            end
+                                if all(ismember(rstats{ri,7},[1 3 5 6]),'all') % 3s
+                                    tag_compress.d3.(pref_samp).(sprintf('s%dr%d',sessid,ri))=...
+                                        cell2struct({onets;onemeta;trials},{'ts','meta','trials'});
+                                end
+                                if all(ismember(rstats{ri,7},[2 4 5 6]),'all') % 6s
+                                    tag_compress.d6.(pref_samp).(sprintf('s%dr%d',sessid,ri))=...
+                                        cell2struct({onets;onemeta;trials},{'ts','meta','trials'});
+                                end
+                            else
+                                [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
+                                tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4)...
+                                    | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
+                                rsums=ts_id(tssel,:);
+                                % remove trial-time cut-off loops
+                                for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
+                                    if nnz(rsums(:,6)==ii)<=numel(cids)
+                                        rsums(rsums(:,6)==ii,6)=0;
+                                    end
+                                end
 
-                            pstats.congru.(uidtag).ts_id=...
-                                table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
-                                'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
+                                pstats.congru.(uidtag).ts_id=...
+                                    table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
+                                    'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
+                            end
                             %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                             pstats.congru.(uidtag).rstats=rstats(ri,[1:3,7:10]);
                             pstats.congru.(uidtag).trials=trials;
