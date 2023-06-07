@@ -294,30 +294,31 @@ classdef chain_tag < handle
                         lastTrl=size(onechain.trials,1);
                         freqstats=struct();
 
-                        if ~opt.var_len
+                        if opt.var_len
+                            len=cellfun(@(x) numel(x),onechain.ts);
+                        else
                             len=size(onechain.ts,2);
                         end
-                        % TODO: total spikes on variable length
 
                         % delay correct
                         pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
                         pref_delay_trls=all(onechain.trials(:,9:10)==1,2) & onechain.trials(:,5)==samp_pref & onechain.trials(:,8)==dur_pref;
-                        freqstats.pref_delay_correct=[nnz(pref_delay).*len,sum(onechain.trials(pref_delay_trls,8))];
+                        freqstats.pref_delay_correct=[sum(pref_delay.*len),sum(onechain.trials(pref_delay_trls,8))];
 
                         % delay error
                         pref_delay_err=trl_align(:,6)==0 & trl_align(:,7)==1 & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
                         pref_delay_err_trls=onechain.trials(:,10)==0 & onechain.trials(:,5)==samp_pref & onechain.trials(:,8)==dur_pref;
-                        freqstats.pref_delay_error=[nnz(pref_delay_err).*len,sum(onechain.trials(pref_delay_err_trls,8))];
+                        freqstats.pref_delay_error=[sum(pref_delay_err.*len),sum(onechain.trials(pref_delay_err_trls,8))];
 
                         % delay non-prefered
                         nonpref_delay=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
                         nonpref_delay_trls=all(onechain.trials(:,9:10)==1,2) & onechain.trials(:,5)~=samp_pref;
-                        freqstats.nonpref_delay_correct=[nnz(nonpref_delay).*len,(sum(onechain.trials(nonpref_delay_trls,8)))];
+                        freqstats.nonpref_delay_correct=[sum(nonpref_delay.*len),(sum(onechain.trials(nonpref_delay_trls,8)))];
 
                         % 1/samp delay 1/test 2/rwd?
                         % decision/test correct
                         pref_test=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=(trl_align(:,4)+1) & trl_align(:,2)<(trl_align(:,4)+2);
-                        freqstats.pref_test=[nnz(pref_test).*len,nnz(pref_delay_trls)]; % 1 sec per trl
+                        freqstats.pref_test=[sum(pref_test.*len),nnz(pref_delay_trls)]; % 1 sec per trl
 
                         %supply for last trial
                         onechain.trials(end+1,:)=onechain.trials(end,2)+14*sps;
@@ -326,21 +327,21 @@ classdef chain_tag < handle
                         pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
                             & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
                             & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
-                        freqstats.pref_succeed_ITI=[nnz(pref_succeed_iti).*len,...
+                        freqstats.pref_succeed_ITI=[sum(pref_succeed_iti.*len),...
                             sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
 
                         % succeed ITI pref error
                         pref_succeed_iti_err=trl_align(:,6)==0 & trl_align(:,7)==1 ...
                             & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
                             & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
-                        freqstats.pref_succeed_ITI_err=[nnz(pref_succeed_iti_err).*len,...
+                        freqstats.pref_succeed_ITI_err=[sum(pref_succeed_iti_err.*len),...
                             sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
 
                         % succeed ITI nonpref
                         nonpref_succeed_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref ... % WT, nonpref
                             & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
                             & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14)); % 1s samp, 1s test, 2s rwd
-                        freqstats.nonpref_succeed_ITI=[nnz(nonpref_succeed_iti).*len,...
+                        freqstats.nonpref_succeed_ITI=[sum(nonpref_succeed_iti.*len),...
                             sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)];
 
                         onechain.trials(end,:)=[];
@@ -351,17 +352,17 @@ classdef chain_tag < handle
                         onechain.trials=[repmat(onechain.trials(1,1)-14*sps,1,10);onechain.trials];
                         pref_precede_iti=all(trl_align(:,12:14)==1,2)...
                             & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
-                        freqstats.pref_precede_ITI=[nnz(pref_precede_iti).*len,sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
+                        freqstats.pref_precede_ITI=[sum(pref_precede_iti.*len),sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
 
                         % precede ITI pref error
                         pref_succeed_iti_err=trl_align(:,13)==0 & trl_align(:,14)==1 ...
                             & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
-                        freqstats.pref_precede_ITI_err=[nnz(pref_succeed_iti_err).*len,sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
+                        freqstats.pref_precede_ITI_err=[sum(pref_succeed_iti_err.*len),sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
 
                         %  precede ITI nonpref
                         nonpref_precede_iti=all(trl_align(:,12:13)==1,2) & trl_align(:,10)~=samp_pref...
                             & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
-                        freqstats.nonpref_precede_ITI=[nnz(nonpref_precede_iti).*len,sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)]; %rwd + test
+                        freqstats.nonpref_precede_ITI=[sum(nonpref_precede_iti.*len),sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)]; %rwd + test
                         onechain.trials(1,:)=[];
                         % 
                         % if nnz(nonpref_precede_iti)==0 && nnz(nonpref_succeed_iti)>0
@@ -369,10 +370,10 @@ classdef chain_tag < handle
                         % end
 
                         % long before and after 
-                        sessid=str2double(regexp(cc{1},'(?<=s)\d{1,3}(?=c)','match','once'));
+                        sessid=str2double(regexp(cc{1},'(?<=s)\d{1,3}(?=(c|r))','match','once'));
                         rec_dur=wave.chain_tag.sessid2length(sessid);
-                        freqstats.before_session=[nnz(trl_align(:,8)==1 & trl_align(:,9)>60).*len,onechain.trials(1,1)./sps-60];
-                        freqstats.after_session=[nnz(trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len,(rec_dur-onechain.trials(end,2))./sps-60-1];
+                        freqstats.before_session=[sum((trl_align(:,8)==1 & trl_align(:,9)>60).*len),onechain.trials(1,1)./sps-60];
+                        freqstats.after_session=[sum((trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len),(rec_dur-onechain.trials(end,2))./sps-60-1];
 
                         sschain_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
                         sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
@@ -410,6 +411,8 @@ classdef chain_tag < handle
             end
             ylim([-0.1,1.5])
             set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear','TickLabelInterpreter','none')
+            title(opt.title)
+            ylabel('Motif spike frequency (Hz)')
         end
         function rec_dur=sessid2length(sessidx)
             persistent sessidx_ rec_dur_
