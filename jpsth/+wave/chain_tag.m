@@ -247,9 +247,7 @@ classdef chain_tag < handle
         function [sschain_trl,stats,raw]=replay(sschain_trl,opt)
             arguments
                 sschain_trl
-                opt.title (1,:) char = 'chains'
                 opt.var_len (1,1) logical = false
-
             end
             for dd=reshape(fieldnames(sschain_trl),1,[])
                 for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
@@ -392,28 +390,9 @@ classdef chain_tag < handle
                     end
                 end
             end
-
-            figure();
-            boxplot(stats.','Colors','k','Symbol','c.')
-            ylim([0,1.5])
-            set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear')
-            for jj=2:size(stats,1)
-                pp=ranksum(stats(1,:),stats(jj,:));
-                text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
-            end
-            title(opt.title)
-            ylabel('Motif spike frequency (Hz)')
-
-            figure();
-            hold on
-            for ii=1:size(stats,1)
-                swarmchart(repmat(ii,size(stats,2),1),stats(ii,:),16,'.')
-            end
-            ylim([-0.1,1.5])
-            set(gca(),'XTick',1:size(stats,1),'XTickLabel',fieldnames(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats),'YScale','linear','TickLabelInterpreter','none')
-            title(opt.title)
-            ylabel('Motif spike frequency (Hz)')
         end
+
+        %%
         function rec_dur=sessid2length(sessidx)
             persistent sessidx_ rec_dur_
             if isempty(sessidx_) || sessidx~=sessidx_
@@ -432,5 +411,36 @@ classdef chain_tag < handle
                 rec_dur=rec_dur_;
             end
         end
+
+%%
+        function [fhb,fhs]=plot_replay(stats,xlbl,opt)
+            arguments
+                stats
+                xlbl 
+                opt.title (1,:) char = 'chains'
+            end
+            
+            fhb=figure();
+            boxplot(stats.','Colors','k','Symbol','c.')
+            ylim([0,1.5])
+            set(gca(),'XTick',1:size(stats,1),'XTickLabel',xlbl,'YScale','linear')
+            for jj=2:size(stats,1)
+                pp=ranksum(stats(1,:),stats(jj,:));
+                text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
+            end
+            title(opt.title)
+            ylabel('Motif spike frequency (Hz)')
+
+            fhs=figure();
+            hold on
+            for ii=1:size(stats,1)
+                swarmchart(repmat(ii,size(stats,2),1),stats(ii,:),16,'.')
+            end
+            ylim([-0.1,1.5])
+            set(gca(),'XTick',1:size(stats,1),'XTickLabel',xlbl,'YScale','linear','TickLabelInterpreter','none')
+            title(opt.title)
+            ylabel('Motif spike frequency (Hz)')
+        end
+
     end
 end

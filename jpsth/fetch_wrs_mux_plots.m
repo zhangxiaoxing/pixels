@@ -346,7 +346,11 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',false); % per-spk association
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
 
-wave.chain_tag.replay(sschain_trl)
+
+[chn_trl,stats,raw]=wave.chain_tag.replay(sschain_trl,'var_len',false);
+[fhb,fhs]=wave.chain_tag.plot_replay(stats([1 4 8 5 11 12],:),...
+    {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','chains')
+
 
 if false
 wave.chains_time_constant
