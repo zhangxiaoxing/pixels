@@ -320,6 +320,23 @@ if false
 end
 %TODO: assembly time constant olf, both, 3s 6s
 
+[ring_str,stats_ring,~]=wave.chain_tag.replay(rings_tag,'var_len',true);
+
+[fhb,fhs]=wave.chain_tag.plot_replay(stats_ring([1 4 8 5 11 12],:),...
+    {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
+fhb.Children.YLim=[0,3.5];
+fhs.Children.YLim=[0,3.5];
+
+[fhb,fhs]=wave.chain_tag.plot_replay(stats_ring([1 2 8 9 5 6],:),...
+    {'Correct','Error','Correct','Error','Correct','Error',},'title','loops delay-prior-after');
+fhb.Children.YLim=[0,3.5];
+fhs.Children.YLim=[0,3.5];
+delete(fhb.Children.Children(5))
+[ranksum(stats_ring(1,:),stats_ring(2,:)),ranksum(stats_ring(8,:),stats_ring(9,:)),ranksum(stats_ring(5,:),stats_ring(6,:))]
+text(1.5:2:5.5,[1.5,1.5,1.5],{'***','***','***'},'VerticalAlignment','top','HorizontalAlignment','center')
+
+
+
 %% chain
 
 % global_init;
@@ -350,6 +367,38 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 [chn_trl,stats,raw]=wave.chain_tag.replay(sschain_trl,'var_len',false);
 [fhb,fhs]=wave.chain_tag.plot_replay(stats([1 4 8 5 11 12],:),...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','chains')
+
+[fhb,fhs]=wave.chain_tag.plot_replay(stats([1 2 8 9 5 6],:),...
+    {'Correct','Error','Correct','Error','Correct','Error',},'title','chains delay-prior-after');
+delete(fhb.Children.Children(5))
+[ranksum(stats(1,:),stats(2,:)),ranksum(stats(8,:),stats(9,:)),ranksum(stats(5,:),stats(6,:))]
+text(1.5:2:5.5,[1.5,1.5,1.5],{'***','***','***'},'VerticalAlignment','top','HorizontalAlignment','center')
+
+
+[~,stats_anti,~]=wave.chain_tag.replay(sschain_trl_anti,'var_len',false);
+[~,stats_incon,~]=wave.chain_tag.replay(sschain_trl_rev,'var_len',false);
+
+yy=[stats(1,:),stats_anti(1,:),stats_incon(1,:),stats(8,:), stats_anti(8,:), stats_incon(8,:),...
+    stats(5,:),stats_anti(5,:),stats_incon(5,:),stats(11,:),stats_anti(11,:),stats_incon(11,:),...
+    stats(12,:),stats_anti(12,:),stats_incon(12,:)];
+ggn=[size(stats,2),size(stats_anti,2),size(stats_incon,2)];
+
+gg=[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1);...
+    4*ones(ggn(1),1);5*ones(ggn(2),1);6*ones(ggn(3),1);...
+    7*ones(ggn(1),1);8*ones(ggn(2),1);9*ones(ggn(3),1);...
+    10*ones(ggn(1),1);11*ones(ggn(2),1);12*ones(ggn(3),1);...
+    13*ones(ggn(1),1);14*ones(ggn(2),1);15*ones(ggn(3),1)];
+
+figure()
+boxplot(yy,gg,'Colors','k','Symbol','c.')
+ylim([0,1.5])
+set(gca(),'XTick',2:3:14,'XTickLabel',{'Delay','Prior','Later','Before','After'})
+title('chains consis-anti-incon')
+p=kruskalwallis([stats(1,:),stats_anti(1,:),stats_incon(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([stats(8,:),stats_anti(8,:),stats_incon(8,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([stats(5,:),stats_anti(5,:),stats_incon(5,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([stats(11,:),stats_anti(11,:),stats_incon(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([stats(12,:),stats_anti(12,:),stats_incon(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 
 
 if false
