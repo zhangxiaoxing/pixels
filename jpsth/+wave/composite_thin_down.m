@@ -45,34 +45,40 @@ classdef composite_thin_down < handle
             usess=union(ssc_sess,ssl_sess);
 
             %% per-session entrance
-            per_sess_condition=struct();
+            
 
             for sessid=reshape(usess,1,[])
+                
                 %% single spike chain
                 % four conditions
-                % s1d3
+                
+                per_sess_condition.("s"+sessid+"s1d3")=struct();
                 per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"],sessid);
                 per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid);
                 
                 % d3s2
+                per_sess_condition.("s"+sessid+"s1d6")=struct();
                 per_sess_condition.("s"+sessid+"s1d6").chains=wave.composite_thin_down.getChains(sschain,"d6",["olf_s1","s1d6"],sessid);
                 per_sess_condition.("s"+sessid+"s1d6").loops=wave.composite_thin_down.getLoops(pstats,[2 5],sessid);
 
                 % d6s1
+                per_sess_condition.("s"+sessid+"s2d3")=struct();
                 per_sess_condition.("s"+sessid+"s2d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s2","s2d3"],sessid);
                 per_sess_condition.("s"+sessid+"s2d3").loops=wave.composite_thin_down.getLoops(pstats,[3 6],sessid);
 
                 % d6s2
+                per_sess_condition.("s"+sessid+"s2d6")=struct();
                 per_sess_condition.("s"+sessid+"s2d6").chains=wave.composite_thin_down.getChains(sschain,"d6",["olf_s2","s2d6"],sessid);
                 per_sess_condition.("s"+sessid+"s2d6").loops=wave.composite_thin_down.getLoops(pstats,[4 6],sessid);
             end
         end
         
-        function stats=stats_remove(per_sess_condition,opt)
+        function [stats,G]=stats_remove(per_sess_condition,opt)
             arguments
                 per_sess_condition
                 opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D10','D5'})} = ''
                 opt.UID = []
+                opt.one_net (1,:) char = ''
             end
             
             stats=struct();
@@ -96,14 +102,20 @@ classdef composite_thin_down < handle
                     per_sess_condition=cell2struct(cellstr,fns);
             end
             
+            if isempty(opt.one_net)
+                fns=fieldnames(per_sess_condition);
+                G=[];
+            else
+                fns={opt.one_net};
+            end
 
-            fns=fieldnames(per_sess_condition);
             for fn=reshape(fns,1,[])
                 if numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<=1
                     continue
                 end
 
                 % build graph network
+                per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
                 edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
                     [per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops],...
                     'UniformOutput',false)),'rows'));
@@ -133,7 +145,6 @@ classdef composite_thin_down < handle
                 else
                     subs=1;
                 end
-                
                 %{subg#, subg.Node#}
                 for subsidx=subs
                     if nnz(conncomp==subsidx)<2
@@ -151,22 +162,29 @@ classdef composite_thin_down < handle
                     end
                 end
             end
+            if ~isempty(opt.one_net)
+                G=subgh;
+            end
         end
 
         function out=match_one(noremove,rmv)
-            out=cell2struct({0;0;0;0},{'complete','partial','split','noeffect'});
+            out=cell2struct({0;0;0;0;cell(0);cell(0);cell(0);cell(0)},{'complete','partial','split','noeffect','split_net','partial_net','noeffect_net','complete_net'});
             nrfns=reshape(fieldnames(noremove),1,[]);
             for fn=nrfns
                 if isfield(rmv,fn{1})
                     if numel(rmv.(fn{1}).subg)>numel(noremove.(fn{1}).subg)
                         out.split=out.split+1;
+                        out.split_net{end+1}=fn{1};
                     elseif rmv.(fn{1}).subg{1,2}<noremove.(fn{1}).subg{1,2}
                         out.partial=out.partial+1;
+                        out.partial_net{end+1}=fn{1};
                     else
                         out.noeffect=out.noeffect+1;
+                        out.noeffect_net{end+1}=fn{1};
                     end
                 else
                     out.complete=out.complete+1;
+                    out.complete_net{end+1}=fn{1};
                 end
             end
         end
@@ -235,5 +253,32 @@ classdef composite_thin_down < handle
                 end
             end
         end
+
+        function before_after_loops(per_sess_condition,fn)
+            [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn);
+            figure()
+            tiledlayout(1,2)
+            nexttile()
+            plot(G)
+            flbl=G.plot.NodeLabel;
+            fx=G.plot.XData;
+            fy=G.plot.YData;
+            xspan=xlim();
+            yspan=ylim();
+
+            nexttile()
+            [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops');
+            rx=fx(ismember(flbl,Gr.plot.NodeLabel));
+            ry=fy(ismember(flbl,Gr.plot.NodeLabel));
+            plot(Gr,'XData',rx,'YData',ry)
+            xlim(xspan)
+            ylim(yspan)
+            sgtitle([fn,' remove loops'])
+            
+        end
+
+
+
+
     end
 end

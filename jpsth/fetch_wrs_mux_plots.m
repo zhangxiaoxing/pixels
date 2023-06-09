@@ -360,9 +360,8 @@ end
 wave.chain_stats(chains_uf,chains_uf_rev,su_meta);
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
 
-[sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',false); % per-spk association
+[sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',false,'extend_trial',false); % per-spk association
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
-
 
 [chn_trl,stats,raw]=wave.chain_tag.replay(sschain_trl,'var_len',false);
 [fhb,fhs]=wave.chain_tag.plot_replay(stats([1 4 8 5 11 12],:),...
@@ -400,6 +399,38 @@ p=kruskalwallis([stats(5,:),stats_anti(5,:),stats_incon(5,:)],[ones(ggn(1),1);2*
 p=kruskalwallis([stats(11,:),stats_anti(11,:),stats_incon(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 p=kruskalwallis([stats(12,:),stats_anti(12,:),stats_incon(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 
+
+
+%% composite ablation
+wave.composite_thin_down(sschain,pstats)
+[per_trial_motif_cid,per_trial_motif_freq,stats]=wave.composite_thin_down.merge_motif(sschain,pstats)
+noremove=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq)
+removechain=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq)
+removechain=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq,'remove','chains')
+removeloops=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq,'remove','loops')
+per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"]);
+per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"],sessid)
+per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid)
+per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid);
+per_sess_condition=wave.composite_thin_down(sschain,pstats)
+per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats)
+noremove=wave.composite_thin_down.stats_remove(per_sess_condition)
+removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D10');
+
+per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
+noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
+removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
+removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','loops');
+removeD10=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D10');
+removeD5=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D5');
+nochain=wave.composite_thin_down.match_one(noremove,removechain);
+noloop=wave.composite_thin_down.match_one(noremove,removeloops);
+noD10=wave.composite_thin_down.match_one(noremove,removeD10);
+noD5=wave.composite_thin_down.match_one(noremove,removeD5);
+
+
+
+%%
 
 if false
 wave.chains_time_constant
