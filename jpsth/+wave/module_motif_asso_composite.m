@@ -169,6 +169,7 @@ for tt=1:size(per_trial_motif_cid,1)
     end
 
     % build graph network
+    per_trial_motif_cid(tt,2)=cellfun(@(x) x([1:end,1]),per_trial_motif_cid(tt,2),'UniformOutput',false);% cyclic loops fix
     edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,1:2}],'UniformOutput',false).'),'rows'));
     gh=graph(edges(:,1),edges(:,2));
     %   Moved to enforce composite requirement

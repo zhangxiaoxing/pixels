@@ -320,7 +320,7 @@ if false
 end
 %TODO: assembly time constant olf, both, 3s 6s
 
-[ring_str,stats_ring,~]=wave.chain_tag.replay(rings_tag,'var_len',true);
+[ring_str,stats_ring,~]=wave.replay.stats(rings_tag,'var_len',true);
 
 [fhb,fhs]=wave.chain_tag.plot_replay(stats_ring([1 4 8 5 11 12],:),...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')

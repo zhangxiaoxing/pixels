@@ -1,16 +1,16 @@
 classdef replay < handle
     methods(Static)
 
-        function [sschain_trl,sum_stats,raw]=stat(sschain_trl,opt)
+        function [motif_trl,sum_stats,raw]=stats(motif_trl,opt)
             arguments
-                sschain_trl
+                motif_trl
                 opt.var_len (1,1) logical = false
             end
-            for dd=reshape(fieldnames(sschain_trl),1,[])
-                for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
-                    for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])
+            for dd=reshape(fieldnames(motif_trl),1,[])
+                for ww=reshape(fieldnames(motif_trl.(dd{1})),1,[])
+                    for cc=reshape(fieldnames(motif_trl.(dd{1}).(ww{1})),1,[])
 
-                        onechain=sschain_trl.(dd{1}).(ww{1}).(cc{1});
+                        onechain=motif_trl.(dd{1}).(ww{1}).(cc{1});
 
                         dur_pref=str2double(dd{1}(2:end));
                         if contains(ww,'s1')
@@ -130,20 +130,20 @@ classdef replay < handle
                         freqstats.before_session=[sum((trl_align(:,8)==1 & trl_align(:,9)>60).*len),onechain.trials(1,1)./sps-60];
                         freqstats.after_session=[sum((trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len),(rec_dur-onechain.trials(end,2))./sps-60-1];
 
-                        sschain_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
-                        sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
+                        motif_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
+                        motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
                     end
                 end
             end
 
             sum_stats=[];
             raw=cell2struct({[];[]},{'count','time'});
-            for dd=reshape(fieldnames(sschain_trl),1,[])
-                for ww=reshape(fieldnames(sschain_trl.(dd{1})),1,[])
-                    for cc=reshape(fieldnames(sschain_trl.(dd{1}).(ww{1})),1,[])
-                        sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
-                        raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
-                        raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(sschain_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+            for dd=reshape(fieldnames(motif_trl),1,[])
+                for ww=reshape(fieldnames(motif_trl.(dd{1})),1,[])
+                    for cc=reshape(fieldnames(motif_trl.(dd{1}).(ww{1})),1,[])
+                        sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                     end
                 end
             end
