@@ -308,7 +308,9 @@ bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 % tagged data from 'sums_all' -> ring_call.m -> ring_stats.sh -> bz.rings.rings_freq
 bz.rings.ring_wave_freq(wrs_mux_meta); 
 load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');% 1X3
-pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true);
+pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
+% pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true);
+
 [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
 
 % bz.rings.rings_reg_pie(sums_all)% 1X3
@@ -361,7 +363,7 @@ wave.chain_stats(chains_uf,chains_uf_rev,su_meta);
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
 
 [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',false,'extend_trial',false); % per-spk association
-[sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
+% [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
 
 [chn_trl,stats,raw]=wave.chain_tag.replay(sschain_trl,'var_len',false);
 [fhb,fhs]=wave.chain_tag.plot_replay(stats([1 4 8 5 11 12],:),...
