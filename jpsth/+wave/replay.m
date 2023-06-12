@@ -202,7 +202,7 @@ classdef replay < handle
             ylabel('Motif spike frequency (Hz)')
         end
 
-        function [fhb,fhs]=plot_replay_sess(stats_all,xlbl,opt)
+        function [out,fhb,fhs]=plot_replay_sess(stats_all,xlbl,opt)
             arguments
                 stats_all cell
                 xlbl char
@@ -212,30 +212,36 @@ classdef replay < handle
             out=struct();
             for ii=1:numel(stats_all)
                 motif_set=stats_all{ii};
-                for dur=reshape(fieldnames(motif_set),1,[])
-                    for wv=reshape(fieldnames(motif_set.(dur{1})),1,[])
-                        fns=fieldnames(motif_set.(dur{1}).(wv{1}));
-                        % usess=str2double(unique(regexp(fns,'^s\d{1,3}(?=(c|r))','match','once')));
-                        for fn=reshape(fns,1,[])
-                            sess_str=regexp(fn{1},'^s\d{1,3}(?=(c|r))','match','once');
-                            key=sprintf('%s%s%s',sess_str,dur{1},replace(wv{1},'olf_s','o'));
-                            if ~isfield(out,key)
-                                keyboard;
-                            end
+                for jj=1:size(motif_set.count,2)
+                    onekey=motif_set.condition{jj};
+                    if ~isfield(out,onekey)
+                        out.(onekey)=cell2struct({motif_set.count(:,jj).';motif_set.time(:,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
+                    else
+                        if isequal(out.(onekey).time,motif_set.time(:,jj).')
+                            out.(onekey).count=[out.(onekey).count;motif_set.count(:,jj).'];
+                            out.(onekey).tag=[out.(onekey).tag;motif_set.tag(jj)];
+                        else
+                            disp("time does not match")
+                            keyboard()
                         end
                     end
                 end
             end
 
-            return
+            outcell=struct2cell(out);
+            per_sess_cond_mat=cell2mat(cellfun(@(x) sum(x.count)./x.time,outcell,'UniformOutput',false))
+
             fhb=figure();
-            boxplot(stats_all.','Colors','k','Symbol','c.')
+            boxplot(per_sess_cond_mat,'Colors','k','Symbol','c.')
+            set(gca,'YScale','log')
+            ylim([0.1,100])
             ylim([0,1.5])
             set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear')
             for jj=2:size(stats_all,1)
                 pp=ranksum(stats_all(1,:),stats_all(jj,:));
                 text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
             end
+            set(gca,'YScale','log')
             title(opt.title)
             ylabel('Motif spike frequency (Hz)')
 
