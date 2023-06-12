@@ -126,7 +126,7 @@ classdef replay < handle
 
                         % long before and after
                         sessid=str2double(regexp(cc{1},'(?<=s)\d{1,3}(?=(c|r))','match','once'));
-                        rec_dur=wave.chain_tag.sessid2length(sessid);
+                        rec_dur=wave.replay.sessid2length(sessid);
                         freqstats.before_session=[sum((trl_align(:,8)==1 & trl_align(:,9)>60).*len),onechain.trials(1,1)./sps-60];
                         freqstats.after_session=[sum((trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len),(rec_dur-onechain.trials(end,2))./sps-60-1];
 
@@ -137,13 +137,16 @@ classdef replay < handle
             end
 
             sum_stats=[];
-            raw=cell2struct({[];[]},{'count','time'});
+            raw=cell2struct({[];[];cell(0);cell(0)},{'count','time','condition','tag'});
             for dd=reshape(fieldnames(motif_trl),1,[])
                 for ww=reshape(fieldnames(motif_trl.(dd{1})),1,[])
                     for cc=reshape(fieldnames(motif_trl.(dd{1}).(ww{1})),1,[])
                         sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                         raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                         raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        sess_str=regexp(cc{1},'^s\d{1,3}(?=(c|r))','match','once');
+                        raw.condition{end+1}=[sess_str,replace(ww{1},'olf_s','o'),dd{1}];
+                        raw.tag{end+1}=regexp(cc{1},'(c|r)\d*$','match','once');
                     end
                 end
             end
@@ -172,8 +175,8 @@ classdef replay < handle
         %%
         function [fhb,fhs]=plot_replay(stats,xlbl,opt)
             arguments
-                stats
-                xlbl 
+                stats struct
+                xlbl char
                 opt.title (1,:) char = 'chains'
             end
             
@@ -198,5 +201,54 @@ classdef replay < handle
             title(opt.title)
             ylabel('Motif spike frequency (Hz)')
         end
+
+        function [fhb,fhs]=plot_replay_sess(stats_all,xlbl,opt)
+            arguments
+                stats_all cell
+                xlbl char
+                opt.title (1,:) char = 'chains'
+            end
+
+            out=struct();
+            for ii=1:numel(stats_all)
+                motif_set=stats_all{ii};
+                for dur=reshape(fieldnames(motif_set),1,[])
+                    for wv=reshape(fieldnames(motif_set.(dur{1})),1,[])
+                        fns=fieldnames(motif_set.(dur{1}).(wv{1}));
+                        % usess=str2double(unique(regexp(fns,'^s\d{1,3}(?=(c|r))','match','once')));
+                        for fn=reshape(fns,1,[])
+                            sess_str=regexp(fn{1},'^s\d{1,3}(?=(c|r))','match','once');
+                            key=sprintf('%s%s%s',sess_str,dur{1},replace(wv{1},'olf_s','o'));
+                            if ~isfield(out,key)
+                                keyboard;
+                            end
+                        end
+                    end
+                end
+            end
+
+            return
+            fhb=figure();
+            boxplot(stats_all.','Colors','k','Symbol','c.')
+            ylim([0,1.5])
+            set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear')
+            for jj=2:size(stats_all,1)
+                pp=ranksum(stats_all(1,:),stats_all(jj,:));
+                text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
+            end
+            title(opt.title)
+            ylabel('Motif spike frequency (Hz)')
+
+            fhs=figure();
+            hold on
+            for ii=1:size(stats_all,1)
+                swarmchart(repmat(ii,size(stats_all,2),1),stats_all(ii,:),16,'.')
+            end
+            ylim([-0.1,1.5])
+            set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear','TickLabelInterpreter','none')
+            title(opt.title)
+            ylabel('Motif spike frequency (Hz)')
+        end
+
     end
 end

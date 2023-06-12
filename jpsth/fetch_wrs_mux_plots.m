@@ -6,7 +6,7 @@ su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
-
+%%
 on=nnz(ismember(wrs_mux_meta.wave_id,5:6));
 bn=nnz(ismember(wrs_mux_meta.wave_id,1:4));
 dn=nnz(ismember(wrs_mux_meta.wave_id,7:8));
@@ -311,7 +311,7 @@ load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');% 1X3
 pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
 % pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true);
 
-[~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
+
 
 % bz.rings.rings_reg_pie(sums_all)% 1X3
 % bz.rings.rings_freq
@@ -321,8 +321,9 @@ if false
     bz.rings.rings_su_wave_tcom_corr(sums_all)
 end
 %TODO: assembly time constant olf, both, 3s 6s
+[~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
+[ring_replay,ring_stats,ring_raw]=wave.replay.stats(rings_tag,'var_len',true);
 
-[ring_str,stats_ring,~]=wave.replay.stats(rings_tag,'var_len',true);
 
 [fhb,fhs]=wave.chain_tag.plot_replay(stats_ring([1 4 8 5 11 12],:),...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
@@ -363,9 +364,13 @@ wave.chain_stats(chains_uf,chains_uf_rev,su_meta);
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
 
 [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',false,'extend_trial',false); % per-spk association
-% [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
 
-[chn_trl,stats,raw]=wave.chain_tag.replay(sschain_trl,'var_len',false);
+% serveral minutes %TODO tic toc?
+% consider load file
+[sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
+
+
+[chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
 [fhb,fhs]=wave.chain_tag.plot_replay(stats([1 4 8 5 11 12],:),...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','chains')
 
