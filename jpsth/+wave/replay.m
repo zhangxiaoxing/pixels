@@ -202,23 +202,30 @@ classdef replay < handle
             ylabel('Motif spike frequency (Hz)')
         end
 
-        function [out,fhb,fhs]=plot_replay_sess(stats_all,xlbl,opt)
+        function [out,fhb]=plot_replay_sess(stats_all,xlbl,opt)
             arguments
                 stats_all cell
                 xlbl char
                 opt.title (1,:) char = 'chains'
+                opt.feat_sel = []
+                opt.ref_line (1,1) logical = false
             end
 
             out=struct();
             for ii=1:numel(stats_all)
                 motif_set=stats_all{ii};
+                if isempty(opt.feat_sel)
+                    featsel=true(size(motif_set.count(:,1)));
+                else
+                    featsel=opt.feat_sel;
+                end
                 for jj=1:size(motif_set.count,2)
                     onekey=motif_set.condition{jj};
                     if ~isfield(out,onekey)
-                        out.(onekey)=cell2struct({motif_set.count(:,jj).';motif_set.time(:,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
+                        out.(onekey)=cell2struct({motif_set.count(featsel,jj).';motif_set.time(featsel,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
                     else
-                        if isequal(out.(onekey).time,motif_set.time(:,jj).')
-                            out.(onekey).count=[out.(onekey).count;motif_set.count(:,jj).'];
+                        if isequal(out.(onekey).time,motif_set.time(featsel,jj).')
+                            out.(onekey).count=[out.(onekey).count;motif_set.count(featsel,jj).'];
                             out.(onekey).tag=[out.(onekey).tag;motif_set.tag(jj)];
                         else
                             disp("time does not match")
@@ -229,32 +236,90 @@ classdef replay < handle
             end
 
             outcell=struct2cell(out);
-            per_sess_cond_mat=cell2mat(cellfun(@(x) sum(x.count)./x.time,outcell,'UniformOutput',false))
+            per_sess_cond_mat=cell2mat(cellfun(@(x) sum(x.count,1)./x.time,outcell,'UniformOutput',false));
 
-            fhb=figure();
+            fhb=figure('Position',[100,100,600,400]);
             boxplot(per_sess_cond_mat,'Colors','k','Symbol','c.')
-            set(gca,'YScale','log')
-            ylim([0.1,100])
-            ylim([0,1.5])
-            set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear')
-            for jj=2:size(stats_all,1)
-                pp=ranksum(stats_all(1,:),stats_all(jj,:));
-                text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
+            if opt.ref_line
+                yline(median(per_sess_cond_mat(:,1)),'--r');
             end
-            set(gca,'YScale','log')
-            title(opt.title)
-            ylabel('Motif spike frequency (Hz)')
+            ylim([0.1,500])
+            set(gca(),'XTick',1:size(per_sess_cond_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YScale','log')
 
-            fhs=figure();
-            hold on
-            for ii=1:size(stats_all,1)
-                swarmchart(repmat(ii,size(stats_all,2),1),stats_all(ii,:),16,'.')
-            end
-            ylim([-0.1,1.5])
-            set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear','TickLabelInterpreter','none')
-            title(opt.title)
-            ylabel('Motif spike frequency (Hz)')
+            % return
+            % for jj=2:size(stats_all,1)
+            %     pp=ranksum(stats_all(1,:),stats_all(jj,:));
+            %     text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
+            % end
+            % set(gca,'YScale','log')
+            % title(opt.title)
+            % ylabel('Motif spike frequency (Hz)')
+            % 
+            % fhs=figure();
+            % hold on
+            % for ii=1:size(stats_all,1)
+            %     swarmchart(repmat(ii,size(stats_all,2),1),stats_all(ii,:),16,'.')
+            % end
+            % ylim([-0.1,1.5])
+            % set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear','TickLabelInterpreter','none')
+            % title(opt.title)
+            % ylabel('Motif spike frequency (Hz)')
         end
+
+        function exception_check()
+            [spkID,spkTS,trials,SU_id,folder,FT_SPIKE]=ephys.getSPKID_TS(106,'keep_trial',true);
+            errsel=trials(:,10)==0;
+            sampsel=trials(:,5)==8;
+            dur3sel=trials(:,8)==3;
+            dur6sel=trials(:,8)==6;
+            susel=strcmp(FT_SPIKE.label,'10202');
+
+            corrct3=nnz(... % trial
+                ismember(FT_SPIKE.trial{susel},find(~errsel & sampsel & dur3sel))...
+                ... % time
+                & FT_SPIKE.time{susel}>=1 & FT_SPIKE.time{susel}<4)...
+                ... % total delay time
+                ./(nnz(~errsel & sampsel & dur3sel).*3)
+
+            error3=nnz(... % trial
+                ismember(FT_SPIKE.trial{susel},find(errsel & sampsel & dur3sel))...
+                ... % time
+                & FT_SPIKE.time{susel}>=1 & FT_SPIKE.time{susel}<4)...
+                ... % total delay time
+                ./(nnz(errsel & sampsel & dur3sel).*3)
+
+
+            corrct6=nnz(... % trial
+                ismember(FT_SPIKE.trial{susel},find(~errsel & sampsel & dur3sel))...
+                ... % time
+                & FT_SPIKE.time{susel}>=1 & FT_SPIKE.time{susel}<7)...
+                ... % total delay time
+                ./(nnz(~errsel & sampsel & dur6sel).*6)
+
+            error6=nnz(... % trial
+                ismember(FT_SPIKE.trial{susel},find(errsel & sampsel & dur3sel))...
+                ... % time
+                & FT_SPIKE.time{susel}>=1 & FT_SPIKE.time{susel}<7)...
+                ... % total delay time
+                ./(nnz(errsel & sampsel & dur6sel).*6)
+
+
+            for ii=1:size(trials,1)
+                if rem(ii,40)==1
+                    figure()
+                    hold on
+                end
+                if all(trials(ii,9:10)==1,2)
+                    plot(FT_SPIKE.time{susel}(FT_SPIKE.trial{susel}==ii),ii,'k|')
+                elseif trials(ii,10)==0
+                    plot(FT_SPIKE.time{susel}(FT_SPIKE.trial{susel}==ii),ii,'r|')
+                else
+                    plot(FT_SPIKE.time{susel}(FT_SPIKE.trial{susel}==ii),ii,'|','Color',[0.5,0.5,0.5])
+                end
+            end
+        end
+
+
 
     end
 end
