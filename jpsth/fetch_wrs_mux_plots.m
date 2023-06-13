@@ -322,8 +322,6 @@ if false
 end
 %TODO: assembly time constant olf, both, 3s 6s
 [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
-[ring_replay,ring_stats,ring_raw]=wave.replay.stats(rings_tag,'var_len',true);
-
 
 [fhb,fhs]=wave.chain_tag.plot_replay(stats_ring([1 4 8 5 11 12],:),...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
@@ -369,15 +367,28 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 % consider load file
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
 
-
+%% replay figure Jun13
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
+[ring_replay,ring_stats,ring_raw]=wave.replay.stats(rings_tag,'var_len',true);
+
 [out,fhb]=wave.replay.plot_replay_sess({chain_raw},...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-    'title','chains','feat_sel',[1 2 8 9 5 6],'ref_line',true);
-ylim([[0.015,500]])
+    'title','chains correct trial','feat_sel',[1 4 8 5 11 12],'ref_line',true);
 
-[fhb,fhs]=wave.chain_tag.plot_replay(stats([1 2 8 9 5 6],:),...
-    {'Correct','Error','Correct','Error','Correct','Error',},'title','chains delay-prior-after');
+
+[out,fhb]=wave.replay.plot_replay_sess({ring_raw},...
+    {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
+    'title','loops correct trial','feat_sel',[1 4 8 5 11 12],'ref_line',true);
+
+
+chain_corr_err=cell2struct({chain_raw.count([1 3 2 5 7 6 8 10 9],:);...
+    chain_raw.time([1 3 2 5 7 6 8 10 9],:);...
+    chain_raw.condition; ...
+    chain_raw.tag},{'count';'time';'condition';'tag'});
+
+[fhb,fhs]=wave.replay.plot_replay_sess({chain_corr_err},...
+    {'Correct','Nonpref','Error','Correct','Nonpref','Error','Correct','Nonpref','Error'},'title','chains delay-prior-after','median_value',true);
+
 delete(fhb.Children.Children(5))
 [ranksum(stats(1,:),stats(2,:)),ranksum(stats(8,:),stats(9,:)),ranksum(stats(5,:),stats(6,:))]
 text(1.5:2:5.5,[1.5,1.5,1.5],{'***','***','***'},'VerticalAlignment','top','HorizontalAlignment','center')

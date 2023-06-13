@@ -1,6 +1,5 @@
 classdef replay < handle
     methods(Static)
-
         function [motif_trl,sum_stats,raw]=stats(motif_trl,opt)
             arguments
                 motif_trl
@@ -209,6 +208,8 @@ classdef replay < handle
                 opt.title (1,:) char = 'chains'
                 opt.feat_sel = []
                 opt.ref_line (1,1) logical = false
+                opt.ref_p_value (1,1) logical = true
+                opt.median_value (1,1) logical = false
             end
 
             out=struct();
@@ -243,17 +244,22 @@ classdef replay < handle
             if opt.ref_line
                 yline(median(per_sess_cond_mat(:,1)),'--r');
             end
-            ylim([0.1,500])
             set(gca(),'XTick',1:size(per_sess_cond_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YScale','log')
+            if opt.ref_p_value
+                for jj=2:size(per_sess_cond_mat,2)
+                    pp=ranksum(per_sess_cond_mat(:,1),per_sess_cond_mat(:,jj));
+                    text(jj,0.01,sprintf('%.3f',pp),'VerticalAlignment','bottom','HorizontalAlignment','center')
+                end
+            end
 
-            % return
-            % for jj=2:size(stats_all,1)
-            %     pp=ranksum(stats_all(1,:),stats_all(jj,:));
-            %     text(jj,1.5,sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center')
-            % end
-            % set(gca,'YScale','log')
-            % title(opt.title)
-            % ylabel('Motif spike frequency (Hz)')
+            if opt.median_value
+                for jj=1:size(per_sess_cond_mat,2)
+                    mm=median(per_sess_cond_mat(:,jj));
+                    text(jj,1,sprintf('%.1f',mm),'VerticalAlignment','bottom','HorizontalAlignment','center')
+                end
+            end
+
+            ylim([0.002,300]);
             % 
             % fhs=figure();
             % hold on
@@ -262,8 +268,8 @@ classdef replay < handle
             % end
             % ylim([-0.1,1.5])
             % set(gca(),'XTick',1:size(stats_all,1),'XTickLabel',xlbl,'YScale','linear','TickLabelInterpreter','none')
-            % title(opt.title)
-            % ylabel('Motif spike frequency (Hz)')
+            title(opt.title)
+            ylabel('Motif spike frequency (Hz)')
         end
 
         function exception_check()
