@@ -201,7 +201,7 @@ classdef replay < handle
             ylabel('Motif spike frequency (Hz)')
         end
 
-        function [out,fhb]=plot_replay_sess(stats_all,xlbl,opt)
+        function [fhb,per_sess_struct,per_sess_mat]=plot_replay_sess(stats_all,xlbl,opt)
             arguments
                 stats_all cell
                 xlbl char
@@ -212,7 +212,7 @@ classdef replay < handle
                 opt.median_value (1,1) logical = false
             end
 
-            out=struct();
+            per_sess_struct=struct();
             for ii=1:numel(stats_all)
                 motif_set=stats_all{ii};
                 if isempty(opt.feat_sel)
@@ -222,12 +222,12 @@ classdef replay < handle
                 end
                 for jj=1:size(motif_set.count,2)
                     onekey=motif_set.condition{jj};
-                    if ~isfield(out,onekey)
-                        out.(onekey)=cell2struct({motif_set.count(featsel,jj).';motif_set.time(featsel,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
+                    if ~isfield(per_sess_struct,onekey)
+                        per_sess_struct.(onekey)=cell2struct({motif_set.count(featsel,jj).';motif_set.time(featsel,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
                     else
-                        if isequal(out.(onekey).time,motif_set.time(featsel,jj).')
-                            out.(onekey).count=[out.(onekey).count;motif_set.count(featsel,jj).'];
-                            out.(onekey).tag=[out.(onekey).tag;motif_set.tag(jj)];
+                        if isequal(per_sess_struct.(onekey).time,motif_set.time(featsel,jj).')
+                            per_sess_struct.(onekey).count=[per_sess_struct.(onekey).count;motif_set.count(featsel,jj).'];
+                            per_sess_struct.(onekey).tag=[per_sess_struct.(onekey).tag;motif_set.tag(jj)];
                         else
                             disp("time does not match")
                             keyboard()
@@ -236,25 +236,25 @@ classdef replay < handle
                 end
             end
 
-            outcell=struct2cell(out);
-            per_sess_cond_mat=cell2mat(cellfun(@(x) sum(x.count,1)./x.time,outcell,'UniformOutput',false));
+            outcell=struct2cell(per_sess_struct);
+            per_sess_mat=cell2mat(cellfun(@(x) sum(x.count,1)./x.time,outcell,'UniformOutput',false));
 
             fhb=figure('Position',[100,100,600,400]);
-            boxplot(per_sess_cond_mat,'Colors','k','Symbol','c.')
+            boxplot(per_sess_mat,'Colors','k','Symbol','c.')
             if opt.ref_line
-                yline(median(per_sess_cond_mat(:,1)),'--r');
+                yline(median(per_sess_mat(:,1)),'--r');
             end
-            set(gca(),'XTick',1:size(per_sess_cond_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YScale','log')
+            set(gca(),'XTick',1:size(per_sess_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YScale','log')
             if opt.ref_p_value
-                for jj=2:size(per_sess_cond_mat,2)
-                    pp=ranksum(per_sess_cond_mat(:,1),per_sess_cond_mat(:,jj));
+                for jj=2:size(per_sess_mat,2)
+                    pp=signrank(per_sess_mat(:,1),per_sess_mat(:,jj));
                     text(jj,0.01,sprintf('%.3f',pp),'VerticalAlignment','bottom','HorizontalAlignment','center')
                 end
             end
 
             if opt.median_value
-                for jj=1:size(per_sess_cond_mat,2)
-                    mm=median(per_sess_cond_mat(:,jj));
+                for jj=1:size(per_sess_mat,2)
+                    mm=median(per_sess_mat(:,jj));
                     text(jj,1,sprintf('%.1f',mm),'VerticalAlignment','bottom','HorizontalAlignment','center')
                 end
             end
