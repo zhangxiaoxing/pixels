@@ -201,15 +201,10 @@ classdef replay < handle
             ylabel('Motif spike frequency (Hz)')
         end
 
-        function [fhb,per_sess_struct,per_sess_mat]=plot_replay_sess(stats_all,xlbl,opt)
+        function [per_sess_struct,per_sess_mat]=stats_replay_sess(stats_all,opt)
             arguments
                 stats_all cell
-                xlbl char
-                opt.title (1,:) char = 'chains'
                 opt.feat_sel = []
-                opt.ref_line (1,1) logical = false
-                opt.ref_p_value (1,1) logical = true
-                opt.median_value (1,1) logical = false
             end
 
             per_sess_struct=struct();
@@ -238,6 +233,17 @@ classdef replay < handle
 
             outcell=struct2cell(per_sess_struct);
             per_sess_mat=cell2mat(cellfun(@(x) sum(x.count,1)./x.time,outcell,'UniformOutput',false));
+        end
+        function fhb=plot_replay_sess(per_sess_mat,xlbl,opt)
+            arguments
+                per_sess_mat double
+                xlbl char
+                opt.title (1,:) char = 'chains'
+                opt.ref_line (1,1) logical = false
+                opt.ref_p_value (1,1) logical = true
+                opt.median_value (1,1) logical = false
+            end
+
 
             fhb=figure('Position',[100,100,600,400]);
             boxplot(per_sess_mat,'Colors','k','Symbol','c.')
