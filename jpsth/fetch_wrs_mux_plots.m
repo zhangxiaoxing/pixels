@@ -430,9 +430,8 @@ ylim([0.05,30])
 [chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
 [chain_replay_rev,chain_stats_rev,chain_raw_rev]=wave.replay.stats(sschain_trl_rev,'var_len',false);
 
-[fhb,estr,emat]=wave.replay.plot_replay_sess({ring_corr_err},...
-    {'Correct','Nonpref','Error','Correct','Nonpref','Error','Correct','Nonpref','Error'},...
-    'title','loops delay-prior-after','median_value',true);
+[cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
+[crevstr,revmat]=wave.replay.stats_replay_sess({chain_raw_rev});
 
 
 
