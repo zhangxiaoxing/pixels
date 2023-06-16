@@ -372,7 +372,14 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 % optional import saved data from tempdata folder
 
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
-[ring_replay,ring_stats,ring_raw]=wave.replay.stats(rings_tag,'var_len',true);
+rings_tag_olf=rings_tag;
+rings_tag_olf=rmfield(rings_tag_olf,'none');
+[ring_replay,ring_stats,ring_raw]=wave.replay.stats(rings_tag_olf,'var_len',true);
+
+rings_tag_nom=rings_tag;
+rings_tag_nom=rmfield(rmfield(rings_tag_nom,'d6'),'d3');
+[ring_nom_replay,ring_nom_stats,ring_nom_raw]=wave.replay.stats(rings_tag_nom,'var_len',true);
+
 
 [cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 8 5 11 12]);
 fhb=wave.replay.plot_replay_sess(cmat,...
