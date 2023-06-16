@@ -367,7 +367,10 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 % consider load file
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
 
-%% replay figure Jun13
+%% replay figure Jun13 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+% optional import saved data from tempdata folder
+
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rings_tag,'var_len',true);
 
@@ -380,7 +383,6 @@ fhb=wave.replay.plot_replay_sess(cmat,...
 fhring=wave.replay.plot_replay_sess(rmat,...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
     'title','loops correct trial','ref_line',true,'median_value',true);
-
 
 
 % correct error chain
@@ -425,14 +427,49 @@ end
 ylim([0.05,30])
 
 
-
 % chains, vs control
 [chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
-[chain_replay_rev,chain_stats_rev,chain_raw_rev]=wave.replay.stats(sschain_trl_rev,'var_len',false);
+[chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
 
 [cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
-[crevstr,revmat]=wave.replay.stats_replay_sess({chain_raw_rev});
+[cinconstr,revmat]=wave.replay.stats_replay_sess({chain_raw_incon});
 
+fhb=wave.replay.plot_replay_cross_sess({cmat(:,1),antimat(:,1),revmat(:,1),...
+    cmat(:,3),antimat(:,8),revmat(:,8),...
+    cmat(:,4),antimat(:,5),revmat(:,5),...
+    cmat(:,5),antimat(:,11),revmat(:,11),...
+    cmat(:,6),antimat(:,12),revmat(:,12)},...
+    {'','Delay','','','Prior ITI','','','Later ITI','','','Before Session','','','After session',''},...
+    'title','consistent-anti-inconsistent','median_value',true);
+
+signrank(cmat(:,1),antimat(:,1)), 
+signrank(cmat(:,3),antimat(:,8)), 
+signrank(cmat(:,4),antimat(:,5)), 
+signrank(cmat(:,5),antimat(:,11)),
+signrank(cmat(:,6),antimat(:,12)),
+
+ranksum(cmat(:,1),revmat(:,1))
+ranksum(cmat(:,3),revmat(:,8))
+ranksum(cmat(:,4),revmat(:,5))
+ranksum(cmat(:,5),revmat(:,11))
+ranksum(cmat(:,6),revmat(:,12))
+
+
+%  match session
+joinsess=intersect(fieldnames(cinconstr),fieldnames(cstr));
+[csel,~]=ismember(fieldnames(cstr),joinsess);
+[isel,~]=ismember(fieldnames(cinconstr),joinsess);
+
+[~,cpos]=ismember(joinsess,fieldnames(cstr));
+[~,ipos]=ismember(joinsess,fieldnames(cinconstr));
+
+fhb=wave.replay.plot_replay_cross_sess({cmat(cpos,1),antimat(cpos,1),revmat(ipos,1),...
+    cmat(cpos,3),antimat(cpos,8),revmat(ipos,8),...
+    cmat(cpos,4),antimat(cpos,5),revmat(ipos,5),...
+    cmat(cpos,5),antimat(cpos,11),revmat(ipos,11),...
+    cmat(cpos,6),antimat(cpos,12),revmat(ipos,12)},...
+    {'','Delay','','','Prior ITI','','','Later ITI','','','Before Session','','','After session',''},...
+    'title','consistent-anti-inconsistent','median_value',true);
 
 
 % TODO: loops vs control
@@ -465,7 +502,9 @@ p=kruskalwallis([stats(12,:),stats_anti(12,:),stats_incon(12,:)],[ones(ggn(1),1)
 
 
 
-%% composite ablation
+
+
+%% composite ablation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 wave.composite_thin_down(sschain,pstats)
 [per_trial_motif_cid,per_trial_motif_freq,stats]=wave.composite_thin_down.merge_motif(sschain,pstats)
 noremove=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq)

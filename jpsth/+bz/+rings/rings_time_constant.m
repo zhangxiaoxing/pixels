@@ -61,8 +61,7 @@ classdef rings_time_constant <handle
                     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
                     rid=find(cell2mat(rstats(:,1))==sessid);
                     for ri=reshape(rid,1,[])
-                        if opt.compress && any(ismember(rstats{ri,7},[0 7 8]),'all')
-                            % TODO: generate data for non-mem rings
+                        if opt.compress && (any(ismember(rstats{ri,7},[7 8]),'all') ||(any(rstats{ri,7}==0,'all') && ~all(rstats{ri,7}==0,'all')))
                             % no difference between 3s or 6s
                             continue
                         end
@@ -100,26 +99,39 @@ classdef rings_time_constant <handle
 
                         uidtag=sprintf('s%dr%d',sessid,ri);
                         if strcmp(rstats{ri,8},'none')
-                            d3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
-                            d6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
-                            % in-delay selection
-                            % TODO: optional switch
-                            tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>=1 & ts_id(:,4)<4) ...
-                                | (ismember(ts_id(:,5),d6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
-                            rsums=ts_id(tssel,:);
+                            if opt.compress
+                                % TODO: complete output codes
+                                % TODO: copied from olf code, WIP
+                                onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                                onemeta=rstats(ri,[1 3 7]);
+                                pref_samp='none';
+                                % no dur pref
+                                tag_compress.none.(pref_samp).(sprintf('s%dr%d',sessid,ri))=...
+                                    cell2struct({onets;onemeta;trials},{'ts','meta','trials'});
 
-                            for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
-                                if nnz(rsums(:,6)==ii)<=numel(cids)
-                                    rsums(rsums(:,6)==ii,6)=0;
+                                %
+                            else
+                                d3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
+                                d6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
+                                % in-delay selection
+                                % TODO: optional switch
+                                tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>=1 & ts_id(:,4)<4) ...
+                                    | (ismember(ts_id(:,5),d6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
+                                rsums=ts_id(tssel,:);
+
+                                for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
+                                    if nnz(rsums(:,6)==ii)<=numel(cids)
+                                        rsums(rsums(:,6)==ii,6)=0;
+                                    end
                                 end
-                            end
-                            %<<<<<<<<<<<<<<<<<<
-                            pstats.nonmem.(uidtag).ts_id=...
-                                table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
-                                'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
+                                %<<<<<<<<<<<<<<<<<<
+                                pstats.nonmem.(uidtag).ts_id=...
+                                    table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
+                                    'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
 
-                            pstats.nonmem.(uidtag).rstats=rstats(ri,[1:3,7:10]);
-                            pstats.nonmem.(uidtag).trials=trials;
+                                pstats.nonmem.(uidtag).rstats=rstats(ri,[1:3,7:10]);
+                                pstats.nonmem.(uidtag).trials=trials;
+                            end
                         else
                             % in-delay selection
                             if opt.compress
