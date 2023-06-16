@@ -480,15 +480,37 @@ fhb=wave.replay.plot_replay_cross_sess({cmat(cpos,1),antimat(cpos,1),revmat(ipos
 
 
 % TODO: loops vs control
+yy=[ring_stats(1,:),ring_nom_stats(1,:),ring_stats(8,:),ring_nom_stats(3,:),...
+    ring_stats(5,:),ring_nom_stats(2,:),ring_stats(11,:),ring_nom_stats(4,:),...
+    ring_stats(12,:),ring_nom_stats(5,:)];
+ggn=[size(ring_stats,2),size(ring_nom_stats,2)];
+
+gg=[ones(ggn(1),1);2*ones(ggn(2),1);...
+    3*ones(ggn(1),1);4*ones(ggn(2),1);...
+    5*ones(ggn(1),1);6*ones(ggn(2),1);...
+    7*ones(ggn(1),1);8*ones(ggn(2),1);...
+    9*ones(ggn(1),1);10*ones(ggn(2),1)];
+
+figure()
+boxplot(yy,gg,'Colors','k','Symbol','c.')
+ylim([0,4])
+set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Prior','Later','Before','After'})
+title('loops congru-nonmem')
+ylabel('Motif spike frequencey (Hz)')
+
+[ranksum(ring_stats(1,:),ring_nom_stats(1,:)),...
+ranksum(ring_stats(8,:),ring_nom_stats(3,:)),...
+ranksum(ring_stats(5,:),ring_nom_stats(2,:)),...
+ranksum(ring_stats(11,:),ring_nom_stats(4,:)),...
+ranksum(ring_stats(12,:),ring_nom_stats(5,:))]
 
 
-[~,stats_anti,~]=wave.chain_tag.replay(sschain_trl_anti,'var_len',false);
-[~,stats_incon,~]=wave.chain_tag.replay(sschain_trl_rev,'var_len',false);
 
-yy=[stats(1,:),stats_anti(1,:),stats_incon(1,:),stats(8,:), stats_anti(8,:), stats_incon(8,:),...
-    stats(5,:),stats_anti(5,:),stats_incon(5,:),stats(11,:),stats_anti(11,:),stats_incon(11,:),...
-    stats(12,:),stats_anti(12,:),stats_incon(12,:)];
-ggn=[size(stats,2),size(stats_anti,2),size(stats_incon,2)];
+% chains, vs control v2
+yy=[chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:),chain_stats(8,:), chain_stats_anti(8,:), chain_stats_rev(8,:),...
+    chain_stats(5,:),chain_stats_anti(5,:),chain_stats_rev(5,:),chain_stats(11,:),chain_stats_anti(11,:),chain_stats_rev(11,:),...
+    chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)];
+ggn=[size(chain_stats,2),size(chain_stats_anti,2),size(chain_stats_rev,2)];
 
 gg=[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1);...
     4*ones(ggn(1),1);5*ones(ggn(2),1);6*ones(ggn(3),1);...
@@ -497,15 +519,15 @@ gg=[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1);...
     13*ones(ggn(1),1);14*ones(ggn(2),1);15*ones(ggn(3),1)];
 
 figure()
-boxplot(yy,gg,'Colors','k','Symbol','c.')
+boxplot(yy+eps,gg,'Colors','k','Symbol','c.')
 ylim([0,1.5])
 set(gca(),'XTick',2:3:14,'XTickLabel',{'Delay','Prior','Later','Before','After'})
 title('chains consis-anti-incon')
-p=kruskalwallis([stats(1,:),stats_anti(1,:),stats_incon(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([stats(8,:),stats_anti(8,:),stats_incon(8,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([stats(5,:),stats_anti(5,:),stats_incon(5,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([stats(11,:),stats_anti(11,:),stats_incon(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([stats(12,:),stats_anti(12,:),stats_incon(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([chain_stats(8,:),chain_stats_anti(8,:),chain_stats_rev(8,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([chain_stats(5,:),chain_stats_anti(5,:),chain_stats_rev(5,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([chain_stats(11,:),chain_stats_anti(11,:),chain_stats_rev(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+p=kruskalwallis([chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 
 
 
