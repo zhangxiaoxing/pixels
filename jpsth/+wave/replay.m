@@ -325,6 +325,90 @@ classdef replay < handle
         end
 
 
+        function showcase()
+            %%
+            global_init;
+            load(fullfile(gather_config.odpath,'Tempdata','TEMP230602.mat'),'sschain_trl');
+            [chain_replay,~,~]=wave.replay.stats(sschain_trl,'var_len',false);
+            %%
+            fns=intersect(fieldnames(chain_replay.d3.olf_s1),fieldnames(chain_replay.d6.olf_s1));
+            durkey="d3";%for durkey=["d3","d6"]
+            for fnidx=1:numel(fns)
+                onechain=chain_replay.(durkey).olf_s1.(fns{fnidx});
+                onechain.trials=[onechain.trials,(1:size(onechain.trials,1)).'];
+                wt_trls=onechain.trials(onechain.trials(:,9)==1,:);
+                if ~any(onechain.trl_align(:,7),'all')
+                    continue
+                end
+                pref_samp=onechain.trl_align(find(onechain.trl_align(:,7)==1,1),3);
+                while numel(unique(wt_trls(1:4,8)))>1
+                    wt_trls(1,:)=[];
+                end
+                wt_trls=wt_trls(1:40,:);
+                if numel(intersect(onechain.trl_align(onechain.trl_align(:,2)<(1+onechain.trl_align(:,4)),1),wt_trls(:,11)))<20
+                    continue
+                end
+                
+                
+                fh=figure('Position',[1280,320,640,480]);
+                tiledlayout(1,3)
+                nexttile()
+                beforesess=onechain.trl_align(onechain.trl_align(:,1)==-1,9);
+                beforesess=[beforesess,floor(beforesess./10),rem(beforesess,10)];
+                hold on
+                for ii=reshape(intersect(6:45,beforesess(:,2)),1,[])
+                    plot(beforesess(beforesess(:,2)==ii,3),ii,'k|')
+                end
+                set(gca(),'YTick',10:5:45,'YTickLabel',100:50:450,'XTick',0:5:10,'XTickLabel',10:-5:0)
+                ylabel('Time to session onset (s)')
+                xlabel('+Time to session onset (s)')
+                ylim([5,46]);
+                
+                nexttile()
+                hold on
+                for ii=1:size(wt_trls,1)
+                    fill([0,1,1,0],[ii-0.5,ii-0.5,ii+0.5,ii+0.5],'k','EdgeColor','none','FaceAlpha',0.1);
+                    fill(1+wt_trls(ii,8)+[0,1,1,0],[ii-0.5,ii-0.5,ii+0.5,ii+0.5],'k','EdgeColor','none','FaceAlpha',0.1);
+                    if wt_trls(ii,5)==pref_samp
+                        fill([1,1+wt_trls(ii,8),1+wt_trls(ii,8),1],[ii-0.5,ii-0.5,ii+0.5,ii+0.5],'r','EdgeColor','none','FaceAlpha','0.2');
+                    end
+
+                    afteridces=find(onechain.trl_align(:,1)==ii & onechain.trl_align(:,2)<13);
+                    for midx=reshape(afteridces,1,[])
+                        plot(onechain.trl_align(midx,2),ii,'k|')
+                    end
+
+                    beforeidces=find(onechain.trl_align(:,8)==ii & onechain.trl_align(:,9)<5);
+                    for midx=reshape(beforeidces,1,[])
+                        plot(-1.*onechain.trl_align(midx,9),ii,'k|')
+                    end
+                end
+                xlim([-5,13])
+                title(sprintf('%s,%s',durkey,fns{fnidx}))
+                ylim([0,41])
+                set(gca(),'YDir','reverse')
+                xlabel('Time (s)')
+                ylabel('Trial #')
+                
+                nexttile()
+                hold on
+                aftersess=onechain.trl_align(onechain.trl_align(:,8)==-1,2);
+                aftersess=[aftersess,floor(aftersess./10),rem(aftersess,10)];
+                for ii=reshape(intersect(6:45,aftersess(:,2)),1,[])
+                    plot(aftersess(aftersess(:,2)==ii,3),ii,'k|')
+                end
+                set(gca(),'YTick',10:5:45,'YTickLabel',100:50:450,'XTick',0:5:10,'XTickLabel',0:5:10,'YDir','reverse')
+                ylabel('Time since last trial (s)')
+                xlabel('+Time since last trial (s)')
+                ylim([5,46]);
+
+            end
+            %%
+
+
+            
+        end
+
 
 
         function exception_check()

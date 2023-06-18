@@ -5,10 +5,8 @@ gather_config.adjust_white_matter=true;
 gather_config.corr_type='Pearson';
 gather_config.fnsuffix='_10ms_adj_pearson';
 gather_config.FC_thresh=100;
+gather_config.odpath=fullfile(getenv('userprofile'),'OneDrive','Neupix');
 
-% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-% TODO:should be placed inside a structure
 if strcmp(gather_config.corr_type,'Pearson')
     gather_config.corr_ln_log='PearsonLinearLog';
     gather_config.corr_log_log='PearsonLogLog';
