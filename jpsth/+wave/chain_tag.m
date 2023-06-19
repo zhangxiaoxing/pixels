@@ -27,8 +27,8 @@ classdef chain_tag < handle
             end
 
             ch_len=cellfun(@(x) numel(x),chains.cids);
-            waveids=reshape(unique(chains.wave(ch_len>opt.len_thresh)),1,[]);
-            sesses=reshape(unique(chains.sess(ch_len>opt.len_thresh)),1,[]);
+            waveids=reshape(unique(chains.wave(ch_len>=opt.len_thresh)),1,[]);
+            sesses=reshape(unique(chains.sess(ch_len>=opt.len_thresh)),1,[]);
 
             if opt.ccg
                 load('sums_conn_10.mat','sums_conn_str');

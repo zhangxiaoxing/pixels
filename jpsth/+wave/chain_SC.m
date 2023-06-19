@@ -164,3 +164,62 @@ for dur=reshape(fieldnames(out),1,[])
     end
 end
 
+
+function chain_replay_SC()
+%%
+cn_tsid=sschain.out.d3.olf_s1.s100c1312.ts_id;
+cncids=sschain.out.d3.olf_s1.s100c1312.meta{1};
+out=sschain.out;
+dur={'d3'};
+wv={'olf_s1'};
+cnid={'s100c1312'};
+
+tsid_per_cid=arrayfun(@(x) cn_tsid(cn_tsid.POS==x,:),1:numel(cncids),'UniformOutput',false);
+[~,tsidsel]=ismember(out.(dur{1}).(wv{1}).(cnid{1}).ts(:,1),tsid_per_cid{1}.TS);
+cn_trl_list=tsid_per_cid{1}.Trial(tsidsel);
+
+sesssel=su_meta.sess==100;
+sesscid=su_meta.allcid(sesssel);
+sessreg=su_meta.reg_tree(5,sesssel).';
+
+[~,supos]=ismember(cncids,sesscid);
+cnreg=sessreg(supos);
+
+for tt=204
+    if statstype~="chain"
+        trl_ts=cellfun(@(x) tsid_per_cid{x(1)}(x(2),5),cn_first_tagged)==tt;
+        join_ts=cell2mat(out.(dur{1}).(wv{1}).(cnid{1}).ts(trl_ts).');
+    end
+
+    figure('Position',[32,32,1440,240])
+    hold on;
+    for jj=1:chain_len
+        ts=cn_tsid.Time(cn_tsid.POS==jj & cn_tsid.Trial==tt)-1;
+        plot(ts,jj*ones(size(ts)),'|','Color',['#',dec2hex(jj,6)])
+        % overlap chain activity
+        if isnumeric(out.(dur{1}).(wv{1}).(cnid{1}).ts)
+            for kk=reshape(find(cn_trl_list==tt),1,[])
+                suts=out.(dur{1}).(wv{1}).(cnid{1}).ts(kk,jj);
+                [~,tickpos]=ismember(suts,cn_tsid.TS(cn_tsid.POS==jj & cn_tsid.Trial==tt));
+                plot(ts(tickpos),jj,'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
+            end
+        else
+            suts=unique(join_ts(join_ts(:,1)==jj,3));
+            [~,tickpos]=ismember(suts,cn_tsid.TS(cn_tsid.POS==jj & cn_tsid.Trial==tt));
+            plot(ts(tickpos),repmat(jj,numel(tickpos),1),'|','LineWidth',2,'Color',['#FF',dec2hex(jj,4)]);
+        end
+    end
+    ylim([0.5,jj+0.5])
+    xlabel('Time (s)')
+    ylabel('SU #')
+    title({"Dur "+dur{1}+", wave "+wv{1}+", #"+cnid{1}+", trial "+num2str(tt),...
+        num2str(cncids)});
+    set(gca(),"YTick",1:jj,"YTickLabel",cnreg,'YDir','reverse')
+    gh=groot;
+    if numel(gh.Children)>=50
+        keyboard()
+    end
+end
+%%
+end
+
