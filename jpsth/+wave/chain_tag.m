@@ -20,6 +20,9 @@ classdef chain_tag < handle
                 opt.skip_ts_id (1,1) logical = false
                 opt.DEBUG (1,1) logical = false
                 opt.anti_dir (1,1) logical = false % TODO: consistent chain,reverse direction
+                opt.sesses double = []
+                opt.idces double = []
+                
             end
 
             if opt.shuf_trl
@@ -27,8 +30,13 @@ classdef chain_tag < handle
             end
 
             ch_len=cellfun(@(x) numel(x),chains.cids);
-            waveids=reshape(unique(chains.wave(ch_len>=opt.len_thresh)),1,[]);
-            sesses=reshape(unique(chains.sess(ch_len>=opt.len_thresh)),1,[]);
+            if isempty(opt.sesses)
+                waveids=reshape(unique(chains.wave(ch_len>=opt.len_thresh)),1,[]);
+                sesses=reshape(unique(chains.sess(ch_len>=opt.len_thresh)),1,[]);
+            else
+                sesses=opt.sesses;
+                waveids=reshape(unique(chains.wave(ch_len>=opt.len_thresh & ismember(chains.sess,opt.sesses))),1,[]);
+            end
 
             if opt.ccg
                 load('sums_conn_10.mat','sums_conn_str');
@@ -38,7 +46,7 @@ classdef chain_tag < handle
             notfound=cell(0);
             %% build chains
             % all_chains=fieldnames(pstats.congru);
-
+            processed=cell2struct({[];[]},{'d3','d6'});
             for sessid=sesses
                 if opt.DEBUG && sessid>33
                     break
@@ -67,9 +75,14 @@ classdef chain_tag < handle
                         if ~opt.odor_only
                             outid=wid;
                         end
-
-                        sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=opt.len_thresh),1,[]);
+                        if isempty(opt.idces)
+                            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=opt.len_thresh),1,[]);
+                        else
+                            sess_indices=opt.idces;
+                        end
+                        sess_indices=setdiff(sess_indices,processed.("d"+duration));
                         if isempty(sess_indices), continue;end
+                        processed.("d"+duration)=[processed.("d"+duration),reshape(sess_indices,1,[])];
                         [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
                         for cc=sess_indices
                             ts_id=[];

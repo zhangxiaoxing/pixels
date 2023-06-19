@@ -167,21 +167,24 @@ end
 
 function chain_replay_SC()
 %%
-cn_tsid=sschain.out.d3.olf_s1.s100c1312.ts_id;
-cncids=sschain.out.d3.olf_s1.s100c1312.meta{1};
+% sschain=load(fullfile('bzdata','chain_tag_tbl.mat'),'out');
+[sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',false,'extend_trial',true,'sesses',100,'idces',1312); % per-spk association
 out=sschain.out;
 dur={'d3'};
 wv={'olf_s1'};
 cnid={'s100c1312'};
+statstype="chain";
 
+cn_tsid=out.(dur{1}).(wv{1}).(cnid{1}).ts_id;
+cncids=out.(dur{1}).(wv{1}).(cnid{1}).meta{1};
 tsid_per_cid=arrayfun(@(x) cn_tsid(cn_tsid.POS==x,:),1:numel(cncids),'UniformOutput',false);
 [~,tsidsel]=ismember(out.(dur{1}).(wv{1}).(cnid{1}).ts(:,1),tsid_per_cid{1}.TS);
 cn_trl_list=tsid_per_cid{1}.Trial(tsidsel);
 
+su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 sesssel=su_meta.sess==100;
 sesscid=su_meta.allcid(sesssel);
 sessreg=su_meta.reg_tree(5,sesssel).';
-
 [~,supos]=ismember(cncids,sesscid);
 cnreg=sessreg(supos);
 
@@ -193,7 +196,7 @@ for tt=204
 
     figure('Position',[32,32,1440,240])
     hold on;
-    for jj=1:chain_len
+    for jj=1:numel(cncids)
         ts=cn_tsid.Time(cn_tsid.POS==jj & cn_tsid.Trial==tt)-1;
         plot(ts,jj*ones(size(ts)),'|','Color',['#',dec2hex(jj,6)])
         % overlap chain activity
