@@ -362,7 +362,10 @@ wave.chain_stats(chains_uf,chains_uf_rev,su_meta);
 wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
 
 [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',false,'extend_trial',false); % per-spk association
-save(fullfile("bzdata","chain_tag_tbl.mat"),"sschain","unfound","blame")
+
+% save(fullfile("bzdata","chain_tag_tbl.mat"),"sschain","unfound","blame")
+% load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
+
 
 % serveral minutes %TODO tic toc?
 % consider load file

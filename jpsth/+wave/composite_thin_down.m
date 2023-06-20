@@ -163,7 +163,7 @@ classdef composite_thin_down < handle
                 end
             end
             if ~isempty(opt.one_net)
-                G=subgh;
+                G=gh;
             end
         end
 
@@ -261,6 +261,9 @@ classdef composite_thin_down < handle
 
         function before_after_loops(per_sess_condition,fn)
             %%
+            % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
+            % load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
+            % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             % wave.composite_thin_down.before_after_loops(per_sess_condition,'s18s1d3')
             % ==============================
             pchains=per_sess_condition.(fn).chains;
