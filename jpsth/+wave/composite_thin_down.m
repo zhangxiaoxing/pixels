@@ -76,15 +76,15 @@ classdef composite_thin_down < handle
         function [stats,G]=stats_remove(per_sess_condition,opt)
             arguments
                 per_sess_condition
-                opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D10','D5'})} = ''
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D10','D5','ChainEqNode','LoopEqNode'})} = ''
                 opt.UID = []
                 opt.one_net (1,:) char = ''
             end
             
             stats=struct();
-            per_trl_nodes=cell(0);
-            complexity_sums=[];
-            degree_sums=[];
+            % per_trl_nodes=cell(0);
+            % complexity_sums=[];
+            % degree_sums=[];
 
             %% TODO: gradual removal
             % remove {all chains},{all loops},{HIP},{ORB},{OLF},{DEGREE>10}
@@ -145,7 +145,7 @@ classdef composite_thin_down < handle
                 else
                     subs=1;
                 end
-                %{subg#, subg.Node#}
+                %{subg#, subg.Node#, subg.Edge#}
                 for subsidx=subs
                     if nnz(conncomp==subsidx)<2
                         continue
@@ -154,7 +154,7 @@ classdef composite_thin_down < handle
                     if ~isfield(stats,fn{1}) || ~isfield(stats.(fn{1}),'subg')
                         stats.(fn{1})=cell2struct({cell(0)},{'subg'});
                     end
-                    stats.(fn{1}).subg=[stats.(fn{1}).subg,{subsidx,subgh.numnodes}];
+                    stats.(fn{1}).subg=[stats.(fn{1}).subg,{subsidx,subgh.numnodes,subgh.numedges}];
                     if false
                         complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
                         per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
@@ -168,7 +168,7 @@ classdef composite_thin_down < handle
         end
 
         function out=match_one(noremove,rmv)
-            out=cell2struct({0;0;0;0;cell(0);cell(0);cell(0);cell(0)},{'complete','partial','split','noeffect','split_net','partial_net','noeffect_net','complete_net'});
+            out=cell2struct({0;0;0;0;0;cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrink','split','weaken','noeffect','weaken_net','split_net','shrink_net','noeffect_net','abolish_net'});
             nrfns=reshape(fieldnames(noremove),1,[]);
             for fn=nrfns
                 if isfield(rmv,fn{1})
@@ -176,20 +176,24 @@ classdef composite_thin_down < handle
                         out.split=out.split+1;
                         out.split_net{end+1}=fn{1};
                     elseif rmv.(fn{1}).subg{1,2}<noremove.(fn{1}).subg{1,2}
-                        out.partial=out.partial+1;
-                        out.partial_net{end+1}=fn{1};
+                        out.shrink=out.shrink+1;
+                        out.shrink_net{end+1}=fn{1};
+                    elseif rmv.(fn{1}).subg{1,3}<noremove.(fn{1}).subg{1,3}
+                        out.weaken=out.weaken+1;
+                        out.weaken_net{end+1}=fn{1};                        
                     else
                         out.noeffect=out.noeffect+1;
                         out.noeffect_net{end+1}=fn{1};
                     end
                 else
-                    out.complete=out.complete+1;
-                    out.complete_net{end+1}=fn{1};
+                    out.abolish=out.abolish+1;
+                    out.abolish_net{end+1}=fn{1};
                 end
             end
         end
 
         function demo(sschain,pstats)
+            %% ================================================================
             per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
             removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
@@ -203,19 +207,20 @@ classdef composite_thin_down < handle
             noD5=wave.composite_thin_down.match_one(noremove,removeD5);
             nrfns=reshape(fieldnames(noremove),1,[]);
     
-            bmat=[0,0,0,numel(nrfns);...
-                nochain.complete,nochain.split,nochain.partial,nochain.noeffect;...
-                noloop.complete,noloop.split,noloop.partial,noloop.noeffect;...
-                noD10.complete,noD10.split,noD10.partial,noD10.noeffect;...
-                noD5.complete,noD5.split,noD5.partial,noD5.noeffect];
+            bmat=[0,0,0,0,numel(nrfns);...
+                nochain.abolish,nochain.split,nochain.shrink,nochain.weaken,nochain.noeffect;...
+                noloop.abolish,noloop.split,noloop.shrink,noloop.weaken,noloop.noeffect;...
+                noD10.abolish,noD10.split,noD10.shrink,noD10.weaken,noD10.noeffect;...
+                noD5.abolish,noD5.split,noD5.shrink,noD5.weaken,noD5.noeffect];
             figure()
-            bh=bar(fliplr(bmat),'stacked');
-            legend(bh,{'Unaffected','Shrinked','Splitted','Abolished'},'Location','northoutside','Orientation','horizontal')
-            set(gca(),'XTick',1:5,'XTickLabel',{'Observed','Remove chains','Remove loops','Remove deg>10','Remove deg>5'},'YTick',0:5:25,'YTickLabel',0:20:100)
+            bh=bar(fliplr(bmat)./sum(bmat,2).*100,'stacked');
+            legend(bh,{'Unaffected','Weaken','Shrinked','Splitted','Abolished'},'Location','northoutside','Orientation','horizontal')
+            set(gca(),'XTick',1:5,'XTickLabel',{'Observed','Remove chains','Remove loops','Remove deg>10','Remove deg>5'})
             ylabel('Percent (%)')
-
+            ylim([0,100])
+            %% ================================================================
         end
-
+        
 
         function more_stats()
 
@@ -255,30 +260,109 @@ classdef composite_thin_down < handle
         end
 
         function before_after_loops(per_sess_condition,fn)
+            %%
+            % wave.composite_thin_down.before_after_loops(per_sess_condition,'s18s1d3')
+            % ==============================
+            pchains=per_sess_condition.(fn).chains;
+            ploops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn).loops,'UniformOutput',false);% cyclic loops fix
+            
+            chainedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                pchains,'UniformOutput',false)),'rows');
+            loopedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                ploops,'UniformOutput',false)),'rows');
+            % ==============================
             [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn);
+
+            gedges=str2double(G.Edges.EndNodes);
+            common_edges=intersect([chainedges;loopedges],([gedges;fliplr(gedges)]),'rows');
+            inchain=ismember(common_edges,chainedges,"rows");
+            inloop=ismember(common_edges,loopedges,"rows");
+            cmat=zeros(size(common_edges,1),3);
+            cmat(inchain,3)=1;
+            cmat(inloop,1)=1;
+            DG=digraph(table(string(common_edges),cmat,'VariableNames',{'EndNodes','EdgeColor'}));
+            
             figure()
             tiledlayout(1,2)
             nexttile()
-            plot(G)
-            flbl=G.plot.NodeLabel;
-            fx=G.plot.XData;
-            fy=G.plot.YData;
+            flbl=DG.plot.NodeLabel;
+            fx=DG.plot.XData;
+            fy=DG.plot.YData;
+
+            plot(DG,'EdgeColor',DG.Edges.EdgeColor,'LineWidth',2,'ArrowSize',10);
             xspan=xlim();
             yspan=ylim();
 
             nexttile()
             [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops');
-            rx=fx(ismember(flbl,Gr.plot.NodeLabel));
-            ry=fy(ismember(flbl,Gr.plot.NodeLabel));
-            plot(Gr,'XData',rx,'YData',ry)
+            gredges=str2double(Gr.Edges.EndNodes);
+            common_r_edges=intersect([chainedges;loopedges],([gredges;fliplr(gredges)]),'rows');
+            inchain=ismember(common_r_edges,chainedges,"rows");
+            inloop=ismember(common_r_edges,loopedges,"rows");
+            cmat=zeros(size(common_r_edges,1),3);
+            cmat(inchain,3)=1;
+            cmat(inloop,1)=1;
+            DGr=digraph(table(string(common_r_edges),cmat,'VariableNames',{'EndNodes','EdgeColor'}));
+
+            rx=fx(ismember(flbl,DGr.plot.NodeLabel));
+            ry=fy(ismember(flbl,DGr.plot.NodeLabel));
+            plot(DGr,'EdgeColor',DGr.Edges.EdgeColor,'LineWidth',2,'ArrowSize',10,...
+                'XData',rx,'YData',ry);
             xlim(xspan)
             ylim(yspan)
+            set(gca(),'XTick',[],'YTick',[])
             sgtitle([fn,' remove loops'])
-            
+            %%
         end
 
+        function t()
+            per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
+            edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                [per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops],...
+                'UniformOutput',false)),'rows'));
+            if strcmp(opt.remove,'UID')
+                assert(~isempty(opt.UID), "missing UID input");
+            end
 
+            gh=graph(edges(:,1),edges(:,2));
+            if strcmp(opt.remove,'D10')
+                gh=gh.rmnode(gh.Nodes.Name(gh.degree>=10));
+            elseif strcmp(opt.remove,'D5')
+                gh=gh.rmnode(gh.Nodes.Name(gh.degree>=5));
+            end
 
-
+            conncomp=gh.conncomp();
+            % check module in network
+            if any(conncomp~=1)
+                comps=unique(conncomp);
+                counter=zeros(numel(comps),1);
+                gnodes=cellfun(@(x) str2double(x),gh.Nodes.Name);
+                for mm=[per_sess_condition.(fn{1}).chains.',per_sess_condition.(fn{1}).loops.']
+                    [isinn,nidx]=ismember(mm{1},gnodes);
+                    compidx=unique(conncomp(nidx(isinn)));
+                    counter(compidx)=counter(compidx)+1;
+                end
+                subs=reshape(find(counter>1),1,[]);
+            else
+                subs=1;
+            end
+            %{subg#, subg.Node#, subg.Edge#}
+            for subsidx=subs
+                if nnz(conncomp==subsidx)<2
+                    continue
+                end
+                subgh=gh.subgraph(conncomp==subsidx);
+                if ~isfield(stats,fn{1}) || ~isfield(stats.(fn{1}),'subg')
+                    stats.(fn{1})=cell2struct({cell(0)},{'subg'});
+                end
+                stats.(fn{1}).subg=[stats.(fn{1}).subg,{subsidx,subgh.numnodes,subgh.numedges}];
+                if false
+                    complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
+                    per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
+                    degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},subgh.numnodes,1),str2double(table2array(subgh.Nodes)),subgh.degree];
+                end
+            end
+            G=subgh;
+        end
     end
 end

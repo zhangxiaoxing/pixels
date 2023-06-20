@@ -532,39 +532,13 @@ p=kruskalwallis([chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)]
 
 
 
-
-
 %% composite ablation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-wave.composite_thin_down(sschain,pstats)
-[per_trial_motif_cid,per_trial_motif_freq,stats]=wave.composite_thin_down.merge_motif(sschain,pstats)
-noremove=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq)
-removechain=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq)
-removechain=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq,'remove','chains')
-removeloops=wave.composite_thin_down.stats_remove(per_trial_motif_cid,per_trial_motif_freq,'remove','loops')
-per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"]);
-per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"],sessid)
-per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid)
-per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid);
-per_sess_condition=wave.composite_thin_down(sschain,pstats)
-per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats)
-noremove=wave.composite_thin_down.stats_remove(per_sess_condition)
-removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D10');
-
-per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
-noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
-removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
-removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','loops');
-removeD10=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D10');
-removeD5=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D5');
-nochain=wave.composite_thin_down.match_one(noremove,removechain);
-noloop=wave.composite_thin_down.match_one(noremove,removeloops);
-noD10=wave.composite_thin_down.match_one(noremove,removeD10);
-noD5=wave.composite_thin_down.match_one(noremove,removeD5);
-
+% sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
+% load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats')
+wave.composite_thin_down.demo(sschain,pstats)
 
 
 %%
-
 if false
 wave.chains_time_constant
 wave.chains_loops_sc
