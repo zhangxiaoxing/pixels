@@ -77,8 +77,8 @@ classdef composite_thin_down < handle
             arguments
                 per_sess_condition
                 opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D10','D5','ChainEqNode','LoopEqNode'})} = ''
-                opt.UID = []
                 opt.one_net (1,:) char = ''
+                opt.keep_subs (1,1) logical = false % for illustration only
             end
             
             stats=struct();
@@ -110,9 +110,12 @@ classdef composite_thin_down < handle
             end
 
             for fn=reshape(fns,1,[])
-                if numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<=1
+
+                if (numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<=1 && ~opt.keep_subs) ...
+                    || (numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<1 && opt.keep_subs)
                     continue
                 end
+
 
                 % build graph network
                 per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
@@ -163,7 +166,15 @@ classdef composite_thin_down < handle
                 end
             end
             if ~isempty(opt.one_net)
-                G=gh;
+                if opt.keep_subs
+                    if exist('gh','var')
+                        G=gh;
+                    else
+                        G=[];
+                    end
+                else
+                    G=gh.subgraph(conncomp==1);
+                end
             end
         end
 
@@ -262,7 +273,7 @@ classdef composite_thin_down < handle
         function before_after_loops(per_sess_condition,fn)
             %%
             % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
-            % load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
+            % load(fullfile("bzdata","chain_tag.mat"),"out")
             % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             % wave.composite_thin_down.before_after_loops(per_sess_condition,'s18s1d3')
             % ==============================
@@ -274,12 +285,20 @@ classdef composite_thin_down < handle
             loopedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
                 ploops,'UniformOutput',false)),'rows');
             % ==============================
-            [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn);
+            [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'keep_subs',false);
 
             gedges=str2double(G.Edges.EndNodes);
             common_edges=intersect([chainedges;loopedges],([gedges;fliplr(gedges)]),'rows');
-            inchain=ismember(common_edges,chainedges,"rows");
-            inloop=ismember(common_edges,loopedges,"rows");
+            if ~isempty(chainedges)
+                inchain=ismember(common_edges,chainedges,"rows");
+            else
+                inchain=false(size(common_edges,1));
+            end
+            if ~isempty(loopedges)
+                inloop=ismember(common_edges,loopedges,"rows");
+            else
+                inloop=false(size(common_edges,1));
+            end
             cmat=zeros(size(common_edges,1),3);
             cmat(inchain,3)=1;
             cmat(inloop,1)=1;
@@ -297,23 +316,27 @@ classdef composite_thin_down < handle
             yspan=ylim();
 
             nexttile()
-            [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops');
-            gredges=str2double(Gr.Edges.EndNodes);
-            common_r_edges=intersect([chainedges;loopedges],([gredges;fliplr(gredges)]),'rows');
-            inchain=ismember(common_r_edges,chainedges,"rows");
-            inloop=ismember(common_r_edges,loopedges,"rows");
-            cmat=zeros(size(common_r_edges,1),3);
-            cmat(inchain,3)=1;
-            cmat(inloop,1)=1;
-            DGr=digraph(table(string(common_r_edges),cmat,'VariableNames',{'EndNodes','EdgeColor'}));
+            [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops','keep_subs',true);
+            if ~isempty(Gr)
+                gredges=str2double(Gr.Edges.EndNodes);
+                common_r_edges=intersect([chainedges;loopedges],([gredges;fliplr(gredges)]),'rows');
+                common_r_edges=intersect(common_r_edges,[gedges;fliplr(gedges)],'rows');
+                inchain=ismember(common_r_edges,chainedges,"rows");
+                inloop=ismember(common_r_edges,loopedges,"rows");
+                cmat=zeros(size(common_r_edges,1),3);
+                cmat(inchain,3)=1;
+                cmat(inloop,1)=1;
+                DGr=digraph(table(string(common_r_edges),cmat,'VariableNames',{'EndNodes','EdgeColor'}));
 
-            rx=fx(ismember(flbl,DGr.plot.NodeLabel));
-            ry=fy(ismember(flbl,DGr.plot.NodeLabel));
-            plot(DGr,'EdgeColor',DGr.Edges.EdgeColor,'LineWidth',2,'ArrowSize',10,...
-                'XData',rx,'YData',ry);
-            xlim(xspan)
-            ylim(yspan)
-            set(gca(),'XTick',[],'YTick',[])
+                [~,rel_pos]=ismember(DGr.plot.NodeLabel,flbl);
+                rx=fx(rel_pos);
+                ry=fy(rel_pos);
+                plot(DGr,'EdgeColor',DGr.Edges.EdgeColor,'LineWidth',2,'ArrowSize',10,...
+                    'XData',rx,'YData',ry);
+                xlim(xspan)
+                ylim(yspan)
+                set(gca(),'XTick',[],'YTick',[])
+            end
             sgtitle([fn,' remove loops'])
             %%
         end

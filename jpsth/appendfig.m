@@ -24,7 +24,6 @@ if exist(fpath,"file")
     end
 end
 
-
 if opt.datetime
     datestr=subsref(char(datetime()),struct('type',{'()'},'subs',{{[1:6,12:17]}}));
     annostr=strjoin({opt.tag,datestr});
