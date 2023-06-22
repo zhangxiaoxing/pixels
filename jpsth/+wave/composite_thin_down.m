@@ -205,6 +205,7 @@ classdef composite_thin_down < handle
 
         function demo(sschain,pstats)
             %% ================================================================
+
             per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
             removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
@@ -281,7 +282,7 @@ classdef composite_thin_down < handle
             ploops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn).loops,'UniformOutput',false);% cyclic loops fix
             
             chainedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-                pchains,'UniformOutput',false)),'rows');
+                pchains,'UniformOutput',false)),'crows');
             loopedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
                 ploops,'UniformOutput',false)),'rows');
             % ==============================
@@ -321,8 +322,16 @@ classdef composite_thin_down < handle
                 gredges=str2double(Gr.Edges.EndNodes);
                 common_r_edges=intersect([chainedges;loopedges],([gredges;fliplr(gredges)]),'rows');
                 common_r_edges=intersect(common_r_edges,[gedges;fliplr(gedges)],'rows');
-                inchain=ismember(common_r_edges,chainedges,"rows");
-                inloop=ismember(common_r_edges,loopedges,"rows");
+                if ~isempty(chainedges)
+                    inchain=ismember(common_r_edges,chainedges,"rows");
+                else
+                    inchain=false(size(common_r_edges,1));
+                end
+                if ~isempty(loopedges)
+                    inloop=ismember(common_r_edges,loopedges,"rows");
+                else
+                    inloop=false(size(common_r_edges,1));
+                end
                 cmat=zeros(size(common_r_edges,1),3);
                 cmat(inchain,3)=1;
                 cmat(inloop,1)=1;
@@ -341,54 +350,5 @@ classdef composite_thin_down < handle
             %%
         end
 
-        function t()
-            per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
-            edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-                [per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops],...
-                'UniformOutput',false)),'rows'));
-            if strcmp(opt.remove,'UID')
-                assert(~isempty(opt.UID), "missing UID input");
-            end
-
-            gh=graph(edges(:,1),edges(:,2));
-            if strcmp(opt.remove,'D10')
-                gh=gh.rmnode(gh.Nodes.Name(gh.degree>=10));
-            elseif strcmp(opt.remove,'D5')
-                gh=gh.rmnode(gh.Nodes.Name(gh.degree>=5));
-            end
-
-            conncomp=gh.conncomp();
-            % check module in network
-            if any(conncomp~=1)
-                comps=unique(conncomp);
-                counter=zeros(numel(comps),1);
-                gnodes=cellfun(@(x) str2double(x),gh.Nodes.Name);
-                for mm=[per_sess_condition.(fn{1}).chains.',per_sess_condition.(fn{1}).loops.']
-                    [isinn,nidx]=ismember(mm{1},gnodes);
-                    compidx=unique(conncomp(nidx(isinn)));
-                    counter(compidx)=counter(compidx)+1;
-                end
-                subs=reshape(find(counter>1),1,[]);
-            else
-                subs=1;
-            end
-            %{subg#, subg.Node#, subg.Edge#}
-            for subsidx=subs
-                if nnz(conncomp==subsidx)<2
-                    continue
-                end
-                subgh=gh.subgraph(conncomp==subsidx);
-                if ~isfield(stats,fn{1}) || ~isfield(stats.(fn{1}),'subg')
-                    stats.(fn{1})=cell2struct({cell(0)},{'subg'});
-                end
-                stats.(fn{1}).subg=[stats.(fn{1}).subg,{subsidx,subgh.numnodes,subgh.numedges}];
-                if false
-                    complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
-                    per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
-                    degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},subgh.numnodes,1),str2double(table2array(subgh.Nodes)),subgh.degree];
-                end
-            end
-            G=subgh;
-        end
     end
 end
