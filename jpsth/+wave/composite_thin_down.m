@@ -76,9 +76,9 @@ classdef composite_thin_down < handle
         function [stats,G]=stats_remove(per_sess_condition,opt)
             arguments
                 per_sess_condition
-                opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D10','D5','ChainEqNode','LoopEqNode'})} = ''
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'','chains','loops','UID','D5','ChainMatchFC','LoopMatchFC'})} = ''
                 opt.one_net (1,:) char = ''
-                opt.keep_subs (1,1) logical = false % for illustration only
+                opt.keep_all_subs (1,1) logical = false % for illustration only
             end
             
             stats=struct();
@@ -86,8 +86,8 @@ classdef composite_thin_down < handle
             % complexity_sums=[];
             % degree_sums=[];
 
-            %% TODO: gradual removal
-            % remove {all chains},{all loops},{HIP},{ORB},{OLF},{DEGREE>10}
+            %% systematic abalation
+            % remove {HIP},{ORB},{OLF}
 
             switch opt.remove
                 case 'chains'
@@ -95,11 +95,13 @@ classdef composite_thin_down < handle
                     strcell=struct2cell(per_sess_condition);
                     cellstr=cellfun(@(x) cell2struct({cell(0);x.loops},{'chains','loops'}),strcell,'UniformOutput',false);
                     per_sess_condition=cell2struct(cellstr,fns);
+                    
                 case 'loops'
                     fns=fieldnames(per_sess_condition);
                     strcell=struct2cell(per_sess_condition);
                     cellstr=cellfun(@(x) cell2struct({x.chains;cell(0)},{'chains','loops'}),strcell,'UniformOutput',false);
                     per_sess_condition=cell2struct(cellstr,fns);
+
             end
             
             if isempty(opt.one_net)
@@ -111,11 +113,10 @@ classdef composite_thin_down < handle
 
             for fn=reshape(fns,1,[])
 
-                if (numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<=1 && ~opt.keep_subs) ...
-                    || (numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<1 && opt.keep_subs)
+                if (numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<=1 && ~opt.keep_all_subs) ...
+                    || (numel(per_sess_condition.(fn{1}).chains)+numel(per_sess_condition.(fn{1}).loops)<1 && opt.keep_all_subs)
                     continue
                 end
-
 
                 % build graph network
                 per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
@@ -124,13 +125,31 @@ classdef composite_thin_down < handle
                     'UniformOutput',false)),'rows'));
                 if strcmp(opt.remove,'UID')
                     assert(~isempty(opt.UID), "missing UID input");
+                % else
+                %     error("Unfinished options")
                 end
 
-                gh=graph(edges(:,1),edges(:,2));
+                
                 if strcmp(opt.remove,'D10')
+                    gh=graph(edges(:,1),edges(:,2));
                     gh=gh.rmnode(gh.Nodes.Name(gh.degree>=10));
                 elseif strcmp(opt.remove,'D5')
+                    gh=graph(edges(:,1),edges(:,2));
                     gh=gh.rmnode(gh.Nodes.Name(gh.degree>=5));
+                elseif strcmp(opt.remove,'ChainMatchFC')
+                    rmvedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                        per_sess_condition.(fn{1}).chains,'UniformOutput',false)),'rows');
+                    rmv_fc_n=size(rmvedges,1);
+                    keepsel=randsample(size(edges,1),size(edges,1)-rmv_fc_n);
+                    gh=graph(edges(keepsel,1),edges(keepsel,2));
+                elseif strcmp(opt.remove,'LoopMatchFC')
+                    rmvedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                        per_sess_condition.(fn{1}).loops,'UniformOutput',false)),'rows');
+                    rmv_fc_n=size(rmvedges,1);
+                    keepsel=randsample(size(edges,1),size(edges,1)-rmv_fc_n);
+                    gh=graph(edges(keepsel,1),edges(keepsel,2));
+                else
+                    gh=graph(edges(:,1),edges(:,2));
                 end
                 
                 conncomp=gh.conncomp();
@@ -166,7 +185,7 @@ classdef composite_thin_down < handle
                 end
             end
             if ~isempty(opt.one_net)
-                if opt.keep_subs
+                if opt.keep_all_subs
                     if exist('gh','var')
                         G=gh;
                     else
@@ -210,27 +229,36 @@ classdef composite_thin_down < handle
             noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
             removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
             removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','loops');
-            removeD10=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D10');
             removeD5=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','D5');
 
             nochain=wave.composite_thin_down.match_one(noremove,removechain);
             noloop=wave.composite_thin_down.match_one(noremove,removeloops);
-            noD10=wave.composite_thin_down.match_one(noremove,removeD10);
             noD5=wave.composite_thin_down.match_one(noremove,removeD5);
             nrfns=reshape(fieldnames(noremove),1,[]);
-    
+            
+            for rpt=1:10
+                removeChainMatch=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','ChainMatchFC');
+                noChainMatch(rpt)=wave.composite_thin_down.match_one(noremove,removeChainMatch);
+                removeLoopMatch=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','LoopMatchFC');
+                noLoopMatch(rpt)=wave.composite_thin_down.match_one(noremove,removeLoopMatch);
+            end
+
+
             bmat=[0,0,0,0,numel(nrfns);...
                 nochain.abolish,nochain.split,nochain.shrink,nochain.weaken,nochain.noeffect;...
+                mean([noChainMatch.abolish]),mean([noChainMatch.split]),mean([noChainMatch.shrink]),mean([noChainMatch.weaken]),mean([noChainMatch.noeffect]);...
                 noloop.abolish,noloop.split,noloop.shrink,noloop.weaken,noloop.noeffect;...
-                noD10.abolish,noD10.split,noD10.shrink,noD10.weaken,noD10.noeffect;...
+                mean([noLoopMatch.abolish]),mean([noLoopMatch.split]),mean([noLoopMatch.shrink]),mean([noLoopMatch.weaken]),mean([noLoopMatch.noeffect]);...
                 noD5.abolish,noD5.split,noD5.shrink,noD5.weaken,noD5.noeffect];
             figure()
             bh=bar(fliplr(bmat)./sum(bmat,2).*100,'stacked');
             legend(bh,{'Unaffected','Weaken','Shrinked','Splitted','Abolished'},'Location','northoutside','Orientation','horizontal')
-            set(gca(),'XTick',1:5,'XTickLabel',{'Observed','Remove chains','Remove loops','Remove deg>10','Remove deg>5'})
+            set(gca(),'XTick',1:6,'XTickLabel',{'Observed','Remove chains','Chains ctrl','Remove loops','Loops ctrl','Remove deg>5'})
             ylabel('Percent (%)')
             ylim([0,100])
             %% ================================================================
+
+
         end
         
 
@@ -271,10 +299,11 @@ classdef composite_thin_down < handle
             end
         end
 
-        function before_after_loops(per_sess_condition,fn)
+        function [DG,DGr]=before_after_loops(per_sess_condition,fn)
             %%
             % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
             % load(fullfile("bzdata","chain_tag.mat"),"out")
+            % sschain.out=out;
             % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             % wave.composite_thin_down.before_after_loops(per_sess_condition,'s18s1d3')
             % ==============================
@@ -286,7 +315,7 @@ classdef composite_thin_down < handle
             loopedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
                 ploops,'UniformOutput',false)),'rows');
             % ==============================
-            [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'keep_subs',false);
+            [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'keep_all_subs',false);
 
             gedges=str2double(G.Edges.EndNodes);
             common_edges=intersect([chainedges;loopedges],([gedges;fliplr(gedges)]),'rows');
@@ -317,7 +346,7 @@ classdef composite_thin_down < handle
             yspan=ylim();
 
             nexttile()
-            [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops','keep_subs',true);
+            [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops','keep_all_subs',true);
             if ~isempty(Gr)
                 gredges=str2double(Gr.Edges.EndNodes);
                 common_r_edges=intersect([chainedges;loopedges],([gredges;fliplr(gredges)]),'rows');
@@ -348,6 +377,10 @@ classdef composite_thin_down < handle
             end
             sgtitle([fn,' remove loops'])
             %%
+        end
+
+        function remove_rnd_match_edge(beforeG,afterG)
+            keyboard();
         end
 
     end
