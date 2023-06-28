@@ -225,6 +225,10 @@ classdef composite_thin_down < handle
         function demo(sschain,pstats)
             %% ================================================================
 
+            % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
+            % load(fullfile("bzdata","chain_tag.mat"),"out")
+            % sschain.out=out;
+
             per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
             removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
@@ -311,7 +315,7 @@ classdef composite_thin_down < handle
             ploops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn).loops,'UniformOutput',false);% cyclic loops fix
             
             chainedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-                pchains,'UniformOutput',false)),'crows');
+                pchains,'UniformOutput',false)),'rows');
             loopedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
                 ploops,'UniformOutput',false)),'rows');
             % ==============================
