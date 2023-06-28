@@ -265,7 +265,6 @@ classdef composite_thin_down < handle
 
         end
         
-
         function more_stats()
 
             %% stats
@@ -383,8 +382,80 @@ classdef composite_thin_down < handle
             %%
         end
 
-        function remove_rnd_match_edge(beforeG,afterG)
-            keyboard();
+        function one_by_one_remove(per_sess_condition,opt)
+            arguments
+                per_sess_condition
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops'})} = ''
+            end
+            stats=struct();
+            % per_trl_nodes=cell(0);
+            % complexity_sums=[];
+            % degree_sums=[];
+
+            %% systematic abalation
+            % remove {HIP},{ORB},{OLF}
+            fns=fieldnames(per_sess_condition);
+            for fn=reshape(fns,1,[])
+                chaincount=numel(per_sess_condition.(fn{1}).chains);
+                loopcount=numel(per_sess_condition.(fn{1}).loops);
+                if chaincount+loopcount<=1
+                    continue
+                end
+
+                % build graph network
+                % one by one remove chains
+                for 
+                per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
+                edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                    [per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops],...
+                    'UniformOutput',false)),'rows'));
+
+                gh=graph(edges(:,1),edges(:,2));
+
+                conncomp=gh.conncomp();
+                % check module in network
+                if any(conncomp~=1)
+                    comps=unique(conncomp);
+                    counter=zeros(numel(comps),1);
+                    gnodes=cellfun(@(x) str2double(x),gh.Nodes.Name);
+                    for mm=[per_sess_condition.(fn{1}).chains.',per_sess_condition.(fn{1}).loops.']
+                        [isinn,nidx]=ismember(mm{1},gnodes);
+                        compidx=unique(conncomp(nidx(isinn)));
+                        counter(compidx)=counter(compidx)+1;
+                    end
+                    subs=reshape(find(counter>1),1,[]);
+                else
+                    subs=1;
+                end
+                %{subg#, subg.Node#, subg.Edge#}
+                for subsidx=subs
+                    if nnz(conncomp==subsidx)<2
+                        continue
+                    end
+                    subgh=gh.subgraph(conncomp==subsidx);
+                    if ~isfield(stats,fn{1}) || ~isfield(stats.(fn{1}),'subg')
+                        stats.(fn{1})=cell2struct({cell(0)},{'subg'});
+                    end
+                    stats.(fn{1}).subg=[stats.(fn{1}).subg,{subsidx,subgh.numnodes,subgh.numedges}];
+                    if false
+                        complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
+                        per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
+                        degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},subgh.numnodes,1),str2double(table2array(subgh.Nodes)),subgh.degree];
+                    end
+                end
+            end
+            if ~isempty(opt.one_net)
+                if opt.keep_all_subs
+                    if exist('gh','var')
+                        G=gh;
+                    else
+                        G=[];
+                    end
+                else
+                    G=gh.subgraph(conncomp==1);
+                end
+            end
+ 
         end
 
     end

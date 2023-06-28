@@ -270,7 +270,7 @@ fcstats3=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'condense_
 fcstats6=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
 fcstats3=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom3_maps,'condense_plot',true);
 
-fc.wave_stay_disappear(wrs_mux_meta)
+% fc.wave_stay_disappear(wrs_mux_meta)
 
 if false
     inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain
