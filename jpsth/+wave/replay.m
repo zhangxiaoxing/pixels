@@ -470,6 +470,19 @@ classdef replay < handle
 
         end
 
+        function HIP(motif_replay)
+            for dd=reshape(string(fieldnames(motif_replay)),1,[])
+                for samp=reshape(string(fieldnames(motif_replay.(dd))),1,[])
+                    for condi=reshape(string(fieldnames(motif_replay.(dd).(samp))),1,[])
+                        % sessid=str2double(regexp(condi,'(?<=^s)\d{1,3}(?=(c|r))','match','once'));
+                        sessid=motif_replay.(dd).(samp).(condi).meta{1};
+                        cids=motif_replay.(dd).(samp).(condi).meta{2};
+                        keyboard;
+                    end
+                end
+            end
+        end
+
 
 
         function exception_check()
