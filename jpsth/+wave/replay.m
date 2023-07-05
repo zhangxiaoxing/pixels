@@ -139,7 +139,8 @@ classdef replay < handle
                         rec_dur=wave.replay.sessid2length(sessid);
                         freqstats.before_session=[sum((trl_align(:,8)==1 & trl_align(:,9)>60).*len),onechain.trials(1,1)./sps-60];
                         freqstats.after_session=[sum((trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len),(rec_dur-onechain.trials(end,2))./sps-60-1];
-
+                        
+                        % time length criteria since 23-Jun-28
                         if freqstats.before_session(2)<=30
                             freqstats.before_session=nan(1,2);
                         end
@@ -193,7 +194,7 @@ classdef replay < handle
         %%
         function [fhb,fhs]=plot_replay(stats,xlbl,opt)
             arguments
-                stats struct
+                stats double
                 xlbl char
                 opt.title (1,:) char = 'chains'
             end
@@ -310,6 +311,7 @@ classdef replay < handle
                 opt.median_value (1,1) logical = false
             end
             mergemat=cell2mat(arrayfun(@(x) [cross_sess_mat{x},repmat(x,numel(cross_sess_mat{x}),1)],(1:numel(cross_sess_mat)).','UniformOutput',false));
+            mergemat=mergemat(isfinite(mergemat(:,1)),:);
 
             fhb=figure('Position',[100,100,600,400]);
             for ii=1:size(cross_sess_mat,2)
@@ -319,7 +321,7 @@ classdef replay < handle
 
             if opt.median_value
                 for jj=1:size(cross_sess_mat,2)
-                    mm=median(cross_sess_mat{jj});
+                    mm=median(cross_sess_mat{jj}(isfinite(cross_sess_mat{jj})));
                     text(jj,1,sprintf('%.1f',mm),'VerticalAlignment','bottom','HorizontalAlignment','center')
                 end
             end
