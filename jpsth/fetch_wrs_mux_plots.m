@@ -325,20 +325,20 @@ end
 [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
 % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
 
-[ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
+% [ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
 
-[fhb,fhs]=wave.replay.plot_replay(stats_ring([1 4 8 5 11 12],:),...
-    {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
-fhb.Children.YLim=[0,3.5];
-fhs.Children.YLim=[0,3.5];
-
-[fhb,fhs]=wave.replay.plot_replay(stats_ring([1 2 8 9 5 6],:),...
-    {'Correct','Error','Correct','Error','Correct','Error',},'title','loops delay-prior-after');
-fhb.Children.YLim=[0,3.5];
-fhs.Children.YLim=[0,3.5];
-delete(fhb.Children.Children(5))
-[ranksum(stats_ring(1,:),stats_ring(2,:)),ranksum(stats_ring(8,:),stats_ring(9,:)),ranksum(stats_ring(5,:),stats_ring(6,:))]
-text(fhb.Children(1),1.5:2:5.5,[1.5,1.5,1.5],{'***','***','***'},'VerticalAlignment','top','HorizontalAlignment','center')
+% [fhb,fhs]=wave.replay.plot_replay(stats_ring([1 4 8 5 11 12],:),...
+%     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
+% fhb.Children.YLim=[0,3.5];
+% fhs.Children.YLim=[0,3.5];
+% 
+% [fhb,fhs]=wave.replay.plot_replay(stats_ring([1 2 8 9 5 6],:),...
+%     {'Correct','Error','Correct','Error','Correct','Error',},'title','loops delay-prior-after');
+% fhb.Children.YLim=[0,3.5];
+% fhs.Children.YLim=[0,3.5];
+% delete(fhb.Children.Children(5))
+% [ranksum(stats_ring(1,:),stats_ring(2,:)),ranksum(stats_ring(8,:),stats_ring(9,:)),ranksum(stats_ring(5,:),stats_ring(6,:))]
+% text(fhb.Children(1),1.5:2:5.5,[1.5,1.5,1.5],{'***','***','***'},'VerticalAlignment','top','HorizontalAlignment','center')
 
 
 
@@ -439,14 +439,13 @@ for xx=[2 3 5 6 8 9]
     text(xx,0.05,sprintf('%.3f',srp(xx)),'HorizontalAlignment','center','VerticalAlignment','bottom');
 end
 ylim([0.05,30])
-% TODO JULY0705
 
-    % chains, vs control
-    [chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
-    [chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
+% chains, vs control
+[chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
+[chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
 
-    [cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
-    [cinconstr,revmat]=wave.replay.stats_replay_sess({chain_raw_incon});
+[cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
+[cinconstr,revmat]=wave.replay.stats_replay_sess({chain_raw_incon});
 if false % not suitable due to unmatched network-size
     fhb=wave.replay.plot_replay_cross_sess({cmat(:,1),antimat(:,1),revmat(:,1),...
         cmat(:,3),antimat(:,8),revmat(:,8),...
@@ -538,6 +537,16 @@ ylabel('Motif spike frequencey (Hz)')
 
 
 
+wave.replay.region_replay(chain_replay,'reg',"HIP")
+title('Chains, HIP')
+wave.replay.region_replay(chain_replay,'reg',"ORB")
+title('Chains, ORB')
+wave.replay.region_replay(ring_replay,'reg',"HIP")
+title('Loops, HIP')
+ylim([0,3])
+wave.replay.region_replay(ring_replay,'reg',"ORB")
+title('Loops, ORB')
+ylim([0,3])
 
 
 

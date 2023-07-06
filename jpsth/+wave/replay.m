@@ -470,17 +470,47 @@ classdef replay < handle
 
         end
 
-        function HIP(motif_replay)
+        function [fh,out]=region_replay(motif_replay,opt)
+            arguments
+                motif_replay
+                opt.reg="HIP"
+            end
+            out=cell2struct({[];[]},{'REG','Others'});
+            su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
             for dd=reshape(string(fieldnames(motif_replay)),1,[])
                 for samp=reshape(string(fieldnames(motif_replay.(dd))),1,[])
                     for condi=reshape(string(fieldnames(motif_replay.(dd).(samp))),1,[])
                         % sessid=str2double(regexp(condi,'(?<=^s)\d{1,3}(?=(c|r))','match','once'));
-                        sessid=motif_replay.(dd).(samp).(condi).meta{1};
-                        cids=motif_replay.(dd).(samp).(condi).meta{2};
-                        keyboard;
+                        onemotif=motif_replay.(dd).(samp).(condi);
+                        sessid=onemotif.meta{1};
+                        cids=onemotif.meta{2};
+                        motif_reg=arrayfun(@(x) string(su_meta.reg_tree{5,su_meta.sess==sessid & su_meta.allcid==x}),cids);
+                        onefreq=[onemotif.freqstats.pref_delay_correct,...
+                                onemotif.freqstats.pref_succeed_ITI,...
+                                onemotif.freqstats.before_session,...
+                                onemotif.freqstats.after_session];
+
+                        if any(motif_reg==opt.reg)
+                            out.REG=[out.REG;onefreq(1:2:7)./onefreq(2:2:8)];
+                        else
+                            out.Others=[out.Others;onefreq(1:2:7)./onefreq(2:2:8)];
+                        end
                     end
                 end
             end
+            dd=[out.REG;out.Others];
+            gg=[repmat([1:2:8],size(out.REG,1),1);...
+                repmat([2:2:8],size(out.Others,1),1)];
+            fh=figure();
+            boxplot(reshape(dd,[],1),reshape(gg,[],1),'Symbol','c.','Colors','k')
+            set(gca,'XTick',2:2:8,'XTickLabel',{'Delay','aft.ITI','Before sess.','After Sess.'})
+            ylim([0,2])
+
+            for ii=1:2:8
+                pp=ranksum(dd(gg==ii), dd(gg==ii+1));
+                text(ii+0.5,2,sprintf('%.3f',pp));
+            end
+
         end
 
 
