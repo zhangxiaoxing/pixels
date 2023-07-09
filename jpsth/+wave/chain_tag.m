@@ -141,7 +141,11 @@ classdef chain_tag < handle
                             if ~isempty(ts)
                                 outkey="s"+sessid+"c"+cc;
                                 out.("d"+duration).(outid).(outkey).ts=ts;
-                                out.("d"+duration).(outid).(outkey).meta={sessid,cids,chains.tcoms(cc)};
+                                if opt.skip_ts_id
+                                    out.("d"+duration).(outid).(outkey).meta={sessid,cids};
+                                else
+                                    out.("d"+duration).(outid).(outkey).meta={cids,chains.tcoms(cc)};
+                                end
                                 
                                 if opt.skip_ts_id
                                     out.("d"+duration).(outid).(outkey).trials=trials;
