@@ -1,6 +1,6 @@
 % tag spikes in neuron with loop or chain activity
 % olf, enc-both disconnect, composite proportion, bargraph
-% TODO: overall refactoring
+% TODO: CONTROL
 classdef composite_thin_down < handle
 
     methods (Static)
@@ -392,7 +392,7 @@ classdef composite_thin_down < handle
         function stats=one_by_one_remove(per_sess_condition,opt)
             arguments
                 per_sess_condition
-                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops'})} = 'chains'
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops','ctrl'})} = 'chains'
             end
             stats=struct();
             % per_trl_nodes=cell(0);
@@ -416,6 +416,8 @@ classdef composite_thin_down < handle
                     motifcount=chaincount;
                 elseif strcmp(opt.remove,'loops')
                     motifcount=loopcount;
+                elseif strcmp(opt.remove,'ctrl')
+                    motifcount=sum(cellfun(@(x) numel(x),[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops])-1);
                 end
                 if motifcount==0
                     stats.(fn{1})='NA';
@@ -442,12 +444,16 @@ classdef composite_thin_down < handle
                                     motifcell=per_sess_condition.(fn{1}).loops;
                                 elseif strcmp(opt.remove,'loops')
                                     motifcell=per_sess_condition.(fn{1}).chains;
+                                elseif strcmp(opt.remove,'ctrl')
+                                    motifcell=[];
                                 end
                             else
                                 if strcmp(opt.remove,'chains')
                                     motifcell=[per_sess_condition.(fn{1}).chains(compo_list(rr,:));per_sess_condition.(fn{1}).loops];
                                 elseif strcmp(opt.remove,'loops')
                                     motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops(compo_list(rr,:))];
+                                elseif strcmp(opt.remove,'ctrl')
+                                    motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops];
                                 end
                             end
                             if isempty(motifcell) || numel(motifcell)==1
@@ -455,9 +461,15 @@ classdef composite_thin_down < handle
                                 continue
                             end
 
-                            edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                            if strcmp(opt.remove,'ctrl')
+                                edgesall=cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                                motifcell,'UniformOutput',false));
+                                edges=categorical(unique(edgesall(compo_list(rr,:),:),'rows'));
+                            else
+                                edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
                                 motifcell,...
                                 'UniformOutput',false)),'rows'));
+                            end
 
                             gh=graph(edges(:,1),edges(:,2));
                             conncomp=gh.conncomp();
@@ -471,7 +483,11 @@ classdef composite_thin_down < handle
                                     compidx=unique(conncomp(nidx(isinn)));
                                     counter(compidx)=counter(compidx)+1;
                                 end
-                                subs=reshape(find(counter>1),1,[]);
+                                subs=reshape(find(counter>1),1,[]); % TODO: should consider >=1
+                                if isempty(subs)
+                                    stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,rcn}];
+                                    continue
+                                end
                             else
                                 subs=1;
                             end
@@ -483,6 +499,9 @@ classdef composite_thin_down < handle
                                 end
                                 subgh=gh.subgraph(conncomp==subsidx);
                                 stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{subsidx,subgh.numnodes,subgh.numedges,chaincount,loopcount,opt.remove,rcn}];
+                            end
+                            if isempty(stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg)
+                                keyboard()
                             end
                         end
                     end
@@ -496,6 +515,7 @@ classdef composite_thin_down < handle
             system_rmv_stats=struct();
             rmvnet.chains=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
             rmvnet.loops=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
+            rmvnet.ctrl=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
             rmvtypes=string(fieldnames(onebyone));
             for rmvtype=reshape(rmvtypes,1,[])
                 for currCondition=nrfns
