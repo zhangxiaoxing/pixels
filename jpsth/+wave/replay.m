@@ -542,17 +542,23 @@ classdef replay < handle
                     end
                 end
             end
-            dd=[out.REG;out.Others];
-            gg=[repmat([1:2:8],size(out.REG,1),1);...
-                repmat([2:2:8],size(out.Others,1),1)];
+            dd=reshape([out.REG;out.Others],[],1);
+            gg=reshape([repmat([1:2:8],size(out.REG,1),1);...
+                repmat([2:2:8],size(out.Others,1),1)],[],1);
+
+            mm=arrayfun(@(x) median(dd(gg==x & isfinite(dd))),unique(gg));
+            rci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), dd(gg==x & isfinite(dd))),unique(gg),'UniformOutput',false).');
+
             fh=figure();
-            boxplot(reshape(dd,[],1),reshape(gg,[],1),'Symbol','c.','Colors','k')
-            set(gca,'XTick',2:2:8,'XTickLabel',{'Delay','aft.ITI','Before sess.','After Sess.'})
-            ylim([0,2])
+            hold on
+            bar(mm.','grouped','FaceColor','none','EdgeColor','k')
+            errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
+            set(gca,'XTick',1.5:2:8,'XTickLabel',{'Delay','aft.ITI','Before sess.','After Sess.'})
+            % ylim([0,2])
 
             for ii=1:2:8
                 pp=ranksum(dd(gg==ii), dd(gg==ii+1));
-                text(ii+0.5,2,sprintf('%.3f',pp));
+                text(ii+0.5,max(ylim()),sprintf('%.3f',pp),'VerticalAlignment','top');
             end
 
         end

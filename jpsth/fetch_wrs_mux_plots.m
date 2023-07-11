@@ -392,7 +392,6 @@ fhb=wave.replay.plot_replay_sess(cmat,...
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rmfield(rings_tag,'none'),'var_len',true);
 rings_tag_nom=rmfield(rmfield(rings_tag,'d6'),'d3');
 [ring_nom_replay,ring_nom_stats,ring_nom_raw]=wave.replay.stats(rings_tag_nom,'var_len',true);
-
 [rstr,rmat]=wave.replay.stats_replay_sess({ring_raw},'feat_sel',[1 4 8 5 11 12]);
 % fhring=wave.replay.plot_replay_sess(rmat,...
 %     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
@@ -436,7 +435,7 @@ ring_corr_err=cell2struct({ring_raw.count([1 3 2 5 7 6 8 10 9],:);...
 
 [estr,emat]=wave.replay.stats_replay_sess({ring_corr_err});
 
-fhb=wave.replay.plot_replay_sess(emat,...
+fhb=wave.replay.plot_replay_sess_ci(emat,...
     {'Correct','Nonpref','Error','Correct','Nonpref','Error','Correct','Nonpref','Error'},...
     'title','loops delay-prior-after','median_value',true);
 
@@ -447,7 +446,7 @@ srp=[1,signrank(emat(:,1),emat(:,2)),signrank(emat(:,1),emat(:,3)),...
 for xx=[2 3 5 6 8 9]
     text(xx,0.05,sprintf('%.3f',srp(xx)),'HorizontalAlignment','center','VerticalAlignment','bottom');
 end
-ylim([0.05,30])
+ylim([0.5,10])
 
 % chains, vs control
 [chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
@@ -530,9 +529,16 @@ gg=[ones(ggn(1),1);2*ones(ggn(2),1);...
     7*ones(ggn(1),1);8*ones(ggn(2),1);...
     9*ones(ggn(1),1);10*ones(ggn(2),1)];
 
+mm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),unique(gg));
+rci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),unique(gg),'UniformOutput',false).');
+
+
 figure()
-boxplot(yy,gg,'Colors','k','Symbol','c.')
-ylim([0,4])
+% boxplot(yy,gg,'Colors','k','Symbol','c.')
+hold on
+bar(mm.','grouped','FaceColor','none','EdgeColor','k')
+errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
+ylim([0,1.2])
 set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Prior','Later','Before','After'})
 title('loops congru-nonmem')
 ylabel('Motif spike frequencey (Hz)')

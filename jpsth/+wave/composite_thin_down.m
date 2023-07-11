@@ -93,7 +93,7 @@ classdef composite_thin_down < handle
             % complexity_sums=[];
             % degree_sums=[];
 
-            %% systematic abalation
+            %% systematic ablation
             % remove {HIP},{ORB},{OLF}
 
             switch opt.remove
@@ -393,16 +393,23 @@ classdef composite_thin_down < handle
             arguments
                 per_sess_condition
                 opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops','ctrl'})} = 'chains'
+                opt.debug (1,1) logical = false
             end
             stats=struct();
             % per_trl_nodes=cell(0);
             % complexity_sums=[];
             % degree_sums=[];
 
-            %% systematic abalation
+            %% systematic ablation
             % remove {HIP},{ORB},{OLF}
             fns=fieldnames(per_sess_condition);
+            dbgcnt=1;
             for fn=reshape(fns,1,[])
+                dbgcnt=dbgcnt+1;
+                if opt.debug && dbgcnt>20
+                    continue
+                end
+
                 per_sess_condition.(fn{1}).loops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn{1}).loops,'UniformOutput',false);% cyclic loops fix
                 chaincount=numel(per_sess_condition.(fn{1}).chains);
                 loopcount=numel(per_sess_condition.(fn{1}).loops);
@@ -457,7 +464,7 @@ classdef composite_thin_down < handle
                                 end
                             end
                             if isempty(motifcell) || numel(motifcell)==1
-                                stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,rcn}];
+                                stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
                                 continue
                             end
 
@@ -485,7 +492,7 @@ classdef composite_thin_down < handle
                                 end
                                 subs=reshape(find(counter>1),1,[]); % TODO: should consider >=1
                                 if isempty(subs)
-                                    stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,rcn}];
+                                    stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
                                     continue
                                 end
                             else
@@ -498,7 +505,7 @@ classdef composite_thin_down < handle
                                     continue
                                 end
                                 subgh=gh.subgraph(conncomp==subsidx);
-                                stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{subsidx,subgh.numnodes,subgh.numedges,chaincount,loopcount,opt.remove,rcn}];
+                                stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{subsidx,subgh.numnodes,subgh.numedges,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
                             end
                             if isempty(stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg)
                                 keyboard()
@@ -569,16 +576,21 @@ classdef composite_thin_down < handle
                                 end
                                 % rmvlevel=str2double(regexp(lvl,'(?<=(chains|loops))\d','match','once'))
                                 if contains(rmvtype,'chain')
-                                    rmvlevel=floor(rptcell{1}.subg{7}./rptcell{1}.subg{4}.*10);
+                                    rmvlevel=floor(rptcell{1}.subg{7}(1)./rptcell{1}.subg{4}.*10);
+                                elseif contains(rmvtype,'loop')
+                                    rmvlevel=floor(rptcell{1}.subg{7}(1)./rptcell{1}.subg{5}.*10);
+                                elseif contains(rmvtype,'ctrl')
+                                    rmvlevel=floor(rptcell{1}.subg{7}(1)./rptcell{1}.subg{7}(2).*10);
                                 else
-                                    rmvlevel=floor(rptcell{1}.subg{7}./rptcell{1}.subg{5}.*10);
+                                    keyboard()
                                 end
                                 if ~isfield(system_rmv_stats,rmvtype) || ~isfield(system_rmv_stats.(rmvtype),"L"+rmvlevel)
                                     system_rmv_stats.(rmvtype).("L"+rmvlevel).out=[];
                                 end
-
-                                system_rmv_stats.(rmvtype).("L"+rmvlevel).out=...
-                                    [system_rmv_stats.(rmvtype).("L"+rmvlevel).out;[out.abolish,out.split,out.shrank,out.weaken,out.noeffect,out.WIP]./numel(rptcell)];
+                                if ~(numel(rptcell)==out.WIP)
+                                    system_rmv_stats.(rmvtype).("L"+rmvlevel).out=...
+                                        [system_rmv_stats.(rmvtype).("L"+rmvlevel).out;[out.abolish,out.split,out.shrank,out.weaken,out.noeffect]./(numel(rptcell)-out.WIP)];
+                                end
                             end
                         end
                     else
@@ -592,6 +604,8 @@ classdef composite_thin_down < handle
         function plot_one_by_one(system_rmv_stats)
         % global_init
         % load(fullfile(gather_config.odpath,'Tempdata','onebyone.mat'))
+        % load(fullfile(gather_config.odpath,'Tempdata','abalation_ctrl.mat'))
+        % onebyone.ctrl=statsctrl;
         % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
         % load(fullfile("bzdata","chain_tag.mat"),"out")
         % sschain.out=out;
@@ -601,15 +615,17 @@ classdef composite_thin_down < handle
 
             mm=struct();
             sem=struct();
-            for motifType=["chains","loops"]
+            for motifType=["chains","loops","ctrl"]
                 for lvl=0:10
+               
                     mm.(motifType)(lvl+1,:)=mean(system_rmv_stats.(motifType).("L"+lvl).out);
                     sem.(motifType)(lvl+1,:)=std(system_rmv_stats.(motifType).("L"+lvl).out)./sqrt(size(system_rmv_stats.(motifType).("L"+lvl).out,1));
+
                 end
             end
             hexcmap=["#0072BD","#D95319","#EDB120","#7E2F8E","#77AC30","#4DBEEE","#A2142F"];
             figure()
-            tiledlayout(1,2)
+            tiledlayout(1,3)
             nexttile()
             hold on
             for cc=1:5
@@ -634,7 +650,23 @@ classdef composite_thin_down < handle
             xlim([0,100])
             ylim([0,1])
             xlabel('Percentage of removed loops (%)')
-            ylabel('Effect to composite loops (%)')            
+            ylabel('Effect to composite loops (%)')     
+
+            nexttile()
+            hold on
+            for cc=1:5
+                fill([5:10:95,100,100,95:-10:5],[mm.ctrl(:,cc)-sem.ctrl(:,cc);flip(mm.ctrl(:,cc)+sem.ctrl(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
+                ph(cc)=plot([5:10:95,100],mm.ctrl(:,cc),'-','Color',hexcmap(cc));
+            end
+            % plot(mm.chains)
+            legend(ph,{'abolish','split','shrank','weakened','noeffect'},'Location','northoutside','Orientation','horizontal')
+            set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
+            xlim([0,100])
+            ylim([0,1])
+            xlabel('Percentage of removed random FC (%)')
+            ylabel('Effect to composite loops (%)')
+
+
 
         end
 
