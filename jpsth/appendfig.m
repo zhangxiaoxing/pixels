@@ -33,7 +33,7 @@ end
 fhandles=get(groot(),'Children');
 if numel(fhandles)>1 && ~opt.multi
     warning("more than 1 figures, continue?")
-    keyboard()
+    return
 end
 for hc=reshape(fhandles,1,[])
     ah=annotation(hc,'textbox',[0 0.9 1 0.1], ...

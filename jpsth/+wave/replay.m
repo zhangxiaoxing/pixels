@@ -1,17 +1,17 @@
 classdef replay < handle
     methods(Static)
-        function [motif_trl,sum_stats,raw]=stats(motif_trl,opt)
+        function [motif_replay,sum_stats,raw]=stats(motif_replay,opt)
             arguments
-                motif_trl
+                motif_replay
                 opt.var_len (1,1) logical = false
                 % opt.nonmem_ring (1,1) logical = false
             end
             sps=30000;
 
-            for dd=reshape(fieldnames(motif_trl),1,[])
-                for ww=reshape(fieldnames(motif_trl.(dd{1})),1,[])
-                    for cc=reshape(fieldnames(motif_trl.(dd{1}).(ww{1})),1,[])
-                        onechain=motif_trl.(dd{1}).(ww{1}).(cc{1});
+            for dd=reshape(fieldnames(motif_replay),1,[])
+                for ww=reshape(fieldnames(motif_replay.(dd{1})),1,[])
+                    for cc=reshape(fieldnames(motif_replay.(dd{1}).(ww{1})),1,[])
+                        onechain=motif_replay.(dd{1}).(ww{1}).(cc{1});
                         if ~strcmp(ww{1},'none')
                             dur_pref=str2double(dd{1}(2:end));
                             if contains(ww,'s1')
@@ -149,20 +149,20 @@ classdef replay < handle
                             freqstats.after_session=nan(1,2);
                         end
 
-                        motif_trl.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
-                        motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
+                        motif_replay.(dd{1}).(ww{1}).(cc{1}).trl_align=trl_align;
+                        motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats=freqstats;
                     end
                 end
             end
 
             sum_stats=[];
             raw=cell2struct({[];[];cell(0);cell(0)},{'count','time','condition','tag'});
-            for dd=reshape(fieldnames(motif_trl),1,[])
-                for ww=reshape(fieldnames(motif_trl.(dd{1})),1,[])
-                    for cc=reshape(fieldnames(motif_trl.(dd{1}).(ww{1})),1,[])
-                        sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
-                        raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
-                        raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_trl.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+            for dd=reshape(fieldnames(motif_replay),1,[])
+                for ww=reshape(fieldnames(motif_replay.(dd{1})),1,[])
+                    for cc=reshape(fieldnames(motif_replay.(dd{1}).(ww{1})),1,[])
+                        sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats))];
+                        raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                         sess_str=regexp(cc{1},'^s\d{1,3}(?=(c|r))','match','once');
                         raw.condition{end+1}=[sess_str,replace(ww{1},'olf_s','o'),dd{1}];
                         raw.tag{end+1}=regexp(cc{1},'(c|r)\d*$','match','once');
@@ -225,6 +225,7 @@ classdef replay < handle
             arguments
                 stats_all cell
                 opt.feat_sel = []
+                opt.two_or_more (1,1) logical = false
             end
 
             per_sess_struct=struct();
@@ -235,8 +236,17 @@ classdef replay < handle
                 else
                     featsel=opt.feat_sel;
                 end
+
+                if opt.two_or_more
+                    [gc,gr]=groupcounts(motif_set.condition.');
+                    gcmap=containers.Map(gr,num2cell(gc));
+                end
+
                 for jj=1:size(motif_set.count,2)
                     onekey=motif_set.condition{jj};
+                    if opt.two_or_more && gcmap(onekey)<=2
+                        continue
+                    end
                     if ~isfield(per_sess_struct,onekey)
                         per_sess_struct.(onekey)=cell2struct({motif_set.count(featsel,jj).';motif_set.time(featsel,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
                     else
@@ -311,12 +321,25 @@ classdef replay < handle
                 opt.ref_line (1,1) logical = false
                 opt.ref_p_value (1,1) logical = true
                 opt.median_value (1,1) logical = false
+                opt.ratio_block (1,1) double = 0
             end
-            cmatv=reshape(per_sess_mat,[],1);
-            cmatg=reshape(repmat(1:size(per_sess_mat,2),size(per_sess_mat,1),1),[],1);
 
-            mm=nanmedian(per_sess_mat);
-            ci=bootci(1000,@(x) nanmedian(x),per_sess_mat);
+            if opt.ratio_block>0
+                if opt.ratio_block==2
+                    ratios=per_sess_mat(:,2:2:size(per_sess_mat,2)) ...
+                        ./per_sess_mat(:,1:2:size(per_sess_mat,2));
+                elseif opt.ratio_block==3
+                    ratios=per_sess_mat(:,[2:3:size(per_sess_mat,2),3:3:size(per_sess_mat,2)]) ...
+                        ./repmat(per_sess_mat(:,1:3:size(per_sess_mat,2)),1,2);
+                end
+                mm=nanmedian(ratios(:,[1 4 2 5 3 6]));
+                ci=bootci(1000,@(x) nanmedian(x),ratios(:,[1 4 2 5 3 6]));
+            else
+                cmatv=reshape(per_sess_mat,[],1);
+                cmatg=reshape(repmat(1:size(per_sess_mat,2),size(per_sess_mat,1),1),[],1);
+                mm=nanmedian(per_sess_mat);
+                ci=bootci(1000,@(x) nanmedian(x),per_sess_mat);
+            end
 
             fhb=figure('Position',[100,100,600,400]);
             hold on
@@ -344,6 +367,7 @@ classdef replay < handle
             ylim([0.1,10]);
             title(opt.title)
             ylabel('Motif spike frequency (Hz)')
+            
         end
 
 
