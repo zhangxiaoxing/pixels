@@ -7,7 +7,10 @@ classdef composite_thin_down < handle
         function chains=getChains(sschain,dur,fns,sessid)
             chains=cell(0);
             for fn=fns
-                sesssel=startsWith(fieldnames(sschain.out.(dur).(fn)),['s',num2str(sessid),'c']);
+                sesssel=startsWith(fieldnames(sschain.out.(dur).(fn)),['s',num2str(sessid),'c']);pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
+load(fullfile("bzdata","chain_tag.mat"),"out")
+sschain.out=out;
+per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
                 if ~any(sesssel)
                     continue
                 else
@@ -272,136 +275,22 @@ classdef composite_thin_down < handle
 
         end
 
-        % function more_stats()
-        % 
-        %     %% stats
-        %     num_su=cellfun(@(x) numel(x),struct2cell(per_reg));
-        %     thresh_sel=num_su>=5;
-        % 
-        %     per_reg_mm=cellfun(@(x) mean(x),subsref(struct2cell(per_reg),substruct('()',{thresh_sel})));
-        %     per_reg_std=cellfun(@(x) std(x),subsref(struct2cell(per_reg),substruct('()',{thresh_sel})));
-        %     per_reg_sem=per_reg_std./sqrt(num_su(thresh_sel));
-        % 
-        %     others_mm=mean(cell2mat(subsref(struct2cell(per_reg),substruct('()',{~thresh_sel}))));
-        %     others_sem=std(cell2mat(subsref(struct2cell(per_reg),substruct('()',{~thresh_sel}))))./sqrt(nnz(~thresh_sel));
-        % 
-        %     [plotmm,plotidx]=sort([per_reg_mm;others_mm],'descend');
-        %     plotsem=[per_reg_sem;others_sem];
-        %     %figure
-        %     figure();
-        %     hold on;
-        %     bh=bar(plotmm,'FaceColor','w');
-        %     xlbl=[subsref(fieldnames(per_reg),substruct('()',{thresh_sel}));'Others'];
-        %     set(gca,'XTick',1:(nnz(thresh_sel)+1),'XTickLabel',xlbl(plotidx));
-        %     errorbar(bh.XData,bh.YData,plotsem(plotidx),'k.')
-        %     ylabel('Average node degree')
-        %     title('Per region neuron degrees')
-        % 
-        %     %% overall graph stats
-        %     ukeys=string.empty(0,1);
-        %     uniq_net=[];
-        %     for nidx=1:size(complexity_sums,1)
-        %         onekey=string(sprintf('%d-',per_trl_nodes{nidx,1},sort(per_trl_nodes{nidx,2})));
-        %         if ~ismember(onekey,ukeys)
-        %             ukeys=[ukeys;onekey];
-        %             uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:end])];
-        %         end
-        %     end
-        % end
-        % 
-        % function [DG,DGr]=before_after_loops(per_sess_condition,fn)
-        %     %%
-        %     % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
-        %     % load(fullfile("bzdata","chain_tag.mat"),"out")
-        %     % sschain.out=out;
-        %     % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
-        %     % wave.composite_thin_down.before_after_loops(per_sess_condition,'s18s1d3')
-        %     % ==============================
-        %     pchains=per_sess_condition.(fn).chains;
-        %     ploops=cellfun(@(x) x([1:end,1]),per_sess_condition.(fn).loops,'UniformOutput',false);% cyclic loops fix
-        % 
-        %     chainedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-        %         pchains,'UniformOutput',false)),'rows');
-        %     loopedges=unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-        %         ploops,'UniformOutput',false)),'rows');
-        %     % ==============================
-        %     [~,G]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'keep_all_subs',false);
-        % 
-        %     gedges=str2double(G.Edges.EndNodes);
-        %     common_edges=intersect([chainedges;loopedges],([gedges;fliplr(gedges)]),'rows');
-        %     if ~isempty(chainedges)
-        %         inchain=ismember(common_edges,chainedges,"rows");
-        %     else
-        %         inchain=false(size(common_edges,1));
-        %     end
-        %     if ~isempty(loopedges)
-        %         inloop=ismember(common_edges,loopedges,"rows");
-        %     else
-        %         inloop=false(size(common_edges,1));
-        %     end
-        %     cmat=zeros(size(common_edges,1),3);
-        %     cmat(inchain,3)=1;
-        %     cmat(inloop,1)=1;
-        %     DG=digraph(table(string(common_edges),cmat,'VariableNames',{'EndNodes','EdgeColor'}));
-        % 
-        %     figure()
-        %     tiledlayout(1,2)
-        %     nexttile()
-        %     flbl=DG.plot.NodeLabel;
-        %     fx=DG.plot.XData;
-        %     fy=DG.plot.YData;
-        % 
-        %     plot(DG,'EdgeColor',DG.Edges.EdgeColor,'LineWidth',2,'ArrowSize',10);
-        %     xspan=xlim();
-        %     yspan=ylim();
-        % 
-        %     nexttile()
-        %     [~,Gr]=wave.composite_thin_down.stats_remove(per_sess_condition,'one_net',fn,'remove','loops','keep_all_subs',true);
-        %     if ~isempty(Gr)
-        %         gredges=str2double(Gr.Edges.EndNodes);
-        %         common_r_edges=intersect([chainedges;loopedges],([gredges;fliplr(gredges)]),'rows');
-        %         common_r_edges=intersect(common_r_edges,[gedges;fliplr(gedges)],'rows');
-        %         if ~isempty(chainedges)
-        %             inchain=ismember(common_r_edges,chainedges,"rows");
-        %         else
-        %             inchain=false(size(common_r_edges,1));
-        %         end
-        %         if ~isempty(loopedges)
-        %             inloop=ismember(common_r_edges,loopedges,"rows");
-        %         else
-        %             inloop=false(size(common_r_edges,1));
-        %         end
-        %         cmat=zeros(size(common_r_edges,1),3);
-        %         cmat(inchain,3)=1;
-        %         cmat(inloop,1)=1;
-        %         DGr=digraph(table(string(common_r_edges),cmat,'VariableNames',{'EndNodes','EdgeColor'}));
-        % 
-        %         [~,rel_pos]=ismember(DGr.plot.NodeLabel,flbl);
-        %         rx=fx(rel_pos);
-        %         ry=fy(rel_pos);
-        %         plot(DGr,'EdgeColor',DGr.Edges.EdgeColor,'LineWidth',2,'ArrowSize',10,...
-        %             'XData',rx,'YData',ry);
-        %         xlim(xspan)
-        %         ylim(yspan)
-        %         set(gca(),'XTick',[],'YTick',[])
-        %     end
-        %     sgtitle([fn,' remove loops'])
-        %     %%
-        % end
 
+        % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
+        % load(fullfile("bzdata","chain_tag.mat"),"out")
+        % sschain.out=out;
+        % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
+        % onebyone.ctrl=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','ctrl')
         function stats=one_by_one_remove(per_sess_condition,opt)
             arguments
                 per_sess_condition
-                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops','ctrl'})} = 'chains'
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops','ctrl','HIP'})} = 'chains'
                 opt.debug (1,1) logical = false
             end
             stats=struct();
-            % per_trl_nodes=cell(0);
-            % complexity_sums=[];
-            % degree_sums=[];
 
             %% systematic ablation
-            % remove {HIP},{ORB},{OLF}
+            % TODO: remove {HIP}
             fns=fieldnames(per_sess_condition);
             dbgcnt=1;
             for fn=reshape(fns,1,[])
@@ -425,6 +314,11 @@ classdef composite_thin_down < handle
                     motifcount=loopcount;
                 elseif strcmp(opt.remove,'ctrl')
                     motifcount=sum(cellfun(@(x) numel(x),[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops])-1);
+                elseif strcmp(opt.remove,'HIP')
+                    % TODO: enumerate FC
+                    % TODO: tag FC with region
+                    % TODO: count region==HIP
+                    keyboard()
                 end
                 if motifcount==0
                     stats.(fn{1})='NA';
