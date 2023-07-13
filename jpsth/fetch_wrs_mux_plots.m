@@ -383,10 +383,14 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 % load(fullfile(gather_config.odpath,'Tempdata','TEMP230602.mat'))
 
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
-[cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 8 5 11 12],'two_or_more',true);
-fhb=wave.replay.plot_replay_sess(cmat,...
+[cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 8 5 11 12],'two_or_more',false);
+% fhb=wave.replay.plot_replay_sess(cmat,...
+%     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
+%     'title','chains correct trial','ref_line',true,'median_value',true);
+fhb=wave.replay.plot_replay_sess_ci(cmat,...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-    'title','chains correct trial','ref_line',true,'median_value',true);
+    'title','chains correct trial','ref_line',true,'median_value',true,'stats','mean');
+set(gca,'YScale','linear','YLim',[0,30])
 
 
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rmfield(rings_tag,'none'),'var_len',true);

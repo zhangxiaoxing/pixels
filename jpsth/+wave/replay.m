@@ -322,6 +322,7 @@ classdef replay < handle
                 opt.ref_p_value (1,1) logical = true
                 opt.median_value (1,1) logical = false
                 opt.ratio_block (1,1) double = 0
+                opt.stats char {mustBeMember(opt.stats,{'mean','median'})} = 'median'
             end
 
             if opt.ratio_block>0
@@ -332,13 +333,26 @@ classdef replay < handle
                     ratios=per_sess_mat(:,[2:3:size(per_sess_mat,2),3:3:size(per_sess_mat,2)]) ...
                         ./repmat(per_sess_mat(:,1:3:size(per_sess_mat,2)),1,2);
                 end
-                mm=nanmedian(ratios(:,[1 4 2 5 3 6]));
-                ci=bootci(1000,@(x) nanmedian(x),ratios(:,[1 4 2 5 3 6]));
+                if strcmp(opt.stats,'median')
+                    mm=nanmedian(ratios(:,[1 4 2 5 3 6])); % TODO: magic numbers?
+                    ci=bootci(1000,@(x) nanmedian(x),ratios(:,[1 4 2 5 3 6]));
+                else
+                    keyboard(); % ratio might not work
+
+                    mm=nanmean(ratios(:,[1 4 2 5 3 6]));
+                    ci=nanstd(ratios(:,[1 4 2 5 3 6]))./sqrt(sum(isfinite(ratios)));
+                end
             else
                 cmatv=reshape(per_sess_mat,[],1);
                 cmatg=reshape(repmat(1:size(per_sess_mat,2),size(per_sess_mat,1),1),[],1);
-                mm=nanmedian(per_sess_mat);
-                ci=bootci(1000,@(x) nanmedian(x),per_sess_mat);
+                if strcmp(opt.stats,'median')
+                    mm=nanmedian(per_sess_mat);
+                    ci=bootci(1000,@(x) nanmedian(x),per_sess_mat);
+                else
+                    mm=nanmean(per_sess_mat);
+                    ci=nanstd(per_sess_mat)./sqrt(sum(isfinite(per_sess_mat)))
+                end
+               
             end
 
             fhb=figure('Position',[100,100,600,400]);
@@ -359,8 +373,8 @@ classdef replay < handle
 
             if opt.median_value
                 for jj=1:size(per_sess_mat,2)
-                    mm=median(cmatv(cmatg==jj & isfinite(cmatv)));
-                    text(jj,1,sprintf('%.1f',mm),'VerticalAlignment','bottom','HorizontalAlignment','center')
+                    % mm=median(cmatv(cmatg==jj & isfinite(cmatv)));
+                    text(jj,1,sprintf('%.1f',mm(jj)),'VerticalAlignment','bottom','HorizontalAlignment','center')
                 end
             end
 

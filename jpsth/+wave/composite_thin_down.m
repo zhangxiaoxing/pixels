@@ -7,10 +7,7 @@ classdef composite_thin_down < handle
         function chains=getChains(sschain,dur,fns,sessid)
             chains=cell(0);
             for fn=fns
-                sesssel=startsWith(fieldnames(sschain.out.(dur).(fn)),['s',num2str(sessid),'c']);pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
-load(fullfile("bzdata","chain_tag.mat"),"out")
-sschain.out=out;
-per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
+                sesssel=startsWith(fieldnames(sschain.out.(dur).(fn)),['s',num2str(sessid),'c']);
                 if ~any(sesssel)
                     continue
                 else
@@ -97,7 +94,6 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             % degree_sums=[];
 
             %% systematic ablation
-            % remove {HIP},{ORB},{OLF}
 
             switch opt.remove
                 case 'chains'
@@ -281,10 +277,11 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
         % sschain.out=out;
         % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
         % onebyone.ctrl=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','ctrl')
+        % onebyone.HIP=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','HIP')
         function stats=one_by_one_remove(per_sess_condition,opt)
             arguments
                 per_sess_condition
-                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops','ctrl','HIP'})} = 'chains'
+                opt.remove (1,:) char {mustBeMember(opt.remove, {'chains','loops','ctrl','HIP','HIPNode'})} = 'chains'
                 opt.debug (1,1) logical = false
             end
             stats=struct();
@@ -293,6 +290,12 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             % TODO: remove {HIP}
             fns=fieldnames(per_sess_condition);
             dbgcnt=1;
+
+            if ismember(opt.remove,{'HIP','HIPNode'})
+                su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+                regsess=-1;
+            end
+
             for fn=reshape(fns,1,[])
                 dbgcnt=dbgcnt+1;
                 if opt.debug && dbgcnt>20
@@ -308,17 +311,44 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
 
                 % build graph network
                 % one by one remove chains
-                if strcmp(opt.remove,'chains')
-                    motifcount=chaincount;
-                elseif strcmp(opt.remove,'loops')
-                    motifcount=loopcount;
-                elseif strcmp(opt.remove,'ctrl')
-                    motifcount=sum(cellfun(@(x) numel(x),[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops])-1);
-                elseif strcmp(opt.remove,'HIP')
-                    % TODO: enumerate FC
-                    % TODO: tag FC with region
-                    % TODO: count region==HIP
-                    keyboard()
+                switch opt.remove
+                    case 'chains'
+                        motifcount=chaincount;
+                    case 'loops'
+                        motifcount=loopcount;
+                    case 'ctrl'
+                        motifcount=sum(cellfun(@(x) numel(x),[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops])-1);
+                    case'HIP'
+                        % enumerate FC
+                        motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops];
+                        edgesall=cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                            motifcell,'UniformOutput',false));
+                        % tag FC with region
+                        sessid=str2double(regexp(fn{1},'(?<=s)\d{1,3}(?=s)','match','once'));
+                        if sessid~=regsess
+                            id2reg=containers.Map(num2cell(su_meta.allcid(su_meta.sess==sessid)),su_meta.reg_tree(5,su_meta.sess==sessid));
+                            regsess=sessid;
+                        end
+                        reg_all=id2reg.values(num2cell(edgesall));
+                        % count region==HIP
+                        HIP_FC_sel=any(strcmp(reg_all,'HIP'),2);
+                        motifcount=nnz(HIP_FC_sel);
+                    case 'HIPNode'
+                        % enumerate FC
+                        motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops];
+                        edgesall=cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                            motifcell,'UniformOutput',false));
+                        % tag FC with region
+                        sessid=str2double(regexp(fn{1},'(?<=s)\d{1,3}(?=s)','match','once'));
+                        if sessid~=regsess
+                            id2reg=containers.Map(num2cell(su_meta.allcid(su_meta.sess==sessid)),su_meta.reg_tree(5,su_meta.sess==sessid));
+                            regsess=sessid;
+                        end
+                        ucid=unique(edgesall);
+                        ureg=id2reg.values(num2cell(ucid));
+                        % count region==HIP
+                        HIP_SU_sel=strcmp(ureg,'HIP');
+                        motifcount=nnz(HIP_SU_sel);
                 end
                 if motifcount==0
                     stats.(fn{1})='NA';
@@ -340,38 +370,62 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
                                 stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=cell(0);
                             end
                             % stats after removal >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-                            if  rcn==motifcount
-                                if strcmp(opt.remove,'chains')
-                                    motifcell=per_sess_condition.(fn{1}).loops;
-                                elseif strcmp(opt.remove,'loops')
-                                    motifcell=per_sess_condition.(fn{1}).chains;
-                                elseif strcmp(opt.remove,'ctrl')
-                                    motifcell=[];
+                            if strcmp(opt.remove,'HIP') % expecting edges after block
+                                if motifcount==1
+                                    keyboard()
                                 end
-                            else
-                                if strcmp(opt.remove,'chains')
-                                    motifcell=[per_sess_condition.(fn{1}).chains(compo_list(rr,:));per_sess_condition.(fn{1}).loops];
-                                elseif strcmp(opt.remove,'loops')
-                                    motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops(compo_list(rr,:))];
-                                elseif strcmp(opt.remove,'ctrl')
-                                    motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops];
+                                hppool=find(HIP_FC_sel);
+                                HIPkeep=hppool(compo_list(rr,:));
+                                edges=categorical(unique([edgesall(~HIP_FC_sel,:);edgesall(HIPkeep,:)],'rows'));
+                                if isempty(edges)
+                                    stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
+                                    continue
+                                end
+                            elseif strcmp(opt.remove,'HIPNode') % expecting edges after block
+                                nonHIP=ucid(~HIP_SU_sel);
+                                HIPall=ucid(HIP_SU_sel);
+                                HIPkeep=HIPall(compo_list(rr,:));
+                                edges=categorical(edgesall(all(ismember(edgesall,[nonHIP;HIPkeep]),2),:));
+                                if isempty(edges)
+                                    stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
+                                    continue
+                                end
+                            else % expecting edges after block
+                                if  rcn==motifcount
+                                    switch opt.remove
+                                        case'chains'
+                                            motifcell=per_sess_condition.(fn{1}).loops;
+                                        case 'loops'
+                                            motifcell=per_sess_condition.(fn{1}).chains;
+                                        case 'ctrl'
+                                            motifcell=[];
+                                        otherwise
+                                            keyboard()
+                                    end
+                                else
+                                    if strcmp(opt.remove,'chains')
+                                        motifcell=[per_sess_condition.(fn{1}).chains(compo_list(rr,:));per_sess_condition.(fn{1}).loops];
+                                    elseif strcmp(opt.remove,'loops')
+                                        motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops(compo_list(rr,:))];
+                                    elseif strcmp(opt.remove,'ctrl')
+                                        motifcell=[per_sess_condition.(fn{1}).chains;per_sess_condition.(fn{1}).loops];
+                                    end
+                                end
+                                if isempty(motifcell) || numel(motifcell)==1
+                                    stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
+                                    continue
+                                end
+
+                                if strcmp(opt.remove,'ctrl')
+                                    edgesall=cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                                        motifcell,'UniformOutput',false));
+                                    edges=categorical(unique(edgesall(compo_list(rr,:),:),'rows'));
+                                else
+                                    edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
+                                        motifcell,...
+                                        'UniformOutput',false)),'rows'));
                                 end
                             end
-                            if isempty(motifcell) || numel(motifcell)==1
-                                stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg=[stats.(fn{1}).(string(opt.remove)+rcn).("rpt"+rr).subg,{0,0,0,chaincount,loopcount,opt.remove,[rcn,motifcount]}];
-                                continue
-                            end
-
-                            if strcmp(opt.remove,'ctrl')
-                                edgesall=cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-                                motifcell,'UniformOutput',false));
-                                edges=categorical(unique(edgesall(compo_list(rr,:),:),'rows'));
-                            else
-                                edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',...
-                                motifcell,...
-                                'UniformOutput',false)),'rows'));
-                            end
-
                             gh=graph(edges(:,1),edges(:,2));
                             conncomp=gh.conncomp();
                             % check module in network
@@ -414,11 +468,9 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             % out=cell2struct({0;0;0;0;0;cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','weaken_net','split_net','shrank_net','noeffect_net','abolish_net'});
             nrfns=reshape(fieldnames(noremove),1,[]);
             system_rmv_stats=struct();
-            rmvnet.chains=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
-            rmvnet.loops=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
-            rmvnet.ctrl=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
             rmvtypes=string(fieldnames(onebyone));
             for rmvtype=reshape(rmvtypes,1,[])
+                rmvnet.(rmvtype)=cell2struct({cell(0);cell(0);cell(0);cell(0);cell(0);cell(0)},{'abolish','shrank','split','weaken','noeffect','WIP'});
                 for currCondition=nrfns
 
                     if isfield(onebyone.(rmvtype),currCondition{1})
@@ -473,7 +525,7 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
                                     rmvlevel=floor(rptcell{1}.subg{7}(1)./rptcell{1}.subg{4}.*10);
                                 elseif contains(rmvtype,'loop')
                                     rmvlevel=floor(rptcell{1}.subg{7}(1)./rptcell{1}.subg{5}.*10);
-                                elseif contains(rmvtype,'ctrl')
+                                elseif contains(rmvtype,'ctrl') || contains(rmvtype,'HIP')
                                     rmvlevel=floor(rptcell{1}.subg{7}(1)./rptcell{1}.subg{7}(2).*10);
                                 else
                                     keyboard()
@@ -509,7 +561,7 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
 
             mm=struct();
             sem=struct();
-            for motifType=["chains","loops","ctrl"]
+            for motifType=["chains","loops","ctrl","HIP"]
                 for lvl=0:10
                
                     mm.(motifType)(lvl+1,:)=mean(system_rmv_stats.(motifType).("L"+lvl).out);
@@ -519,7 +571,7 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
             end
             hexcmap=["#0072BD","#D95319","#EDB120","#7E2F8E","#77AC30","#4DBEEE","#A2142F"];
             figure()
-            tiledlayout(1,3)
+            tiledlayout(1,4)
             nexttile()
             hold on
             for cc=1:5
@@ -553,14 +605,26 @@ per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
                 ph(cc)=plot([5:10:95,100],mm.ctrl(:,cc),'-','Color',hexcmap(cc));
             end
             % plot(mm.chains)
-            legend(ph,{'abolish','split','shrank','weakened','noeffect'},'Location','northoutside','Orientation','horizontal')
+            
             set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
             xlim([0,100])
             ylim([0,1])
             xlabel('Percentage of removed random FC (%)')
             ylabel('Effect to composite loops (%)')
 
-
+            nexttile()
+            hold on
+            for cc=1:5
+                fill([5:10:95,100,100,95:-10:5],[mm.HIP(:,cc)-sem.HIP(:,cc);flip(mm.HIP(:,cc)+sem.HIP(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
+                ph(cc)=plot([5:10:95,100],mm.HIP(:,cc),'-','Color',hexcmap(cc));
+            end
+            % plot(mm.chains)
+            
+            set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
+            xlim([0,100])
+            ylim([0,1])
+            xlabel('Percentage of removed HIP FC (%)')
+            ylabel('Effect to composite loops (%)')
 
         end
 
