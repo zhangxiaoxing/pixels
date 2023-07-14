@@ -322,7 +322,7 @@ if false
 end
 %TODO: assembly time constant olf, both, 3s 6s
 
-[~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
+% [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
 % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
 
 % [ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
@@ -507,21 +507,34 @@ gg=[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1);...
     10*ones(ggn(1),1);11*ones(ggn(2),1);12*ones(ggn(3),1);...
     13*ones(ggn(1),1);14*ones(ggn(2),1);15*ones(ggn(3),1)];
 
-mm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),unique(gg));
-cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),unique(gg),'UniformOutput',false).');
+mm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),setdiff(unique(gg),2:3:15));
+cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),setdiff(unique(gg),2:3:15),'UniformOutput',false).');
 
 figure()
 hold on
 bar(mm.','grouped','FaceColor','none','EdgeColor','k')
 errorbar(1:numel(mm),mm,cci(1,:)-mm.',cci(2,:)-mm.','k.');
 ylim([0,0.22])
-set(gca(),'XTick',2:3:14,'XTickLabel',{'Delay','Prior','Later','Before','After'})
-title('chains consis-anti-incon')
-p=kruskalwallis([chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([chain_stats(8,:),chain_stats_anti(8,:),chain_stats_rev(8,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([chain_stats(5,:),chain_stats_anti(5,:),chain_stats_rev(5,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([chain_stats(11,:),chain_stats_anti(11,:),chain_stats_rev(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
-p=kruskalwallis([chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+set(gca(),'XTick',1.5:2:10,'XTickLabel',{'Delay','Prior','Later','Before','After'})
+title('chains consis-incon') % removed anti-direction
+
+pp=[ranksum(yy(gg==1),yy(gg==3)),...
+    ranksum(yy(gg==4), yy(gg==6)),...
+    ranksum(yy(gg==7), yy(gg==9)),...
+    ranksum(yy(gg==10),yy(gg==12)),...
+    ranksum(yy(gg==13),yy(gg==15))]
+text(1.5:2:10,repmat(0.1,1,5),num2str(pp.','%.3f'),'HorizontalAlignment','center','VerticalAlignment','baseline')
+% p=kruskalwallis([chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+% p=kruskalwallis([chain_stats(8,:),chain_stats_anti(8,:),chain_stats_rev(8,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+% p=kruskalwallis([chain_stats(5,:),chain_stats_anti(5,:),chain_stats_rev(5,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+% p=kruskalwallis([chain_stats(11,:),chain_stats_anti(11,:),chain_stats_rev(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+% p=kruskalwallis([chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
+
+
+
+
+
+
 
 
 % TODO: loops vs control v2
