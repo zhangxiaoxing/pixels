@@ -1,3 +1,5 @@
+% TODO: switch selectivity?
+
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 keyboard()
 global_init;
@@ -6,7 +8,8 @@ su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
-%%
+% test for different proportion 
+if false
 on=nnz(ismember(wrs_mux_meta.wave_id,5:6));
 bn=nnz(ismember(wrs_mux_meta.wave_id,1:4));
 dn=nnz(ismember(wrs_mux_meta.wave_id,7:8));
@@ -16,37 +19,12 @@ alln=numel(wrs_mux_meta.wave_id);
     zeros(bn,1);ones(alln-bn,1);...
     zeros(dn,1);ones(alln-dn,1)],...
     [ones(alln,1);2*ones(alln,1);3*ones(alln,1)])
-
-
+end
 
 
 %% wave & stay
-wave_n_stay=nnz(ismember(wrs_mux_meta.wave_id,5:6) & wrs_mux_meta.p_olf(:,3)<0.05 & all(wrs_mux_meta.p_olf6<0.05,2));
-olf=nnz(ismember(wrs_mux_meta.wave_id,5:6));
-
-%% map_cells: mixed_map,olf_map,dur_map
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
-
-% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-tcom3_maps=struct();
-tcom6_maps=struct();
-grey_regs=ephys.getGreyRegs('range','grey');
-for ttype=["mixed","olf","dur"]
-    [fcom3.(ttype).collection,fcom3.(ttype).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',ttype,'com_field','com3');
-    ureg=intersect(grey_regs,fcom3.(ttype).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom3.(ttype).collection(:,2));
-    tcom3_maps.(ttype)=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom3.(ttype).collection(tcidx,1))));
-
-    [fcom6.(ttype).collection,fcom6.(ttype).com_meta]=wave.per_region_COM(...
-        com_map,'sel_type',ttype,'com_field','com6');
-    ureg=intersect(grey_regs,fcom6.(ttype).collection(:,2));
-    [~,tcidx]=ismember(ureg,fcom6.(ttype).collection(:,2));
-    tcom6_maps.(ttype)=containers.Map(...
-        ureg,num2cell(cellfun(@(x) x/4, fcom6.(ttype).collection(tcidx,1))));
-end
-
+wave_n_stay=nnz(ismember(wrs_mux_meta.wave_id,1:6) & wrs_mux_meta.p_olf(:,3)<0.05 & all(wrs_mux_meta.p_olf6<0.05,2));
+olf=nnz(ismember(wrs_mux_meta.wave_id,1:6));
 
 %% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 % olf >>>>>>>>>>>>>>>>>>>>>>>>>
@@ -179,21 +157,39 @@ end
 
 %% Proportion, TCOM related
 
-[map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'log','log'}); % only need map_cells for tcom-frac corr
-[map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'linear','linear'}); % only need map_cells for tcom-frac corr
-ch=gcf().Children.Children;
-ch(3).YLim=[0,0.6];
+% [map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'log','log'}); % only need map_cells for tcom-frac corr
+[map_cells,pct_bar_fh]=ephys.pct_reg_bars(su_meta,wrs_mux_meta,'xyscale',{'linear','linear'},'only_odor',true); % only need map_cells for tcom-frac corr
+% ch=gcf().Children.Children;
+% ch(3).YLim=[0,0.7];
 
 mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,gather_config.corr_log_log, ...
     'range','grey','data_type','pct-frac','stats_type','percentile');
 
+%% map_cells: mixed_map,olf_map,dur_map
+% TODO: cross_thresh hold
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false,'odor_only',true);
+
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+tcom3_maps=struct();
+tcom6_maps=struct();
+grey_regs=ephys.getGreyRegs('range','grey');
+
+[fcom3.odor_only.collection,fcom3.odor_only.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','odor_only','com_field','com3');
+ureg=intersect(grey_regs,fcom3.odor_only.collection(:,2));
+[~,tcidx]=ismember(ureg,fcom3.odor_only.collection(:,2));
+tcom3_maps.odor_only=containers.Map(...
+    ureg,num2cell(cellfun(@(x) x/4, fcom3.odor_only.collection(tcidx,1))));
+
+[fcom6.odor_only.collection,fcom6.odor_only.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','odor_only','com_field','com6');
+ureg=intersect(grey_regs,fcom6.odor_only.collection(:,2));
+[~,tcidx]=ismember(ureg,fcom6.odor_only.collection(:,2));
+tcom6_maps.odor_only=containers.Map(...
+    ureg,num2cell(cellfun(@(x) x/4, fcom6.odor_only.collection(tcidx,1))));
+
 
 %% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-if false
-% 3s delay trials and 6s delay trials early 3s
-% mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(tcom_maps,gather_config.corr_ln_log, ...
-%     'range','grey','data_type','wrs-mux-TCOM','stats_type','wrs-mux');
-% end
 % 3s delay trials only
 mixed_TCOM3_GLM_fh=wave.connectivity_proportion_GLM(tcom3_maps,gather_config.corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM3','stats_type','wrs-mux3');
@@ -202,22 +198,7 @@ mixed_TCOM3_GLM_fh=wave.connectivity_proportion_GLM(tcom3_maps,gather_config.cor
 mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(tcom6_maps,gather_config.corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM6','stats_type','wrs-mux6');
 
-% 2-factor
-% olfmap.olf=tcom3_maps.olf;
-% olf_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(olfmap,gather_config.corr_ln_log, ...
-%     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
-%     'corr2',true,'plot2',true,'corr1',false);
-% 
-% durmap.dur=tcom3_maps.dur;
-% dur_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(durmap,gather_config.corr_ln_log, ...
-%     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
-%     'corr2',true,'plot2',true,'corr1',false);
 
-% mix_TCOM_GLM_2F_fh=wave.connectivity_proportion_GLM(tcom_maps(1),gather_config.corr_ln_log, ...
-%     'range','grey','data_type','pct-TCOM','stats_type','percentile',...
-%     'feat_tag',{'Mixed'},'corr2',true,'plot2',true,'corr1',false);
-% 
-end
 
 
 %% TCOM and proportion correlation % 4 panel scatters

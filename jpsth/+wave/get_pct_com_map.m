@@ -9,6 +9,7 @@ arguments
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
     opt.band_width (1,1) double {mustBeMember(opt.band_width,1:2)} = 1
     opt.early_smooth (1,1) logical = false % default value has changed as of 2023.03.01
+    opt.odor_only (1,1) logical = false % exclude duration-only neurons
 end
 
 %TODO proper declaration
@@ -40,13 +41,16 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
     pct_sel.olf_s1=pct_meta.wave_id==5;
     pct_sel.olf_s2=pct_meta.wave_id==6;
 
-    pct_sel.dur_d3=pct_meta.wave_id==7;
-    pct_sel.dur_d6=pct_meta.wave_id==8;
+    ffs=["s1d3","s2d3","s1d6","s2d6","olf_s1","olf_s2"];
+
+    if ~opt.odor_only
+        pct_sel.dur_d3=pct_meta.wave_id==7;
+        pct_sel.dur_d6=pct_meta.wave_id==8;
+        ffs=[ffs,"dur_d3","dur_d6"];
+    end
 
     for sessid=reshape(usess,1,[])
-%         if sessid==11
-%             keyboard()
-%         end
+
         fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
         sesssel=meta.sess==sessid;
         if ~any(sesssel), continue;end
@@ -72,7 +76,7 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
 
         sess=['s',num2str(sessid)];
 
-        for ff=["s1d3","s2d3","s1d6","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
+        for ff=ffs
             mcid1=meta.allcid(sesssel & pct_sel.(ff));
             [~,msel1]=ismember(mcid1,suid);
 

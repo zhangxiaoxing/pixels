@@ -8,15 +8,11 @@ arguments
     opt.decision (1,1) logical = false % return statistics of decision period, default is delay period
     opt.stats_method (1,:) char {mustBeMember(opt.stats_method,{'mean','median'})} = 'mean';
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
-    opt.min_su (1,1) double = 20
-    opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'mixed','olf','dur'})}
+    opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'mixed','olf','dur','odor_only'})}
     opt.com_field (1,:) char {mustBeMember(opt.com_field,{'com','com3','com6'})}='com'
 end
 
-if opt.min_su==20
-    warning('Using default minimal SU number of 20')
-end
-
+global gather_config
 persistent com_meta_ collection_ opt_ com_map_
 
 if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequaln(com_map,com_map_)
@@ -24,15 +20,14 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     % per region COM
 
     % COM->SU->region
-    meta=ephys.util.load_meta('skip_stats',true);
-%     meta.sessid=cellfun(@(x) ephys.path2sessid(x),meta.allpath);
+    su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true); % TODO: move out of function
     sess=fieldnames(com_map);
 
     com_meta=cell(0,9);
     for si=1:numel(sess)
         sid=str2double(replace(sess{si},'s',''));
-        allcid=meta.allcid(meta.sess==sid);
-        allreg=meta.reg_tree(:,meta.sess==sid);
+        allcid=su_meta.allcid(su_meta.sess==sid);
+        allreg=su_meta.reg_tree(:,su_meta.sess==sid);
        
         switch opt.sel_type
             case 'mixed'
@@ -41,6 +36,8 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
                 ffs=["olf_s1","olf_s2"];
             case 'dur'
                 ffs=["dur_d3","dur_d6"];
+            case 'odor_only'
+                ffs=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2"];
         end
         for ff=ffs
             if isfield(com_map.(sess{si}),ff)
@@ -50,7 +47,6 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
                 com_meta=[com_meta;num2cell(sid*ones(size(suid))),suid,sucom,allreg(:,loc).'];
             end
         end
-
     end
 
 
@@ -85,7 +81,7 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     opt_=opt;
     com_map_=com_map;
 end
-collection=collection_(cell2mat(collection_(:,4))>opt.min_su,:);
+collection=collection_(cell2mat(collection_(:,4))>gather_config.reg_com_min_su,:);
 com_meta=com_meta_;
 
 end

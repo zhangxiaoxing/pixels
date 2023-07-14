@@ -1,6 +1,7 @@
-function [map_cells,fh]=pct_reg_bars(pct_meta,opt) %TODO refactoring function name
+function [map_cells,fh]=pct_reg_bars(su_meta,sel_meta,opt) %TODO refactoring function name
 arguments
-    pct_meta
+    su_meta
+    sel_meta
     opt.skip_plot (1,1) logical = false % return map_cell data for GLM etc.
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
     opt.stats_type (1,:) char = "percentile"
@@ -13,40 +14,42 @@ arguments
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-meta=ephys.util.load_meta();
 ureg=ephys.getGreyRegs('range',opt.range);
 sums=[];
 
-
 for reg=reshape(ureg,1,[])
-    regsel=strcmp(meta.reg_tree(5,:),reg).';
+    regsel=strcmp(su_meta.reg_tree(5,:),reg).';
     cnt=nnz(regsel);
 
-    mixed_cnt=nnz(regsel & ismember(pct_meta.wave_id,1:4));
-    olf_cnt=nnz(regsel & ismember(pct_meta.wave_id,5:6));
-    dur_cnt=nnz(regsel & ismember(pct_meta.wave_id,7:8));
+    mixed_cnt=nnz(regsel & ismember(sel_meta.wave_id,1:4));
+    olf_cnt=nnz(regsel & ismember(sel_meta.wave_id,5:6));
+    dur_cnt=nnz(regsel & ismember(sel_meta.wave_id,7:8));
     legends={'Mixed modality','Olfactory only','Duration only'};
 
     grp=idmap.reg2tree(reg{1});
     sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,mixed_cnt,olf_cnt,dur_cnt];
-    %====================1=========================2============3=========4==================================5========
+    %=================1LVL6======================2LVL7==========3=========4======5======6=
 end
 
 sums(:,7:15)=0;
 
 for ii=1:size(sums,1)
-    [mixed_hat,mixed_ci]=binofit(sums(ii,4),sums(ii,3));
-    [olf_hat,olf_ci]=binofit(sums(ii,5),sums(ii,3));
-    [dur_hat,dur_ci]=binofit(sums(ii,6),sums(ii,3));
-    sums(ii,7:15)=[mixed_hat,mixed_ci,olf_hat,olf_ci,dur_hat,dur_ci];
-    %=================6=======7|8======9======10|11====12=====13:14
+    if opt.only_odor
+        [olf_hat,olf_ci]=binofit(sums(ii,5)+sums(ii,4),sums(ii,3));
+        sums(ii,10:12)=[olf_hat,olf_ci];
+    else
+        [mixed_hat,mixed_ci]=binofit(sums(ii,4),sums(ii,3));
+        [olf_hat,olf_ci]=binofit(sums(ii,5),sums(ii,3));
+        [dur_hat,dur_ci]=binofit(sums(ii,6),sums(ii,3));
+        sums(ii,7:15)=[mixed_hat,mixed_ci,olf_hat,olf_ci,dur_hat,dur_ci];
+        %=================7=======8|9======10======11|12====13=====14:15
+    end
 end
 
 %map_cells
 
-flatten=@(y) cellfun(@(x) x,y);
 bardata=sortrows(sums,10,'descend');
-regstr=flatten(idmap.ccfid2reg.values(num2cell(bardata(:,2))));
+regstr=idmap.ccfid2reg.values(num2cell(bardata(:,2)));
 if ~opt.skip_export
     exp=input('export for 3d render? yes/no\n','s');
     if strcmpi(exp,'yes') % export for brain renderer
@@ -59,9 +62,13 @@ if ~opt.skip_export
         keyboard()
     end
 end
-map_cells.mixed=containers.Map(regstr,num2cell(bardata(:,[7,4,3]),2));
-map_cells.olf=containers.Map(regstr,num2cell(bardata(:,[10,5,3]),2));
-map_cells.dur=containers.Map(regstr,num2cell(bardata(:,[13,5,3]),2));
+if opt.only_odor
+    map_cells.olf=containers.Map([regstr{:}],num2cell([bardata(:,10),bardata(:,5)+bardata(:,4),bardata(:,3)],2));
+else
+    map_cells.mixed=containers.Map([regstr{:}],num2cell(bardata(:,[7,4,3]),2));
+    map_cells.olf=containers.Map([regstr{:}],num2cell(bardata(:,[10,5,3]),2));
+    map_cells.dur=containers.Map([regstr{:}],num2cell(bardata(:,[13,5,3]),2));
+end
 
 if opt.skip_plot
     fh=[];
@@ -224,17 +231,17 @@ else
     bh(2).FaceColor='b';% dur
 end
 set(gca(),'YScale',opt.xyscale{2})
-if any(strcmp(opt.xyscale,'log'),'all')
-
-else
-    ylim([0,0.6])
-end
-set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr,'XTickLabelRotation',90)
+% if any(strcmp(opt.xyscale,'log'),'all')
+% 
+% else
+%     ylim([0,0.6])
+% end
+set(gca(),'XTick',1:size(bardata,1),'XTickLabel',[regstr{:}],'XTickLabelRotation',90)
 % colorize region
 ymax=max(ylim());
 for rr=1:numel(regstr)
-    c=ephys.getRegColor(regstr{rr},'large_area',true);
-    text(rr,ymax,regstr{rr},'HorizontalAlignment','center','VerticalAlignment','bottom','Color',c,'Rotation',90)
+    c=ephys.getRegColor(regstr{rr}{1},'large_area',true);
+    text(rr,ymax,regstr{rr}{1},'HorizontalAlignment','center','VerticalAlignment','middle','Color',c,'Rotation',90)
 end
 % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
 legend(bh,legends([2,1]),'Location','northoutside','Orientation','horizontal');
@@ -257,12 +264,12 @@ if opt.skip_dur
     else
         ylim([0,0.2])
     end
-    set(gca(),'XTick',1:size(bardata,1),'XTickLabel',regstr(duridx),'XTickLabelRotation',90)
+    set(gca(),'XTick',1:size(bardata,1),'XTickLabel',[regstr{duridx}],'XTickLabelRotation',90)
     %% colorize region
     ymax=max(ylim());
     for rr=1:numel(regstr)
-        c=ephys.getRegColor(regstr{duridx(rr)},'large_area',true);
-        text(rr,ymax,regstr{duridx(rr)},'HorizontalAlignment','center','VerticalAlignment','bottom','Color',c,'Rotation',90)
+        c=ephys.getRegColor(regstr{duridx(rr)}{1},'large_area',true);
+        text(rr,ymax,regstr{duridx(rr)}{1},'HorizontalAlignment','center','VerticalAlignment','middle','Color',c,'Rotation',90)
     end
     % exportgraphics(fh.reg_bar,'Both_either_proportion_bars.pdf','ContentType','vector');
     legend(bh,legends([3]),'Location','northoutside','Orientation','horizontal');
