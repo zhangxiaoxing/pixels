@@ -341,6 +341,7 @@ classdef replay < handle
 
                     mm=nanmean(ratios(:,[1 4 2 5 3 6]));
                     ci=nanstd(ratios(:,[1 4 2 5 3 6]))./sqrt(sum(isfinite(ratios)));
+                    ci=[ci;-ci]+mm;
                 end
             else
                 cmatv=reshape(per_sess_mat,[],1);
@@ -350,7 +351,8 @@ classdef replay < handle
                     ci=bootci(1000,@(x) nanmedian(x),per_sess_mat);
                 else
                     mm=nanmean(per_sess_mat);
-                    ci=nanstd(per_sess_mat)./sqrt(sum(isfinite(per_sess_mat)))
+                    ci=nanstd(per_sess_mat)./sqrt(sum(isfinite(per_sess_mat)));
+                    ci=[ci;-ci]+mm;
                 end
                
             end

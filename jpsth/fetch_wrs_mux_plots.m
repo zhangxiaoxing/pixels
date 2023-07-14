@@ -390,7 +390,7 @@ wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",fal
 fhb=wave.replay.plot_replay_sess_ci(cmat,...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
     'title','chains correct trial','ref_line',true,'median_value',true,'stats','mean');
-set(gca,'YScale','linear','YLim',[0,30])
+set(gca,'YScale','linear','YLim',[0,40])
 
 
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rmfield(rings_tag,'none'),'var_len',true);
@@ -418,17 +418,15 @@ chain_corr_err=cell2struct({chain_raw.count([1 3 2 5 7 6 8 10 9],:)+eps;...
 %     'title','chains delay-prior-after','median_value',true);
 
 fhb=wave.replay.plot_replay_sess_ci(emat,...
-    {'Correct','Nonpref','Error','Correct','Nonpref','Error','Correct','Nonpref','Error'},...
-    'title','chains delay-prior-after','median_value',true);
-
-
-delete(gcf().Children.Children(10:17))
+    {'Nonpref','Error','Nonpref','Error','Nonpref','Error'},...
+    'title','chains delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false);
+set(gca,'Ylim',[0,1.75],'YScale','linear')
 srp=[1,signrank(emat(:,1),emat(:,2)),signrank(emat(:,1),emat(:,3)),...
     1,signrank(emat(:,4),emat(:,5)),signrank(emat(:,4),emat(:,6)),...
     1,signrank(emat(:,7),emat(:,8)),signrank(emat(:,7),emat(:,9))];
-for xx=[2 3 5 6 8 9]
-    text(xx,0.01,sprintf('%.3f',srp(xx)),'HorizontalAlignment','center','VerticalAlignment','bottom');
-end 
+bh=findobj(fhb,'-depth',2,'Type','Bar');
+text(bh.XEndPoints,repmat(1.2,1,6), ...
+    num2str(srp([2 3 5 6 8 9]).','%.3f'),'HorizontalAlignment','center','VerticalAlignment','top');
 
 
 % correct error loop
@@ -509,9 +507,14 @@ gg=[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1);...
     10*ones(ggn(1),1);11*ones(ggn(2),1);12*ones(ggn(3),1);...
     13*ones(ggn(1),1);14*ones(ggn(2),1);15*ones(ggn(3),1)];
 
+mm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),unique(gg));
+cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),unique(gg),'UniformOutput',false).');
+
 figure()
-boxplot(yy+eps,gg,'Colors','k','Symbol','c.')
-ylim([0,1.5])
+hold on
+bar(mm.','grouped','FaceColor','none','EdgeColor','k')
+errorbar(1:numel(mm),mm,cci(1,:)-mm.',cci(2,:)-mm.','k.');
+ylim([0,0.22])
 set(gca(),'XTick',2:3:14,'XTickLabel',{'Delay','Prior','Later','Before','After'})
 title('chains consis-anti-incon')
 p=kruskalwallis([chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
