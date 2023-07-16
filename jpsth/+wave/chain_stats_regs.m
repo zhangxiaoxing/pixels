@@ -1,18 +1,20 @@
-function chain_stats_regs(chains_input,su_meta,opt)
+function [fh3,fhf]=chain_stats_regs(chains_input,su_meta,len_thresh,opt)
 arguments
     chains_input
     su_meta
-    opt.len_thresh (1,1) double = 4
+    len_thresh (1,1) double
     opt.odor_only (1,1) logical = 1
 end
 shuf_sum=struct([]);
-%% data collect
+%% data collection
 greys=ephys.getGreyRegs('range','grey');
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
+global gather_config
+load(fullfile(gather_config.odpath,'Tempdata','chains_shuf.mat'),'shuf_chains')
+warning('Loading %d shuffle repeats',numel(shuf_chains));
 
-load('chains_shuf.mat','shuf_chains')
-for shuf_idx=[1:100,0]
+for shuf_idx=[1:numel(shuf_chains),0]
     if shuf_idx>0
         chains_uf=shuf_chains{shuf_idx};
     else
@@ -50,7 +52,7 @@ for shuf_idx=[1:100,0]
 
     % repeated occurrence
     chains_uf.uid=arrayfun(@(x) chains_uf.sess(x)*100000+int32(chains_uf.cids{x}), 1:numel(chains_uf.sess),'UniformOutput',false);
-    len_sel=cellfun(@(x) numel(x),chains_uf.cids)>=opt.len_thresh;
+    len_sel=cellfun(@(x) numel(x),chains_uf.cids)>=len_thresh;
 
     for curr_tag=["within","cross"]
 
@@ -60,12 +62,12 @@ for shuf_idx=[1:100,0]
         else
             olf_sel=ismember(chains_uf.wave,["olf_s1","olf_s2"]) & len_sel & (chains_uf.reg_sel==curr_tag);
         end
-            olf_uid=[chains_uf.uid{olf_sel}];
-            [chain_olf_uid,usel]=unique(olf_uid);
+        olf_uid=[chains_uf.uid{olf_sel}];
+        [chain_olf_uid,usel]=unique(olf_uid);
 
-            olf_reg=[chains_uf.reg{olf_sel}];
-            olf_reg_cat.(curr_tag)=categorical(olf_reg);
-            olf_u_reg_cat.(curr_tag)=categorical(olf_reg(usel));
+        olf_reg=[chains_uf.reg{olf_sel}];
+        olf_reg_cat.(curr_tag)=categorical(olf_reg);
+        olf_u_reg_cat.(curr_tag)=categorical(olf_reg(usel));
 
         if ~opt.odor_only
             both_sel=ismember(chains_uf.wave,["s1d3","s2d3","s1d6","s2d6"]) & len_sel & chains_uf.reg_sel==curr_tag;
@@ -105,7 +107,7 @@ for shuf_idx=[1:100,0]
 end
 
 %% occurrence of chain neuron per region neuron
-figure()
+fh3=figure();
 tiledlayout(2,2)
 for curr_tag=["within","cross"]
     nexttile()
@@ -134,7 +136,7 @@ end
 
 %% full list vs shuffle
 
-figure()
+fhf=figure();
 tiledlayout(2,2)
 for curr_tag=["within","cross"]
     nexttile()
@@ -151,10 +153,14 @@ for curr_tag=["within","cross"]
     end
     bh=bar(1:numel(regsel),[olf_ratio.(curr_tag)(barsel),mean(shufmat).'],'grouped');
     bh(1).FaceColor='w';
-    bh(2).FaceColor='k';
+    if numel(bh)>1
+        bh(2).FaceColor='k';
+    end
     shufstd=std(shufmat);
     shufsem=shufstd./sqrt(size(shufmat,1));
-    errorbar(bh(2).XEndPoints,bh(2).YData,shufsem,'k.')
+    if numel(bh)>1
+        errorbar(bh(2).XEndPoints,bh(2).YData,shufsem,'k.')
+    end
     olf_ratio.(curr_tag)(barsel)-mean(shufmat).'
 
 

@@ -5,7 +5,7 @@ gather_config.adjust_white_matter=true;
 gather_config.corr_type='Pearson';
 gather_config.fnsuffix='_10ms_adj_pearson';
 gather_config.FC_thresh=100;
-gather_config.reg_com_min_su=20;
+gather_config.sel_su_per_region=20;
 gather_config.odpath=fullfile(getenv('userprofile'),'OneDrive','Neupix');
 
 if strcmp(gather_config.corr_type,'Pearson')

@@ -526,7 +526,7 @@ classdef  motif_dynamic < handle
             xlabel('Time (ms)');
             ylabel('Probability density');
 
-            qtrs=prctile([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[10,50,90]); % 16.6667   21.1000   25.8000, @2023-03-07
+            qtrs=prctile([cell2mat(statss.dd3.dur);cell2mat(statss.dd6.dur)],[10,50,90]); 
             xline(qtrs,'--k',string(num2cell(qtrs)))
             ylim([1e-4,1e-1])
             title('single spike chains')

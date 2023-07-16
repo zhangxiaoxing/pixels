@@ -1,14 +1,15 @@
 % Major revision around 2022.12.20
-% shuf_chains=wave.COM_chain_shuf(wrs_mux_meta);
+% Major update around 2023.07.16, removed duplicates
 
-% blame=vcs.blame();
-% save('chains_shuf.mat','shuf_chains','blame')
+% shuf_chains=wave.COM_chain_shuf(wrs_mux_meta,1:100,'odor_only',true)
+% blame=vcs.blame();save('chains_shuf.mat','shuf_chains','blame')
 
 function shuf_chains=COM_chain_shuf(sel_meta,shuf_idices,opt)
 arguments
     sel_meta
     shuf_idices (1,:) double = 1:100
     opt.reverse (1,1) logical = false
+    opt.odor_only (1,1) logical = false
 end
 % global_init
 % load('sums_conn.mat','sums_conn_str');
@@ -27,62 +28,47 @@ for shufid=shuf_idices
         onecon=sig_str.suid(sesssel,:);
 
         %TODO nonmem,incongruent possible?
-        onepath=ephys.sessid2path(sessid);
-        onecom=wave.get_pct_com_map(sel_meta,'onepath',onepath,'curve',true); %per su center of mass, normalized FR
-        skey=fieldnames(onecom);
+        su_com_map=wave.get_pct_com_map(sel_meta,'one_sess',sessid,'curve',true); %per su center of mass, normalized FR
+        skey=fieldnames(su_com_map);
         if isempty(skey), continue;end
 
-        for wvtype=["s1d3","s1d6","s2d3","s2d6","olf_s1","olf_s2","dur_d3","dur_d6"]
-            if ~isfield(onecom.(skey{1}),wvtype)
+        for delay=[3 6]
+            if isfield(su_com_map.(skey{1}),"s1d"+delay) && isfield(su_com_map.(skey{1}),"olf_s1")
+                sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,"olf_s1","com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
+            elseif  isfield(su_com_map.(skey{1}),"s1d"+delay)
+                sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,[],"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
+            elseif  isfield(su_com_map.(skey{1}),"olf_s1")
+                sub_chain=map2subchain(su_com_map,skey,'olf_s1',[],"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
+            end
+
+            if isfield(su_com_map.(skey{1}),"s2d"+delay) && isfield(su_com_map.(skey{1}),"olf_s2")
+                sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,"olf_s2","com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
+            elseif  isfield(su_com_map.(skey{1}),"s2d"+delay)
+                sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,[],"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
+            elseif  isfield(su_com_map.(skey{1}),"olf_s2")
+                sub_chain=map2subchain(su_com_map,skey,'olf_s2',[],"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
+            end
+
+            if opt.odor_only
                 continue
             end
-            switch wvtype
-                case "s1d3"
-                    sub_chain=map2subchain(onecom,skey,'s1d3','olf_s1','com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                    sub_chain=map2subchain(onecom,skey,'s1d3','dur_d3','com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-
-                case "s1d6"
-                    sub_chain=map2subchain(onecom,skey,'s1d6','olf_s1','com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-                    sub_chain=map2subchain(onecom,skey,'s1d6','dur_d6','com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-                case "s2d3"
-                    sub_chain=map2subchain(onecom,skey,'s2d3','olf_s2','com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                    sub_chain=map2subchain(onecom,skey,'s2d3','dur_d3','com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-
-                case "s2d6"
-                    sub_chain=map2subchain(onecom,skey,'s2d6','olf_s2','com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-                    sub_chain=map2subchain(onecom,skey,'s2d6','dur_d6','com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-                case "olf_s1"
-                    sub_chain=map2subchain(onecom,skey,'olf_s1',[],'com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                    sub_chain=map2subchain(onecom,skey,'olf_s1',[],'com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-                case "olf_s2"
-                    sub_chain=map2subchain(onecom,skey,'olf_s2',[],'com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-                    sub_chain=map2subchain(onecom,skey,'olf_s2',[],'com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-                case "dur_d3"
-                    sub_chain=map2subchain(onecom,skey,'dur_d3',[],'com3',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,3,sub_chain);
-
-                case "dur_d6"
-                    sub_chain=map2subchain(onecom,skey,'dur_d6',[],'com6',onecon,opt.reverse);
-                    chains=extend_chain(chains,sessid,wvtype,6,sub_chain);
-
-                otherwise
-                    keyboard()
+            if isfield(su_com_map.(skey{1}),"s1d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
+                sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,"dur_d"+delay,"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
+            end
+            if isfield(su_com_map.(skey{1}),"s2d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
+                sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,"dur_d"+delay,"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
+            end
+            if (~isfield(su_com_map.(skey{1}),"s1d"+delay))&& (~isfield(su_com_map.(skey{1}),"s2d"+delay)) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
+                sub_chain=map2subchain(su_com_map,skey,"dur_d",[],"com"+delay,onecon,opt.reverse);
+                chains=extend_chain(chains,sessid,"dur_"+delay,delay,sub_chain);
             end
         end
     end
@@ -165,8 +151,3 @@ for i=upre
     end
 end
 end
-
-
-
-
-

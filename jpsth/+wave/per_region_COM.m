@@ -81,7 +81,7 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     opt_=opt;
     com_map_=com_map;
 end
-collection=collection_(cell2mat(collection_(:,4))>gather_config.reg_com_min_su,:);
+collection=collection_(cell2mat(collection_(:,4))>gather_config.sel_su_per_region,:);
 com_meta=com_meta_;
 
 end

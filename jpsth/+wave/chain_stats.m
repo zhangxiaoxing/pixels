@@ -1,12 +1,19 @@
 %% data collection
-function chain_stats(chains_uf,chains_uf_rev,su_meta)
+function chain_stats(chains_uf,chains_uf_rev,su_meta,opt)
+arguments
+    chains_uf
+    chains_uf_rev
+    su_meta
+    opt.odor_only (1,1) logical = false
+end
+
 rev_stats=true;
 
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
 % wave.COM_chain_shuf(wrs_mux_meta);
-
-load('chains_shuf.mat','shuf_chains')
+global gather_config
+load(fullfile(gather_config.odpath,'Tempdata','chains_shuf.mat'),'shuf_chains')
 % region tag
 greys=ephys.getGreyRegs('range','grey');
 chains_uf.reg=cell(size(chains_uf.cids));
@@ -188,50 +195,52 @@ if false
         %     title(ttls{chartIdx});
     end
 end
+
 %% chain count, merge 3s, 6s, skip duration
-countbin=2.5:10.5;
-%mix 3s, mix6s, olf 3s, olf 6s, dur 3s, dur 6s
-wavetype={{'olf_s1','olf_s2'},{'s1d3','s2d3','s1d6','s2d6'}};
-figure()
-tiledlayout(1,2);
-pxx=3:10;
+if ~opt.odor_only
+    countbin=2.5:10.5;
+    %mix 3s, mix6s, olf 3s, olf 6s, dur 3s, dur 6s
+    wavetype={{'olf_s1','olf_s2'},{'s1d3','s2d3','s1d6','s2d6'}};
+    figure()
+    tiledlayout(1,2);
+    pxx=3:10;
+    ttls={'Olf','Mix'};
+    for chartIdx=1:2
+        nexttile;
+        hold on
+        datasel=ismember(chains_uf.wave,wavetype{chartIdx});
+        data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(datasel)),countbin);
+        %     data_hist(data_hist==0)=realmin;
 
-for chartIdx=1:2
-    nexttile;
-    hold on
-    datasel=ismember(chains_uf.wave,wavetype{chartIdx});
-    data_hist=histcounts(cellfun(@(x) numel(x),chains_uf.cids(datasel)),countbin);
-    %     data_hist(data_hist==0)=realmin;
+        data_rev_sel=ismember(chains_uf_rev.wave,wavetype{chartIdx});
+        data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(data_rev_sel)),countbin);
+        %     data_rev_hist(data_rev_hist==0)=realmin;
 
-    data_rev_sel=ismember(chains_uf_rev.wave,wavetype{chartIdx});
-    data_rev_hist=histcounts(cellfun(@(x) numel(x),chains_uf_rev.cids(data_rev_sel)),countbin);
-    %     data_rev_hist(data_rev_hist==0)=realmin;
+        shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
+        for shufid=1:numel(shuf_chains)
+            shuf_sel=ismember(shuf_chains{shufid}.wave,wavetype{chartIdx});
+            shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids(shuf_sel)),countbin);
+        end
 
-    shuf_hist=nan(numel(shuf_chains),numel(countbin)-1);
-    for shufid=1:numel(shuf_chains)
-        shuf_sel=ismember(shuf_chains{shufid}.wave,wavetype{chartIdx});
-        shuf_hist(shufid,:)=histcounts(cellfun(@(x) numel(x),shuf_chains{shufid}.cids(shuf_sel)),countbin);
+        shufmm=mean(shuf_hist);
+        shufsd=std(shuf_hist);
+
+        fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
+
+        datah=plot(pxx,data_hist,'-r');
+        revh=plot(pxx,data_rev_hist,'-b');
+        shufh=plot(pxx,shufmm,'-k');
+
+        legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},'Location','northoutside');
+
+        xlim([3,10])
+        ylim([1,3000])
+        xlabel('Number neuron in chains')
+        ylabel('Total occurrence')
+        set(gca(),'XTick',4:2:10,'YScale','log')
+        title(ttls{chartIdx});
     end
-
-    shufmm=mean(shuf_hist);
-    shufsd=std(shuf_hist);
-
-    fill([pxx,fliplr(pxx)],[shufmm-2*shufsd,fliplr(shufmm+2*shufsd)],'k','EdgeColor','none','FaceAlpha',0.2);
-
-    datah=plot(pxx,data_hist,'-r');
-    revh=plot(pxx,data_rev_hist,'-b');
-    shufh=plot(pxx,shufmm,'-k');
-
-    legend([datah,revh,shufh],{'Wave-consistent','Wave-inconsistent','Shuffled wave-consistent'},'Location','northoutside');
-
-    xlim([3,10])
-    ylim([1,3000])
-    xlabel('Number neuron in chains')
-    ylabel('Total occurrence')
-    set(gca(),'XTick',4:2:10,'YScale','log')
-    %     title(ttls{chartIdx});
 end
-
 
 
 %% per-wave stats-per-region stats pie chart

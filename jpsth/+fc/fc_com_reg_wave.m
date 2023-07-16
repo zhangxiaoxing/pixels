@@ -17,31 +17,25 @@ classdef fc_com_reg_wave < handle
             usess=unique(sig.sess);
             fc_com_pvsst_stats=[];
 
+            ffs=["s1d"+opt.delay,"s2d"+opt.delay,"olf_s1","olf_s2"];
+            durkey="com"+opt.delay;
+            if ~opt.odor_only
+                ffs=[ffs,"dur_d"+opt.delay];
+            end
+
             for sii=reshape(usess,1,[]) %iterate through sessions
                 sesssel=sig.sess==sii;
 
                 suid=sig.suid(sesssel,:);
                 waveid=sig.waveid(sesssel,:);
                 regsess=squeeze(sig.reg(sesssel,5,:));
-
                 com_sess_pct=nan(size(suid));
-                if opt.odor_only
-                    ffs=["olf_s1","olf_s2"];
-                    durkey='com';
-                else
-                    if opt.delay==6
-                        ffs=["s1d6","s2d6","olf_s1","olf_s2","dur_d6"];
-                        durkey='com6';
-                    elseif opt.delay==3
-                        ffs=["s1d3","s2d3","olf_s1","olf_s2","dur_d3"];
-                        durkey='com3';
-                    end
-                end
+
                 for ff=ffs
-                    if isfield(su_com_map.(['s',num2str(sii)]),ff)
-                        sukeys=su_com_map.(['s',num2str(sii)]).(ff).(durkey).keys(); % prefered SUid
+                    if isfield(su_com_map.("s"+sii),ff)
+                        sukeys=su_com_map.("s"+sii).(ff).(durkey).keys(); % prefered SUid
                         susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
-                        com_sess_pct(susel)=cell2mat(su_com_map.(['s',num2str(sii)]).(ff).(durkey).values(num2cell(suid(susel)))); % out put is nx2 in dim
+                        com_sess_pct(susel)=cell2mat(su_com_map.("s"+sii).(ff).(durkey).values(num2cell(suid(susel)))); % out put is nx2 in dim
                     end
                 end
                 fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];

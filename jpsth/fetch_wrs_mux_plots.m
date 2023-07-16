@@ -1,12 +1,39 @@
-% TODO: switch selectivity?
+% TODO: switch neuron?
+keyboard()
 
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-keyboard()
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
+wrs_mux_meta=ephys.get_wrs_mux_meta();
 
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
-wrs_mux_meta=ephys.get_wrs_mux_meta();
+
+
+% map_cells: mixed_map,olf_map,dur_map
+% TODO: cross_thresh hold
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false,'odor_only',true);
+%%
+% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+tcom3_maps=struct();
+tcom6_maps=struct();
+grey_regs=ephys.getGreyRegs('range','grey');
+
+[fcom3.odor_only.collection,fcom3.odor_only.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','odor_only','com_field','com3');
+ureg=intersect(grey_regs,fcom3.odor_only.collection(:,2));
+[~,tcidx]=ismember(ureg,fcom3.odor_only.collection(:,2));
+tcom3_maps.odor_only=containers.Map(...
+    ureg,num2cell(cellfun(@(x) x/4, fcom3.odor_only.collection(tcidx,1))));
+
+[fcom6.odor_only.collection,fcom6.odor_only.com_meta]=wave.per_region_COM(...
+    com_map,'sel_type','odor_only','com_field','com6');
+ureg=intersect(grey_regs,fcom6.odor_only.collection(:,2));
+[~,tcidx]=ismember(ureg,fcom6.odor_only.collection(:,2));
+tcom6_maps.odor_only=containers.Map(...
+    ureg,num2cell(cellfun(@(x) x/4, fcom6.odor_only.collection(tcidx,1))));
+
+%%
+
 
 % test for different proportion 
 if false
@@ -73,18 +100,6 @@ for ii=reshape(idx,1,[])
 end
 
 
-% %% svm decoding
-% [fh,olf_dec_olf]=wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','parula','new_data',true,'calc_dec',true,'rpt',100);
-% [fh,dur_dec_dur]=wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','cool','new_data',true,'calc_dec',true,'rpt',100);
-% 
-% %% cross decoding
-% wave.pct_decoding(sens_efsz,sens_win,'n_su',[10,50,100,200,300,500],'lblidx',8,'cmap','parula','cross',true,'new_data',true,'calc_dec',true)
-% title('Rank by odor-encoding, decoding duration')
-% exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
-% wave.pct_decoding(dur_efsz,dur_win,'n_su',[10,50,100,200,300,500],'lblidx',5,'cmap','cool','cross',true,'new_data',true,'calc_dec',true)
-% title('Rank by duration-encoding, decoding odor')
-% exportgraphics(gcf(),'pct_decoding.pdf','ContentType','vector','Append',true);
-
 %% correct error decoding >>>>>>>>>>>>>>>>>
 % svm on neuron firing rates
 if false
@@ -146,62 +161,35 @@ end
 stats_half_half_fh=wave.COM_half_half_wrs_mux();
 
 %% wave 
-for hbound=0.7
-    fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'flex_sort',true,'scale',[0,hbound],'gauss2d',true);
-    sgtitle(gcf(),"multi, 0:"+num2str(hbound));
-    fh=wave.plot_pct_wave(wrs_mux_meta,com_map,'comb_set',2,'flex_sort',true,'scale',[0,hbound],'gauss2d',true);
-    sgtitle(gcf(),"single-mod 0:"+num2str(hbound))
-end
+fh3=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',3);
+fh6=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',6);
 
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 %% Proportion, TCOM related
 
-% [map_cells,pct_bar_fh]=ephys.pct_reg_bars(wrs_mux_meta,'xyscale',{'log','log'}); % only need map_cells for tcom-frac corr
-[map_cells,pct_bar_fh]=ephys.pct_reg_bars(su_meta,wrs_mux_meta,'xyscale',{'linear','linear'},'only_odor',true); % only need map_cells for tcom-frac corr
-% ch=gcf().Children.Children;
-% ch(3).YLim=[0,0.7];
+[frac_map_cells,pct_bar_fh]=ephys.pct_reg_bars(su_meta,wrs_mux_meta,'xyscale',{'linear','linear'},'only_odor',true); % only need map_cells for tcom-frac corr
 
-mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(map_cells,gather_config.corr_log_log, ...
+
+%% wave 
+fh3=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0,0.7],'gauss2d',true,'delay',3,'xlim',3);
+fh6=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0,0.7],'gauss2d',true,'delay',6);
+
+% fraction model
+mixed_TCOM_GLM_fh=wave.connectivity_proportion_GLM(frac_map_cells,gather_config.corr_log_log, ...
     'range','grey','data_type','pct-frac','stats_type','percentile');
 
-%% map_cells: mixed_map,olf_map,dur_map
-% TODO: cross_thresh hold
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false,'odor_only',true);
-
-% <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-tcom3_maps=struct();
-tcom6_maps=struct();
-grey_regs=ephys.getGreyRegs('range','grey');
-
-[fcom3.odor_only.collection,fcom3.odor_only.com_meta]=wave.per_region_COM(...
-    com_map,'sel_type','odor_only','com_field','com3');
-ureg=intersect(grey_regs,fcom3.odor_only.collection(:,2));
-[~,tcidx]=ismember(ureg,fcom3.odor_only.collection(:,2));
-tcom3_maps.odor_only=containers.Map(...
-    ureg,num2cell(cellfun(@(x) x/4, fcom3.odor_only.collection(tcidx,1))));
-
-[fcom6.odor_only.collection,fcom6.odor_only.com_meta]=wave.per_region_COM(...
-    com_map,'sel_type','odor_only','com_field','com6');
-ureg=intersect(grey_regs,fcom6.odor_only.collection(:,2));
-[~,tcidx]=ismember(ureg,fcom6.odor_only.collection(:,2));
-tcom6_maps.odor_only=containers.Map(...
-    ureg,num2cell(cellfun(@(x) x/4, fcom6.odor_only.collection(tcidx,1))));
-
-
-%% TCOM >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-% 3s delay trials only
+% TCOM model 3s delay trials only
 mixed_TCOM3_GLM_fh=wave.connectivity_proportion_GLM(tcom3_maps,gather_config.corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM3','stats_type','wrs-mux3');
 
-% 6s delay trials only
+% TCOM model 6s delay trials only
 mixed_TCOM6_GLM_fh=wave.connectivity_proportion_GLM(tcom6_maps,gather_config.corr_ln_log, ...
     'range','grey','data_type','wrs-mux-TCOM6','stats_type','wrs-mux6');
 
 
-
-
 %% TCOM and proportion correlation % 4 panel scatters
+if false
 pct_tcom_fh3=struct();
 pct_tcom_fh6=struct();
 for typeidx=1:3
@@ -210,10 +198,10 @@ for typeidx=1:3
     ureg=intersect(ephys.getGreyRegs('range','grey'),...
         fcom3.(type).collection(:,2));
     ffrac.collection=...
-        [num2cell(cellfun(@(x) x(1),map_cells.(type).values(ureg))),...
+        [num2cell(cellfun(@(x) x(1),frac_map_cells.(type).values(ureg))),...
         ureg,...
         num2cell(ones(numel(ureg),1)*5),...
-        num2cell(cellfun(@(x) x(3),map_cells.(type).values(ureg)))];
+        num2cell(cellfun(@(x) x(3),frac_map_cells.(type).values(ureg)))];
 
     [pct_tcom_fh3,t3]=wave.per_region_COM_frac(...
         fcom3.(type),ffrac,...
@@ -230,7 +218,7 @@ for typeidx=1:3
     sgtitle(pct_tcom_fh6,type+" 6sec")
 
 end
-
+end
 
 %% Functional coupling
 
@@ -240,16 +228,14 @@ end
 
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
-fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,'delay',6);
-fh=fc.fc_com_reg_wave.plot(fcstats6,tcom6_maps,'condense_plot',true);
+fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,tcom6_maps,'delay',6,'odor_only',true);
+fcstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'odor_only',true);
+[barmm,barci,barcnt]=fc.fc_com_reg_wave.sums([fcstats6;fcstats3],"odor_only",true);
+fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt,'condense_plot',true,'odor_only',true);
 
-fcstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,'delay',3);
-fh=fc.fc_com_reg_wave.plot(fcstats3,tcom3_maps,'condense_plot',true);
-
-fcstats3=fc.fc_com_reg_wave(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'condense_plot',true);
-
-fcstats6=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
-fcstats3=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom3_maps,'condense_plot',true);
+% 
+% fcstats6=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
+% fcstats3=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom3_maps,'condense_plot',true);
 
 % fc.wave_stay_disappear(wrs_mux_meta)
 
@@ -263,7 +249,7 @@ end
 % wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
-fh4=bz.inter_wave_pct(wrs_mux_meta); %congru vs incongru vs nonmem bar lot
+fh4=bz.inter_wave_pct(wrs_mux_meta,'odor_only',true); %congru vs incongru vs nonmem bar lot
 fh4.fig.Children.Subtitle.String='Excitatory';
 if false
     fh4i=bz.inter_wave_pct(wrs_mux_meta,'inhibit',true);
@@ -325,13 +311,10 @@ end
 
 %% chain
 
-% global_init;
-% chains_uf=wave.COM_chain(sel_meta);
-% chains_uf_rev=wave.COM_chain(sel_meta,'reverse',true);
+chains_uf=wave.COM_chain(wrs_mux_meta,com_map,'odor_only',true);
+chains_uf_rev=wave.COM_chain(wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
 % blame=vcs.blame();
 % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
-
-load(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev')
 
 [gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf.cids));
 [gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids));
@@ -343,11 +326,19 @@ for ii=reshape(union(grf,grr),1,[])
     end
 end
 
-wave.chain_stats(chains_uf,chains_uf_rev,su_meta);
-wave.chain_stats_regs(chains_fwd,su_meta,"len_thresh",len_thresh,"odor_only",false)
+wave.chain_stats(chains_uf,chains_uf_rev,su_meta,'odor_only',true);
 
-[sschain.out,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',false,'extend_trial',false); % per-spk association
+% shuf_chains=wave.COM_chain_shuf(wrs_mux_meta,1:100,'odor_only',true)
+% blame=vcs.blame();save('chains_shuf.mat','shuf_chains','blame')
 
+[fh3,fhf]=wave.chain_stats_regs(chains_uf,su_meta,len_thresh,"odor_only",true);
+set(fh3.Children(1).Children(1),'YLim',[5e-6,2])
+set(fh3.Children(1).Children(2),'YLim',[5e-6,2])
+set(fhf.Children(1).Children(1),'YLim',[5e-6,2])
+set(fhf.Children(1).Children(2),'YLim',[5e-6,2])
+
+[sschain.out,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',false,'odor_only',true,'extend_trial',false); % per-spk association
+wave.motif_dynamic.single_spike_chains(sschain.out)
 % save(fullfile("bzdata","chain_tag_tbl.mat"),"sschain","unfound","blame")
 % load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
 

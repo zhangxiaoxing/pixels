@@ -5,11 +5,15 @@ arguments
     opt.per_sess (1,1) logical = false
     opt.inhibit (1,1) logical = false
     opt.asym_congru (1,1) logical = false
+    opt.odor_only (1,1) logical = true
 end
 % selstr=load('perm_sens.mat','sens_meta');
 
 % persistent sig pair
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',opt.inhibit);
+if opt.odor_only
+    pct_meta.wave_id(ismember(pct_meta.wave_id,7:8))=-1;
+end
 sig=bz.join_fc_waveid(sig,pct_meta.wave_id);
 pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 
@@ -228,13 +232,6 @@ errorbar([bh1.XEndPoints,bh2.XEndPoints,bh3.XEndPoints],...
 set(gca(),'XTick',1:3,'XTickLabel',{'m2m','Olfactory','Duration'},'YTickLabel',get(gca(),'YTick').*100)
 ylabel('F.C. rate (%)')
 title (sprintf('p=%.3f,%.3f,%.3f',povall,polf,pdur));
-
-
-
-
-
-
-
 
 
 

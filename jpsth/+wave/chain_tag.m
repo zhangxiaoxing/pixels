@@ -1,19 +1,16 @@
 % [sschain_trl,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
 %
-% load(fullfile('bzdata','chains_mix.mat'),'chains_uf');
-% chains=chains_uf;
-% clear chains_uf;
 classdef chain_tag < handle
     methods(Static)
-        function [out,notfound]=tag(chains,opt)
+        function [out,notfound]=tag(chains,len_thresh,opt)
             arguments
                 chains
+                len_thresh (1,1) double 
                 opt.ccg (1,1) logical = true
                 opt.rev (1,1) logical = false
                 opt.shuf_trl (1,1) logical = false
                 opt.shuf_idx (1,1) double = 0
                 opt.per_reg_wave (1,1) logical = true
-                opt.len_thresh (1,1) double = 5
                 opt.skip_save (1,1) logical = false
                 opt.odor_only (1,1) logical = false
                 opt.extend_trial (1,1) logical = false % include all recording time or only preferred delay
@@ -31,11 +28,11 @@ classdef chain_tag < handle
 
             ch_len=cellfun(@(x) numel(x),chains.cids);
             if isempty(opt.sesses)
-                waveids=reshape(unique(chains.wave(ch_len>=opt.len_thresh)),1,[]);
-                sesses=reshape(unique(chains.sess(ch_len>=opt.len_thresh)),1,[]);
+                waveids=reshape(unique(chains.wave(ch_len>=len_thresh)),1,[]);
+                sesses=reshape(unique(chains.sess(ch_len>=len_thresh)),1,[]);
             else
                 sesses=opt.sesses;
-                waveids=reshape(unique(chains.wave(ch_len>=opt.len_thresh & ismember(chains.sess,opt.sesses))),1,[]);
+                waveids=reshape(unique(chains.wave(ch_len>=len_thresh & ismember(chains.sess,opt.sesses))),1,[]);
             end
 
             if opt.ccg
@@ -60,10 +57,10 @@ classdef chain_tag < handle
                         end
                         if contains(wid,'s1')
                             trial_sel=find(trials(:,5)==4 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
-                            outid="olf_s1";
+                            % outid="olf_s1";
                         elseif contains(wid,'s2')
                             trial_sel=find(trials(:,5)==8 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
-                            outid="olf_s2";
+                            % outid="olf_s2";
                         elseif contains(wid,'dur')
                             if opt.odor_only
                                 continue
@@ -72,11 +69,11 @@ classdef chain_tag < handle
                             end
                         end
 
-                        if ~opt.odor_only
-                            outid=wid;
-                        end
+                        % if ~opt.odor_only
+                        outid=wid;
+                        % end
                         if isempty(opt.idces)
-                            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=opt.len_thresh),1,[]);
+                            sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=len_thresh),1,[]);
                         else
                             sess_indices=opt.idces;
                         end
@@ -202,7 +199,8 @@ classdef chain_tag < handle
                 elseif opt.shuf_trl
                     save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','blame');
                 else
-                    save(fullfile('bzdata','chain_tag.mat'),'out','blame');
+                    % save(fullfile('bzdata','chain_tag.mat'),'out','blame');
+                    save(fullfile(gather_config.odpath,'Tempdata','chain_tag.mat'),'out','blame','notfound')
                 end
             end
 
