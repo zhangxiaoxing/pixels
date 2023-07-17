@@ -1,5 +1,3 @@
-%TODO shuffled data
-
 function loop_occurrence_per_reg_su(sums_all,su_meta,sel_meta,opt)
 arguments
     sums_all
@@ -10,15 +8,12 @@ arguments
     opt.barn (1,1) double = 3
     opt.loopPerSU (1,1) logical = true
     opt.vs_shuf (1,1) logical = true
+    opt.unique_su (1,1) logical = false
     opt.odor_only (1,1) logical = false
 end
-if opt.odor_only
-    error("Not ready")
-end
-
 
 su_reg=categorical(su_meta.reg_tree(5,:));
-fstr=load(fullfile('bzdata','rings_bz_vs_shuf.mat'));
+fstr=load(fullfile('bzdata','rings_bz_vs_shuf.mat')); % shuffle
 
 lbls={{'Olfactory within region','Sum of total node in loops'};...
     {'Olfactory cross region','Sum of total node in loops'};...
@@ -33,16 +28,17 @@ dsets_shuf=cell(100,8);
 % loop_reg_shuf=[];
 for shufrpt=0:100
     if shufrpt==0
-        rstats=bz.rings.rings_reg_pie(sums_all,su_meta,sel_meta,'plot',false); % 116X3
+        rstats=bz.rings.rings_reg_pie(sums_all,su_meta,sel_meta,'plot',false,'odor_only',opt.odor_only); % 116X3
     else
-        rstats=bz.rings.rings_reg_pie(fstr.rings_shuf{shufrpt},su_meta,sel_meta,'plot',false);
+        rstats=bz.rings.rings_reg_pie(fstr.rings_shuf{shufrpt},su_meta,sel_meta,'plot',false,'odor_only',opt.odor_only);
     end
     if rem(shufrpt,10)==0
         disp(shufrpt)
     end
     olfsel=strcmp(rstats(:,4),'olf');
     bothsel=strcmp(rstats(:,4),'both');
-    within_sel=cellfun(@(x) numel(unique(x)), rstats(:,3))==1;
+    % sanity checked with unique([rstats{:,3}])
+    within_sel=cellfun(@(x) numel(unique(x)), rstats(:,3))==1;  
 
     olfreg_within=categorical([rstats{olfsel & within_sel,3}]);
     olfreg_cross=categorical([rstats{olfsel & ~within_sel,3}]);
@@ -78,7 +74,6 @@ end
 % categorical(unique(loop_reg_shuf));
 
 if opt.pie
-
     figure()
     tiledlayout(2,4)
     cnt=1;
@@ -95,6 +90,9 @@ if opt.bar
     tiledlayout(1,4)
 
     for dsetidx=[1,2,5,6]
+        if opt.odor_only && dsetidx>2
+            continue
+        end
         dset=dsets(dsetidx);
         nexttile()
         ratios=[];
@@ -130,8 +128,10 @@ end
 if opt.vs_shuf
     figure()
     tiledlayout(1,4)
-    cnt=1;
     for dsetidx=[1 2 5 6]
+        if opt.odor_only && dsetidx>2
+            continue
+        end
         dset=dsets(dsetidx);
         nexttile()
         hold on
@@ -170,8 +170,7 @@ if opt.vs_shuf
         ylim([1e-5,10])
 
         ylabel('occurrence in loops per neuron')
-        title(lbls{cnt});
-        cnt=cnt+1;
+        title(lbls{dsetidx});
     end
 end
 
@@ -189,8 +188,11 @@ if opt.loopPerSU  % loops per su, classed by region
         {'Both within region'};...
         {'Both cross region'}};
 
+end
 
+% Withou unique 
 
+if opt.unique_su  
     figure()
     tiledlayout(2,2)
     for didx=1:4

@@ -1,4 +1,6 @@
 % TODO: switch neuron?
+% TODO: FC/Chain both-duration congruent 
+
 keyboard()
 
 %% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -225,7 +227,6 @@ end
 %% TODO: COM_CHAIN
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
-
 %% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 % [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,tcom6_maps,'delay',6,'odor_only',true);
@@ -234,9 +235,6 @@ fcstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'odo
 fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt,'condense_plot',true,'odor_only',true);
 
 % 
-% fcstats6=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom6_maps,'condense_plot',true);
-% fcstats3=fc.fc_com_reg_wave_alt(wrs_mux_meta,com_map,tcom3_maps,'condense_plot',true);
-
 % fc.wave_stay_disappear(wrs_mux_meta)
 
 if false
@@ -244,9 +242,6 @@ if false
     %skipped for current manuscript
 end
 % bz.inter_wave_ext_bars()
-
-% separate wave timing cdf
-% wave.mix_single_wave_timing
 
 %>>> jump to TCOM section as needed
 fh4=bz.inter_wave_pct(wrs_mux_meta,'odor_only',true); %congru vs incongru vs nonmem bar lot
@@ -260,13 +255,6 @@ bz.conn_prob_spatial_dist(sig,pair);
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','olf')
 bz.fccoding.plot_coding(wrs_mux_meta,'dtype','dur')
 
-%% FC_TCOM_hierachy
-% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
-% 
-% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','congru');
-% 
-% [fc_com_pvsst_stats_mix,fh_mix]=pct.fc_com_pct(com_map,pct_meta,'pair_type','incong');
-
 
 bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 
@@ -278,12 +266,11 @@ load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');% 1X3
 pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
 % pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true);
 
-
-
 % bz.rings.rings_reg_pie(sums_all)% 1X3
 % bz.rings.rings_freq
+
+bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta,wrs_mux_meta);
 if false
-    bz.rings.loop_occurrence_per_reg_su(sums_all,su_meta);
     bz.rings.rings_wave_dynamic(sums_all)
     bz.rings.rings_su_wave_tcom_corr(sums_all)
 end

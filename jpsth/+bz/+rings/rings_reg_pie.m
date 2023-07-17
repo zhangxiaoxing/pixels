@@ -8,6 +8,7 @@ arguments
     sel_meta
     opt.plot (1,1) logical=true
     opt.congru (1,1) logical=true
+    opt.odor_only (1,1) logical = false
 end
 
 rstats=cell(0,10);
@@ -33,7 +34,7 @@ if size(rings,1)>1
                 if (~all(ismember(curr_part,{'CH','BS'}),'all')) || any(ismissing(curr_reg),'all')
                     continue
                 end
-                [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
+                [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid,'odor_only',opt.odor_only);
                 if strcmp(rwid,'congru') || ~opt.congru
                     rstats=[rstats;{rings{curr_sess,rsize-2}(insessid,:)},curr_waveid,{curr_reg},seltype,{curr_sess*100000+rings{curr_sess,rsize-2}(insessid,:)}];
                 end
@@ -66,7 +67,7 @@ else
             if (~all(ismember(curr_part,{'CH','BS'}),'all')) || any(ismissing(curr_reg),'all')
                 continue
             end
-            [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
+            [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid,'odor_only',opt.odor_only);
             if strcmp(rwid,'congru') || ~opt.congru
                 rstats=[rstats;one_rsize(ridx,3),{curr_waveid},{curr_reg},seltype,{curr_sess*100000+one_rsize{ridx,3}}];
             end
