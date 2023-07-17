@@ -225,7 +225,7 @@ classdef replay < handle
             arguments
                 stats_all cell
                 opt.feat_sel = []
-                opt.two_or_more (1,1) logical = false
+                % opt.two_or_more (1,1) logical = false
             end
 
             per_sess_struct=struct();
@@ -236,17 +236,17 @@ classdef replay < handle
                 else
                     featsel=opt.feat_sel;
                 end
-
-                if opt.two_or_more
-                    [gc,gr]=groupcounts(motif_set.condition.');
-                    gcmap=containers.Map(gr,num2cell(gc));
-                end
+                % 
+                % if opt.two_or_more
+                %     [gc,gr]=groupcounts(motif_set.condition.');
+                %     gcmap=containers.Map(gr,num2cell(gc));
+                % end
 
                 for jj=1:size(motif_set.count,2)
                     onekey=motif_set.condition{jj};
-                    if opt.two_or_more && gcmap(onekey)<=2
-                        continue
-                    end
+                    % if opt.two_or_more && gcmap(onekey)<=2
+                    %     continue
+                    % end
                     if ~isfield(per_sess_struct,onekey)
                         per_sess_struct.(onekey)=cell2struct({motif_set.count(featsel,jj).';motif_set.time(featsel,jj).';motif_set.tag(jj)},{'count';'time';'tag'});
                     else

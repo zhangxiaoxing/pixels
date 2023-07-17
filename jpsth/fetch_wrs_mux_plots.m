@@ -332,7 +332,7 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 
 % serveral minutes %TODO tic toc?
 % consider load file
-[sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
+[sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
 
 %% replay figure Jun13 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -342,14 +342,15 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 % load(fullfile(gather_config.odpath,'Tempdata','TEMP230602.mat'))
 
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
-[cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 8 5 11 12],'two_or_more',false);
+
+[cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 8 5 11 12]);
 % fhb=wave.replay.plot_replay_sess(cmat,...
 %     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
 %     'title','chains correct trial','ref_line',true,'median_value',true);
 fhb=wave.replay.plot_replay_sess_ci(cmat,...
     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-    'title','chains correct trial','ref_line',true,'median_value',true,'stats','mean');
-set(gca,'YScale','linear','YLim',[0,40])
+    'title','chains correct trial','ref_line',true,'median_value',true,'stats','median');
+set(gca,'YScale','linear','YLim',[0,6])
 
 
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rmfield(rings_tag,'none'),'var_len',true);
