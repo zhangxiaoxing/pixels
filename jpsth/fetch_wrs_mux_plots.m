@@ -333,89 +333,109 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 % serveral minutes %TODO tic toc?
 % consider load file
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
+[sschain_trl_rev,unfound_rev]=wave.chain_tag.tag(chains_uf_rev,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
 
 %% replay figure Jun13 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 % optional import saved data from tempdata folder
 % global_init
 % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
-% load(fullfile(gather_config.odpath,'Tempdata','TEMP230602.mat'))
 
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
-
-[cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 8 5 11 12]);
-% fhb=wave.replay.plot_replay_sess(cmat,...
-%     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-%     'title','chains correct trial','ref_line',true,'median_value',true);
-fhb=wave.replay.plot_replay_sess_ci(cmat,...
-    {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-    'title','chains correct trial','ref_line',true,'median_value',true,'stats','median');
-set(gca,'YScale','linear','YLim',[0,6])
-
+if false % skipped due to joint stats
+    [cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 5 11 12]);
+    fhb=wave.replay.plot_replay_sess_ci(cmat,...
+        {'Delay','Test','ITI','Before session','After session',},...
+        'title','chains correct trial','ref_line',true,'median_value',true,'stats','median');
+    set(gca,'YScale','linear','YLim',[0,6])
+end
 
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rmfield(rings_tag,'none'),'var_len',true);
 rings_tag_nom=rmfield(rmfield(rings_tag,'d6'),'d3');
 [ring_nom_replay,ring_nom_stats,ring_nom_raw]=wave.replay.stats(rings_tag_nom,'var_len',true);
-[rstr,rmat]=wave.replay.stats_replay_sess({ring_raw},'feat_sel',[1 4 8 5 11 12]);
-% fhring=wave.replay.plot_replay_sess(rmat,...
-%     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-%     'title','loops correct trial','ref_line',true,'median_value',true);
 
-fhring=wave.replay.plot_replay_sess_ci(rmat,...
-    {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},...
-    'title','loops correct trial','ref_line',true,'median_value',true);
-ylim([0.2,10])
+if false % skipped due to joint stats
+    [rstr,rmat]=wave.replay.stats_replay_sess({ring_raw},'feat_sel',[1 4 5 11 12]);
+    fhring=wave.replay.plot_replay_sess_ci(rmat,...
+        {'Delay','Test','ITI','Before session','After session',},...
+        'title','loops correct trial','ref_line',true,'median_value',true);
+    ylim([0.2,10])
+end
+
+[jstr,jmat]=wave.replay.stats_replay_sess({chain_raw,ring_raw},'feat_sel',[1 4 5 11 12]);
+fhj=wave.replay.plot_replay_sess_ci(jmat,...
+    {'Delay','Test','ITI','Before session','After session',},...
+    'title','Motifs correct trial','ref_line',true,'median_value',true);
+
+set(gca(),ylim=[0.2,10],yscale="log")
+for ii=6:9, fhj.Children.Children(ii).Position(2)=0.25;end
+
+
 
 % correct error chain
 chain_corr_err=cell2struct({chain_raw.count([1 3 2 5 7 6 8 10 9],:)+eps;...
     chain_raw.time([1 3 2 5 7 6 8 10 9],:);...
     chain_raw.condition; ...
     chain_raw.tag},{'count';'time';'condition';'tag'});
-
-[estr,emat]=wave.replay.stats_replay_sess({chain_corr_err});
-% fhb=wave.replay.plot_replay_sess(emat,...
-%     {'Correct','Nonpref','Error','Correct','Nonpref','Error','Correct','Nonpref','Error'},...
-%     'title','chains delay-prior-after','median_value',true);
-
-fhb=wave.replay.plot_replay_sess_ci(emat,...
-    {'Nonpref','Error','Nonpref','Error','Nonpref','Error'},...
-    'title','chains delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false);
-set(gca,'Ylim',[0,1.75],'YScale','linear')
-srp=[1,signrank(emat(:,1),emat(:,2)),signrank(emat(:,1),emat(:,3)),...
-    1,signrank(emat(:,4),emat(:,5)),signrank(emat(:,4),emat(:,6)),...
-    1,signrank(emat(:,7),emat(:,8)),signrank(emat(:,7),emat(:,9))];
-bh=findobj(fhb,'-depth',2,'Type','Bar');
-text(bh.XEndPoints,repmat(1.2,1,6), ...
-    num2str(srp([2 3 5 6 8 9]).','%.3f'),'HorizontalAlignment','center','VerticalAlignment','top');
-
+if false % skipped due to joint stats
+    [estr,emat]=wave.replay.stats_replay_sess({chain_corr_err});
+    fhb=wave.replay.plot_replay_sess_ci(emat,...
+        {'Nonpref','Error','Nonpref','Error','Nonpref','Error'},...
+        'title','chains delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false);
+    set(gca,'Ylim',[0,1.75],'YScale','linear')
+    srp=[1,signrank(emat(:,1),emat(:,2)),signrank(emat(:,1),emat(:,3)),...
+        1,signrank(emat(:,4),emat(:,5)),signrank(emat(:,4),emat(:,6)),...
+        1,signrank(emat(:,7),emat(:,8)),signrank(emat(:,7),emat(:,9))];
+    bh=findobj(fhb,'-depth',2,'Type','Bar');
+    text(bh.XEndPoints,repmat(1.2,1,6), ...
+        num2str(srp([2 3 5 6 8 9]).','%.3f'),'HorizontalAlignment','center','VerticalAlignment','top');
+end
 
 % correct error loop
 ring_corr_err=cell2struct({ring_raw.count([1 3 2 5 7 6 8 10 9],:);...
     ring_raw.time([1 3 2 5 7 6 8 10 9],:);...
     ring_raw.condition; ...
     ring_raw.tag},{'count';'time';'condition';'tag'});
+if false % skipped due to joint stats
+    [estr,emat]=wave.replay.stats_replay_sess({ring_corr_err});
+    fhb=wave.replay.plot_replay_sess_ci(emat,...
+        {'Nonpref','Error','Nonpref','Error','Nonpref','Error'},...
+        'title','loops delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false);
+    set(gca,'Ylim',[0,1.2],'YScale','linear')
+    srp=[1,signrank(emat(:,1),emat(:,2)),signrank(emat(:,1),emat(:,3)),...
+        1,signrank(emat(:,4),emat(:,5)),signrank(emat(:,4),emat(:,6)),...
+        1,signrank(emat(:,7),emat(:,8)),signrank(emat(:,7),emat(:,9))];
+    bh=findobj(fhb,'-depth',2,'Type','Bar');
+    text(bh.XEndPoints,repmat(1.2,1,6), ...
+        num2str(srp([2 3 5 6 8 9]).','%.3f'),'HorizontalAlignment','center','VerticalAlignment','top');
+    ylabel('Normalized motif spike frequency')
+    ylh=yline(1,'r--')
+end
 
-[estr,emat]=wave.replay.stats_replay_sess({ring_corr_err});
-
-fhb=wave.replay.plot_replay_sess_ci(emat,...
+[jestr,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
+fhb=wave.replay.plot_replay_sess_ci(jemat,...
     {'Nonpref','Error','Nonpref','Error','Nonpref','Error'},...
-    'title','loops delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false);
-set(gca,'Ylim',[0,1.2],'YScale','linear')
-srp=[1,signrank(emat(:,1),emat(:,2)),signrank(emat(:,1),emat(:,3)),...
-    1,signrank(emat(:,4),emat(:,5)),signrank(emat(:,4),emat(:,6)),...
-    1,signrank(emat(:,7),emat(:,8)),signrank(emat(:,7),emat(:,9))];
+    'title','loops delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false,'ref_line',true);
+set(gca,'Ylim',[0.45,1.55],'YScale','linear')
+srp=[1,signrank(jemat(:,1),jemat(:,2)),signrank(jemat(:,1),jemat(:,3)),...
+    1,signrank(jemat(:,4),jemat(:,5)),signrank(jemat(:,4),jemat(:,6)),...
+    1,signrank(jemat(:,7),jemat(:,8)),signrank(jemat(:,7),jemat(:,9))];
 bh=findobj(fhb,'-depth',2,'Type','Bar');
 text(bh.XEndPoints,repmat(1.2,1,6), ...
     num2str(srp([2 3 5 6 8 9]).','%.3f'),'HorizontalAlignment','center','VerticalAlignment','top');
 ylabel('Normalized motif spike frequency')
-ylh=yline(1,'r--')
+
+
+
+
 
 % chains, vs control
-[chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
-[chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
-
+% [chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
 [cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
+
+[chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
 [cinconstr,revmat]=wave.replay.stats_replay_sess({chain_raw_incon});
+
 if false % not suitable due to unmatched network-size
     fhb=wave.replay.plot_replay_cross_sess({cmat(:,1),antimat(:,1),revmat(:,1),...
         cmat(:,3),antimat(:,8),revmat(:,8),...
@@ -456,26 +476,25 @@ if false % not suitable due to unmatched network-size
 end
 
 % chains, vs control v2
-yy=[chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:),chain_stats(8,:), chain_stats_anti(8,:), chain_stats_rev(8,:),...
-    chain_stats(5,:),chain_stats_anti(5,:),chain_stats_rev(5,:),chain_stats(11,:),chain_stats_anti(11,:),chain_stats_rev(11,:),...
-    chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)];
-ggn=[size(chain_stats,2),size(chain_stats_anti,2),size(chain_stats_rev,2)];
+yy=[chain_stats(1,:),chain_stats_rev(1,:),...
+    chain_stats(5,:),chain_stats_rev(5,:),chain_stats(11,:),chain_stats_rev(11,:),...
+    chain_stats(12,:),chain_stats_rev(12,:)];
+ggn=[size(chain_stats,2),size(chain_stats_rev,2)];
 
-gg=[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1);...
-    4*ones(ggn(1),1);5*ones(ggn(2),1);6*ones(ggn(3),1);...
-    7*ones(ggn(1),1);8*ones(ggn(2),1);9*ones(ggn(3),1);...
-    10*ones(ggn(1),1);11*ones(ggn(2),1);12*ones(ggn(3),1);...
-    13*ones(ggn(1),1);14*ones(ggn(2),1);15*ones(ggn(3),1)];
+gg=[ones(ggn(1),1);2*ones(ggn(2),1);...
+    3*ones(ggn(1),1);4*ones(ggn(2),1);...
+    5*ones(ggn(1),1);6*ones(ggn(2),1);...
+    7*ones(ggn(1),1);8*ones(ggn(2),1)];
 
-mm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),setdiff(unique(gg),2:3:15));
-cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),setdiff(unique(gg),2:3:15),'UniformOutput',false).');
-
+cmm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),1:8);
+cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),1:8,'UniformOutput',false));
+if false
 figure()
 hold on
 bar(mm.','grouped','FaceColor','none','EdgeColor','k')
-errorbar(1:numel(mm),mm,cci(1,:)-mm.',cci(2,:)-mm.','k.');
+errorbar(1:numel(mm),mm,cci(1,:)-mm,cci(2,:)-mm,'k.');
 ylim([0,0.22])
-set(gca(),'XTick',1.5:2:10,'XTickLabel',{'Delay','Prior','Later','Before','After'})
+set(gca(),'XTick',1.5:2:10,'XTickLabel',{'Delay','ITI','Before','After'})
 title('chains consis-incon') % removed anti-direction
 
 pp=[ranksum(yy(gg==1),yy(gg==3)),...
@@ -490,15 +509,11 @@ text(1.5:2:10,repmat(0.1,1,5),num2str(pp.','%.3f'),'HorizontalAlignment','center
 % p=kruskalwallis([chain_stats(11,:),chain_stats_anti(11,:),chain_stats_rev(11,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 % p=kruskalwallis([chain_stats(12,:),chain_stats_anti(12,:),chain_stats_rev(12,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 
-
-
-
-
-
+end
 
 
 % TODO: loops vs control v2
-yy=[ring_stats(1,:),ring_nom_stats(1,:),ring_stats(8,:),ring_nom_stats(3,:),...
+yy=[ring_stats(1,:),ring_nom_stats(1,:),...
     ring_stats(5,:),ring_nom_stats(2,:),ring_stats(11,:),ring_nom_stats(4,:),...
     ring_stats(12,:),ring_nom_stats(5,:)];
 ggn=[size(ring_stats,2),size(ring_nom_stats,2)];
@@ -506,20 +521,19 @@ ggn=[size(ring_stats,2),size(ring_nom_stats,2)];
 gg=[ones(ggn(1),1);2*ones(ggn(2),1);...
     3*ones(ggn(1),1);4*ones(ggn(2),1);...
     5*ones(ggn(1),1);6*ones(ggn(2),1);...
-    7*ones(ggn(1),1);8*ones(ggn(2),1);...
-    9*ones(ggn(1),1);10*ones(ggn(2),1)];
+    7*ones(ggn(1),1);8*ones(ggn(2),1)];
 
-mm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),unique(gg));
+rmm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),unique(gg).');
 rci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),unique(gg),'UniformOutput',false).');
 
-
+if false
 figure()
 % boxplot(yy,gg,'Colors','k','Symbol','c.')
 hold on
 bar(mm.','grouped','FaceColor','none','EdgeColor','k')
 errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
 ylim([0,1.2])
-set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Prior','Later','Before','After'})
+set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Later','Before','After'})
 title('loops congru-nonmem')
 ylabel('Motif spike frequencey (Hz)')
 
@@ -528,7 +542,15 @@ ylabel('Motif spike frequencey (Hz)')
     ranksum(ring_stats(5,:),ring_nom_stats(2,:)),...
     ranksum(ring_stats(11,:),ring_nom_stats(4,:)),...
     ranksum(ring_stats(12,:),ring_nom_stats(5,:))]
-
+end
+figure
+hold on
+bh=bar([cmm(1:2),rmm(1:2);cmm(3:4),rmm(3:4);cmm(5:6),rmm(5:6);cmm(7:8),rmm(7:8)],'grouped','EdgeColor','k')
+errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
+ylim([0,1.2])
+set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Later','Before','After'})
+title('loops congru-nonmem')
+ylabel('Motif spike frequencey (Hz)')
 
 
 

@@ -24,7 +24,7 @@ classdef replay < handle
                             end
                             pref_trl=onechain.trials(:,5)==samp_pref & onechain.trials(:,8)==dur_pref;
                             nnonmem=false;
-                        else
+                        else %non mem
                             pref_trl=ismember(onechain.trials(:,5),[4 8]) & ismember(onechain.trials(:,8),[3 6]);
                             nnonmem=true;
                         end
@@ -88,7 +88,7 @@ classdef replay < handle
 
                         % succeed ITI pref correct
                         pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
-                            & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
+                            & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test
                             & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
                         freqstats.pref_succeed_ITI=[sum(pref_succeed_iti.*len),...
                             sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
@@ -96,14 +96,14 @@ classdef replay < handle
                         if ~nnonmem
                             % succeed ITI pref error
                             pref_succeed_iti_err=trl_align(:,6)==0 & trl_align(:,7)==1 ...
-                                & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
+                                & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test
                                 & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
                             freqstats.pref_succeed_ITI_err=[sum(pref_succeed_iti_err.*len),...
                                 sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
 
                             % succeed ITI nonpref
                             nonpref_succeed_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref ... % WT, nonpref
-                                & trl_align(:,2)>=(trl_align(:,4)+4)...  % not in delay or test
+                                & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test
                                 & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14)); % 1s samp, 1s test, 2s rwd
                             freqstats.nonpref_succeed_ITI=[sum(nonpref_succeed_iti.*len),...
                                 sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)];
@@ -115,17 +115,17 @@ classdef replay < handle
                         % precede ITI pref correct
                         onechain.trials=[repmat(onechain.trials(1,1)-14*sps,1,10);onechain.trials];
                         pref_precede_iti=all(trl_align(:,12:14)==1,2)...
-                            & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                            & (trl_align(:,2)>=(trl_align(:,4)+5) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
                         freqstats.pref_precede_ITI=[sum(pref_precede_iti.*len),sum((onechain.trials(find(pref_delay_trls)+1,1)-onechain.trials(pref_delay_trls,2))./sps-3)]; %rwd + test
                         if ~nnonmem
                             % precede ITI pref error
                             pref_succeed_iti_err=trl_align(:,13)==0 & trl_align(:,14)==1 ...
-                                & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                                & (trl_align(:,2)>=(trl_align(:,4)+5) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
                             freqstats.pref_precede_ITI_err=[sum(pref_succeed_iti_err.*len),sum((onechain.trials(find(pref_delay_err_trls)+1,1)-onechain.trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
 
                             %  precede ITI nonpref
                             nonpref_precede_iti=all(trl_align(:,12:13)==1,2) & trl_align(:,10)~=samp_pref...
-                                & (trl_align(:,2)>=(trl_align(:,4)+4) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                                & (trl_align(:,2)>=(trl_align(:,4)+5) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
                             freqstats.nonpref_precede_ITI=[sum(nonpref_precede_iti.*len),sum((onechain.trials(find(nonpref_delay_trls)+1,1)-onechain.trials(nonpref_delay_trls,2))./sps-3)]; %rwd + test
                         end
                         onechain.trials(1,:)=[];
@@ -362,7 +362,11 @@ classdef replay < handle
             bar(mm.','grouped','FaceColor','none','EdgeColor','k')
             errorbar(1:numel(mm),mm,ci(1,:)-mm,ci(2,:)-mm,'k.');
             if opt.ref_line
-                yline(median(per_sess_mat(:,1)),'--r');
+                if opt.ratio_block>0
+                    yline(1,'--r');
+                else
+                    yline(median(per_sess_mat(:,1)),'--r');
+                end
             end
             set(gca(),'XTick',1:size(per_sess_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YScale','log')
             if opt.ref_p_value
