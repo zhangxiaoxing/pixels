@@ -431,7 +431,7 @@ ylabel('Normalized motif spike frequency')
 
 % chains, vs control
 % [chain_replay_anti,chain_stats_anti,chain_raw_anti]=wave.replay.stats(sschain_trl_anti,'var_len',false);
-[cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
+% [cantistr,antimat]=wave.replay.stats_replay_sess({chain_raw_anti});
 
 [chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
 [cinconstr,revmat]=wave.replay.stats_replay_sess({chain_raw_incon});
@@ -476,12 +476,12 @@ if false % not suitable due to unmatched network-size
 end
 
 % chains, vs control v2
-yy=[chain_stats(1,:),chain_stats_rev(1,:),...
+cyy=[chain_stats(1,:),chain_stats_rev(1,:),...
     chain_stats(5,:),chain_stats_rev(5,:),chain_stats(11,:),chain_stats_rev(11,:),...
     chain_stats(12,:),chain_stats_rev(12,:)];
 ggn=[size(chain_stats,2),size(chain_stats_rev,2)];
 
-gg=[ones(ggn(1),1);2*ones(ggn(2),1);...
+cgg=[ones(ggn(1),1);2*ones(ggn(2),1);...
     3*ones(ggn(1),1);4*ones(ggn(2),1);...
     5*ones(ggn(1),1);6*ones(ggn(2),1);...
     7*ones(ggn(1),1);8*ones(ggn(2),1)];
@@ -513,12 +513,12 @@ end
 
 
 % TODO: loops vs control v2
-yy=[ring_stats(1,:),ring_nom_stats(1,:),...
+ryy=[ring_stats(1,:),ring_nom_stats(1,:),...
     ring_stats(5,:),ring_nom_stats(2,:),ring_stats(11,:),ring_nom_stats(4,:),...
     ring_stats(12,:),ring_nom_stats(5,:)];
 ggn=[size(ring_stats,2),size(ring_nom_stats,2)];
 
-gg=[ones(ggn(1),1);2*ones(ggn(2),1);...
+rgg=[ones(ggn(1),1);2*ones(ggn(2),1);...
     3*ones(ggn(1),1);4*ones(ggn(2),1);...
     5*ones(ggn(1),1);6*ones(ggn(2),1);...
     7*ones(ggn(1),1);8*ones(ggn(2),1)];
@@ -543,15 +543,46 @@ ylabel('Motif spike frequencey (Hz)')
     ranksum(ring_stats(11,:),ring_nom_stats(4,:)),...
     ranksum(ring_stats(12,:),ring_nom_stats(5,:))]
 end
-figure
-hold on
-bh=bar([cmm(1:2),rmm(1:2);cmm(3:4),rmm(3:4);cmm(5:6),rmm(5:6);cmm(7:8),rmm(7:8)],'grouped','EdgeColor','k')
-errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
-ylim([0,1.2])
-set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Later','Before','After'})
-title('loops congru-nonmem')
-ylabel('Motif spike frequencey (Hz)')
 
+figure
+tiledlayout(2,1)
+nexttile
+hold on
+bh=bar([cmm(1:2);cmm(3:4);cmm(5:6);cmm(7:8)],'grouped','EdgeColor','k')
+errorbar([bh.XEndPoints],[bh.YEndPoints],...
+    cci(1,[1 3 5 7 2 4 6 8])-cmm([1 3 5 7 2 4 6 8]),...
+    cci(2,[1 3 5 7 2 4 6 8])-cmm([1 3 5 7 2 4 6 8]),'k.');
+
+legend(bh,{'Consistent','Inconsistent'},'AutoUpdate','off','Location','northoutside','Orientation','horizontal')
+nexttile
+hold on
+bh=bar([rmm(1:2);rmm(3:4);rmm(5:6);rmm(7:8)],'grouped','EdgeColor','k');
+errorbar([bh.XEndPoints],[bh.YEndPoints],...
+    rci(1,[1 3 5 7 2 4 6 8])-rmm([1 3 5 7 2 4 6 8]),...
+    rci(2,[1 3 5 7 2 4 6 8])-rmm([1 3 5 7 2 4 6 8]),'k.');
+
+
+set(gca(),'XTick',1:4,'XTickLabel',{'Delay','ITI','Before','After'})
+ylabel('Motif spike frequencey (Hz)')
+legend(bh,{'Memory','Nonmemory'},'AutoUpdate','off','Location','northoutside','Orientation','horizontal')
+
+if false % no working due to unbalanced nunmber and median frequency
+    jyy=[cyy,ryy];
+    jgg=[cgg;rgg];
+
+    jmm=arrayfun(@(x) median(jyy(jgg==x & isfinite(jyy.'))),unique(jgg).');
+    jmean=arrayfun(@(x) mean(jyy(jgg==x & isfinite(jyy.'))),unique(jgg).');
+    jci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), jyy(jgg==x & isfinite(jyy.'))),unique(jgg),'UniformOutput',false).');
+
+    figure
+    hold on
+    bh=bar([jmm(1:2);jmm(3:4);jmm(5:6);jmm(7:8)],'grouped','EdgeColor','k')
+    errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
+    ylim([0,1.2])
+    set(gca(),'XTick',1:4,'XTickLabel',{'Delay','ITI','Before','After'})
+    title('loops congru-nonmem')
+    ylabel('Motif spike frequencey (Hz)')
+end
 
 
 wave.replay.region_replay(chain_replay,'reg',"HIP")
