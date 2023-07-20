@@ -486,23 +486,17 @@ cgg=[ones(ggn(1),1);2*ones(ggn(2),1);...
     5*ones(ggn(1),1);6*ones(ggn(2),1);...
     7*ones(ggn(1),1);8*ones(ggn(2),1)];
 
-cmm=arrayfun(@(x) median(yy(gg==x & isfinite(yy.'))),1:8);
-cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), yy(gg==x & isfinite(yy.'))),1:8,'UniformOutput',false));
+cmm=arrayfun(@(x) median(cyy(cgg==x & isfinite(cyy.'))),1:8);
+cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), cyy(cgg==x & isfinite(cyy.'))),1:8,'UniformOutput',false));
 if false
 figure()
 hold on
-bar(mm.','grouped','FaceColor','none','EdgeColor','k')
-errorbar(1:numel(mm),mm,cci(1,:)-mm,cci(2,:)-mm,'k.');
+bar(cmm.','grouped','FaceColor','none','EdgeColor','k')
+errorbar(1:numel(cmm),cmm,cci(1,:)-cmm,cci(2,:)-cmm,'k.');
 ylim([0,0.22])
 set(gca(),'XTick',1.5:2:10,'XTickLabel',{'Delay','ITI','Before','After'})
 title('chains consis-incon') % removed anti-direction
 
-pp=[ranksum(yy(gg==1),yy(gg==3)),...
-    ranksum(yy(gg==4), yy(gg==6)),...
-    ranksum(yy(gg==7), yy(gg==9)),...
-    ranksum(yy(gg==10),yy(gg==12)),...
-    ranksum(yy(gg==13),yy(gg==15))]
-text(1.5:2:10,repmat(0.1,1,5),num2str(pp.','%.3f'),'HorizontalAlignment','center','VerticalAlignment','baseline')
 % p=kruskalwallis([chain_stats(1,:),chain_stats_anti(1,:),chain_stats_rev(1,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 % p=kruskalwallis([chain_stats(8,:),chain_stats_anti(8,:),chain_stats_rev(8,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
 % p=kruskalwallis([chain_stats(5,:),chain_stats_anti(5,:),chain_stats_rev(5,:)],[ones(ggn(1),1);2*ones(ggn(2),1);3*ones(ggn(3),1)],'off')
@@ -537,23 +531,10 @@ set(gca(),'XTick',1.5:2:9.5,'XTickLabel',{'Delay','Later','Before','After'})
 title('loops congru-nonmem')
 ylabel('Motif spike frequencey (Hz)')
 
-[ranksum(ring_stats(1,:),ring_nom_stats(1,:)),...
-    ranksum(ring_stats(8,:),ring_nom_stats(3,:)),...
-    ranksum(ring_stats(5,:),ring_nom_stats(2,:)),...
-    ranksum(ring_stats(11,:),ring_nom_stats(4,:)),...
-    ranksum(ring_stats(12,:),ring_nom_stats(5,:))]
 end
 
-figure
-tiledlayout(2,1)
-nexttile
-hold on
-bh=bar([cmm(1:2);cmm(3:4);cmm(5:6);cmm(7:8)],'grouped','EdgeColor','k')
-errorbar([bh.XEndPoints],[bh.YEndPoints],...
-    cci(1,[1 3 5 7 2 4 6 8])-cmm([1 3 5 7 2 4 6 8]),...
-    cci(2,[1 3 5 7 2 4 6 8])-cmm([1 3 5 7 2 4 6 8]),'k.');
+ 
 
-legend(bh,{'Consistent','Inconsistent'},'AutoUpdate','off','Location','northoutside','Orientation','horizontal')
 nexttile
 hold on
 bh=bar([rmm(1:2);rmm(3:4);rmm(5:6);rmm(7:8)],'grouped','EdgeColor','k');
@@ -561,10 +542,16 @@ errorbar([bh.XEndPoints],[bh.YEndPoints],...
     rci(1,[1 3 5 7 2 4 6 8])-rmm([1 3 5 7 2 4 6 8]),...
     rci(2,[1 3 5 7 2 4 6 8])-rmm([1 3 5 7 2 4 6 8]),'k.');
 
-
 set(gca(),'XTick',1:4,'XTickLabel',{'Delay','ITI','Before','After'})
 ylabel('Motif spike frequencey (Hz)')
 legend(bh,{'Memory','Nonmemory'},'AutoUpdate','off','Location','northoutside','Orientation','horizontal')
+
+rpp=[ranksum(ring_stats(1,:),ring_nom_stats(1,:)),...
+    ranksum(ring_stats(5,:),ring_nom_stats(2,:)),...
+    ranksum(ring_stats(11,:),ring_nom_stats(4,:)),...
+    ranksum(ring_stats(12,:),ring_nom_stats(5,:))]
+
+
 
 if false % no working due to unbalanced nunmber and median frequency
     jyy=[cyy,ryy];

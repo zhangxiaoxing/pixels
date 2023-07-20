@@ -23,8 +23,10 @@ for fidx=1:numel(sums_conn_str)
     end
     sessid=ephys.path2sessid(dpath);
         
-    wm_sel=ismember(sel_meta.wave_id,1:6)
-    sesscid=su_meta.cid
+    wm_sel=ismember(sel_meta.wave_id,1:6);
+    sess_sel=su_meta.sess==sessid;
+    cids=su_meta.allcid(wm_sel & sess_sel);
+    regs=su_meta.reg_tree(5,wm_sel & sess_sel);
     %
 
     if opt.strict
