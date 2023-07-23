@@ -1,3 +1,5 @@
+% reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
+
 function [out,chains]=COM_chain_reg(su_meta,sel_meta,reg_com_maps,opt)
 arguments
     su_meta
@@ -22,73 +24,69 @@ for fidx=1:numel(sums_conn_str)
         dpath=ffpath;
     end
     sessid=ephys.path2sessid(dpath);
-        
-    wm_sel=ismember(sel_meta.wave_id,1:6);
-    sess_sel=su_meta.sess==sessid;
-    cids=su_meta.allcid(wm_sel & sess_sel);
-    regs=su_meta.reg_tree(5,wm_sel & sess_sel);
-    %
 
-    if opt.strict
-        ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
-        strict_sel=ccgqc(:,2)>=252 & ccgqc(:,4)>=2 & ccgqc(:,4)<=40 & ccgqc(:,5)>248;
-        %1:Polarity 2:Time of peak 3:Noise peaks 4:FWHM 5:rising edge
-        %6:falling edge
-        oneccg=sums_conn_str(fidx).ccg_sc(strict_sel,:); %ccg
-        onecon=sums_conn_str(fidx).sig_con(strict_sel,:); %jitter controlled significant functional coupling
-        disp([fidx,nnz(strict_sel),numel(strict_sel)]);
-    else % full input from English, Buzsaki code
-        oneccg=sums_conn_str(fidx).ccg_sc;
-        onecon=sums_conn_str(fidx).sig_con;
-    end
-    %TODO nonmem,incongruent possible if relax criteria?
-
-    %     onecom=wave.get_pct_com_map(sel_meta,'onepath',sums_conn_str(fidx).folder,'curve',true); %per su center of mass, normalized FR
-    %     skey=fieldnames(onecom);
-    %     if isempty(skey), continue;end
-    skey="s"+sessid;
-    if ~isfield(su_com_map,skey)
-        continue
-    end
-
+    % TODO: separate 3s & 6s
     for delay=[3 6]
-        if isfield(su_com_map.(skey{1}),"s1d"+delay) && isfield(su_com_map.(skey{1}),"olf_s1")
-            sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,"olf_s1","com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
-        elseif  isfield(su_com_map.(skey{1}),"s1d"+delay)
-            sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,[],"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
-        elseif  isfield(su_com_map.(skey{1}),"olf_s1")
-            sub_chain=map2subchain(su_com_map,skey,'olf_s1',[],"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
+        if delay==3
+            s1_sel=ismember(sel_meta.wave_id,[1 5]);
+            s2_sel=ismember(sel_meta.wave_id,[3 6]);
+        else
+            s1_sel=ismember(sel_meta.wave_id,[2 5]);
+            s2_sel=ismember(sel_meta.wave_id,[4 6]);
+        end
+        
+        grey_regs=reg_com_maps.("tcom"+delay+"_maps").odor_only.keys;
+
+        sess_sel=su_meta.sess==sessid;
+        grey_sel=ismember(su_meta.reg_tree(5,:),grey_regs).';
+        s1_cids=su_meta.allcid(s1_sel & sess_sel & grey_sel);
+        s2_cids=su_meta.allcid(s2_sel & sess_sel & grey_sel);
+        s1_regs=su_meta.reg_tree(5,s1_sel & sess_sel & grey_sel);
+        s2_regs=su_meta.reg_tree(5,s2_sel & sess_sel & grey_sel);
+
+        reg_tcom.s1.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s1_regs);
+        reg_tcom.s2.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s2_regs);
+
+        if false % opt.strict % TODO: deal with details later
+            ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
+            strict_sel=ccgqc(:,2)>=252 & ccgqc(:,4)>=2 & ccgqc(:,4)<=40 & ccgqc(:,5)>248;
+            %1:Polarity 2:Time of peak 3:Noise peaks 4:FWHM 5:rising edge
+            %6:falling edge
+            oneccg=sums_conn_str(fidx).ccg_sc(strict_sel,:); %ccg
+            sess_con=sums_conn_str(fidx).sig_con(strict_sel,:); %jitter controlled significant functional coupling
+            disp([fidx,nnz(strict_sel),numel(strict_sel)]);
+        else % full input from English, Buzsaki code
+            oneccg=sums_conn_str(fidx).ccg_sc;
+            sess_con=sums_conn_str(fidx).sig_con;
+        end
+        % TODO: nonmem,incongruent possible if relax criteria?
+
+        % s1
+        sub_chain=chain_one(sess_con,s1_cids,reg_tcom.s1.("d"+delay),opt.reverse);
+        if ~isempty(sub_chain)
+            chains=extend_chain(chains,sessid,"s1d",delay,sub_chain);
+        end
+        % s2
+        sub_chain=chain_one(sess_con,s2_cids,reg_tcom.s2.("d"+delay),opt.reverse);
+        if ~isempty(sub_chain)
+            chains=extend_chain(chains,sessid,"s2d",delay,sub_chain);
         end
 
-        if isfield(su_com_map.(skey{1}),"s2d"+delay) && isfield(su_com_map.(skey{1}),"olf_s2")
-            sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,"olf_s2","com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
-        elseif  isfield(su_com_map.(skey{1}),"s2d"+delay)
-            sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,[],"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
-        elseif  isfield(su_com_map.(skey{1}),"olf_s2")
-            sub_chain=map2subchain(su_com_map,skey,'olf_s2',[],"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
-        end
-
-        if opt.odor_only
-            continue
-        end
-        if isfield(su_com_map.(skey{1}),"s1d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
-            sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,"dur_d"+delay,"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
-        end
-        if isfield(su_com_map.(skey{1}),"s2d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
-            sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,"dur_d"+delay,"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
-        end
-        if (~isfield(su_com_map.(skey{1}),"s1d"+delay))&& (~isfield(su_com_map.(skey{1}),"s2d"+delay)) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
-            sub_chain=map2subchain(su_com_map,skey,"dur_d",[],"com"+delay,onecon,opt.reverse);
-            chains=extend_chain(chains,sessid,"dur_"+delay,delay,sub_chain);
-        end
+        % if opt.odor_only  % TODO: .dur
+        %     continue
+        % end
+        % if isfield(su_com_map.(skey{1}),"s1d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
+        %     sub_chain=map2subchain(su_com_map,skey,"s1d"+delay,"dur_d"+delay,"com"+delay,onecon,opt.reverse);
+        %     chains=extend_chain(chains,sessid,"s1d"+delay,delay,sub_chain);
+        % end
+        % if isfield(su_com_map.(skey{1}),"s2d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
+        %     sub_chain=map2subchain(su_com_map,skey,"s2d"+delay,"dur_d"+delay,"com"+delay,onecon,opt.reverse);
+        %     chains=extend_chain(chains,sessid,"s2d"+delay,delay,sub_chain);
+        % end
+        % if (~isfield(su_com_map.(skey{1}),"s1d"+delay))&& (~isfield(su_com_map.(skey{1}),"s2d"+delay)) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
+        %     sub_chain=map2subchain(su_com_map,skey,"dur_d",[],"com"+delay,onecon,opt.reverse);
+        %     chains=extend_chain(chains,sessid,"dur_"+delay,delay,sub_chain);
+        % end
     end
 end
 
@@ -103,67 +101,72 @@ for ii=1:size(chains,1)
     out.cids=[out.cids;split_chains.cids];
     out.tcoms=[out.tcoms;split_chains.tcoms];
 end
+curr_sess=-1;
+out.reg=cell(numel(out.sess),1);
+out.cross_reg=false(numel(out.sess),1);
+for ii=1:numel(out.sess)
+    if out.sess(ii)~=curr_sess
+        sess_cid=su_meta.allcid(su_meta.sess==out.sess(ii));
+        sess_reg=su_meta.reg_tree(5,su_meta.sess==out.sess(ii));
+    end
+    [~,idces]=ismember(out.cids{ii},sess_cid);
+    creg=sess_reg(idces);
+    out.reg{ii}=creg;
+    if numel(unique(creg))>1
+        out.cross_reg(ii)=true;
+    end
+end
 end
 
 function chains=extend_chain(chains,sessid,wvtype,dur,sub_chain)
 chains=[chains;...
     num2cell(repmat(sessid,numel(sub_chain),1)),...
-    repmat({wvtype},numel(sub_chain),1),...
+    repmat({wvtype+dur},numel(sub_chain),1),...
     num2cell(repmat(dur,numel(sub_chain),1)),...%duration
     sub_chain];
 end
 
-function sub_chain=map2subchain(onecom,skey,fn1,fn2,fn_sub,onecon,reverse)
-if isempty(fn2) || ~isfield(onecom.(skey{1}),fn2)
-    mapkeys=cell2mat(onecom.(skey{1}).(fn1).(fn_sub).keys());
-    typesel=all(ismember(int32(onecon),mapkeys),2);
-    curr_com_map=onecom.(skey{1}).(fn1).(fn_sub);
-else
-    mapkeys=[cell2mat(onecom.(skey{1}).(fn1).(fn_sub).keys()),...
-        cell2mat(onecom.(skey{1}).(fn2).(fn_sub).keys())];
-    typesel=all(ismember(int32(onecon),mapkeys),2);
-    mapv=[cell2mat(onecom.(skey{1}).(fn1).(fn_sub).values()),...
-        cell2mat(onecom.(skey{1}).(fn2).(fn_sub).values())];
-    curr_com_map=containers.Map(num2cell(mapkeys),num2cell(mapv));
-end
-sub_chain=chain_one(onecon,typesel,curr_com_map,reverse);
-end
 
-function chains=chain_one(onecon,typesel,curr_com_map,reverse,opt)
+
+function chains=chain_one(sess_con,cids,tcoms,reverse)
 arguments
-    onecon
-    typesel
-    curr_com_map
+    sess_con
+    cids
+    tcoms
     reverse (1,1) logical = false
-    opt.per_region (1,1) logical = true
+end
 
-end
 chains=cell(0);
-if nnz(typesel)<3,return;end
-typesigcon=onecon(typesel,:);
-con_com_prepost=cell2mat(curr_com_map.values(num2cell(int32(typesigcon))));
+if nnz(cids)<3,return;end
+sigcon=sess_con(all(ismember(sess_con,cids),2),:);
+if numel(unique(sigcon))<3,return;end
+[~,idces]=ismember(sigcon,cids);
+con_com_prepost=cell2mat(tcoms(idces));
 if reverse
-    dirsel=con_com_prepost(:,2)<con_com_prepost(:,1);
+    dirsel=con_com_prepost(:,2)<=con_com_prepost(:,1);
 else
-    dirsel=con_com_prepost(:,2)>con_com_prepost(:,1); % Assuming 250ms bin
+    dirsel=con_com_prepost(:,2)>=con_com_prepost(:,1); % Assuming 250ms bin
 end
-dirsigcon=typesigcon(dirsel,:);
+dirsigcon=sigcon(dirsel,:);
 upre=unique(dirsigcon(:,1)).';
 
 for i=upre
     onechain=cell(0);
+    appeared=[];
     cpre=i;
     while true % first pass-through without unfolding all chains
-        newpair=dirsigcon(ismember(dirsigcon(:,1),cpre),:);
+        newpair=dirsigcon(ismember(dirsigcon(:,1),cpre) & ~ismember(dirsigcon(:,2),appeared),:);
+        appeared=unique([appeared;newpair(:)]);
         if isempty(newpair)
+            % TODO: other criteria: cross-region,
             if numel(onechain)>1
                 chains=[chains;{onechain}];
             end
             break
         else
-            onechain{end+1}={...
-                newpair,...
-                cell2mat(curr_com_map.values(num2cell(newpair)))};
+            % TODO: ensure acyclic
+            [~,pidces]=ismember(newpair,cids);
+            onechain{end+1}={newpair,cell2mat(tcoms(pidces))};
             cpre=newpair(:,2);
         end
     end

@@ -200,7 +200,8 @@ classdef chain_tag < handle
                     save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','blame');
                 else
                     % save(fullfile('bzdata','chain_tag.mat'),'out','blame');
-                    save(fullfile(gather_config.odpath,'Tempdata','chain_tag.mat'),'out','blame','notfound')
+                    global gather_config
+                    save(fullfile(gather_config.odpath,'Tempdata','chain_tagR.mat'),'out','blame','notfound')
                 end
             end
 
