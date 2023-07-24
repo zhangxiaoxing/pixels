@@ -597,7 +597,7 @@ classdef replay < handle
             hold on
             bar(mm.','grouped','FaceColor','none','EdgeColor','k')
             errorbar(1:numel(mm),mm,rci(1,:)-mm.',rci(2,:)-mm.','k.');
-            set(gca,'XTick',1.5:2:8,'XTickLabel',{'Delay','aft.ITI','Before sess.','After Sess.'})
+            set(gca,'XTick',1.5:2:8,'XTickLabel',{'Delay','ITI','Before task','After task'})
             % ylim([0,2])
 
             for ii=1:2:8

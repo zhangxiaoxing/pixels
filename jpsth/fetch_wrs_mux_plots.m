@@ -298,10 +298,18 @@ end
 
 %% chain
 if false
-    chains_uf=wave.COM_chain(wrs_mux_meta,com_map,'odor_only',true);
-    chains_uf_rev=wave.COM_chain(wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
+    chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
+    chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
     % blame=vcs.blame();
     % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
+
+    fwd_within=~chains_uf_within.cross_reg;
+    rev_within=~chains_uf_rev_within.cross_reg;
+    for fn=reshape(fieldnames(chains_uf_within),1,[])
+        chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
+        chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
+    end
+
 
     [gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf.cids));
     [gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids));
@@ -320,23 +328,15 @@ else
     
     fwd_cross=chains_uf_all.cross_reg;
     rev_cross=chains_uf_rev_all.cross_reg;
-    for fn=reshape(fieldnames(chains_uf),1,[])
+    for fn=reshape(fieldnames(chains_uf_all),1,[])
         chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
         chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
     end
-
+    len_thresh=3;
     % blame=vcs.blame();
     % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
-    [gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf.cids));
-    [gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids));
 
-    for ii=reshape(union(grf,grr),1,[])
-        if ~ismember(ii,grr) || gcf(grf==ii)>gcr(grr==ii)
-            len_thresh=ii;
-            break
-        end
-    end
 end
 
 wave.chain_stats(chains_uf,chains_uf_rev,su_meta,'odor_only',true);
@@ -350,7 +350,11 @@ set(fh3.Children(1).Children(2),'YLim',[5e-6,2])
 set(fhf.Children(1).Children(1),'YLim',[1e-3,10])
 set(fhf.Children(1).Children(2),'YLim',[1e-3,10])
 
-[sschain.out,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',false); % per-spk association
+if false %denovo
+    [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',false); % per-spk association
+else %load
+    load(fullfile(gather_config.odpath,'Tempdata','chain_tagR.mat'))
+end
 wave.motif_dynamic.single_spike_chains(sschain.out)
 % save(fullfile("bzdata","chain_tag_tbl.mat"),"sschain","unfound","blame")
 % load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
@@ -358,9 +362,10 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 
 % serveral minutes %TODO tic toc?
 % consider load file
+tic
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
 [sschain_trl_rev,unfound_rev]=wave.chain_tag.tag(chains_uf_rev,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
-
+toc
 %% replay figure Jun13 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 % optional import saved data from tempdata folder
@@ -393,7 +398,7 @@ fhj=wave.replay.plot_replay_sess_ci(jmat,...
     {'Delay','Test','ITI','Before session','After session',},...
     'title','Motifs correct trial','ref_line',true,'median_value',true);
 
-set(gca(),ylim=[0.2,10],yscale="log")
+set(gca(),ylim=[0,3],yscale="linear")
 for ii=6:9, fhj.Children.Children(ii).Position(2)=0.25;end
 
 

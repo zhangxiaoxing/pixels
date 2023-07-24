@@ -7,8 +7,9 @@
 % blame=vcs.blame();
 % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
 
-function [out,chains]=COM_chain(sel_meta,su_com_map,opt)
+function [out,chains]=COM_chain(su_meta,sel_meta,su_com_map,opt)
 arguments
+    su_meta
     sel_meta
     su_com_map
     opt.strict (1,1) logical = false %strict ccg criteria
@@ -105,6 +106,21 @@ for ii=1:size(chains,1)
     out.dur=[out.dur;repmat(chains{ii,3},size(split_chains.cids,1),1)];
     out.cids=[out.cids;split_chains.cids];
     out.tcoms=[out.tcoms;split_chains.tcoms];
+end
+curr_sess=-1;
+out.reg=cell(numel(out.sess),1);
+out.cross_reg=false(numel(out.sess),1);
+for ii=1:numel(out.sess)
+    if out.sess(ii)~=curr_sess
+        sess_cid=su_meta.allcid(su_meta.sess==out.sess(ii));
+        sess_reg=su_meta.reg_tree(5,su_meta.sess==out.sess(ii));
+    end
+    [~,idces]=ismember(out.cids{ii},sess_cid);
+    creg=sess_reg(idces);
+    out.reg{ii}=creg;
+    if numel(unique(creg))>1
+        out.cross_reg(ii)=true;
+    end
 end
 end
 
