@@ -368,7 +368,7 @@ classdef replay < handle
                     yline(median(per_sess_mat(:,1)),'--r');
                 end
             end
-            set(gca(),'XTick',1:size(per_sess_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YScale','log')
+            set(gca(),'XTick',1:size(per_sess_mat,2),'XTickLabel',xlbl,'XTickLabelRotation',90,'YLim',[0,4])
             if opt.ref_p_value
                 for jj=2:size(per_sess_mat,2)
                     finisel=isfinite(per_sess_mat(:,jj));
@@ -384,7 +384,6 @@ classdef replay < handle
                 end
             end
 
-            ylim([0.1,10]);
             title(opt.title)
             ylabel('Motif spike frequency (Hz)')
             

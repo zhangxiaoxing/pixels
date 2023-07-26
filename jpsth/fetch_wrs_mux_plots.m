@@ -3,7 +3,7 @@
 
 keyboard()
 
-%% basic stats >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+%% basic stats %%%%%%%%%%%%%%%%%%%%>>
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
@@ -55,8 +55,8 @@ end
 wave_n_stay=nnz(ismember(wrs_mux_meta.wave_id,1:6) & wrs_mux_meta.p_olf(:,3)<0.05 & all(wrs_mux_meta.p_olf6<0.05,2));
 olf=nnz(ismember(wrs_mux_meta.wave_id,1:6));
 
-%% show case >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-% olf >>>>>>>>>>>>>>>>>>>>>>>>>
+%% show case %%%%%%%%%%%%%%%%%%%%%%%%>
+% olf %%%%%%%%%%%%%%%%>
 % #510
 % idx=find(ismember(wrs_mux_meta.wave_id,5:6) & all(wrs_mux_meta.p_olf<1e-12,2));
 idx=[510];
@@ -69,7 +69,7 @@ for ii=reshape(idx,1,[])
 end
 
 %<<<<<<<<<<<<<<<<<<<<<<
-%>>>>dur >>>>>>>>>>>>>>>>>>>>>>>
+%%%>dur %%%%%%%%%%%%%%>>
 % idx=find(ismember(wrs_mux_meta.wave_id,7:8) & any(wrs_mux_meta.p_dur<1e-4,2));
 idx=[2617];
 for ii=reshape(idx,1,[])
@@ -102,7 +102,7 @@ for ii=reshape(idx,1,[])
 end
 
 
-%% correct error decoding >>>>>>>>>>>>>>>>>
+%% correct error decoding %%%%%%%%%%>>
 % svm on neuron firing rates
 if false
     odor4odor=pct.pct_decoding_correct_error(wrs_mux_meta,5:6,'lblidx',5,'n_su',50);% odor
@@ -243,7 +243,7 @@ if false
 end
 % bz.inter_wave_ext_bars()
 
-%>>> jump to TCOM section as needed
+%%% jump to TCOM section as needed
 fh4=bz.inter_wave_pct(wrs_mux_meta,'odor_only',true); %congru vs incongru vs nonmem bar lot
 fh4.fig.Children.Subtitle.String='Excitatory';
 if false
@@ -296,54 +296,39 @@ end
 
 
 
-%% chain
-if false
-    chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
-    chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
-    % blame=vcs.blame();
-    % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
+%% chain join cross-reg, within-reg
+reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
+chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
+chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
 
-    fwd_within=~chains_uf_within.cross_reg;
-    rev_within=~chains_uf_rev_within.cross_reg;
-    for fn=reshape(fieldnames(chains_uf_within),1,[])
-        chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
-        chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
-    end
-
-
-    [gcf,grf]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf.cids));
-    [gcr,grr]=groupcounts(cellfun(@(x) numel(unique(x)),chains_uf_rev.cids));
-
-    for ii=reshape(union(grf,grr),1,[])
-        if ~ismember(ii,grr) || gcf(grf==ii)>gcr(grr==ii)
-            len_thresh=ii;
-            break
-        end
-    end
-else
-    reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
-    chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
-    chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
-    % TODO: remove within-region due to overlap
-    
-    fwd_cross=chains_uf_all.cross_reg;
-    rev_cross=chains_uf_rev_all.cross_reg;
-    for fn=reshape(fieldnames(chains_uf_all),1,[])
-        chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
-        chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
-    end
-    len_thresh=3;
-    % blame=vcs.blame();
-    % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
-
-
+% cross
+fwd_cross=chains_uf_all.cross_reg;
+rev_cross=chains_uf_rev_all.cross_reg;
+for fn=reshape(fieldnames(chains_uf_all),1,[])
+    chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
+    chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
 end
 
-wave.chain_stats(chains_uf,chains_uf_rev,su_meta,'odor_only',true);
+chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
+chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
 
+
+% within, using per-su-tcom
+fwd_within=~chains_uf_within.cross_reg;
+rev_within=~chains_uf_rev_within.cross_reg;
+for fn=reshape(fieldnames(chains_uf_within),1,[])
+    chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
+    chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
+end
+len_thresh=3;
+
+if false % unhelpful
+    wave.chain_stats(chains_uf,chains_uf_rev,su_meta,'odor_only',true);
+end
+
+% TODO: update shuffle-related parts
 % shuf_chains=wave.COM_chain_shuf(wrs_mux_meta,1:100,'odor_only',true)
 % blame=vcs.blame();save('chains_shuf.mat','shuf_chains','blame')
-len_thresh=3;
 [fh3,fhf]=wave.chain_stats_regs(chains_uf,su_meta,len_thresh,"odor_only",true);
 set(fh3.Children(1).Children(1),'YLim',[1e-4,2])
 set(fh3.Children(1).Children(2),'YLim',[5e-6,2])
@@ -364,9 +349,11 @@ wave.motif_dynamic.single_spike_chains(sschain.out)
 % consider load file
 tic
 [sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
+toc
+tic
 [sschain_trl_rev,unfound_rev]=wave.chain_tag.tag(chains_uf_rev,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
 toc
-%% replay figure Jun13 >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+%% replay figure Jun13 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % optional import saved data from tempdata folder
 % global_init
@@ -393,14 +380,13 @@ if false % skipped due to joint stats
     ylim([0.2,10])
 end
 
-[jstr,jmat]=wave.replay.stats_replay_sess({chain_raw,ring_raw},'feat_sel',[1 4 5 11 12]);
+[jstr,jmat]=wave.replay.stats_replay_sess({chain_raw,ring_raw},'feat_sel',[1 5 11 12]);
 fhj=wave.replay.plot_replay_sess_ci(jmat,...
-    {'Delay','Test','ITI','Before session','After session',},...
+    {'Delay','ITI','Before session','After session',},...
     'title','Motifs correct trial','ref_line',true,'median_value',true);
 
 set(gca(),ylim=[0,3],yscale="linear")
 for ii=6:9, fhj.Children.Children(ii).Position(2)=0.25;end
-
 
 
 % correct error chain
@@ -617,7 +603,7 @@ ylim([0,3])
 
 
 
-%% composite ablation >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+%% composite ablation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%>>
 % sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
 % load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats')
 wave.composite_thin_down.demo(sschain,pstats)
