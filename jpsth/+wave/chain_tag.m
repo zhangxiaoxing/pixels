@@ -1,5 +1,8 @@
 % [sschain_trl,unfound]=wave.chain_tag(chains_uf,'skip_save',true,'len_thresh',len_thresh,'odor_only',true,'extend_trial',true,'skip_ts_id',true,'DEBUG',true); % per-spk association
 %
+
+
+% parpool('Threads',4)
 classdef chain_tag < handle
     methods(Static)
         function [out,notfound]=tag(chains,len_thresh,opt)
@@ -44,7 +47,7 @@ classdef chain_tag < handle
             %% build chains
             % all_chains=fieldnames(pstats.congru);
             processed=cell2struct({[];[]},{'d3','d6'});
-            for sessid=sesses
+            for sessid=sesses %TODO: threads
                 if opt.DEBUG && sessid>33
                     break
                 end
@@ -139,7 +142,7 @@ classdef chain_tag < handle
                                 outkey="s"+sessid+"c"+cc;
                                 out.("d"+duration).(outid).(outkey).ts=ts;
                                 if opt.skip_ts_id
-                                    out.("d"+duration).(outid).(outkey).meta={sessid,cids};
+                                    out.("d"+duration).(outid).(outkey).meta={sessid,cids,chains.cross_reg(cc)};
                                 else
                                     out.("d"+duration).(outid).(outkey).meta={cids,chains.tcoms(cc)};
                                 end
@@ -208,23 +211,6 @@ classdef chain_tag < handle
             % stats(out);
         end
         %
-        % function stats(out)
-        % for dur=reshape(fieldnames(out),1,[])
-        %     perchaindur=struct();
-        %     [perchaindur.size,perchaindur.dur]=deal([]);
-        %     for wv=reshape(fieldnames(out.(dur{1})),1,[])
-        %         for lp=reshape(fieldnames(out.(dur{1}).(wv{1})),1,[])
-        %             perchaindur.size=[perchaindur.size;size(out.(dur{1}).(wv{1}).(lp{1}).ts,2)];
-        %             perchaindur.dur=[perchaindur.dur;{diff(out.(dur{1}).(wv{1}).(lp{1}).ts(:,[1,end]),1,2)./30}];
-        %         end
-        %     end
-        %     statss.("d"+dur)=perchaindur;
-        % end
-        %
-        % disp([max(cell2mat(statss.dd3.dur)),max(cell2mat(statss.dd6.dur))])
-        %
-        % end
-
 
         function out=chain_alt(in)
             out=[];
