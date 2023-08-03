@@ -3,7 +3,7 @@ arguments
     opt.adjust_white_matter (1,1) logical
 end
 
-fstr=load('regs_default_and_adjust_220608.mat');
+fstr=load(fullfile('binary','regs_default_and_adjust_220608.mat'));
 
 if opt.adjust_white_matter
     acronym_list=fstr.a(:,2);

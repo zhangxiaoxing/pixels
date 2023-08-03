@@ -37,8 +37,8 @@ else
         addpath('~/Lib/buzcode/buzcode/externalPackages/FMAToolbox/Helpers/');
     end
     if opt.ft
-        addpath(fullfile('~','Lib','npy-matlab-master','npy-matlab'))
-        addpath(fullfile('~','Lib','fieldtrip-20200320'))
+        % addpath(fullfile('~','Lib','npy-matlab-master','npy-matlab'))
+        addpath(fullfile('~','Lib','fieldtrip'))
         ft_defaults
     end
 end

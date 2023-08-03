@@ -1,3 +1,7 @@
+%% untouched since 2020, pending removal
+
+%%
+
 
 [geplist1,reglist1]=sortdata(1,fstr);
 [geplist2,reglist2]=sortdata(2,fstr);

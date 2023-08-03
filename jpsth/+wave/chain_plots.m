@@ -28,17 +28,21 @@ tcom6_maps.odor_only=containers.Map(...
 
 
 %%
-
+len_thresh=3;
 reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
 chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
 chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
-% TODO: remove within-region due to overlap
+chains_nm_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true);
 
 fwd_cross=chains_uf_all.cross_reg;
 rev_cross=chains_uf_rev_all.cross_reg;
+nm_cross=chains_nm_all.cross_reg;
+nm_samp=randsample(numel(chains_nm_all.sess),5000);
 for fn=reshape(fieldnames(chains_uf_all),1,[])
     chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
     chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
+    chains_nm.(fn{1})=chains_nm_all.(fn{1})(nm_cross);
+    chains_nm_samp.(fn{1})=chains_nm_all.(fn{1})(nm_samp);
 end
 
 
@@ -54,6 +58,8 @@ for fn=reshape(fieldnames(chains_uf_within),1,[])
     chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
 end
 
+% TODO: remove within-region due to partial-overlap
+
 %%
 
 
@@ -67,12 +73,15 @@ else
     tic
     [sschain_trl_rev,unfound_rev]=wave.chain_tag.tag(chains_uf_rev,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
     toc
+    tic
+    [sschain_trl_nm,unfound_nm]=wave.chain_tag.tag(chains_nm,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
+    toc
 end
 
 %%
+
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
 [chain_replay_rev,chain_stats_rev,chain_raw_incon]=wave.replay.stats(sschain_trl_rev,'var_len',false);
-
 %% vs control
 cyy=[chain_stats(1,:),chain_stats_rev(1,:),...
     chain_stats(5,:),chain_stats_rev(5,:),chain_stats(11,:),chain_stats_rev(11,:),...
@@ -84,15 +93,14 @@ cgg=[ones(ggn(1),1);2*ones(ggn(2),1);...
     5*ones(ggn(1),1);6*ones(ggn(2),1);...
     7*ones(ggn(1),1);8*ones(ggn(2),1)];
 
-cmm=arrayfun(@(x) median(cyy(cgg==x & isfinite(cyy.'))),1:8);
-cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), cyy(cgg==x & isfinite(cyy.'))),1:8,'UniformOutput',false));
+cmm=arrayfun(@(x) mean(cyy(cgg==x & isfinite(cyy.'))),1:8);
+cci=cell2mat(arrayfun(@(x) bootci(100,@(x) mean(x), cyy(cgg==x & isfinite(cyy.'))),1:8,'UniformOutput',false));
 
 
 figure()
 hold on
 bar(cmm.','grouped','FaceColor','none','EdgeColor','k')
 errorbar(1:numel(cmm),cmm,cci(1,:)-cmm,cci(2,:)-cmm,'k.');
-ylim([0,0.22])
 set(gca(),'XTick',1.5:2:10,'XTickLabel',{'Delay','ITI','Before','After'})
 title('chains consis-incon')
 

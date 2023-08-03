@@ -8,6 +8,7 @@ arguments
     opt.strict (1,1) logical = false %strict ccg criteria
     opt.reverse (1,1) logical = false
     opt.odor_only (1,1) logical = false
+    opt.non_mem (1,1) logical = false
 end
 % global_init
 load('sums_conn_10.mat','sums_conn_str');
@@ -24,8 +25,8 @@ for fidx=1:numel(sums_conn_str)
         dpath=ffpath;
     end
     sessid=ephys.path2sessid(dpath);
-
-    % TODO: separate 3s & 6s
+    sess_sel=su_meta.sess==sessid;
+    %separate 3s & 6s
     for delay=[3 6]
         if delay==3
             s1_sel=ismember(sel_meta.wave_id,[1 5]);
@@ -35,18 +36,24 @@ for fidx=1:numel(sums_conn_str)
             s2_sel=ismember(sel_meta.wave_id,[4 6]);
         end
         
+
         grey_regs=reg_com_maps.("tcom"+delay+"_maps").odor_only.keys;
-
-        sess_sel=su_meta.sess==sessid;
         grey_sel=ismember(su_meta.reg_tree(5,:),grey_regs).';
-        s1_cids=su_meta.allcid(s1_sel & sess_sel & grey_sel);
-        s2_cids=su_meta.allcid(s2_sel & sess_sel & grey_sel);
-        s1_regs=su_meta.reg_tree(5,s1_sel & sess_sel & grey_sel);
-        s2_regs=su_meta.reg_tree(5,s2_sel & sess_sel & grey_sel);
 
-        reg_tcom.s1.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s1_regs);
-        reg_tcom.s2.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s2_regs);
+        if opt.non_mem
+            nmm_sel=sel_meta.wave_id==0;
+            nm_cids=su_meta.allcid(nmm_sel & sess_sel & grey_sel);
+            nm_regs=su_meta.reg_tree(5,nmm_sel & sess_sel & grey_sel);
+            reg_tcom.nm.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(nm_regs);
+        else
+            s1_cids=su_meta.allcid(s1_sel & sess_sel & grey_sel);
+            s2_cids=su_meta.allcid(s2_sel & sess_sel & grey_sel);
+            s1_regs=su_meta.reg_tree(5,s1_sel & sess_sel & grey_sel);
+            s2_regs=su_meta.reg_tree(5,s2_sel & sess_sel & grey_sel);
 
+            reg_tcom.s1.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s1_regs);
+            reg_tcom.s2.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s2_regs);
+        end
         if false % opt.strict % TODO: deal with details later
             ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
             strict_sel=ccgqc(:,2)>=252 & ccgqc(:,4)>=2 & ccgqc(:,4)<=40 & ccgqc(:,5)>248;
@@ -61,15 +68,22 @@ for fidx=1:numel(sums_conn_str)
         end
         % TODO: nonmem,incongruent possible if relax criteria?
 
-        % s1
-        sub_chain=chain_one(sess_con,s1_cids,reg_tcom.s1.("d"+delay),opt.reverse);
-        if ~isempty(sub_chain)
-            chains=extend_chain(chains,sessid,"s1d",delay,sub_chain);
-        end
-        % s2
-        sub_chain=chain_one(sess_con,s2_cids,reg_tcom.s2.("d"+delay),opt.reverse);
-        if ~isempty(sub_chain)
-            chains=extend_chain(chains,sessid,"s2d",delay,sub_chain);
+        if opt.non_mem
+            sub_chain=chain_one(sess_con,nm_cids,reg_tcom.nm.("d"+delay),opt.reverse);
+            if ~isempty(sub_chain)
+                chains=extend_chain(chains,sessid,"nmd",delay,sub_chain);
+            end
+        else
+            % s1
+            sub_chain=chain_one(sess_con,s1_cids,reg_tcom.s1.("d"+delay),opt.reverse);
+            if ~isempty(sub_chain)
+                chains=extend_chain(chains,sessid,"s1d",delay,sub_chain);
+            end
+            % s2
+            sub_chain=chain_one(sess_con,s2_cids,reg_tcom.s2.("d"+delay),opt.reverse);
+            if ~isempty(sub_chain)
+                chains=extend_chain(chains,sessid,"s2d",delay,sub_chain);
+            end
         end
 
         % if opt.odor_only  % TODO: .dur

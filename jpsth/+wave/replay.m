@@ -4,14 +4,24 @@ classdef replay < handle
             arguments
                 motif_replay
                 opt.var_len (1,1) logical = false
+                opt.cross_only (1,1) logical = false
+                opt.within_only (1,1) logical = false
                 % opt.nonmem_ring (1,1) logical = false
             end
+            assert(~(opt.cross_only && opt.within_only),"conflict selection")
+            
+
             sps=30000;
 
             for dd=reshape(fieldnames(motif_replay),1,[])
                 for ww=reshape(fieldnames(motif_replay.(dd{1})),1,[])
                     for cc=reshape(fieldnames(motif_replay.(dd{1}).(ww{1})),1,[])
                         onechain=motif_replay.(dd{1}).(ww{1}).(cc{1});
+                        if (opt.cross_only && ~onechain.meta{3}) ...
+                                || (opt.within_only && onechain.meta{3})
+                            continue
+                        end
+
                         if ~strcmp(ww{1},'none')
                             dur_pref=str2double(dd{1}(2:end));
                             if contains(ww,'s1')
@@ -160,6 +170,12 @@ classdef replay < handle
             for dd=reshape(fieldnames(motif_replay),1,[])
                 for ww=reshape(fieldnames(motif_replay.(dd{1})),1,[])
                     for cc=reshape(fieldnames(motif_replay.(dd{1}).(ww{1})),1,[])
+
+                        if (opt.cross_only && ~motif_replay.(dd{1}).(ww{1}).(cc{1}).meta{3}) ...
+                                || (opt.within_only && motif_replay.(dd{1}).(ww{1}).(cc{1}).meta{3})
+                            continue
+                        end
+
                         sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                         raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats))];
                         raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_replay.(dd{1}).(ww{1}).(cc{1}).freqstats))];
