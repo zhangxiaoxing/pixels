@@ -22,7 +22,7 @@ classdef replay < handle
                             continue
                         end
 
-                        if ~strcmp(ww{1},'none')
+                        if ~(strcmp(ww{1},'none') || contains(ww,'nm'))
                             dur_pref=str2double(dd{1}(2:end));
                             if contains(ww,'s1')
                                 samp_pref=4;

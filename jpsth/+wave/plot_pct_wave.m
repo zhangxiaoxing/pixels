@@ -137,7 +137,7 @@ for plot_id=opt.comb_set
                 end
             end
         case 4 % merge olf and mix
-            % TODO: merge curve
+            % merge curve
             imdata=cell2struct({struct();struct()},{'s1n','s2n'});
             imdata.s1n=cell2struct({[];[];[]},{'com','s1t','s2t'});
             imdata.s2n=cell2struct({[];[];[]},{'com','s1t','s2t'});

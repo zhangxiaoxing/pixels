@@ -14,7 +14,7 @@ wrs_mux_meta=ephys.get_wrs_mux_meta();
 % map_cells: mixed_map,olf_map,dur_map
 % TODO: cross_thresh hold
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false,'odor_only',true);
-%%
+%
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 tcom3_maps=struct();
 tcom6_maps=struct();
@@ -227,8 +227,6 @@ end
 %% TODO: COM_CHAIN
 % K:\code\jpsth\+wave\COM_chain_SC.m
 
-%% FIG 4 vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-% [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
 fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,tcom6_maps,'delay',6,'odor_only',true);
 fcstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,com_map,tcom3_maps,'delay',3,'odor_only',true);
 [barmm,barci,barcnt]=fc.fc_com_reg_wave.sums([fcstats6;fcstats3],"odor_only",true);

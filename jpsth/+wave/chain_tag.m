@@ -64,10 +64,10 @@ classdef chain_tag < handle
                         elseif contains(wid,'s2')
                             trial_sel=find(trials(:,5)==8 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
                             % outid="olf_s2";
-                        elseif contains(wid,'dur')
-                            if opt.odor_only
+                        else 
+                            if opt.odor_only && contains(wid,'dur')
                                 continue
-                            else
+                            else % nonmem, dur
                                 trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
                             end
                         end
