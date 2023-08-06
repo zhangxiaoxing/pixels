@@ -1,5 +1,5 @@
 
-function fh=plot_pct_wave(com_map,opt)
+function [fh,imdata]=plot_pct_wave(com_map,opt)
 arguments
 %     eff_meta
     com_map
@@ -139,8 +139,8 @@ for plot_id=opt.comb_set
         case 4 % merge olf and mix
             % merge curve
             imdata=cell2struct({struct();struct()},{'s1n','s2n'});
-            imdata.s1n=cell2struct({[];[];[]},{'com','s1t','s2t'});
-            imdata.s2n=cell2struct({[];[];[]},{'com','s1t','s2t'});
+            imdata.s1n=cell2struct({[];[];[];[];[]},{'com','s1t','s2t','sess','id'});
+            imdata.s2n=cell2struct({[];[];[];[];[]},{'com','s1t','s2t','sess','id'});
             [comkey,s1key,s2key]=deal("com"+opt.delay,"s1d"+opt.delay,"s2d"+opt.delay);
             for sess=string(reshape(fieldnames(com_map),1,[]))
                 if isfield(com_map.(sess),'olf_s1')
@@ -151,16 +151,27 @@ for plot_id=opt.comb_set
                         com_map.(sess).olf_s1.(s1key).values(os1key.')];
                     imdata.s1n.s2t=[imdata.s1n.s2t;...
                         com_map.(sess).olf_s1.(s2key).values(os1key.')];
+                    imdata.s1n.sess=[imdata.s1n.sess;...
+                        repmat(str2double(replace(sess,'s','')),...
+                        numel(os1key),1)];
+                    imdata.s1n.id=[imdata.s1n.id;...
+                        cell2mat(os1key).'];
                 end
 
                 if isfield(com_map.(sess),s1key)
-                    d6s1key=com_map.(sess).(s1key).(comkey).keys();
+                    d36s1key=com_map.(sess).(s1key).(comkey).keys();
                     imdata.s1n.com=[imdata.s1n.com;...
                         cell2mat(com_map.(sess).(s1key).(comkey).values().')];
                     imdata.s1n.s1t=[imdata.s1n.s1t;...
-                        com_map.(sess).(s1key).(s1key).values(d6s1key.')];
+                        com_map.(sess).(s1key).(s1key).values(d36s1key.')];
                     imdata.s1n.s2t=[imdata.s1n.s2t;...
-                        com_map.(sess).(s1key).(s2key).values(d6s1key.')];
+                        com_map.(sess).(s1key).(s2key).values(d36s1key.')];
+                    imdata.s1n.sess=[imdata.s1n.sess;...
+                        repmat(str2double(replace(sess,'s','')),...
+                        numel(d36s1key),1)];
+                    imdata.s1n.id=[imdata.s1n.id;...
+                        cell2mat(d36s1key).'];
+
                 end
 
                 if isfield(com_map.(sess),'olf_s2')
@@ -171,16 +182,27 @@ for plot_id=opt.comb_set
                         com_map.(sess).olf_s2.(s1key).values(os2key.')];
                     imdata.s2n.s2t=[imdata.s2n.s2t;...
                         com_map.(sess).olf_s2.(s2key).values(os2key.')];
+                    imdata.s2n.sess=[imdata.s2n.sess;...
+                        repmat(str2double(replace(sess,'s','')),...
+                        numel(os2key),1)];
+                    imdata.s2n.id=[imdata.s2n.id;...
+                        cell2mat(os2key).'];
+
                 end
 
                 if isfield(com_map.(sess),s2key)
-                    d6s2key=com_map.(sess).(s2key).(comkey).keys();
+                    d36s2key=com_map.(sess).(s2key).(comkey).keys();
                     imdata.s2n.com=[imdata.s2n.com;...
                         cell2mat(com_map.(sess).(s2key).(comkey).values().')];
                     imdata.s2n.s1t=[imdata.s2n.s1t;...
-                        com_map.(sess).(s2key).(s1key).values(d6s2key.')];
+                        com_map.(sess).(s2key).(s1key).values(d36s2key.')];
                     imdata.s2n.s2t=[imdata.s2n.s2t;...
-                        com_map.(sess).(s2key).(s2key).values(d6s2key.')];
+                        com_map.(sess).(s2key).(s2key).values(d36s2key.')];
+                    imdata.s2n.sess=[imdata.s2n.sess;...
+                        repmat(str2double(replace(sess,'s','')),...
+                        numel(d36s2key),1)];
+                    imdata.s2n.id=[imdata.s2n.id;...
+                        cell2mat(d36s2key).'];
                 end
             end
 
@@ -189,6 +211,9 @@ for plot_id=opt.comb_set
             tiledlayout(2,2)
             [~,sorts1]=sort(imdata.s1n.com);
             [~,sorts2]=sort(imdata.s2n.com);
+            imdata.s1n.sorts=sorts1;
+            imdata.s2n.sorts=sorts2;
+
             nexttile();
             plotOne(cell2mat(imdata.s1n.s1t(sorts1,:)),'scale',opt.scale,'gauss2d',opt.gauss2d,'xlim',opt.xlim);
             nexttile();
