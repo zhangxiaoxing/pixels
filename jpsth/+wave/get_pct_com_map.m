@@ -3,7 +3,7 @@ arguments
     pct_meta  (1,1) struct
     opt.one_sess (1,:) double = [] % process one session under the given non-empty path
     opt.curve (1,1) logical = false % Norm. FR curve % always true as of 2023.08.08
-    opt.rnd_half (1,1) logical = true % for bootstrap variance test
+    opt.rnd_half (1,1) logical = false % for bootstrap variance test
     opt.err (1,1) logical = false %u stats in error trials
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
