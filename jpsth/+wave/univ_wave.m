@@ -295,6 +295,174 @@ classdef univ_wave < handle
             end
         end
 
+        function nonmemdata=nonmemstats(opt)
+            arguments
+                opt.rpt (1,1) double =100
+                opt.loadfile (1,1) logical = false
+                opt.filename (1,:) char = 'temp0809_nonmem.mat'
+            end
+            if opt.loadfile
+                load(fullfile('binary/',opt.filename),'nonmemdata');
+                return
+            end
+            delay=6;
+            global_init;
+            wrs_mux_meta=ephys.get_wrs_mux_meta();
+            % TODO nonmem
+
+            [imdata.s1n.s1iti,imdata.s1n.s2iti,imdata.s2n.s1iti,imdata.s2n.s2iti]=deal([]);
+
+            itidata.s1n.h1h=nan(numel(imdata.s1n.id),100);
+            itidata.s1n.h2h=nan(numel(imdata.s1n.id),100);
+            itidata.s2n.h1h=nan(numel(imdata.s2n.id),100);
+            itidata.s2n.h1h=nan(numel(imdata.s2n.id),100);
+            [itidata.s1n.sess,itidata.s1n.cid,itidata.s2n.sess,itidata.s2n.cid]=deal([]);
+
+
+            sessid=-1;
+            for ii=1:numel(imdata.s1n.sess)
+                if ~(sessid==imdata.s1n.sess(ii))
+                    save(fullfile('binary',opt.filename),'itidata');
+                    sessid=imdata.s1n.sess(ii);
+                    warning(string(sessid))
+                    [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
+                    trls=FT_SPIKE.trialinfo;
+                    % half-half COM TRLS
+                    % ______________________________________________
+                    s1trl=find(trls(:,5)==4 & all(trls(:,9:10),2) & trls(:,8)==delay);
+                    s2trl=find(trls(:,5)==8 & all(trls(:,9:10),2) & trls(:,8)==delay);
+                end
+
+                cid=imdata.s1n.id(ii);
+                itidata.s1n.sess=[itidata.s1n.sess;sessid];
+                itidata.s1n.cid=[itidata.s1n.cid;cid];
+                
+                susel=strcmp(FT_SPIKE.label,num2str(cid));
+    
+                % repeats
+                
+                for rpt=1:opt.rpt
+                    s1trl1h=randsample(s1trl,round(numel(s1trl)./2));
+                    s1trl2h=setdiff(s1trl,s1trl1h);
+
+                    s2trl1h=randsample(s2trl,round(numel(s2trl)./2));
+                    s2trl2h=setdiff(s2trl,s2trl1h);
+
+                    % one-su com@1h
+                    s1tsel1h=ismember(FT_SPIKE.trial{susel},s1trl1h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+
+                    s1tfreq1h=histcounts(FT_SPIKE.time{susel}(s1tsel1h)-5-delay,0:0.25:5)./numel(s1trl1h);
+
+                    s2tsel1h=ismember(FT_SPIKE.trial{susel},s2trl1h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+                    s2tfreq1h=histcounts(FT_SPIKE.time{susel}(s2tsel1h)-5-delay,0:0.25:5)./numel(s2trl1h);
+
+                    s1itimm1h=mean((s1tfreq1h+s2tfreq1h)./2,2);
+                    s1s1tc1h=s1tfreq1h-s1itimm1h;
+                    s1s1tc1h(s1s1tc1h<0)=0;
+                    localcoms1h=sum((1:20).*s1s1tc1h)./sum(s1s1tc1h,2);
+                    itidata.s1n.h1h(ii,rpt)=localcoms1h;
+
+                    % TODO one-su com@2h
+                    s1tsel2h=ismember(FT_SPIKE.trial{susel},s1trl2h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+
+                    s1tfreq2h=histcounts(FT_SPIKE.time{susel}(s1tsel2h)-5-delay,0:0.25:5)./numel(s1trl2h);
+
+                    s2tsel2h=ismember(FT_SPIKE.trial{susel},s2trl2h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+                    s2tfreq2h=histcounts(FT_SPIKE.time{susel}(s2tsel2h)-5-delay,0:0.25:5)./numel(s2trl2h);
+
+                    s1itimm2h=mean((s1tfreq2h+s2tfreq2h)./2,2);
+                    s1s1tc2h=s1tfreq2h-s1itimm2h;
+                    s1s1tc2h(s1s1tc2h<0)=0;
+                    localcoms2h=sum((1:20).*s1s1tc2h)./sum(s1s1tc2h,2);
+                    itidata.s1n.h2h(ii,rpt)=localcoms2h;
+                    
+                    % if ~all(isfinite([localcoms1h,localcoms2h]),'all')
+                    %     keyboard();
+                    % end
+                end
+            end
+
+            sessid=-1;
+            for ii=1:numel(imdata.s2n.sess)
+                if ~(sessid==imdata.s2n.sess(ii))
+                    save(fullfile('binary',opt.filename),'itidata');
+                    sessid=imdata.s2n.sess(ii);
+                    warning(string(sessid))
+                    [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
+                    trls=FT_SPIKE.trialinfo;
+                    % half-half COM TRLS
+                    % ______________________________________________
+                    s1trl=find(trls(:,5)==4 & all(trls(:,9:10),2) & trls(:,8)==delay);
+                    s2trl=find(trls(:,5)==8 & all(trls(:,9:10),2) & trls(:,8)==delay);
+                end
+
+                cid=imdata.s2n.id(ii);
+                itidata.s2n.sess=[itidata.s2n.sess;sessid];
+                itidata.s2n.cid=[itidata.s2n.cid;cid];
+
+                susel=strcmp(FT_SPIKE.label,num2str(cid));
+                % repeats
+                
+                for rpt=1:opt.rpt
+                    s1trl1h=randsample(s1trl,round(numel(s1trl)./2));
+                    s1trl2h=setdiff(s1trl,s1trl1h);
+
+                    s2trl1h=randsample(s2trl,round(numel(s2trl)./2));
+                    s2trl2h=setdiff(s2trl,s2trl1h);
+
+                    % one-su com@1h
+                    s1tsel1h=ismember(FT_SPIKE.trial{susel},s1trl1h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+
+                    s1tfreq1h=histcounts(FT_SPIKE.time{susel}(s1tsel1h)-5-delay,0:0.25:5)./numel(s1trl1h);
+
+                    s2tsel1h=ismember(FT_SPIKE.trial{susel},s2trl1h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+                    s2tfreq1h=histcounts(FT_SPIKE.time{susel}(s2tsel1h)-5-delay,0:0.25:5)./numel(s2trl1h);
+
+                    s1itimm1h=mean((s1tfreq1h+s2tfreq1h)./2,2);
+                    s1s1tc1h=s1tfreq1h-s1itimm1h;
+                    s1s1tc1h(s1s1tc1h<0)=0;
+                    localcoms1h=sum((1:20).*s1s1tc1h)./sum(s1s1tc1h,2);
+                    itidata.s2n.h1h(ii,rpt)=localcoms1h;
+
+                    % TODO one-su com@2h
+                    s1tsel2h=ismember(FT_SPIKE.trial{susel},s1trl2h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+
+                    s1tfreq2h=histcounts(FT_SPIKE.time{susel}(s1tsel2h)-5-delay,0:0.25:5)./numel(s1trl2h);
+
+                    s2tsel2h=ismember(FT_SPIKE.trial{susel},s2trl2h)...
+                        & FT_SPIKE.time{susel} >= 5+delay...
+                        & FT_SPIKE.time{susel} < 10+delay;
+                    s2tfreq2h=histcounts(FT_SPIKE.time{susel}(s2tsel2h)-5-delay,0:0.25:5)./numel(s2trl2h);
+
+                    s1itimm2h=mean((s1tfreq2h+s2tfreq2h)./2,2);
+                    s1s1tc2h=s1tfreq2h-s1itimm2h;
+                    s1s1tc2h(s1s1tc2h<0)=0;
+                    localcoms2h=sum((1:20).*s1s1tc2h)./sum(s1s1tc2h,2);
+                    itidata.s2n.h2h(ii,rpt)=localcoms2h;
+                end
+            end
+            save(fullfile('binary',opt.filename),'itidata');
+
+        end
+
+
+
+
+
     end
 end
 
