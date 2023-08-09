@@ -4,12 +4,17 @@ arguments
     opt.err_filename (1,:) char = 'com_error.mat'
     opt.plot (1,1) logical = true
     opt.skip_dur (1,1) logical = true
+    opt.odor_only (1,1) logical = true
+    opt.iti (1,1) logical = false
 end
 
-fstr=load(opt.filename);
-estr=load(opt.err_filename);
+fstr=load(fullfile('binary',opt.filename));
+estr=load(fullfile('binary',opt.err_filename));
 r_olf_dur_mux=stats_file(fstr.com_halfs,estr.com_map_err); %correct shuffle error
-if opt.skip_dur
+
+if opt.odor_only
+    
+elseif opt.skip_dur
     r_olf_dur_mux=r_olf_dur_mux(:,[1,3,4,6,7,9]);
     gg=[repmat(1,1,100),repmat(3,1,100),repmat(5,1,200),...
         repmat(2,1,100),repmat(4,1,100)]; % group vector for box plot
@@ -18,6 +23,8 @@ else
         repmat(7,1,300),...
         repmat(2,1,100),repmat(4,1,100),repmat(6,1,100)]; % group vector for box plot
 end
+
+% if
 
 fh=figure('Color','w','Position',[32,32,275,235]);
 hold on

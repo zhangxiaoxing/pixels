@@ -357,7 +357,6 @@ for su=reshape(msel,1,[])
             com_str.(sess).(type).fwhm6(suid(su))=mm_pref2fwhm(mm_pref,24);
         end
     end
-
     %         end
 end
 end

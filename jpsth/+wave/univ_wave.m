@@ -117,9 +117,14 @@ classdef univ_wave < handle
 
         function itidata=stats(opt)
             arguments
-                opt.rpt=100;
+                opt.rpt (1,1) double =100
+                opt.loadfile (1,1) logical = false
+                opt.filename (1,:) char = 'temp0808.mat'
             end
-
+            if opt.loadfile
+                load(fullfile('binary/',opt.filename),'itidata');
+                return
+            end
             delay=6;
             global_init;
             wrs_mux_meta=ephys.get_wrs_mux_meta();
@@ -130,17 +135,17 @@ classdef univ_wave < handle
 
             [imdata.s1n.s1iti,imdata.s1n.s2iti,imdata.s2n.s1iti,imdata.s2n.s2iti]=deal([]);
 
-            
-
             itidata.s1n.h1h=nan(numel(imdata.s1n.id),100);
             itidata.s1n.h2h=nan(numel(imdata.s1n.id),100);
             itidata.s2n.h1h=nan(numel(imdata.s2n.id),100);
             itidata.s2n.h1h=nan(numel(imdata.s2n.id),100);
+            [itidata.s1n.sess,itidata.s1n.cid,itidata.s2n.sess,itidata.s2n.cid]=deal([]);
+
 
             sessid=-1;
             for ii=1:numel(imdata.s1n.sess)
                 if ~(sessid==imdata.s1n.sess(ii))
-                    save(fullfile('binary','temp0808.mat'),'itidata');
+                    save(fullfile('binary',opt.filename),'itidata');
                     sessid=imdata.s1n.sess(ii);
                     warning(string(sessid))
                     [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
@@ -152,8 +157,11 @@ classdef univ_wave < handle
                 end
 
                 cid=imdata.s1n.id(ii);
+                itidata.s1n.sess=[itidata.s1n.sess;sessid];
+                itidata.s1n.cid=[itidata.s1n.cid;cid];
+                
                 susel=strcmp(FT_SPIKE.label,num2str(cid));
-
+    
                 % repeats
                 
                 for rpt=1:opt.rpt
@@ -175,7 +183,7 @@ classdef univ_wave < handle
                         & FT_SPIKE.time{susel} < 10+delay;
                     s2tfreq1h=histcounts(FT_SPIKE.time{susel}(s2tsel1h)-5-delay,0:0.25:5)./numel(s2trl1h);
 
-                    s1itimm1h=mean(s1tfreq1h+s2tfreq1h./2,2);
+                    s1itimm1h=mean((s1tfreq1h+s2tfreq1h)./2,2);
                     s1s1tc1h=s1tfreq1h-s1itimm1h;
                     s1s1tc1h(s1s1tc1h<0)=0;
                     localcoms1h=sum((1:20).*s1s1tc1h)./sum(s1s1tc1h,2);
@@ -193,19 +201,22 @@ classdef univ_wave < handle
                         & FT_SPIKE.time{susel} < 10+delay;
                     s2tfreq2h=histcounts(FT_SPIKE.time{susel}(s2tsel2h)-5-delay,0:0.25:5)./numel(s2trl2h);
 
-                    s1itimm2h=mean(s1tfreq2h+s2tfreq2h./2,2);
+                    s1itimm2h=mean((s1tfreq2h+s2tfreq2h)./2,2);
                     s1s1tc2h=s1tfreq2h-s1itimm2h;
                     s1s1tc2h(s1s1tc2h<0)=0;
                     localcoms2h=sum((1:20).*s1s1tc2h)./sum(s1s1tc2h,2);
                     itidata.s1n.h2h(ii,rpt)=localcoms2h;
+                    
+                    % if ~all(isfinite([localcoms1h,localcoms2h]),'all')
+                    %     keyboard();
+                    % end
                 end
-                save(fullfile('binary','temp0808.mat'),'itidata');
             end
 
             sessid=-1;
             for ii=1:numel(imdata.s2n.sess)
                 if ~(sessid==imdata.s2n.sess(ii))
-                    save(fullfile('binary','temp0808.mat'),'itidata');
+                    save(fullfile('binary',opt.filename),'itidata');
                     sessid=imdata.s2n.sess(ii);
                     warning(string(sessid))
                     [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
@@ -217,8 +228,10 @@ classdef univ_wave < handle
                 end
 
                 cid=imdata.s2n.id(ii);
-                susel=strcmp(FT_SPIKE.label,num2str(cid));
+                itidata.s2n.sess=[itidata.s2n.sess;sessid];
+                itidata.s2n.cid=[itidata.s2n.cid;cid];
 
+                susel=strcmp(FT_SPIKE.label,num2str(cid));
                 % repeats
                 
                 for rpt=1:opt.rpt
@@ -240,7 +253,7 @@ classdef univ_wave < handle
                         & FT_SPIKE.time{susel} < 10+delay;
                     s2tfreq1h=histcounts(FT_SPIKE.time{susel}(s2tsel1h)-5-delay,0:0.25:5)./numel(s2trl1h);
 
-                    s1itimm1h=mean(s1tfreq1h+s2tfreq1h./2,2);
+                    s1itimm1h=mean((s1tfreq1h+s2tfreq1h)./2,2);
                     s1s1tc1h=s1tfreq1h-s1itimm1h;
                     s1s1tc1h(s1s1tc1h<0)=0;
                     localcoms1h=sum((1:20).*s1s1tc1h)./sum(s1s1tc1h,2);
@@ -258,14 +271,28 @@ classdef univ_wave < handle
                         & FT_SPIKE.time{susel} < 10+delay;
                     s2tfreq2h=histcounts(FT_SPIKE.time{susel}(s2tsel2h)-5-delay,0:0.25:5)./numel(s2trl2h);
 
-                    s1itimm2h=mean(s1tfreq2h+s2tfreq2h./2,2);
+                    s1itimm2h=mean((s1tfreq2h+s2tfreq2h)./2,2);
                     s1s1tc2h=s1tfreq2h-s1itimm2h;
                     s1s1tc2h(s1s1tc2h<0)=0;
                     localcoms2h=sum((1:20).*s1s1tc2h)./sum(s1s1tc2h,2);
                     itidata.s2n.h2h(ii,rpt)=localcoms2h;
                 end
             end
-            save(fullfile('binary','temp0808.mat'),'itidata');
+            save(fullfile('binary',opt.filename),'itidata');
+
+        end
+
+        function iticorr=corr_stats(itidata)
+            % quick dirty stats
+            rpt=size(itidata.s1n.h1h,2);
+            iticorr=nan(1,rpt);
+            for ii=1:rpt
+                corrmat=[itidata.s1n.h1h(:,ii),itidata.s1n.h2h(:,ii);...
+                    itidata.s2n.h1h(:,ii),itidata.s2n.h2h(:,ii)];
+                corr_fini=all(isfinite(corrmat),2);
+                r=corr(corrmat(corr_fini,1),corrmat(corr_fini,2));
+                iticorr(ii)=r;
+            end
         end
 
     end
