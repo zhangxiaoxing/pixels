@@ -186,8 +186,16 @@ end
 
 % optional WIP
 
-% function delay_v_iti(com_str,itidata)
-% 
-% end
+function delay_v_iti(com_str,itidata)
+    % obtain delay data
+    % obtain iti data
+    % per session
+        % per neuron
+
+    % population correlation
+    % cross-repeats statistics
+
+
+end
 
 
