@@ -295,50 +295,52 @@ end
 
 
 %% chain join cross-reg, within-reg
-reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
-chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
-chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
+% chain_plots.m
 
-% cross
-fwd_cross=chains_uf_all.cross_reg;
-rev_cross=chains_uf_rev_all.cross_reg;
-for fn=reshape(fieldnames(chains_uf_all),1,[])
-    chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
-    chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
-end
-
-chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
-chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
-
-
-% within, using per-su-tcom
-fwd_within=~chains_uf_within.cross_reg;
-rev_within=~chains_uf_rev_within.cross_reg;
-for fn=reshape(fieldnames(chains_uf_within),1,[])
-    chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
-    chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
-end
-len_thresh=3;
-
-if false % unhelpful
-    wave.chain_stats(chains_uf,chains_uf_rev,su_meta,'odor_only',true);
-end
+% reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
+% chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
+% chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
+% % TODO: chains nonmem
+% % cross
+% fwd_cross=chains_uf_all.cross_reg;
+% rev_cross=chains_uf_rev_all.cross_reg;
+% for fn=reshape(fieldnames(chains_uf_all),1,[])
+%     chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
+%     chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
+% end
+% 
+% chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
+% chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
+% 
+% 
+% % within, using per-su-tcom
+% fwd_within=~chains_uf_within.cross_reg;
+% rev_within=~chains_uf_rev_within.cross_reg;
+% for fn=reshape(fieldnames(chains_uf_within),1,[])
+%     chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
+%     chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
+% end
+% len_thresh=3;
+% 
+% if false % unhelpful
+%     wave.chain_stats(chains_uf,chains_uf_rev,su_meta,'odor_only',true);
+% end
 
 % TODO: update shuffle-related parts
 % shuf_chains=wave.COM_chain_shuf(wrs_mux_meta,1:100,'odor_only',true)
-% blame=vcs.blame();save('chains_shuf.mat','shuf_chains','blame')
-[fh3,fhf]=wave.chain_stats_regs(chains_uf,su_meta,len_thresh,"odor_only",true);
-set(fh3.Children(1).Children(1),'YLim',[1e-4,2])
-set(fh3.Children(1).Children(2),'YLim',[5e-6,2])
-set(fhf.Children(1).Children(1),'YLim',[1e-3,10])
-set(fhf.Children(1).Children(2),'YLim',[1e-3,10])
+% % blame=vcs.blame();save('chains_shuf.mat','shuf_chains','blame')
+% [fh3,fhf]=wave.chain_stats_regs(chains_uf,su_meta,len_thresh,"odor_only",true);
+% set(fh3.Children(1).Children(1),'YLim',[1e-4,2])
+% set(fh3.Children(1).Children(2),'YLim',[5e-6,2])
+% set(fhf.Children(1).Children(1),'YLim',[1e-3,10])
+% set(fhf.Children(1).Children(2),'YLim',[1e-3,10])
 
-if false %denovo
-    [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',false); % per-spk association
-else %load
-    load(fullfile(gather_config.odpath,'Tempdata','chain_tagR.mat'))
-end
-wave.motif_dynamic.single_spike_chains(sschain.out)
+% if false %denovo
+%     [sschain.out,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',false); % per-spk association
+% else %load
+%     load(fullfile(gather_config.odpath,'Tempdata','chain_tagR.mat'))
+% end
+% wave.motif_dynamic.single_spike_chains(sschain.out)
 % save(fullfile("bzdata","chain_tag_tbl.mat"),"sschain","unfound","blame")
 % load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
 
@@ -626,13 +628,11 @@ end
 
 
 %% chained loops
-
-disconnected=wave.module_motif_asso_composite(sschain,pstats);
-run_length=wave.chain_loop_stats(sschain,pstats,disconnected);
+wave.composites
 
 
 
-wave.chain_loop_stats
+
 %% exports
 
 

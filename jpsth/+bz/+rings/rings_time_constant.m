@@ -190,7 +190,7 @@ classdef rings_time_constant <handle
 
 
         function plotStats(pstats)
-            fn=fieldnames(pstats.congru);
+            fn=fieldnames(pstats.congru); %rings
             sess=str2double(string(regexp(fn,'(?<=s)\d+(?=r.*)','match')));
             waveid=[3 6];
 

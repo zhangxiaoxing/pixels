@@ -295,12 +295,30 @@ classdef univ_wave < handle
             end
         end
 
+        function delay_vs_iti(opt)
+            arguments
+                opt.filename (1,:) char = 'com_halfs_100.mat'
+                opt.plot (1,1) logical = true
+                opt.skip_dur (1,1) logical = true
+                opt.odor_only (1,1) logical = true
+                opt.iti (1,1) logical = false
+                opt.iti_filename (1,:) char = 'temp0809_univ_wave.mat'
+            end
+
+            load(fullfile('binary',opt.filename),'com_halfs');
+            itidata=wave.univ_wave.stats('loadfile',true,'filename',opt.iti_filename)
+
+            
+        end
+
+
         function nonmemdata=nonmemstats(opt)
             arguments
                 opt.rpt (1,1) double =100
                 opt.loadfile (1,1) logical = false
                 opt.filename (1,:) char = 'temp0809_nonmem.mat'
             end
+            error("Not ready")
             if opt.loadfile
                 load(fullfile('binary/',opt.filename),'nonmemdata');
                 return
@@ -310,20 +328,20 @@ classdef univ_wave < handle
             wrs_mux_meta=ephys.get_wrs_mux_meta();
             % TODO nonmem
 
-            [imdata.s1n.s1iti,imdata.s1n.s2iti,imdata.s2n.s1iti,imdata.s2n.s2iti]=deal([]);
+            [nonmem_data.s1n.s1iti,nonmem_data.s1n.s2iti,nonmem_data.s2n.s1iti,nonmem_data.s2n.s2iti]=deal([]);
 
-            itidata.s1n.h1h=nan(numel(imdata.s1n.id),100);
-            itidata.s1n.h2h=nan(numel(imdata.s1n.id),100);
-            itidata.s2n.h1h=nan(numel(imdata.s2n.id),100);
-            itidata.s2n.h1h=nan(numel(imdata.s2n.id),100);
+            itidata.s1n.h1h=nan(numel(nonmem_data.s1n.id),100);
+            itidata.s1n.h2h=nan(numel(nonmem_data.s1n.id),100);
+            itidata.s2n.h1h=nan(numel(nonmem_data.s2n.id),100);
+            itidata.s2n.h1h=nan(numel(nonmem_data.s2n.id),100);
             [itidata.s1n.sess,itidata.s1n.cid,itidata.s2n.sess,itidata.s2n.cid]=deal([]);
 
 
             sessid=-1;
-            for ii=1:numel(imdata.s1n.sess)
-                if ~(sessid==imdata.s1n.sess(ii))
+            for ii=1:numel(nonmem_data.s1n.sess)
+                if ~(sessid==nonmem_data.s1n.sess(ii))
                     save(fullfile('binary',opt.filename),'itidata');
-                    sessid=imdata.s1n.sess(ii);
+                    sessid=nonmem_data.s1n.sess(ii);
                     warning(string(sessid))
                     [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
                     trls=FT_SPIKE.trialinfo;
@@ -333,7 +351,7 @@ classdef univ_wave < handle
                     s2trl=find(trls(:,5)==8 & all(trls(:,9:10),2) & trls(:,8)==delay);
                 end
 
-                cid=imdata.s1n.id(ii);
+                cid=nonmem_data.s1n.id(ii);
                 itidata.s1n.sess=[itidata.s1n.sess;sessid];
                 itidata.s1n.cid=[itidata.s1n.cid;cid];
                 
@@ -391,10 +409,10 @@ classdef univ_wave < handle
             end
 
             sessid=-1;
-            for ii=1:numel(imdata.s2n.sess)
-                if ~(sessid==imdata.s2n.sess(ii))
+            for ii=1:numel(nonmem_data.s2n.sess)
+                if ~(sessid==nonmem_data.s2n.sess(ii))
                     save(fullfile('binary',opt.filename),'itidata');
-                    sessid=imdata.s2n.sess(ii);
+                    sessid=nonmem_data.s2n.sess(ii);
                     warning(string(sessid))
                     [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
                     trls=FT_SPIKE.trialinfo;
@@ -404,7 +422,7 @@ classdef univ_wave < handle
                     s2trl=find(trls(:,5)==8 & all(trls(:,9:10),2) & trls(:,8)==delay);
                 end
 
-                cid=imdata.s2n.id(ii);
+                cid=nonmem_data.s2n.id(ii);
                 itidata.s2n.sess=[itidata.s2n.sess;sessid];
                 itidata.s2n.cid=[itidata.s2n.cid;cid];
 
@@ -458,11 +476,6 @@ classdef univ_wave < handle
             save(fullfile('binary',opt.filename),'itidata');
 
         end
-
-
-
-
-
     end
 end
 
@@ -471,3 +484,5 @@ end
 
 
 % TODO COM curve scale return
+
+

@@ -1,12 +1,12 @@
 %%
-
+tic
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false,'odor_only',true);
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',true);
 
 tcom3_maps=struct();
 tcom6_maps=struct();
@@ -25,9 +25,10 @@ ureg=intersect(grey_regs,fcom6.odor_only.collection(:,2));
 [~,tcidx]=ismember(ureg,fcom6.odor_only.collection(:,2));
 tcom6_maps.odor_only=containers.Map(...
     ureg,num2cell(cellfun(@(x) x/4, fcom6.odor_only.collection(tcidx,1))));
-
+toc % ~10 sec
 
 %%
+tic
 len_thresh=3;
 reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
 chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
@@ -44,8 +45,10 @@ for fn=reshape(fieldnames(chains_uf_all),1,[])
     chains_nm.(fn{1})=chains_nm_all.(fn{1})(nm_cross);
     chains_nm_samp.(fn{1})=chains_nm_all.(fn{1})(nm_samp);
 end
+toc % ~17 sec
 
-
+%% TODO: how to deal with within-region chains?
+tic
 chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
 chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
 % blame=vcs.blame();
@@ -58,7 +61,9 @@ for fn=reshape(fieldnames(chains_uf_within),1,[])
     chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
 end
 
-% TODO: remove within-region due to partial-overlap
+% remove within-region due to partial-overlap
+
+toc % ~3s
 
 %%
 

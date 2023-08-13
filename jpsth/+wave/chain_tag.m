@@ -22,8 +22,12 @@ classdef chain_tag < handle
                 opt.anti_dir (1,1) logical = false % TODO: consistent chain,reverse direction
                 opt.sesses double = []
                 opt.idces double = []
+                opt.load_file (1,1) logical = false % reserved but not used
+                opt.filename (1,:) char = '' % reserved but not used
                 
             end
+
+            assert(~opt.load_file,"Unfinished yet")
 
             if opt.shuf_trl
                 assert(opt.shuf_idx>0,"index is necessary for shuffled data")

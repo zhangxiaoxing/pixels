@@ -415,9 +415,6 @@ classdef  motif_dynamic < handle
             title('single spike loops')
         end
 
-
-
-
         function composite_loops()
             hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
             C=struct2cell(hrstats.stats).';
@@ -437,8 +434,6 @@ classdef  motif_dynamic < handle
             xlabel('Time (ms)')
             ylabel('Probability density (per loop per ms)')
             xlim([2,300])
-
-
         end
 
         function single_multi_spike_chains()
@@ -531,8 +526,6 @@ classdef  motif_dynamic < handle
             ylim([1e-4,1e-1])
             title('single spike chains')
         end
-
-
 
         function multispike_composite()
             load(fullfile('bzdata','composite_burst_ring.mat'),'stats')
