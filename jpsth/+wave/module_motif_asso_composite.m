@@ -2,10 +2,11 @@
 % olf, enc-both disconnect, composite proportion, bargraph
 % TODO: overall refactoring
 
-function [disconnected,degree_sums,complexity_sums]=module_motif_asso_composite(sschain,pstats,opt)
+function [disconnected,degree_sums,complexity_sums]=module_motif_asso_composite(sschain,pstats,trials_dict,opt)
 arguments
     sschain
     pstats
+    trials_dict
     opt.readfile (1,1) logical=false
     opt.skipfile (1,1) logical=true
     opt.merge_odor_sel (1,1) logical = true
@@ -21,13 +22,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
 
     %% single spike chain
     if opt.readfile
+        keyboard()
         sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
         load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
     end
-    keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
-        struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
-    keys=vertcat(keys{:});
-    ssc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
+    ssc_sess=unique(sschain.out.session);
 
     %% single spike loop
     if isfield(pstats,'nonmem'), pstats=rmfield(pstats,"nonmem");end
@@ -44,8 +43,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     stats.loop=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
     for sessid=reshape(usess,1,[])
         disp(sessid)
-        [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
-
+        if trials_dict.isKey(sessid)
+            trials=cell2mat(trials_dict(sessid));
+        else % no chains, could be optimized
+            [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false); % TODO optimize
+        end
         wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
         per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),3)];
 
@@ -55,62 +57,58 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
 
         %% single spike chain
 
-        for dur=["d6","d3"]
-            dd=str2double(replace(dur,"d",""));
-            for wid=reshape(fieldnames(sschain.out.(dur)),1,[])
-                for cc=reshape(fieldnames(sschain.out.(dur).(wid{1})),1,[])
-                    if ~startsWith(cc{1},['s',num2str(sessid),'c'])
-                        continue
-                    end
-                    onechain=sschain.out.(dur).(wid{1}).(cc{1});
-                    % ts_id: ts, cid, pos, trial_time, trial
 
-                    % per-trial frequency.
-                    tsel=[];
-                    if dd==3
-                        switch wid{1}
-                            case 's1d3'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
-                                ttag='both';
-                            case 's2d3'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
-                                ttag='both';
-                            case 'olf_s1'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
-                                ttag='olf';
-                            case 'olf_s2'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
-                                ttag='olf';
-                            case 'dur_d3'
-                                tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
-                                ttag='dur';
-                        end
-                    else
-                        switch wid{1}
-                            case 's1d6'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
-                                ttag='both';
-                            case 's2d6'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
-                                ttag='both';
-                            case 'olf_s1'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
-                                ttag='olf';
-                            case 'olf_s2'
-                                tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
-                                ttag='olf';
-                            case 'dur_d6'
-                                tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
-                                ttag='dur';
-                        end
-                    end
-                    stats.chain.(ttag)=[stats.chain.(ttag);{sessid},onechain.meta(1)];
-                    if ~isempty(tsel)
-                        for ttt=reshape(find(tsel),1,[])
-                            per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
-                            per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},onechain.meta(1)];
-                        end
-                    end
+        for sidx=reshape(find(sschain.out.session==sessid),1,[])
+            % ts_id: ts, cid, pos, trial_time, trial
+            % per-trial frequency.
+            tsel=[];
+            if sschain.out.delay(sidx)==3
+                switch sschain.out.wave(sidx)
+                    case "s1d3"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                        ttag='both';
+                    case "s2d3"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                        ttag='both';
+                    case "olf_s1"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                        ttag='olf';
+                    case "olf_s2"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                        ttag='olf';
+                    case "dur_d3"
+                        tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
+                        ttag='dur';
+                end
+            else
+                switch sschain.out.wave(sidx)
+                    case "s1d6"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                        ttag='both';
+                    case "s2d6"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                        ttag='both';
+                    case "olf_s1"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                        ttag='olf';
+                    case "olf_s2"
+                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                        ttag='olf';
+                    case "dur_d6"
+                        tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
+                        ttag='dur';
+                end
+            end
+            if isempty(sschain.out.ts_id(1))
+                cids=sschain.out.meta{sidx,2};
+            else
+                cids=sschain.out.meta(sidx,1);
+            end
+            stats.chain.(ttag)=[stats.chain.(ttag);{sessid},cids];
+            if ~isempty(tsel)
+                for ttt=reshape(find(tsel),1,[])
+                    per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),sschain.out.delay(sidx),ttt];
+                    per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},cids];
                 end
             end
         end
@@ -119,27 +117,27 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             if ~startsWith(cc{1},['s',num2str(sessid),'r'])
                 continue
             end
-            onechain=pstats.congru.(cc{1});
-            % .ts_id(:,6) => loop tag
+            oneloop=pstats.congru.(cc{1});
             % per-trial frequency.
-            [pref3,pref6]=bz.rings.preferred_trials_rings(onechain.rstats{4},trials);
-            tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),[pref3;pref6]);
-            % per wave
-            %             if strcmp(onechain.rstats{5},'olf')
-            %                 stats.loop.olf=
-            %             elseif strcmp(onechain.rstats{5},'dur')
-            %
-            %             end
-            if ismember(onechain.rstats{5},{'olf','dur','both'})
-                stats.loop.(onechain.rstats{5})=[stats.loop.(onechain.rstats{5});{sessid},onechain.rstats(3)];
+            [pref3,pref6]=bz.rings.preferred_trials_rings(oneloop.rstats{4},trials);
+            tsel3=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),pref3);
+            tsel6=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),pref6);
+
+            if ismember(oneloop.rstats{5},{'olf','dur','both'})
+                stats.loop.(oneloop.rstats{5})=[stats.loop.(oneloop.rstats{5});{sessid},oneloop.rstats(3)];
             else
                 keyboard()
             end
 
-            for ttt=reshape(find(tsel),1,[])
-                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),str2double(replace(dur,"d","")),ttt];
-                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},onechain.rstats(3)];
+            for ttt=reshape(find(tsel3),1,[])
+                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),3,ttt];
+                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},oneloop.rstats(3)];
             end
+            for ttt=reshape(find(tsel6),1,[])
+                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),6,ttt];
+                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},oneloop.rstats(3)];
+            end
+
             %check cid in largest network
         end
     end
@@ -169,7 +167,9 @@ for tt=1:size(per_trial_motif_cid,1)
     end
 
     % build graph network
-    per_trial_motif_cid{tt,2}=cellfun(@(x) x([1:end,1]),per_trial_motif_cid{tt,2},'UniformOutput',false);% cyclic loops fix
+    if ~isempty(per_trial_motif_cid{tt,2})
+        per_trial_motif_cid{tt,2}=cellfun(@(x) x([1:end,1]),per_trial_motif_cid{tt,2},'UniformOutput',false);% cyclic loops fix
+    end
     edges=categorical(unique(cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',[per_trial_motif_cid{tt,1:2}],'UniformOutput',false).'),'rows'));
     gh=graph(edges(:,1),edges(:,2));
     %   Moved to enforce composite requirement
@@ -207,7 +207,7 @@ for tt=1:size(per_trial_motif_cid,1)
 
     for subsidx=subs
         subgh=gh.subgraph(conncomp==subsidx);
-        complexity_sums=[complexity_sums;per_trial_motif_cid{tt,3},subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
+        complexity_sums=[complexity_sums;double(per_trial_motif_cid{tt,3}),subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
         per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
         degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},subgh.numnodes,1),str2double(table2array(subgh.Nodes)),subgh.degree];
     end
@@ -363,4 +363,5 @@ boxplot(uniq_net(:,5),'Colors','k','Whisker',inf,'Widths',1)
 ylim([0,1])
 set(gca,'XTick',[],'YTick',0:0.25:1,'YTickLabel',0:25:100)
 ylabel('Network density')
+title(sprintf('%.4f',median(uniq_net(:,5))));
 end

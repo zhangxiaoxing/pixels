@@ -35,35 +35,39 @@ chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
 chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
 chains_nm_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true);
 
-fwd_cross=chains_uf_all.cross_reg;
-rev_cross=chains_uf_rev_all.cross_reg;
-nm_cross=chains_nm_all.cross_reg;
-nm_samp=randsample(numel(chains_nm_all.sess),5000);
-for fn=reshape(fieldnames(chains_uf_all),1,[])
-    chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
-    chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
-    chains_nm.(fn{1})=chains_nm_all.(fn{1})(nm_cross);
-    chains_nm_samp.(fn{1})=chains_nm_all.(fn{1})(nm_samp);
+wave.chain_stats(chains_uf_all,chains_uf_rev_all,su_meta,'odor_only',true);
+
+% will not 
+if false
+    fwd_cross=chains_uf_all.cross_reg;
+    rev_cross=chains_uf_rev_all.cross_reg;
+    nm_cross=chains_nm_all.cross_reg;
+    nm_samp=randsample(numel(chains_nm_all.sess),5000);
+    for fn=reshape(fieldnames(chains_uf_all),1,[])
+        chains_uf.(fn{1})=chains_uf_all.(fn{1})(fwd_cross);
+        chains_uf_rev.(fn{1})=chains_uf_rev_all.(fn{1})(rev_cross);
+        chains_nm.(fn{1})=chains_nm_all.(fn{1})(nm_cross);
+        chains_nm_samp.(fn{1})=chains_nm_all.(fn{1})(nm_samp);
+    end
+    toc % ~17 sec
+
+    %% TODO: how to deal with within-region chains?
+    tic
+    chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
+    chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
+    % blame=vcs.blame();
+    % save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
+
+    fwd_within=~chains_uf_within.cross_reg;
+    rev_within=~chains_uf_rev_within.cross_reg;
+    for fn=reshape(fieldnames(chains_uf_within),1,[])
+        chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
+        chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
+    end
+
+    % remove within-region due to partial-overlap
+    toc % ~3s
 end
-toc % ~17 sec
-
-%% TODO: how to deal with within-region chains?
-tic
-chains_uf_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'odor_only',true);
-chains_uf_rev_within=wave.COM_chain(su_meta,wrs_mux_meta,com_map,'reverse',true,'odor_only',true);
-% blame=vcs.blame();
-% save(fullfile('bzdata','chains_mix.mat'),'chains_uf','chains_uf_rev','blame')
-
-fwd_within=~chains_uf_within.cross_reg;
-rev_within=~chains_uf_rev_within.cross_reg;
-for fn=reshape(fieldnames(chains_uf_within),1,[])
-    chains_uf.(fn{1})=[chains_uf.(fn{1});chains_uf_within.(fn{1})(fwd_within)];
-    chains_uf_rev.(fn{1})=[chains_uf_rev.(fn{1});chains_uf_rev_within.(fn{1})(rev_within)];
-end
-
-% remove within-region due to partial-overlap
-
-toc % ~3s
 
 %%
 
