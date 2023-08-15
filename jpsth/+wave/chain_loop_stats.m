@@ -1,5 +1,4 @@
 % tag spikes in neuron with loop or chain activity
-% TODO: remove su based on shared motif didn't meet expectation. WIP.
 % streamline related/duplicate code sniplet.
 
 function run_length=chain_loop_stats(sschain,pstats,disconnected,opt)
@@ -8,8 +7,6 @@ arguments
     pstats
     disconnected
     opt.skipfile (1,1) logical = true
-    opt.bburst (1,1) logical = false;
-    opt.skip_shared_su (1,1) logical = false;
 end
 per_spk_tag=true;
 % burstinterval=600;
@@ -22,10 +19,6 @@ for ii=1:size(disconnected,1)
     disconnKey=[disconnKey;onekey];
 end
 
-if opt.skip_shared_su
-    [olf_shared,both_shared]=wave.SU_remove_network();
-    su_shared=intersect(olf_shared,both_shared);
-end
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
@@ -78,13 +71,6 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 cids=sschain.out.meta{sidx,2};
             else
                 cids=sschain.out.meta(sidx,1);
-            end
-            if opt.skip_shared_su
-                motifukey=sessid*100000+cids{1};
-                if any(ismember(motifukey,su_shared))
-                    disp("skipped shared motif neuron")
-                    continue
-                end
             end
 
             currkey=sprintf('%d-',sessid,sort(cids{1}));
@@ -178,13 +164,6 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 continue
             end
             oneloop=pstats.congru.(cc{1});
-            if opt.skip_shared_su
-                motifukey=sessid*100000+oneloop.rstats{3};
-                if any(ismember(motifukey,su_shared))
-                    disp("skipped shared motif neuron")
-                    continue
-                end
-            end
 
             currkey=sprintf('%d-',sessid,sort(oneloop.rstats{3}));
             if ismember(currkey,disconnKey)
@@ -249,35 +228,18 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
 
         if ~opt.skipfile
             blame=vcs.blame();
-            if opt.bburst
-                save(fullfile("bzdata","ChainedLoop"+burstinterval+"S"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-            elseif opt.skip_shared_su
-                save(fullfile("bzdata","RemoveSUSingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-            else
-                save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
-            end
+            save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
         end
-        if opt.bburst
-            per_sess_coverage.("B"+burstinterval+"S"+num2str(sessid))=covered;
-        else
-            per_sess_coverage.("SSS"+num2str(sessid))=covered;
-        end
+        per_sess_coverage.("SSS"+num2str(sessid))=covered;
+
     end
     denovoflag=true;
 else % load from file
     per_sess_coverage=struct();
     for bi=[150,300,600]
         for sessid=[14,18,22,33,34,68,100,102,114]
-            if opt.bburst
-                load(fullfile("bzdata","ChainedLoop"+bi+"S"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
-                per_sess_coverage.("B"+bi+"S"+num2str(sessid))=covered;
-            elseif opt.skip_shared_su
-                load(fullfile("bzdata","RemoveSUSingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered');
-                per_sess_coverage.("SSS"+num2str(sessid))=covered;
-            else
-                load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
-                per_sess_coverage.("SSS"+num2str(sessid))=covered;
-            end
+            load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
+            per_sess_coverage.("SSS"+num2str(sessid))=covered;
         end
     end
     denovoflag=false;
@@ -304,88 +266,57 @@ covfn=fieldnames(per_sess_coverage);
 covered=struct();
 run_length=struct();
 
-if opt.bburst
-    %%
-    for bi=[150,300,600]
-        covered.("B"+bi)=covcell(contains(covfn,"B"+bi));
-        run_length.("B"+bi)=[];
-        for jj=1:numel(covered.("B"+bi))
-            edges = find(diff([0;covered.("B"+bi){jj};0]==1));
-            onset = edges(1:2:end-1);  % Start indices
-            %     disp([jj,min(edges(2:2:end)-onset)]);
-            run_length.("B"+bi) =[run_length.("B"+bi); edges(2:2:end)-onset];  % Consecutive ones counts
-            %     per_sess_coverage.("S"+num2str(sessid))=run_length;
+
+%%
+relax_cosec=false;
+consecthresh=1500;
+covered=covcell(contains(covfn,"SSS"));
+run_length=[];
+for jj=1:numel(covered)
+    %pass 1
+    edges = find(diff([0;covered{jj};0]==1));
+    onset = edges(1:2:end-1);  % Start indices
+    offset = edges(2:2:end);
+
+    if relax_cosec
+        % patch through
+        latmat=onset-offset.'; % row->onset, col->offset
+        for onidx=1:numel(onset)
+            consec=find(latmat(onidx,:)>0 & latmat(onidx,:)<=consecthresh);
+            if ~isempty(consec)
+                offidx=min(consec);
+                covered{jj}((offset(offidx)-1):onset(onidx))=1;
+            end
         end
-    end
-    figure()
-    hold on;
-    ph=[];
-    cmap=colormap("lines");
-    cidx=1;
-    for bi=[150,300,600]
-        chained_loops_pdf=histcounts(run_length.("B"+bi),[0:2:18,20:20:100,200,300:300:1200],'Normalization','pdf');
-        ph(end+1)=plot([1:2:19,30:20:90,150,250,450:300:1050],chained_loops_pdf,'-','Color',cmap(cidx,:));
-        qtrs=prctile(run_length.("B"+bi),[10,50,90]);
-        %     qtrs19=prctile(run_length,[10,20,80,90]);
-        xline(qtrs,'--',string(qtrs),'Color',cmap(cidx,:)) % 17 24 35
-        cidx=cidx+1;
-    end
-    xlim([5,1200])
-    ylim([8e-7,0.1])
-    set(gca(),'XScale','log','YScale','log')
-    xlabel('Time (ms)')
-    ylabel('Probability density')
-else
-    %%
-    relax_cosec=false;
-    consecthresh=1500;
-    covered=covcell(contains(covfn,"SSS"));
-    run_length=[];
-    for jj=1:numel(covered)
-        %pass 1
+        % pass 2
         edges = find(diff([0;covered{jj};0]==1));
         onset = edges(1:2:end-1);  % Start indices
         offset = edges(2:2:end);
-
-        if relax_cosec
-            % patch through
-            latmat=onset-offset.'; % row->onset, col->offset
-            for onidx=1:numel(onset)
-                consec=find(latmat(onidx,:)>0 & latmat(onidx,:)<=consecthresh);
-                if ~isempty(consec)
-                    offidx=min(consec);
-                    covered{jj}((offset(offidx)-1):onset(onidx))=1;
-                end
-            end
-            % pass 2
-            edges = find(diff([0;covered{jj};0]==1));
-            onset = edges(1:2:end-1);  % Start indices
-            offset = edges(2:2:end);
-        end
-        run_length =[run_length; (offset-onset)./10];  % Consecutive ones counts
     end
-
-    figure()
-    hold on;
-    if relax_cosec
-        chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
-        plot([0.5:19.5,30:20:190,250:100:1950],chained_loops_pdf,'-k');
-        xlim([2,2000])
-        titie("Consecutive window "+(consecthresh/30)+" msec")
-    else
-        chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
-        plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
-        xlim([2,500])
-    end
-    qtrs=prctile(run_length,[10,50,90]);
-    xline(qtrs,'--k',string(qtrs)) % 17 24 35
-
-    ylim([8e-6,0.1])
-    set(gca(),'XScale','log','YScale','log')
-    xlabel('Time (ms)')
-    ylabel('Probability density')
+    run_length =[run_length; (offset-onset)./10];  % Consecutive ones counts
 end
+
+figure()
+hold on;
+if relax_cosec
+    chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
+    plot([0.5:19.5,30:20:190,250:100:1950],chained_loops_pdf,'-k');
+    xlim([2,2000])
+    titie("Consecutive window "+(consecthresh/30)+" msec")
+else
+    chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
+    plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
+    xlim([2,500])
 end
+qtrs=prctile(run_length,[10,50,90]);
+xline(qtrs,'--k',string(qtrs)) % 17 24 35
+
+ylim([8e-6,0.1])
+set(gca(),'XScale','log','YScale','log')
+xlabel('Time (ms)')
+ylabel('Probability density')
+end
+
 
 
 function remove_before_after
