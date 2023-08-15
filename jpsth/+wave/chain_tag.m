@@ -4,7 +4,7 @@
 
 classdef chain_tag < handle
     methods(Static)
-        function [out,notfound,trial_dict]=tag(chains,len_thresh,opt)
+        function [out,notfound,trials_dict]=tag(chains,len_thresh,opt)
             arguments
                 chains
                 len_thresh (1,1) double
@@ -53,14 +53,13 @@ classdef chain_tag < handle
                 % if isempty(sess_indices), continue;end
                 % processed.("d"+duration)=[processed.("d"+duration),reshape(sess_indices,1,[])];
             end
-            notfound=cell(0);
             if ispc
                 poolh=parpool(2);
             else
                 poolh=parpool(50);
             end
             F=parallel.FevalFuture.empty(0,1);
-            for sessid=1:2%sesses %TODO: threads
+            for sessid=sesses %TODO: threads
                 % if opt.DEBUG && sessid>33
                 %     break
                 % end
@@ -75,19 +74,21 @@ classdef chain_tag < handle
             trials_dict=dictionary([],cell(0));
             while ~all([F.Read],'all')
                 [ftidx,sess_out,sess_notfound,sess_trials]=fetchNext(F);
-                if ~exist('out','var')
+                notfound=[notfound;sess_notfound];
+		if isempty(sess_out)
+			continue
+		end
+                if ~exist('out','var') 
                     out=sess_out;
                 else
-                    out=[out;sess_out];
+		    out=[out;sess_out];
                 end
-                notfound=[notfound;sess_notfound];
                 if ~trials_dict.isKey(sess_out.session(1))
                     trials_dict(sess_out.session(1))={sess_trials};
                 end
                 fini=[fini,ftidx];
                 disp(ftidx);
             end
-            keyboard();
             % if opt.ccg
             %     for dur=reshape(fieldnames(out),1,[])
             %         for wv=reshape(fieldnames(out.(dur{1})),1,[])
@@ -104,7 +105,7 @@ classdef chain_tag < handle
             %         end
             %     end
             % end
-
+            delete(poolh);
             if ~opt.skip_save
                 blame=vcs.blame();
                 if opt.rev
@@ -112,7 +113,7 @@ classdef chain_tag < handle
                 elseif opt.shuf_trl
                     save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','trials_dict','notfound','blame');
                 else
-                    save(fullfile('binary',opt.filename),'out','trials_dict','notfound','blame')
+                    save(fullfile('binary',opt.filename),'out','trials_dict','notfound','blame','-v7.3')
                 end
             end
         end
@@ -120,6 +121,7 @@ classdef chain_tag < handle
 
 
         function [sess_out,sess_notfound,trials]=per_session_func(chains,len_thresh,ch_len,sessid, duration,waveids,opt)
+	    [sess_out,sess_notfound]=deal([]);
             [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
             for wid=waveids
                 if (contains(wid,'d3') && duration==6) ...
@@ -204,7 +206,6 @@ classdef chain_tag < handle
                             ts=wave.chain_tag.chain_alt(ts_id(:,[1 3]));
                         end
                     end
-                    sess_notfound=[];
                     if ~isempty(ts)
                         outkey="s"+sessid+"c"+cc;
                         if opt.skip_ts_id
@@ -216,7 +217,7 @@ classdef chain_tag < handle
                             outcell={sessid,duration,outid,outkey,ts,meta,ts_id};
                         end
                         
-                        if exist('sess_out','var')
+                        if ~isempty(sess_out)
                             sess_out=[sess_out;cell2table(outcell,"VariableNames",{ ...
                                 'session','delay','wave','chain_id','ts','meta','ts_id'})];
                         else
@@ -242,11 +243,10 @@ classdef chain_tag < handle
                             sess_out.("d"+duration).(outid).(outkey).ccgs=chainccg;
                         end
                     else
-                        sess_notfound=[{sessid},{cc},{cids}];
+                        sess_notfound=[sess_notfound;{sessid},{cc},{cids}];
                     end
                 end
             end
-
         end
 
         function out=chain_alt(in)
