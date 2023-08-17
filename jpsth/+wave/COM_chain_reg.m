@@ -7,9 +7,11 @@ arguments
     reg_com_maps
     opt.strict (1,1) logical = false %strict ccg criteria
     opt.reverse (1,1) logical = false
-    opt.odor_only (1,1) logical = false
+    opt.odor_only (1,1) logical = true
     opt.non_mem (1,1) logical = false
+    opt.cross_only (1,1) logical = false
 end
+assert(opt.odor_only,"Unfinished")
 % global_init
 load('sums_conn_10.mat','sums_conn_str');
 % [sig,~]=bz.load_sig_sums_conn_file('pair',false);
@@ -35,7 +37,6 @@ for fidx=1:numel(sums_conn_str)
             s1_sel=ismember(sel_meta.wave_id,[2 5]);
             s2_sel=ismember(sel_meta.wave_id,[4 6]);
         end
-        
 
         grey_regs=reg_com_maps.("tcom"+delay+"_maps").odor_only.keys;
         grey_sel=ismember(su_meta.reg_tree(5,:),grey_regs).';
@@ -124,12 +125,28 @@ for ii=1:numel(out.sess)
         sess_reg=su_meta.reg_tree(5,su_meta.sess==out.sess(ii));
     end
     [~,idces]=ismember(out.cids{ii},sess_cid);
+
+    % ensure acyclic
+    if numel(unique(out.cids{ii}))<numel(out.cids{ii})
+        keyboard()
+    end
+    % cross-region check
     creg=sess_reg(idces);
     out.reg{ii}=creg;
     if numel(unique(creg))>1
         out.cross_reg(ii)=true;
     end
 end
+
+if opt.cross_only
+    cross=struct();
+    for fn=reshape(fieldnames(out),1,[])
+        cross.(fn{1})=out.(fn{1})(out.cross_reg);
+    end
+    % out_all=out;
+    out=cross;
+end
+
 end
 
 function chains=extend_chain(chains,sessid,wvtype,dur,sub_chain)
@@ -159,7 +176,7 @@ con_com_prepost=cell2mat(tcoms(idces));
 if reverse
     dirsel=con_com_prepost(:,2)<=con_com_prepost(:,1);
 else
-    dirsel=con_com_prepost(:,2)>=con_com_prepost(:,1); % Assuming 250ms bin
+    dirsel=con_com_prepost(:,2)>=con_com_prepost(:,1); % will not rule out same-region with >= % <=
 end
 dirsigcon=sigcon(dirsel,:);
 upre=unique(dirsigcon(:,1)).';
@@ -172,13 +189,12 @@ for i=upre
         newpair=dirsigcon(ismember(dirsigcon(:,1),cpre) & ~ismember(dirsigcon(:,2),appeared),:);
         appeared=unique([appeared;newpair(:)]);
         if isempty(newpair)
-            % TODO: other criteria: cross-region,
+            % cross-region check in main thread
             if numel(onechain)>1
                 chains=[chains;{onechain}];
             end
             break
         else
-            % TODO: ensure acyclic
             [~,pidces]=ismember(newpair,cids);
             onechain{end+1}={newpair,cell2mat(tcoms(pidces))};
             cpre=newpair(:,2);

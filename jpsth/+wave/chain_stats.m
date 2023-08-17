@@ -1,10 +1,11 @@
-%% data collection
+ %% data collection
 function chain_stats(chains_uf,chains_uf_rev,su_meta,opt)
 arguments
     chains_uf
     chains_uf_rev
     su_meta
     opt.odor_only (1,1) logical = false
+    opt.bar_only (1,1) logical = true
 end
 
 rev_stats=true;

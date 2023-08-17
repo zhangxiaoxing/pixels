@@ -3,157 +3,85 @@
 
 classdef fc_com_reg_wave < handle
     methods (Static)
-        function fc_com_pvsst_stats=stats(wave_meta,su_com_map,reg_com_maps,opt)
+        function fc_reg_tcom=stats(wrs_mux_meta,reg_com_maps,opt)
             arguments
-                wave_meta
-                su_com_map
+                wrs_mux_meta
                 reg_com_maps
                 opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
                 opt.odor_only (1,1) logical = false
             end
 
-            [sig,~]=bz.load_sig_sums_conn_file();
-            sig=bz.join_fc_waveid(sig,wave_meta.wave_id);
-            usess=unique(sig.sess);
-            fc_com_pvsst_stats=[];
-
-            ffs=["s1d"+opt.delay,"s2d"+opt.delay,"olf_s1","olf_s2"];
-            durkey="com"+opt.delay;
-            if ~opt.odor_only
-                ffs=[ffs,"dur_d"+opt.delay];
-            end
-
-            for sii=reshape(usess,1,[]) %iterate through sessions
-                sesssel=sig.sess==sii;
-
-                suid=sig.suid(sesssel,:);
-                waveid=sig.waveid(sesssel,:);
-                regsess=squeeze(sig.reg(sesssel,5,:));
-                com_sess_pct=nan(size(suid));
-
-                for ff=ffs
-                    if isfield(su_com_map.("s"+sii),ff)
-                        sukeys=su_com_map.("s"+sii).(ff).(durkey).keys(); % prefered SUid
-                        susel=ismember(suid,int32(cell2mat(sukeys)));% same dim as suid
-                        com_sess_pct(susel)=cell2mat(su_com_map.("s"+sii).(ff).(durkey).values(num2cell(suid(susel)))); % out put is nx2 in dim
-                    end
-                end
-                fc_com_pvsst_stats=[fc_com_pvsst_stats;double(sii).*ones(size(suid(:,1))),double(suid),com_sess_pct,nan(size(suid)),double(regsess),double(waveid)];
-                %==================================================1sess=====================23suid======45COM_context1===67COM_context2===89ccfid=====waveid======
-            end
-
-            fns=fieldnames(reg_com_maps);
             idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+            [sig,~]=bz.load_sig_sums_conn_file();
+            sig=bz.join_fc_waveid(sig,wrs_mux_meta.wave_id);
+                
+            grey=reg_com_maps.("tcom"+opt.delay+"_maps").odor_only.keys;
 
-            if false %forward and reverse
-                for typeIdx=1:numel(fns)
-                    reg_tcom_map=reg_com_maps.(fns{typeIdx});
-                    avail_regs=cell2mat(idmap.reg2ccfid.values(reg_tcom_map.keys()));
-                    reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
+            tokeep=all(sig.waveid==0,2) ...
+                | all(ismember(sig.waveid,[1 5]),2)...
+                | all(ismember(sig.waveid,[2 5]),2)...
+                | all(ismember(sig.waveid,[3 6]),2)...
+                | all(ismember(sig.waveid,[4 6]),2);
+            
+            assert(opt.odor_only,"unfinished")
 
-                    reg_wave_timing=cellfun(@(x) reg_tcom_map(x{1}),...
-                        idmap.ccfid2reg.values(...
-                        num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
-                    fc_com_pvsst_stats(:,6:7)=nan;
-                    fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing;
+            fc_reg_tcom=[];
+            for fcidx=reshape(find(tokeep),1,[])
+                if any(sig.waveid(fcidx,:)==0) && any(sig.waveid(fcidx,:)>0)
+                    continue
                 end
-            else% same and diff % TODO
-                for typeIdx=1:numel(fns)
-                    reg_tcom_map=reg_com_maps.(fns{typeIdx});
-                    avail_regs=cell2mat(idmap.reg2ccfid.values(reg_tcom_map.keys()));
-                    reg_sel=all(ismember(fc_com_pvsst_stats(:,8:9),avail_regs),2);
-                    reg_wave_timing=cellfun(@(x) reg_tcom_map(x{1}),...
-                        idmap.ccfid2reg.values(...
-                        num2cell(fc_com_pvsst_stats(reg_sel,8:9))));
-                    fc_com_pvsst_stats(:,6:7)=nan; % ensure unique data source
-                    fc_com_pvsst_stats(reg_sel,6:7)=reg_wave_timing ;
+                if any(sig.reg(fcidx,5,:)==0,'all')
+                    continue;
                 end
+                regs=cellfun(@(x) x{1},idmap.ccfid2reg.values(num2cell(squeeze(sig.reg(fcidx,5,:)))),'UniformOutput',false);
+                if ~all(ismember(regs,grey),'all')
+                    continue
+                end
+                reg_tcom=cell2mat(reg_com_maps.("tcom"+opt.delay+"_maps").odor_only.values(regs));
+                row=cell2table({sig.sess(fcidx),sig.suid(fcidx,:),sig.waveid(fcidx,:),regs.',reg_tcom.'},...
+                    'VariableNames',{'sess','cid','waveid','reg','reg_tcom'});
+                fc_reg_tcom=[fc_reg_tcom;row];
             end
         end
 
-        function [barmm,barci,barcnt]=sums(fc_com_pvsst_stats,opt)
+        function [barmm,barci,barcnt]=sums(fc_reg_tcom,opt)
             arguments
-                fc_com_pvsst_stats
+                fc_reg_tcom
                 opt.odor_only (1,1) logical = false
             end
-            congrusel=pct.su_pairs.get_congru(fc_com_pvsst_stats(:,10:11));
-            % incongsel=pct.su_pairs.get_incongru(fc_com_pvsst_stats(:,10:11));
-            olf_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),7:8),2);
-            if opt.odor_only
-                typesel_mat=olf_congru;
-            else
-                mixed_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:8),2);
-                dur_congru=congrusel & ~any(ismember(fc_com_pvsst_stats(:,10:11),5:6),2);
-                typesel_mat=[olf_congru,dur_congru,mixed_congru];
-            end
+            congru_sel=all(fc_reg_tcom.waveid>0,2);
+            nm_sel=~congru_sel;
 
-            fini_sel=all(isfinite(fc_com_pvsst_stats(:,4:7)),2);
+            cross_sel=~strcmp(fc_reg_tcom.reg(:,1),fc_reg_tcom.reg(:,2));
 
+            consist_sel=diff(fc_reg_tcom.reg_tcom,1,2)>0;
+            inconsist_sel=diff(fc_reg_tcom.reg_tcom,1,2)<0;
+
+            assert(opt.odor_only,"unfinished");
+            
             barcnt=[];
             barmm=[];
             barci=[];
-            if false %forward and reverse
-                for typeIdx=1:size(typesel_mat,2)
-                    typesel=typesel_mat(:,typeIdx);
-                    reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
-                    fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
-                    same_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,8)==fc_com_pvsst_stats(fini_sel & typesel,9) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
-                    wave_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,6)<fc_com_pvsst_stats(fini_sel & typesel,7) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
-                    reverse_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,6)>fc_com_pvsst_stats(fini_sel & typesel,7) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
-                    % same region
-                    [same_hat,same_ci]=binofit(nnz(fc_latency>0 & same_reg_sel),nnz(same_reg_sel));
-                    % reg-wave dir
-                    [wave_hat,wave_ci]=binofit(nnz(fc_latency>0 & wave_reg_sel),nnz(wave_reg_sel));
-                    % anti-reg-wave dir
-                    [rev_hat,rev_ci]=binofit(nnz(fc_latency>0 & reverse_reg_sel),nnz(reverse_reg_sel));
-                    % different grouped by regional per-wave timing
-                    %         [reg_wave_hat,reg_wave_ci]=binofit(nnz(reg_latency>0 & reverse_reg_sel),nnz(reverse_reg_sel));
-                    barcnt=[barcnt;...
-                        nnz(fc_latency>0 & same_reg_sel),...
-                        nnz(same_reg_sel),...
-                        nnz(fc_latency>0 & wave_reg_sel),...
-                        nnz(wave_reg_sel)...
-                        nnz(fc_latency>0 & reverse_reg_sel),...
-                        nnz(reverse_reg_sel)];
-                    barmm=[barmm;...
-                        same_hat,1-same_hat,...
-                        wave_hat,1-wave_hat,...
-                        rev_hat,1-rev_hat...
-                        ];
-                    barci=[barci;same_ci,wave_ci,rev_ci];
-                end
-            else% same and diff % TODO
-                for typeIdx=1:size(typesel_mat,2)
-                    typesel=typesel_mat(:,typeIdx);
-                    reg_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,6:7),1,2);
-                    fc_latency=diff(fc_com_pvsst_stats(fini_sel & typesel,4:5),1,2);
-                    % TODO region-averaged latency
 
-                    same_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,8)==fc_com_pvsst_stats(fini_sel & typesel,9) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
-                    diff_reg_sel=fc_com_pvsst_stats(fini_sel & typesel,6)~=fc_com_pvsst_stats(fini_sel & typesel,7) & all(fc_com_pvsst_stats(fini_sel & typesel,8:9)>0,2);
+            congru_consistent=congru_sel & cross_sel & consist_sel;
+            congru_inconsistent=congru_sel & cross_sel & inconsist_sel;
 
-                    % same region
-                    [same_hat,same_ci]=binofit(nnz(fc_latency>0 & same_reg_sel),nnz(same_reg_sel));
-                    % reg-wave dir
-                    [diff_hat,diff_ci]=binofit(nnz(fc_latency>0 & diff_reg_sel),nnz(diff_reg_sel));
-                    [diff_reg_hat,diff_reg_ci]=binofit(nnz(reg_latency>0 & diff_reg_sel),nnz(diff_reg_sel));
+            nonmem_consistent=nm_sel & cross_sel & consist_sel;
+            nonmem_inconsistent=nm_sel & cross_sel & inconsist_sel;
 
-                    barcnt=[barcnt;...
-                        nnz(fc_latency>0 & same_reg_sel),... % 1
-                        nnz(same_reg_sel),... % 2
-                        nnz(fc_latency>0 & diff_reg_sel),... % 3
-                        nnz(diff_reg_sel),... % 4
-                        nnz(reg_latency>0 & diff_reg_sel),... % 5
-                        nnz(diff_reg_sel)... % 6
-                        ];
-                    barmm=[barmm;...
-                        same_hat,1-same_hat,...
-                        diff_hat,1-diff_hat,...
-                        diff_reg_hat,1-diff_reg_hat,...
-                        ];
-                    barci=[barci;same_ci,diff_ci,diff_reg_ci];
-                end
-            end
+            [chat,cci]=binofit(nnz(congru_consistent),nnz(congru_consistent | congru_inconsistent));
+            [cihat,cici]=binofit(nnz(congru_inconsistent),nnz(congru_consistent | congru_inconsistent));
+
+            [nhat,nci]=binofit(nnz(nonmem_consistent),nnz(nonmem_consistent | nonmem_inconsistent));
+            [nihat,nici]=binofit(nnz(nonmem_inconsistent),nnz(nonmem_consistent | nonmem_inconsistent));
+
+            barmm=[chat,cihat;nhat,nihat];
+            barci=[cci;cici;nci;nici];
+            barcnt=[nnz(congru_consistent),nnz(congru_consistent | congru_inconsistent);...
+                nnz(congru_inconsistent),nnz(congru_consistent | congru_inconsistent);...
+                nnz(nonmem_consistent),nnz(nonmem_consistent | nonmem_inconsistent);...
+                nnz(nonmem_inconsistent),nnz(nonmem_consistent | nonmem_inconsistent)];
+
         end
         
         function fh=plot(barmm,barci,barcnt,opt)
@@ -161,89 +89,32 @@ classdef fc_com_reg_wave < handle
                 barmm
                 barci
                 barcnt
-                opt.condense_plot (1,1) logical = false
-                opt.omit_reg_wave (1,1) logical = true
-                opt.odor_only (1,1) logical = false
+
             end
 
-            if opt.condense_plot
-                fh=figure('Color','w','Position',[100,100,720,235]);
-                tiledlayout(1,3);
-                nexttile(1,[1,2])
-                hold on
-                if opt.odor_only
-                    bh=bar(1,barmm(1,5:6),'grouped');   % diff region, by reg_tcom
-                    errorbar([bh.XEndPoints],[bh.YEndPoints],...
-                        [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
-                        [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
-                    set(gca(),'XTick',1,'XTickLabel',{'Olfactory'},...
-                        'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
-                else
-                    bh=bar(1:3,barmm(:,5:6),'grouped');   % diff region, by reg_tcom
-                    errorbar([bh.XEndPoints],[bh.YEndPoints],...
-                        [barci(:,5);1-barci(:,5)].'-[bh.YEndPoints],...
-                        [barci(:,6);1-barci(:,6)].'-[bh.YEndPoints],'k.')
-                    set(gca(),'XTick',1:3,'XTickLabel',{'Olfactory','Duration','Mixed'},...
-                        'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
-                    xlim([0.5,3.5])
-                end
-                ylim([0,0.75])
-                yline(0.5,'k--')
-                
-                binocdfp=nan(1,3);
-                for typeidx=1:3
-                    if typeidx>1 && opt.odor_only
-                        continue
-                    end
-                    binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
-                    binocdfp(typeidx)=2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5);
-                end
-                ephys.util.figtable(fh,nexttile(3),binocdfp,'title','binocdf-p')
-            else
-                fh=figure('Color','w','Position',[100,100,720,235]);
-                tiledlayout(1,size(barmm,1)+1)
-                %TODO: region-defined panels-> selectivity defined panels
-                titles={'Olf.','Dur.','Mixed'};
-                for ii=1:size(barmm,1)
-                    nexttile()
-                    hold on
-                    bh=bar(1:3,[barmm(ii,[1 3 5]);barmm(ii,[2 4 6])],'grouped');
-                    %TODO update
-                    errorbar([bh.XEndPoints],[bh.YEndPoints],...
-                        [barci(ii,[1 3 5]),1-barci(ii,[2 4 6])]-[bh.YEndPoints],...
-                        [barci(ii,[2 4 6]),1-barci(ii,[2 4 6])]-[bh.YEndPoints],'k.')
-                    ylim([0,0.75])
-                    yline(0.5,'k--')
-                    set(gca(),'XTick',1:3,'XTickLabel',{'SU-within','SU-cross','Reg-cross'},...
-                        'YTick',0:0.25:0.75,'YTickLabel',0:25:75)
-                    title(titles{ii});
-                    if opt.omit_reg_wave
-                        xlim([0.5,2.5])
-                    end
-                    %         subtitle(sprintf('%d, ',barcnt(:,(1:2)+ii).'));
-                end
 
-%                 disp(num2str(nnz(wave_meta.wave_id>0))+" selective SUs");
-%                 disp("type idx:1, cross reg. condition:1, binocdf each reg.condition:3")
-                binocdfp=nan(size(barmm,1),3);
-                for typeidx=1:size(barmm,1)
-                    binomin=@(x,y) min(barcnt(typeidx,x),barcnt(typeidx,y)-barcnt(typeidx,x));
-                    binocdfp(typeidx,:)=[2*binocdf(binomin(1,2),barcnt(typeidx,2),0.5),...
-                        2*binocdf(binomin(3,4),barcnt(typeidx,4),0.5),...
-                        2*binocdf(binomin(5,6),barcnt(typeidx,6),0.5)];
-                    
-                end
-                if opt.odor_only
-                    for offset=0:2:4
-                        [~,~,chi2p(1,1+offset./2)]=crosstab([zeros(barcnt(1,2+offset),1);...
-                            ones(barcnt(1,2+offset),1)],...
-                            [(1:barcnt(1,2+offset))>barcnt(1,1+offset),...
-                            (1:barcnt(1,2+offset))<=barcnt(1,1+offset)]);
-                    end
-                    sgtitle(sprintf('chi2 p=%.3f,',chi2p));
-                end
-                ephys.util.figtable(fh,nexttile(),binocdfp,'title','binocdf[same|fcwave|regwave]')
-            end
+            fh=figure('Color','w','Position',[100,100,720,235]);
+            tiledlayout(1,3);
+            nexttile(1,[1,2])
+            hold on
+
+            bh=bar(barmm,'grouped');   % diff region, by reg_tcom
+            errorbar([bh.XEndPoints],[bh.YEndPoints],...
+                barci([1 3 2 4],1).'-[bh.YEndPoints],...
+                barci([1 3 2 4],2).'-[bh.YEndPoints],'k.')
+            set(gca(),'XTick',1:2,'XTickLabel',{'Memory','Nonmemory'},...
+                'YTick',0:0.25:0.75,'YTickLabel',0:25:75,'YLim',[0,0.75])
+
+            yline(0.5,'k--')
+
+            [~,~,pcongru]=crosstab(reshape(repmat([0,1],barcnt(1,2),1),[],1),[1:barcnt(1,2)>barcnt(1,1),1:barcnt(2,2)>barcnt(2,1)]);
+            [~,~,pnonmem]=crosstab(reshape(repmat([0,1],barcnt(3,2),1),[],1),[1:barcnt(3,2)>barcnt(3,1),1:barcnt(4,2)>barcnt(4,1)]);
+
+            [~,~,pgroup]=crosstab([zeros(barcnt(1,2),1);ones(barcnt(3,2),1)],[1:barcnt(1,2)>barcnt(1,1),1:barcnt(3,2)>barcnt(3,1)]);
+
+            title(sprintf('con%.4f,nonmem%.4f,group%.4f',pcongru,pnonmem,pgroup))
+
+
         end
 
         function alt_plot()

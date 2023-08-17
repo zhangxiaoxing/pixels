@@ -29,13 +29,28 @@ toc % ~10 sec
 
 %%
 tic
+
+cross_only=true;
+
 len_thresh=3;
 reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
-chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps);
-chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true);
-chains_nm_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true);
+chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'cross_only',cross_only);
+chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true,'cross_only',cross_only);
+chains_nm_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true,'cross_only',cross_only);
+chains_nm_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true,'reverse',true,'cross_only',cross_only);
+
+numel(chains_uf_all.sess)./sum([numel(chains_uf_all.sess),numel(chains_uf_rev_all.sess)])
+numel(chains_nm_all.sess)./sum([numel(chains_nm_all.sess),numel(chains_nm_rev_all.sess)])
 
 wave.chain_stats(chains_uf_all,chains_uf_rev_all,su_meta,'odor_only',true);
+wave.chain_stats(chains_nm_all,chains_nm_rev_all,su_meta,'odor_only',true);
+
+
+
+
+
+
+
 
 % will not 
 if false
