@@ -4,6 +4,8 @@ global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
+
+
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 
 com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',true);
@@ -42,14 +44,8 @@ chains_nm_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem'
 numel(chains_uf_all.sess)./sum([numel(chains_uf_all.sess),numel(chains_uf_rev_all.sess)])
 numel(chains_nm_all.sess)./sum([numel(chains_nm_all.sess),numel(chains_nm_rev_all.sess)])
 
-wave.chain_stats(chains_uf_all,chains_uf_rev_all,su_meta,'odor_only',true);
+wave.chain_stats(chains_uf_all,chains_uf_rev_all,su_meta,'odor_only',true); % static number count
 wave.chain_stats(chains_nm_all,chains_nm_rev_all,su_meta,'odor_only',true);
-
-
-
-
-
-
 
 
 % will not 

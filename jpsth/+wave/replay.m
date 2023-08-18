@@ -187,6 +187,185 @@ classdef replay < handle
             end
         end
 
+        function [motif_replay,sum_stats,raw]=stats_tbl(motif_replay,trials_dict,opt)
+            arguments
+                motif_replay
+                trials_dict
+                opt.var_len (1,1) logical = false
+                opt.cross_only (1,1) logical = false
+                opt.within_only (1,1) logical = false
+                % opt.nonmem_ring (1,1) logical = false
+            end
+            assert(~(opt.cross_only && opt.within_only),"conflict selection")
+            
+            sps=30000;
+
+            stat_cell=cell(size(motif_replay,1),2);
+            for tidx=1:size(motif_replay,1)
+                % onechain=motif_replay.(dd{1}).(ww{1}).(cc{1});
+                if (opt.cross_only && ~motif_replay.meta{tidx,3}) ...
+                        || (opt.within_only && motif_replay.meta{tidx,3})
+                    continue
+                end
+                trials=trials_dict{motif_replay.session(tidx)};
+                if ~(strcmp(motif_replay.wave(tidx),"none") || contains(motif_replay.wave(tidx),'nm'))
+                    dur_pref=motif_replay.delay(tidx);
+                    if contains(motif_replay.wave(tidx),"s1")
+                        samp_pref=4;
+                    elseif contains(motif_replay.wave(tidx),"s2")
+                        samp_pref=8;
+                    else
+                        disp('no wave id')
+                        keyboard()
+                    end
+                    pref_trl=trials(:,5)==samp_pref & trials(:,8)==dur_pref;
+                    nnonmem=false;
+                else %non mem
+                    pref_trl=ismember(trials(:,5),[4 8]) & ismember(trials(:,8),[3 6]);
+                    nnonmem=true;
+                end
+
+                % [nearest before; nearest after] * [trl_id,dT, samp, delay,wt,correct,prefer]% [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
+                trl_align=nan(size(motif_replay.ts{tidx},1),14);
+
+                for mii=1:size(motif_replay.ts{tidx},1)
+                    if opt.var_len
+                        one_onset=motif_replay.ts{tidx}{mii}(1);
+                    else
+                        one_onset=motif_replay.ts{tidx}(mii,1);
+                    end
+                    nxt_trl=find(trials(:,1)>one_onset,1,"first");
+                    if nxt_trl==1 % before first
+                        trl_align(mii,:)=[-1,-1,-1,-1,-1,-1,-1,nxt_trl,(trials(nxt_trl,1)-one_onset)./sps,trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
+                    elseif isempty(nxt_trl) % after last
+                        prev_trl=size(trials,1);
+                        trl_align(mii,:)=[prev_trl,(one_onset-trials(prev_trl,1))./sps,trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),-1,-1,-1,-1,-1,-1,-1];
+                    else % in session
+                        prev_trl=nxt_trl-1;
+                        trl_align(mii,:)=[prev_trl,(one_onset-trials(prev_trl,1))./sps,trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl),nxt_trl,(trials(nxt_trl,1)-one_onset)./sps,trials(nxt_trl,[5 8 9 10]),pref_trl(nxt_trl)];
+                    end
+                end
+                lastTrl=size(trials,1);
+                freqstats=struct();
+
+                if opt.var_len
+                    len=cellfun(@(x) numel(x),motif_replay.ts{tidx});
+                else
+                    len=size(motif_replay.ts{tidx},2);
+                end
+
+                % delay correct
+                pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                if nnonmem
+                    pref_delay_trls=all(trials(:,9:10)==1,2) & ismember(trials(:,5),[4 8]) & ismember(trials(:,8),[3 6]);
+                else
+                    pref_delay_trls=all(trials(:,9:10)==1,2) & trials(:,5)==samp_pref & trials(:,8)==dur_pref;
+                end
+                freqstats.pref_delay_correct=[sum(pref_delay.*len),sum(trials(pref_delay_trls,8))];
+
+                % delay error
+                if ~nnonmem
+                    pref_delay_err=trl_align(:,6)==0 & trl_align(:,7)==1 & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                    pref_delay_err_trls=trials(:,10)==0 & trials(:,5)==samp_pref & trials(:,8)==dur_pref;
+                    freqstats.pref_delay_error=[sum(pref_delay_err.*len),sum(trials(pref_delay_err_trls,8))];
+
+                    % delay non-prefered
+                    nonpref_delay=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                    nonpref_delay_trls=all(trials(:,9:10)==1,2) & trials(:,5)~=samp_pref;
+                    freqstats.nonpref_delay_correct=[sum(nonpref_delay.*len),(sum(trials(nonpref_delay_trls,8)))];
+
+                    % 1/samp delay 1/test 2/rwd?
+                    % decision/test correct
+                    pref_test=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=(trl_align(:,4)+1) & trl_align(:,2)<(trl_align(:,4)+2);
+                    freqstats.pref_test=[sum(pref_test.*len),nnz(pref_delay_trls)]; % 1 sec per trl
+                end
+                %supply for last trial
+                trials(end+1,:)=trials(end,2)+14*sps;
+
+                % succeed ITI pref correct
+                pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
+                    & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test
+                    & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+                freqstats.pref_succeed_ITI=[sum(pref_succeed_iti.*len),...
+                    sum((trials(find(pref_delay_trls)+1,1)-trials(pref_delay_trls,2))./sps-3)]; %rwd + test
+
+                if ~nnonmem
+                    % succeed ITI pref error
+                    pref_succeed_iti_err=trl_align(:,6)==0 & trl_align(:,7)==1 ...
+                        & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test
+                        & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+                    freqstats.pref_succeed_ITI_err=[sum(pref_succeed_iti_err.*len),...
+                        sum((trials(find(pref_delay_err_trls)+1,1)-trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
+
+                    % succeed ITI nonpref
+                    nonpref_succeed_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp_pref ... % WT, nonpref
+                        & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test
+                        & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14)); % 1s samp, 1s test, 2s rwd
+                    freqstats.nonpref_succeed_ITI=[sum(nonpref_succeed_iti.*len),...
+                        sum((trials(find(nonpref_delay_trls)+1,1)-trials(nonpref_delay_trls,2))./sps-3)];
+                end
+                trials(end,:)=[];
+
+                % precede preferred, non preferred
+
+                % precede ITI pref correct
+                trials=[repmat(trials(1,1)-14*sps,1,10);trials];
+                pref_precede_iti=all(trl_align(:,12:14)==1,2)...
+                    & (trl_align(:,2)>=(trl_align(:,4)+5) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                freqstats.pref_precede_ITI=[sum(pref_precede_iti.*len),sum((trials(find(pref_delay_trls)+1,1)-trials(pref_delay_trls,2))./sps-3)]; %rwd + test
+                if ~nnonmem
+                    % precede ITI pref error
+                    pref_succeed_iti_err=trl_align(:,13)==0 & trl_align(:,14)==1 ...
+                        & (trl_align(:,2)>=(trl_align(:,4)+5) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                    freqstats.pref_precede_ITI_err=[sum(pref_succeed_iti_err.*len),sum((trials(find(pref_delay_err_trls)+1,1)-trials(pref_delay_err_trls,2))./sps-3)]; %rwd + test
+
+                    %  precede ITI nonpref
+                    nonpref_precede_iti=all(trl_align(:,12:13)==1,2) & trl_align(:,10)~=samp_pref...
+                        & (trl_align(:,2)>=(trl_align(:,4)+5) |(trl_align(:,2)==-1 & trl_align(:,9)<11)); % other trial | first trial
+                    freqstats.nonpref_precede_ITI=[sum(nonpref_precede_iti.*len),sum((trials(find(nonpref_delay_trls)+1,1)-trials(nonpref_delay_trls,2))./sps-3)]; %rwd + test
+                end
+                trials(1,:)=[];
+
+                % long before and after
+                sessid=motif_replay.session(tidx);
+                rec_dur=wave.replay.sessid2length(sessid);
+                freqstats.before_session=[sum((trl_align(:,8)==1 & trl_align(:,9)>60).*len),trials(1,1)./sps-60];
+                freqstats.after_session=[sum((trl_align(:,1)==lastTrl & trl_align(:,2)>(60+2+trl_align(:,4))).*len),(rec_dur-trials(end,2))./sps-60-1];
+
+                % time length criteria since 23-Jun-28
+                if freqstats.before_session(2)<=30
+                    freqstats.before_session=nan(1,2);
+                end
+
+                if freqstats.after_session(2)<=30
+                    freqstats.after_session=nan(1,2);
+                end
+
+                stat_cell(tidx,1)={trl_align};
+                stat_cell(tidx,2)={freqstats};
+            end
+            stbl=cell2table(stat_cell,'VariableNames',{'trl_align','freqstats'});
+            motif_replay.trl_align=stbl.trl_align;
+            motif_replay.freqstats=stbl.freqstats;
+
+            sum_stats=[];
+            raw=cell2struct({[];[];cell(0);cell(0)},{'count','time','condition','tag'});
+
+            for tidx=1:size(motif_replay,1)
+                if (opt.cross_only && ~motif_replay.meta{tidx,3}) ...
+                        || (opt.within_only && motif_replay.meta{tidx,3})
+                    continue
+                end
+
+                sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_replay.freqstats(tidx)))];
+                raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_replay.freqstats(tidx)))];
+                raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_replay.freqstats(tidx)))];
+                sess_str=regexp(motif_replay.chain_id(tidx),'^s\d{1,3}(?=(c|r))','match','once');
+                raw.condition{end+1}=sess_str+replace(motif_replay.wave(tidx),"s","o");
+                raw.tag{end+1}=regexp(motif_replay.chain_id(tidx),'(c|r)\d*$','match','once');
+            end
+        end
+
         %%
         function rec_dur=sessid2length(sessidx)
             persistent sessidx_ rec_dur_
@@ -442,7 +621,6 @@ classdef replay < handle
             ylabel('Motif spike frequency (Hz)')
         end
 
-
         function showcase()
             %%
             global_init;
@@ -622,8 +800,6 @@ classdef replay < handle
 
         end
 
-
-
         function exception_check()
             [spkID,spkTS,trials,SU_id,folder,FT_SPIKE]=ephys.getSPKID_TS(106,'keep_trial',true);
             errsel=trials(:,10)==0;
@@ -677,7 +853,123 @@ classdef replay < handle
             end
         end
 
+        function rings_replay_tbl=quickconvert(ring_replay)
+            rings_replay_tbl=[];
+            for dd=["d3","d6"]
+                for ss=["olf_s1","olf_s2"]
+                    for fn=reshape(fieldnames(ring_replay.(dd).(ss)),1,[])
+                        oner=ring_replay.(dd).(ss).(fn{1});
+                        delay=str2double(replace(dd,"d",""));
+                        wid=replace(ss,"olf_","")+dd;
+                        cid=string(fn{1});
+                        c={oner.meta{1},delay,wid,cid,oner.ts,oner.meta,[],oner.trl_align,oner.freqstats};
+                        rings_replay_tbl=[rings_replay_tbl;cell2table(c,'VariableNames',{'session','delay','wave','ring_id','ts','meta','ts_id','trl_align','freqstats'})];
+                    end
+                end
+            end
+        end
+
+        function [run_length,offset,onset]=covered2runlength(covered)
+            edges = find(diff([0;covered;0]==1));
+            onset = edges(1:2:end-1);  % Start indices
+            offset = edges(2:2:end);
+            run_length =(offset-onset)./10;  % Consecutive ones counts
+        end
+
+        function run_length=delay_vs_iti(chain_replay,ring_replay_tbl)
+            % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
+            % [ring_replay,ring_stats,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
+            % ring_replay_tbl=wave.replay.quickconvert(ring_replay);
+            %
+            % fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out','trials_dict');
+            % [chain_replay,chain_stats,~]=wave.replay.stats_tbl(fstr.out,fstr.trials_dict,'var_len',false);
+
+
+            % per session
+            run_length=cell2struct({[];[]},{'delay','iti'});
+            for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
+                disp(sess)
+                session_tick=wave.replay.sessid2length(sess);
+                covered.iti=false(ceil(session_tick/3),1);
+                covered.delay=false(ceil(session_tick/3),1);
+                for onewave=["s1d3","s1d6","s2d3","s2d6"]
+
+                    chain_sel=chain_replay.session==sess & chain_replay.wave==onewave;
+                    ring_sel=ring_replay_tbl.session==sess & ring_replay_tbl.wave==onewave;
+                    if nnz(chain_sel)+nnz(ring_sel)<2
+                        continue
+                    end
+
+                    % chain ------------------------------------------------
+                    for cii=reshape(find(chain_sel),1,[])
+                        % per preferred trial
+                        trl_align=chain_replay.trl_align{cii};
+                        pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                        delay_cov=ceil(chain_replay.ts{cii}(pref_delay,[1 end])./3);
+                        for rii=1:size(delay_cov,1)
+                            covered.delay(delay_cov(rii,1):delay_cov(rii,2))=true;
+                        end
+
+                        pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
+                            & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                            & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+
+                        iti_cov=ceil(chain_replay.ts{cii}(pref_succeed_iti,[1 end])./3);
+                        for rii=1:size(iti_cov,1)
+                            covered.iti(iti_cov(rii,1):iti_cov(rii,2))=true;
+                        end
+                        % TODO: corresponding network in pre task, post task
+                    end
+
+                    % loops -------------------------------------------
+                    for cii=reshape(find(ring_sel),1,[])
+                        % per preferred trial
+                        trl_align=ring_replay_tbl.trl_align{cii};
+                        pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                        delay_cov=cell2mat(cellfun(@(x) ceil(x([1,end])./3).',ring_replay_tbl.ts{cii}(pref_delay),'UniformOutput',false));
+                        for rii=1:size(delay_cov,1)
+                            covered.delay(delay_cov(rii,1):delay_cov(rii,2))=true;
+                        end
+
+                        pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
+                            & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                            & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+
+                        iti_cov=cell2mat(cellfun(@(x) ceil(x([1,end])./3).',ring_replay_tbl.ts{cii}(pref_succeed_iti),'UniformOutput',false));
+                        for rii=1:size(iti_cov,1)
+                            covered.iti(iti_cov(rii,1):iti_cov(rii,2))=true;
+                        end
+                        % TODO: corresponding network in pre task, post task
+
+                    end
+                end
+                [delay_run_len,doffset,donset]=wave.replay.covered2runlength(covered.delay);
+                [iti_run_len,ioffset,ionset]=wave.replay.covered2runlength(covered.iti);
+                run_length.delay=[run_length.delay;repmat(double(sess),numel(delay_run_len),1),delay_run_len];
+                run_length.iti=[run_length.iti;repmat(double(sess),numel(iti_run_len),1),iti_run_len];
+            end
+
+            figure()
+            tiledlayout(1,2)
+            nexttile
+            hold on
+            histogram(run_length.delay,0:5:200)
+            nexttile
+            histogram(run_length.iti,0:5:200)
+
+            median(run_length.delay(:,2))
+            median(run_length.iti(:,2))
+        end
+
 
 
     end
 end
+
+
+
+
+
+
+
+

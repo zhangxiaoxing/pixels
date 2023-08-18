@@ -8,8 +8,12 @@ global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
-% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
+trials_dict=dictionary([],cell(0));
+for sessid=1:116
+    trials_dict(sessid)={h5read(fullfile(ephys.util.getHomedir('type','raw'),replace(ephys.sessid2path(sessid),'\',filesep()),'FR_All_1000.hdf5'),'/Trials')};
+end
 
+% wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 
 % map_cells: mixed_map,olf_map,dur_map
 % TODO: cross_thresh hold
@@ -279,9 +283,8 @@ end
 %TODO: assembly time constant olf, both, 3s 6s
 
 % [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
-% load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
-
-% [ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
+load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
+[ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
 
 % [fhb,fhs]=wave.replay.plot_replay(stats_ring([1 4 8 5 11 12],:),...
 %     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
@@ -364,7 +367,10 @@ toc
 % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
 
 [chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
+
+
 if false % skipped due to joint stats
+    [chain_replay,chain_stats,chain_raw]=wave.replay.stats_tbl(sschain_trl(cell2mat(sschain_trl.meta(:,3)),:),trials_dict,'var_len',false);
     [cstr,cmat]=wave.replay.stats_replay_sess({chain_raw},'feat_sel',[1 4 5 11 12]);
     fhb=wave.replay.plot_replay_sess_ci(cmat,...
         {'Delay','Test','ITI','Before session','After session',},...
