@@ -17,7 +17,7 @@ end
 
 % map_cells: mixed_map,olf_map,dur_map
 % TODO: cross_thresh hold
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false,'odor_only',true);
+com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',true);
 %
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 tcom3_maps=struct();
@@ -270,6 +270,7 @@ bz.fc_conn_screen(com_map,pct_meta,'title_suffix','expanded')
 bz.rings.ring_wave_freq(wrs_mux_meta); 
 load(fullfile('bzdata','sums_ring_stats_all.mat'),'sums_all');% 1X3
 pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
+
 % pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true);
 
 % bz.rings.rings_reg_pie(sums_all)% 1X3
@@ -641,10 +642,47 @@ end
 wave.composites
 
 
-
-
 %% exports
 
 
 pstats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',true,'skip_save',true);
+
+delay_stats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'odor_only',true,'delay',true,'iti',false,'remove_non_motif',true);
+iti_stats=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'odor_only',true,'delay',false,'iti',true,'remove_non_motif',true);
+
+dstats=bz.rings.rings_time_constant.plotStats(delay_stats,'odor_only',true,'skip_save',true,'skip_showcase',true);
+istats=bz.rings.rings_time_constant.plotStats(iti_stats,'odor_only',true,'skip_save',true,'skip_showcase',true);
+
+blame=vcs.blame();
+save(fullfile('binary/','temp0820_delay_iti_loop_stats.mat'),'delay_stats','iti_stats','dstats','istats','blame')
+
+[run_length,covered]=wave.replay.delay_vs_iti(chain_replay,ring_replay_tbl);
+fh=wave.replay.plot_delay_vs_iti(run_length);
+
+% for usess=reshape(unique(run_length.delay(:,1)),1,[])
+%     c=struct2cell(dstats);
+%     cfn=fieldnames(dstats);
+%     csel=endsWith(cfn,"s"+usess);
+%     sdstats=cell2struct(c(csel),cfn(csel));
+% 
+%     c=struct2cell(istats);
+%     cfn=fieldnames(istats);
+%     csel=endsWith(cfn,"s"+usess);
+%     sistats=cell2struct(c(csel),cfn(csel));
+% 
+%     fh=wave.motif_dynamic.composite_loops(sdstats,sistats);
+%     title("S"+usess);
+% 
+%     rr=cell2struct({run_length.delay(run_length.delay(:,1)==usess,:);...
+%         run_length.iti(run_length.iti(:,1)==usess,:);...
+%         run_length.iti(run_length.delay(:,1)==usess,:)},...
+%         {'delay','iti','pre_post'});
+% 
+%     fh=wave.replay.plot_delay_vs_iti(rr);
+%     title("S"+usess);
+% 
+%     keyboard()
+% end
+% 
+
 

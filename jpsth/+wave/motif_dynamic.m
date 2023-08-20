@@ -415,19 +415,41 @@ classdef  motif_dynamic < handle
             title('single spike loops')
         end
 
-        function composite_loops()
-            hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
-            C=struct2cell(hrstats.stats).';
+        function fh=composite_loops(stats,stats2)
+            arguments
+                stats
+                stats2 = []
+            end
+            % hrstats=load(fullfile('bzdata','hebbian_ring.mat'),'stats');
+            C=struct2cell(stats).';
+            if isempty(C)
+                fh=[];
+                return
+            end
             expd=[C{:}];
             expdd=[expd{:}];
             hrhist=histcounts(expdd,[0:2:19,20:20:240],'Normalization','pdf');
             qtrs=prctile(expdd,[25,50,75]);
             qtrs19=prctile(expdd,[10,50,90]);
-            figure()
+
+            if ~isempty(stats2)
+                C2=struct2cell(stats2).';
+                expd2=[C2{:}];
+                expdd2=[expd2{:}];
+                hrhist2=histcounts(expdd2,[0:2:19,20:20:240],'Normalization','pdf');
+                qtrs2=prctile(expdd2,[25,50,75]);
+                qtrs192=prctile(expdd2,[10,50,90]);
+            end
+            fh=figure('Position',[100,100,400,300]);
             hold on
             % sph=plot([0.5:1:9.5,15:10:195],congru_pdf,'--k');
             hrh=plot([1:2:19,30:20:240],hrhist,'-k');
             xline(qtrs,'k--',{'25%','50%','75%'})
+            if ~isempty(stats2)
+                hrh2=plot([1:2:19,30:20:240],hrhist2,'-b');
+                xline(qtrs2,'b--',{'25%','50%','75%'})
+            end
+
             % plot([25:50:975,1250,1750],d3hist,'k--');
             set(gca(),'XScale','log','YScale','log');
             ylim([8e-6,0.1]);

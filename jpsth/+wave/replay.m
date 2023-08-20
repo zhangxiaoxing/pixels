@@ -460,7 +460,6 @@ classdef replay < handle
             per_sess_mat=cell2mat(cellfun(@(x) sum(x.count,1)./x.time,outcell,'UniformOutput',false));
         end
 
-
         function fhb=plot_replay_sess(per_sess_mat,xlbl,opt)
             arguments
                 per_sess_mat double
@@ -583,7 +582,6 @@ classdef replay < handle
             ylabel('Motif spike frequency (Hz)')
             
         end
-
 
         function fhb=plot_replay_cross_sess(cross_sess_mat,xlbl,opt)
             arguments
@@ -876,7 +874,7 @@ classdef replay < handle
             run_length =(offset-onset)./10;  % Consecutive ones counts
         end
 
-        function run_length=delay_vs_iti(chain_replay,ring_replay_tbl)
+        function [run_length,covered_tbl]=delay_vs_iti(chain_replay,ring_replay_tbl)
             % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
             % [ring_replay,ring_stats,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
             % ring_replay_tbl=wave.replay.quickconvert(ring_replay);
@@ -886,12 +884,15 @@ classdef replay < handle
 
 
             % per session
-            run_length=cell2struct({[];[]},{'delay','iti'});
+            run_length=cell2struct({[];[];[]},{'delay','iti','pre_post'});
+            covered_tbl=[];
             for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
                 disp(sess)
                 session_tick=wave.replay.sessid2length(sess);
                 covered.iti=false(ceil(session_tick/3),1);
                 covered.delay=false(ceil(session_tick/3),1);
+                covered.pre_post=false(ceil(session_tick/3),1);
+                skip=true;
                 for onewave=["s1d3","s1d6","s2d3","s2d6"]
 
                     chain_sel=chain_replay.session==sess & chain_replay.wave==onewave;
@@ -899,7 +900,7 @@ classdef replay < handle
                     if nnz(chain_sel)+nnz(ring_sel)<2
                         continue
                     end
-
+                    skip=false;
                     % chain ------------------------------------------------
                     for cii=reshape(find(chain_sel),1,[])
                         % per preferred trial
@@ -918,7 +919,14 @@ classdef replay < handle
                         for rii=1:size(iti_cov,1)
                             covered.iti(iti_cov(rii,1):iti_cov(rii,2))=true;
                         end
-                        % TODO: corresponding network in pre task, post task
+                        %  corresponding network in pre task, post task
+                        pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
+                            | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
+                        pre_post_cov=ceil(chain_replay.ts{cii}(pre_post_motif,[1 end])./3);
+                        for rii=1:size(pre_post_cov,1)
+                            covered.pre_post(pre_post_cov(rii,1):pre_post_cov(rii,2))=true;
+                        end
+
                     end
 
                     % loops -------------------------------------------
@@ -939,35 +947,186 @@ classdef replay < handle
                         for rii=1:size(iti_cov,1)
                             covered.iti(iti_cov(rii,1):iti_cov(rii,2))=true;
                         end
-                        % TODO: corresponding network in pre task, post task
-
+                        % corresponding network in pre task, post task
+                        pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
+                            | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
+                        pre_post_cov=cell2mat(cellfun(@(x) ceil(x([1,end])./3).',ring_replay_tbl.ts{cii}(pre_post_motif),'UniformOutput',false));
+                        for rii=1:size(pre_post_cov,1)
+                            covered.pre_post(pre_post_cov(rii,1):pre_post_cov(rii,2))=true;
+                        end
                     end
+                end
+                if skip
+                    continue
                 end
                 [delay_run_len,doffset,donset]=wave.replay.covered2runlength(covered.delay);
                 [iti_run_len,ioffset,ionset]=wave.replay.covered2runlength(covered.iti);
+                [pre_post_run_len,poffset,ponset]=wave.replay.covered2runlength(covered.pre_post);
+
+                covered_tbl=[covered_tbl;cell2table({sess,covered.delay,covered.iti,covered.pre_post},'VariableNames',{'session','delay','iti','out_task'})];
+                
                 run_length.delay=[run_length.delay;repmat(double(sess),numel(delay_run_len),1),delay_run_len];
                 run_length.iti=[run_length.iti;repmat(double(sess),numel(iti_run_len),1),iti_run_len];
+                run_length.pre_post=[run_length.pre_post;repmat(double(sess),numel(pre_post_run_len),1),pre_post_run_len];
             end
-
-            figure()
-            tiledlayout(1,2)
-            nexttile
-            hold on
-            histogram(run_length.delay,0:5:200)
-            nexttile
-            histogram(run_length.iti,0:5:200)
-
-            median(run_length.delay(:,2))
-            median(run_length.iti(:,2))
         end
 
+        function fh=plot_delay_vs_iti(run_length)
+            delay_pdf=histcounts(run_length.delay(:,2),[0:19,20:20:300],'Normalization','pdf');
+            iti_pdf=histcounts(run_length.iti(:,2),[0:19,20:20:300],'Normalization','pdf');
+            pre_post_pdf=histcounts(run_length.pre_post(:,2),[0:19,20:20:300],'Normalization','pdf');
 
+            fh=figure('Position',[500,100,400,300]);
+            hold on
+            dh=plot([0.5:19.5,30:20:290],delay_pdf,'-r');
+            ih=plot([0.5:19.5,30:20:290],iti_pdf,'-k');
+            oh=plot([0.5:19.5,30:20:290],pre_post_pdf,'-b');
+
+            xlim([1,500])
+
+            % qtrs=prctile(run_length,[10,50,90]);
+            % xline(qtrs,'--k',string(qtrs)) % 17 24 35
+
+            ylim([1e-7,0.1])
+            set(gca(),'XScale','log','YScale','log')
+            xlabel('Time (ms)')
+            ylabel('Probability density')
+            legend([dh,ih,oh],{'Delay','ITI','Surround'})
+        end
+
+        function pivot_dict=delay_vs_iti_motif_per_spike(chain_replay,ring_replay_tbl)
+            pivot_dict.delay=struct();
+            pivot_dict.iti=struct();
+            pivot_dict.surround=struct();
+            % per session
+            for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
+                disp(sess)
+                % session_tick=wave.replay.sessid2length(sess);
+                % covered.iti=false(ceil(session_tick/3),1);
+                % covered.delay=false(ceil(session_tick/3),1);
+                % covered.pre_post=false(ceil(session_tick/3),1);
+                skip=true;
+                for onewave=["s1d3","s1d6","s2d3","s2d6"]
+                    chain_sel=chain_replay.session==sess & chain_replay.wave==onewave;
+                    ring_sel=ring_replay_tbl.session==sess & ring_replay_tbl.wave==onewave;
+                    if nnz(chain_sel)+nnz(ring_sel)<2 % TODO: should be 1 or 2?
+                        continue
+                    end
+                    skip=false;
+                    % chain ------------------------------------------------
+                    for chainii=reshape(find(chain_sel),1,[])
+                        % per preferred trial
+                        trl_align=chain_replay.trl_align{chainii};
+                        pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                        
+                        % per su per spk
+                        for suidx=1:numel(chain_replay.meta{chainii,2})
+                            suii=chain_replay.meta{chainii,2}(suidx);
+                            % disp(suii)
+                            if isfield(pivot_dict.delay,"S"+sess+"U"+suii)
+                                for kk=reshape(chain_replay.ts{chainii}(pref_delay,suidx),1,[])
+                                    if pivot_dict.delay.("S"+sess+"U"+suii).isKey(kk)
+                                        pivot_dict.delay.("S"+sess+"U"+suii)(kk)=pivot_dict.delay.("S"+sess+"U"+suii)(kk)+1;
+                                    else
+                                        pivot_dict.delay.("S"+sess+"U"+suii)(kk)=1;
+                                    end
+                                end
+                            else
+                                pivot_dict.delay.("S"+sess+"U"+suii)=dictionary(chain_replay.ts{chainii}(pref_delay,suidx),1);
+                            end
+
+                            pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
+                                & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                                & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+
+                            if isfield(pivot_dict.iti,"S"+sess+"U"+suii)
+                                for kk=reshape(chain_replay.ts{chainii}(pref_succeed_iti,suidx),1,[])
+                                    if pivot_dict.iti.("S"+sess+"U"+suii).isKey(kk)
+                                        pivot_dict.iti.("S"+sess+"U"+suii)(kk)=pivot_dict.iti.("S"+sess+"U"+suii)(kk)+1;
+                                    else
+                                        pivot_dict.iti.("S"+sess+"U"+suii)(kk)=1;
+                                    end
+                                end
+                            else
+                                pivot_dict.iti.("S"+sess+"U"+suii)=dictionary(chain_replay.ts{chainii}(pref_succeed_iti,suidx),1);
+                            end
+                            %  corresponding network in pre task, post task
+                            pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
+                                | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
+
+                            if isfield(pivot_dict.surround,"S"+sess+"U"+suii)
+                                for kk=reshape(chain_replay.ts{chainii}(pre_post_motif,suidx),1,[])
+                                    if pivot_dict.surround.("S"+sess+"U"+suii).isKey(kk)
+                                        pivot_dict.surround.("S"+sess+"U"+suii)(kk)=pivot_dict.surround.("S"+sess+"U"+suii)(kk)+1;
+                                    else
+                                        pivot_dict.surround.("S"+sess+"U"+suii)(kk)=1;
+                                    end
+                                end
+                            else
+                                pivot_dict.surround.("S"+sess+"U"+suii)=dictionary(chain_replay.ts{chainii}(pre_post_motif,suidx),1);
+                            end
+                        end
+                    end
+
+                    % loops -------------------------------------------
+                    for cii=[]%reshape(find(ring_sel),1,[])
+                        % per preferred trial
+                        trl_align=ring_replay_tbl.trl_align{cii};
+                        pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                        delay_cov=cell2mat(cellfun(@(x) ceil(x([1,end])./3).',ring_replay_tbl.ts{cii}(pref_delay),'UniformOutput',false));
+                        for rii=1:size(delay_cov,1)
+                            covered.delay(delay_cov(rii,1):delay_cov(rii,2))=true;
+                        end
+
+                        pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
+                            & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                            & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+
+                        iti_cov=cell2mat(cellfun(@(x) ceil(x([1,end])./3).',ring_replay_tbl.ts{cii}(pref_succeed_iti),'UniformOutput',false));
+                        for rii=1:size(iti_cov,1)
+                            covered.iti(iti_cov(rii,1):iti_cov(rii,2))=true;
+                        end
+                        % corresponding network in pre task, post task
+                        pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
+                            | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
+                        pre_post_cov=cell2mat(cellfun(@(x) ceil(x([1,end])./3).',ring_replay_tbl.ts{cii}(pre_post_motif),'UniformOutput',false));
+                        for rii=1:size(pre_post_cov,1)
+                            covered.pre_post(pre_post_cov(rii,1):pre_post_cov(rii,2))=true;
+                        end
+                    end
+                end
+                if skip
+                    continue
+                end
+            end
+        end
+        function plot_pivot(pivot_dict)
+            out=cell2struct({[];[];[]},{'delay','iti','surround'});
+            for fn=["delay","iti","surround"]
+                sucell=struct2cell(pivot_dict.(fn));
+                for cii=1:numel(sucell)
+                    if ~isempty(sucell{cii}.values)
+                        out.(fn)=[out.(fn);mean(sucell{cii}.values)];
+                    end
+                end
+            end
+
+            mm=[mean(out.delay),mean(out.iti),mean(out.surround)];
+            stdd=[std(out.delay),std(out.iti),std(out.surround)];
+            sem=stdd./sqrt([numel(out.delay),numel(out.iti),numel(out.surround)]);
+    
+            fh=figure('Position',[100,100,400,300])
+            hold on;
+            bar(1:3,mm,'FaceColor','none')
+            errorbar(1:3,mm,sem,'k.','CapSize',12)
+            ylabel('Alternative path per spike');
+            xlim([0.25,3.75]);
+            set(gca,'XTick',1:3,'XTickLabel',{'Delay','ITI','Surround'},'XTickLabelRotation',90)
+
+        end
 
     end
 end
-
-
-
 
 
 
