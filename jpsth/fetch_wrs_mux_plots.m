@@ -284,8 +284,10 @@ end
 %TODO: assembly time constant olf, both, 3s 6s
 
 % [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
-load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
+load(fullfile('binary','rings_tag.mat'))
 [ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
+ring_replay_tbl=wave.replay.quickconvert(ring_replay);
+
 
 % [fhb,fhs]=wave.replay.plot_replay(stats_ring([1 4 8 5 11 12],:),...
 %     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
@@ -367,7 +369,9 @@ toc
 % global_init
 % load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
 
-[chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl,'var_len',false);
+fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+sschain_trl=fstr.out;
+[chain_replay,chain_stats,chain_raw]=wave.replay.stats_tbl(sschain_trl,trials_dict,'var_len',false);
 
 
 if false % skipped due to joint stats
@@ -441,9 +445,9 @@ if false % skipped due to joint stats
 end
 
 [jestr,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
-fhb=wave.replay.plot_replay_sess_ci(jemat,...
-    {'Nonpref','Error','Nonpref','Error','Nonpref','Error'},...
-    'title','loops delay-prior-after','median_value',false,'ratio_block',3,'ref_p_value',false,'ref_line',true);
+fhb=wave.replay.plot_replay_3panel(jemat(:,[1 2 4 5 7 8]),...
+    {'Delay','','ITI before','','ITI after',''},...
+    'title','loops delay-prior-after','median_value',false);
 set(gca,'Ylim',[0.45,1.55],'YScale','linear')
 srp=[1,signrank(jemat(:,1),jemat(:,2)),signrank(jemat(:,1),jemat(:,3)),...
     1,signrank(jemat(:,4),jemat(:,5)),signrank(jemat(:,4),jemat(:,6)),...
