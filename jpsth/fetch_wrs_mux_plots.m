@@ -382,7 +382,7 @@ if false % skipped due to joint stats
         'title','chains correct trial','ref_line',true,'median_value',true,'stats','median');
     set(gca,'YScale','linear','YLim',[0,6])
 end
-
+load(fullfile('binary','rings_tag.mat'))
 [ring_replay,ring_stats,ring_raw]=wave.replay.stats(rmfield(rings_tag,'none'),'var_len',true);
 rings_tag_nom=rmfield(rmfield(rings_tag,'d6'),'d3');
 [ring_nom_replay,ring_nom_stats,ring_nom_raw]=wave.replay.stats(rings_tag_nom,'var_len',true);
@@ -445,9 +445,10 @@ if false % skipped due to joint stats
 end
 
 [jestr,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
-fhb=wave.replay.plot_replay_3panel(jemat(:,[1 2 4 5 7 8]),...
+fhb=wave.replay.plot_replay_3panel(jemat(:,[1 3 4 6 7 9]),...
     {'Delay','','ITI before','','ITI after',''},...
     'title','loops delay-prior-after','median_value',false);
+
 set(gca,'Ylim',[0.45,1.55],'YScale','linear')
 srp=[1,signrank(jemat(:,1),jemat(:,2)),signrank(jemat(:,1),jemat(:,3)),...
     1,signrank(jemat(:,4),jemat(:,5)),signrank(jemat(:,4),jemat(:,6)),...
@@ -689,4 +690,13 @@ fh=wave.replay.plot_delay_vs_iti(run_length);
 % end
 % 
 
+
+load(fullfile('binary','rings_tag.mat'))
+[ring_replay,ring_stats,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
+ring_replay_tbl=wave.replay.quickconvert(ring_replay);
+
+fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out','trials_dict');
+[chain_replay,chain_stats,~]=wave.replay.stats_tbl(fstr.out,fstr.trials_dict,'var_len',false);
+
+[run_length,covered]=wave.replay.delay_vs_iti(chain_replay,ring_replay_tbl);
 

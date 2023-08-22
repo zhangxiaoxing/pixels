@@ -1,5 +1,5 @@
 function [run_length,covered_tbl]=delay_vs_iti(chain_replay,ring_replay_tbl)
-% load(fullfile(gather_config.odpath,'Tempdata','rings_tag.mat'))
+% load(fullfile('binary','rings_tag.mat'))
 % [ring_replay,ring_stats,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
 % ring_replay_tbl=wave.replay.quickconvert(ring_replay);
 %

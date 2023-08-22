@@ -73,7 +73,7 @@ for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
         end
 
         % loops -------------------------------------------
-        for cii=[]%reshape(find(ring_sel),1,[])
+        for cii=reshape(find(ring_sel),1,[])
             % per preferred trial
             trl_align=ring_replay_tbl.trl_align{cii};
             pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
