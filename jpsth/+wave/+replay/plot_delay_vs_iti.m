@@ -1,13 +1,13 @@
 function fh=plot_delay_vs_iti(run_length)
 delay_pdf=histcounts(run_length.delay(:,2),[0:19,20:20:300],'Normalization','pdf');
 iti_pdf=histcounts(run_length.iti(:,2),[0:19,20:20:300],'Normalization','pdf');
-pre_post_pdf=histcounts(run_length.pre_post(:,2),[0:19,20:20:300],'Normalization','pdf');
+out_task_pdf=histcounts(run_length.out_task(:,2),[0:19,20:20:300],'Normalization','pdf');
 
 fh=figure('Position',[500,100,400,300]);
 hold on
 dh=plot([0.5:19.5,30:20:290],delay_pdf,'-r');
 ih=plot([0.5:19.5,30:20:290],iti_pdf,'-k');
-oh=plot([0.5:19.5,30:20:290],pre_post_pdf,'-b');
+oh=plot([0.5:19.5,30:20:290],out_task_pdf,'-b');
 
 xlim([1,500])
 

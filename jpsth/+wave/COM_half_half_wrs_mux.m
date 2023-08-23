@@ -38,8 +38,8 @@ end
 
 fh=figure('Color','w','Position',[32,32,275,235]);
 hold on
-boxplot(reshape(r_olf_dur_mux,1,[]),gg,'Colors','k','Whisker',inf);
-ylabel('TCOM Pearson''s r')
+boxplot(reshape((r_olf_dur_mux.^2),1,[]),gg,'Colors','k','Whisker',inf);
+ylabel('R-squared')
 if opt.odor_only
     if opt.iti
         set(gca(),'XTick',1:5,'XTickLabel',{'Correct','Error','Shuffle','ITI'},'YTick',0:0.2:1);
