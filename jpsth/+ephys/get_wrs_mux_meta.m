@@ -16,7 +16,7 @@ end
 persistent out opt_
 if isempty(out) || ~isequaln(opt,opt_)
     if opt.load_file
-        load('wrs_mux_meta.mat','wrs_mux_meta');
+        load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
         out=wrs_mux_meta;
     else
         [~,~,sessmap]=ephys.sessid2path(0);
@@ -151,7 +151,8 @@ if isempty(out) || ~isequaln(opt,opt_)
 
         if  opt.save_file
             wrs_mux_meta=out;
-            save('wrs_mux_meta.mat','wrs_mux_meta');
+            blame=vcs.blame();
+            save(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
         end
     end
 

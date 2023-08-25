@@ -7,8 +7,6 @@ arguments
     % opt.nonmem_ring (1,1) logical = false
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
-
-
 sps=30000;
 
 for dd=reshape(fieldnames(motif_replay),1,[])

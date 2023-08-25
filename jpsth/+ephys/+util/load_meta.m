@@ -1,12 +1,13 @@
 %TODO Waveform based SU filter
 
-function out=load_meta(opt)
+function su_meta=load_meta(opt)
 arguments
     %     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.n_bin (1,1) double {mustBeInteger,mustBePositive} = 3
     opt.skip_stats (1,1) logical = true
     opt.adjust_white_matter (1,1) logical
+    opt.save_file (1,1) logical = false
 end
 persistent opt_ out_
 global gather_config
@@ -38,6 +39,11 @@ if isempty(out_) || ~isequaln(opt,opt_)
     opt_=opt;
     
 end
-out=out_;
+su_meta=out_;
+if opt.save_file
+    blame=vcs.blame();
+    save(fullfile('binary','su_meta.mat'),'su_meta','blame');
+end
+
 end
 

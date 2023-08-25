@@ -5,10 +5,11 @@
 % the shuffled level ().
 classdef rings_time_constant <handle
     methods (Static)
-        function [pstats,tag_compress]=stats(sums_all,sel_meta,opt)
+        function [pstats,ssloop_trl]=stats(su_meta,sums_all,sel_meta,opt)
             arguments
-                sums_all  % w/ loop tags
-                sel_meta
+                su_meta = []
+                sums_all = [] % w/ loop tags
+                sel_meta = []
                 opt.load_file (1,1) logical = false
                 opt.skip_save (1,1) logical = false
                 opt.odor_only (1,1) logical = false
@@ -19,18 +20,27 @@ classdef rings_time_constant <handle
             end
 
             assert(~(opt.delay && opt.iti),"wrong switch combination")
-            % function cong_dir=rings_su_tcom_order(sums_all) % modified from
-            % persistent sums_all
-            % if isempty(sums_all)
-            %     load(fullfile('bzdata','sums_ring_stats_all.mat'));
-            % end
-            tag_compress=struct();
+
+            if isempty(su_meta)
+                load(fullfile('binary','su_meta.mat'))
+            end
+
+            if isempty(sel_meta)
+                fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+                sel_meta=fstr.wrs_mux_meta;
+                clear fstr
+            end
+
+            if isempty(sums_all)
+                load(fullfile('binary','sums_ring_stats_all.mat'),'sums_all');
+            end
+            
+
+            ssloop_trl=[];
             if ~opt.load_file
                 pstats=struct();
                 pstats.congru=struct();
                 pstats.nonmem=struct();
-
-                su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
                 rstats=cell(0,11);
                 for rsize=3:5
@@ -63,7 +73,13 @@ classdef rings_time_constant <handle
                 usess=unique(cell2mat(rstats(:,1)));
 
                 for sessid=usess.'
+                    susel=su_meta.sess==sessid & ~ismissing(su_meta.reg_tree(5,:).');
+                    reg_dict=dictionary(su_meta.allcid(susel),su_meta.reg_tree(5,susel).');
+
                     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
+                    % sel3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
+                    % sel6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
+
                     rid=find(cell2mat(rstats(:,1))==sessid);
                     for ri=reshape(rid,1,[])
                         if opt.compress && (any(ismember(rstats{ri,7},[7 8]),'all') ||(any(rstats{ri,7}==0,'all') && ~all(rstats{ri,7}==0,'all')))
@@ -73,6 +89,10 @@ classdef rings_time_constant <handle
 
                         ts_id=[];
                         cids=rstats{ri,3};
+                        if ~all(reg_dict.isKey(cids),'all')
+                            continue
+                        end
+
                         disp({sessid,ri});
 
                         per_cid_spk_cnt=zeros(size(cids));
@@ -111,12 +131,17 @@ classdef rings_time_constant <handle
                                 % TODO: complete output codes
                                 % TODO: copied from olf code, WIP
                                 onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
-                                onemeta=rstats(ri,[1 3 7]);
-                                pref_samp='none';
-                                % no dur pref
-                                tag_compress.none.(pref_samp).(sprintf('s%dr%d',sessid,ri))=...
-                                    cell2struct({onets;onemeta;trials},{'ts','meta','trials'});
+                                if isempty(onets)
+                                    continue
+                                end
 
+                                oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                                onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
+                                pref_samp="none";
+                                % no dur pref
+                               
+                                ssloop_trl=[ssloop_trl;cell2table({sessid,-1,pref_samp,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
+                                    'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
                                 %
                             else
                                 d3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
@@ -154,24 +179,28 @@ classdef rings_time_constant <handle
                             if opt.compress
                                 % TODO: complete output codes
                                 onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
-                                onemeta=rstats(ri,[1 3 7]);
+                                onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
                                 % 3s 6s or both
                                 if all(ismember(rstats{ri,7},[1 2 5]),'all')
-                                    pref_samp='olf_s1';
+                                    pref_samp="s1";
                                 elseif all(ismember(rstats{ri,7},[3 4 6]),'all')
-                                    pref_samp='olf_s2';
+                                    pref_samp="s2";
                                 else % TODO: verify and remove if unnecessary
                                     warning("Incongruent ring under congruent context")
                                     keyboard()
                                 end
                                 if all(ismember(rstats{ri,7},[1 3 5 6]),'all') % 3s
-                                    tag_compress.d3.(pref_samp).(sprintf('s%dr%d',sessid,ri))=...
-                                        cell2struct({onets;onemeta;trials},{'ts','meta','trials'});
+                                    pref_delay=3;
+                                elseif all(ismember(rstats{ri,7},[2 4 5 6]),'all') % 6s
+                                    pref_delay=6;
+                                else
+                                    warning("Incongruent ring under congruent context")
+                                    keyboard()
                                 end
-                                if all(ismember(rstats{ri,7},[2 4 5 6]),'all') % 6s
-                                    tag_compress.d6.(pref_samp).(sprintf('s%dr%d',sessid,ri))=...
-                                        cell2struct({onets;onemeta;trials},{'ts','meta','trials'});
-                                end
+
+                                ssloop_trl=[ssloop_trl;cell2table({sessid,pref_delay,pref_samp+"d"+pref_delay,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
+                                    'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
+
                             else
                                 [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
                                 if opt.delay
@@ -208,12 +237,15 @@ classdef rings_time_constant <handle
                 %     keyboard();
                 if ~opt.skip_save
                     blame=vcs.blame();
-                    save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
+                    if opt.compress
+                        save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame')
+                    else
+                        save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
+                    end
                 end
             else
-                load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame')
+                load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats');
             end
-%             plotStats(pstats)
         end
 
 

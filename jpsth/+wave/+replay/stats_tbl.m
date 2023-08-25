@@ -5,11 +5,16 @@ arguments
     opt.var_len (1,1) logical = false
     opt.cross_only (1,1) logical = false
     opt.within_only (1,1) logical = false
+    opt.nonmem (1,1) logical = false
     % opt.nonmem_ring (1,1) logical = false
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
-
 sps=30000;
+
+if ~opt.nonmem
+    selsel=~(motif_replay.wave=="none" | contains(motif_replay.wave,'nm'));
+    motif_replay=motif_replay(selsel,:);
+end
 
 stat_cell=cell(size(motif_replay,1),2);
 for tidx=1:size(motif_replay,1)
@@ -18,6 +23,7 @@ for tidx=1:size(motif_replay,1)
             || (opt.within_only && motif_replay.meta{tidx,3})
         continue
     end
+
     trials=trials_dict{motif_replay.session(tidx)};
     if ~(strcmp(motif_replay.wave(tidx),"none") || contains(motif_replay.wave(tidx),'nm'))
         dur_pref=motif_replay.delay(tidx);
@@ -37,8 +43,12 @@ for tidx=1:size(motif_replay,1)
     end
 
     % [nearest before; nearest after] * [trl_id,dT, samp, delay,wt,correct,prefer]% [nearest before; nearest after] * [trl_id,dT, samp, delay,performace, wt, prefer]
-    trl_align=nan(size(motif_replay.ts{tidx},1),14);
+    if opt.var_len && ~iscell(motif_replay.ts{tidx})
+        motif_replay.ts{tidx}=motif_replay.ts(tidx);
+    end
 
+    trl_align=nan(size(motif_replay.ts{tidx},1),14);
+        
     for mii=1:size(motif_replay.ts{tidx},1)
         if opt.var_len
             one_onset=motif_replay.ts{tidx}{mii}(1);
@@ -155,12 +165,13 @@ for tidx=1:size(motif_replay,1)
     stat_cell(tidx,1)={trl_align};
     stat_cell(tidx,2)={freqstats};
 end
-stbl=cell2table(stat_cell,'VariableNames',{'trl_align','freqstats'});
-motif_replay.trl_align=stbl.trl_align;
-motif_replay.freqstats=stbl.freqstats;
+motif_replay.trl_align=stat_cell(:,1);
+motif_replay.freqstats=stat_cell(:,2);
 
 sum_stats=[];
 raw=cell2struct({[];[];cell(0);cell(0)},{'count','time','condition','tag'});
+
+motiftype=motif_replay.Properties.VariableNames{4};
 
 for tidx=1:size(motif_replay,1)
     if (opt.cross_only && ~motif_replay.meta{tidx,3}) ...
@@ -168,11 +179,11 @@ for tidx=1:size(motif_replay,1)
         continue
     end
 
-    sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_replay.freqstats(tidx)))];
-    raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_replay.freqstats(tidx)))];
-    raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_replay.freqstats(tidx)))];
-    sess_str=regexp(motif_replay.chain_id(tidx),'^s\d{1,3}(?=(c|r))','match','once');
+    sum_stats=[sum_stats,cellfun(@(x) x(1)./x(2),struct2cell(motif_replay.freqstats{tidx}))];
+    raw.count=[raw.count,cellfun(@(x) x(1),struct2cell(motif_replay.freqstats{tidx}))];
+    raw.time=[raw.time,cellfun(@(x) x(2),struct2cell(motif_replay.freqstats{tidx}))];
+    sess_str=regexp(motif_replay.(motiftype)(tidx),'^s\d{1,3}(?=(c|r))','match','once');
     raw.condition{end+1}=sess_str+replace(motif_replay.wave(tidx),"s","o");
-    raw.tag{end+1}=regexp(motif_replay.chain_id(tidx),'(c|r)\d*$','match','once');
+    raw.tag{end+1}=regexp(motif_replay.(motiftype)(tidx),'(c|r)\d*$','match','once');
 end
 end

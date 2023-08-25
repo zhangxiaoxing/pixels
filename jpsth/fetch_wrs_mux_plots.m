@@ -8,10 +8,7 @@ global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
 
-trials_dict=dictionary([],cell(0));
-for sessid=1:116
-    trials_dict(sessid)={h5read(fullfile(ephys.util.getHomedir('type','raw'),replace(ephys.sessid2path(sessid),'\',filesep()),'FR_All_1000.hdf5'),'/Trials')};
-end
+trials_dict=behav.get_trials_dict('skip_save',true);
 
 % wrs_mux_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',true,'merge_mux',true,'extend6s',true);
 
@@ -283,7 +280,7 @@ if false
 end
 %TODO: assembly time constant olf, both, 3s 6s
 
-% [~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
+[~,rings_tag]=bz.rings.rings_time_constant.stats(sums_all,wrs_mux_meta,'load_file',false,'skip_save',true,'compress',true);
 load(fullfile('binary','rings_tag.mat'))
 [ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
 ring_replay_tbl=wave.replay.quickconvert(ring_replay);
