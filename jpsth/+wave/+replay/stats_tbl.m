@@ -1,14 +1,47 @@
-function [motif_replay,sum_stats,raw]=stats_tbl(motif_replay,trials_dict,opt)
+function [chains,loops]=stats_tbl(sschain_trl,ssloop_trl,trials_dict,opt)
 arguments
-    motif_replay
-    trials_dict
+    sschain_trl = []
+    ssloop_trl = []
+    trials_dict = []
     opt.var_len (1,1) logical = false
     opt.cross_only (1,1) logical = false
     opt.within_only (1,1) logical = false
     opt.nonmem (1,1) logical = false
-    % opt.nonmem_ring (1,1) logical = false
+    opt.skip_save (1,1) logical = true
+    opt.nonmem_ring (1,1) logical = false
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
+
+if isempty(sschain_trl)
+   fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+   sschain_trl=fstr.out;
+   clear fstr
+end
+
+if isempty(ssloop_trl)
+    load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+end
+
+if isempty(trials_dict)
+    load(fullfile('binary','trials_dict.mat'),'trials_dict');
+end
+
+opt.var_len=false;
+[chain_replay,chain_sums,chain_raw]=stats_one(sschain_trl,trials_dict,opt);
+opt.var_len=true;
+[ring_replay,loops_sums,loops_raw]=stats_one(ssloop_trl,trials_dict,opt);
+
+chains=cell2struct({chain_replay;chain_sums;chain_raw},{'replay','sums','raw'});
+loops=cell2struct({ring_replay;loops_sums;loops_raw},{'replay','sums','raw'});
+
+if ~opt.skip_save
+    blame=vcs.blame();
+    save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame');
+end
+
+end
+
+function [motif_replay,sum_stats,raw]=stats_one(motif_replay,trials_dict,opt)
 sps=30000;
 
 if ~opt.nonmem
@@ -48,7 +81,7 @@ for tidx=1:size(motif_replay,1)
     end
 
     trl_align=nan(size(motif_replay.ts{tidx},1),14);
-        
+
     for mii=1:size(motif_replay.ts{tidx},1)
         if opt.var_len
             one_onset=motif_replay.ts{tidx}{mii}(1);
@@ -186,4 +219,10 @@ for tidx=1:size(motif_replay,1)
     raw.condition{end+1}=sess_str+replace(motif_replay.wave(tidx),"s","o");
     raw.tag{end+1}=regexp(motif_replay.(motiftype)(tidx),'(c|r)\d*$','match','once');
 end
+
+% fn=replace(motiftype,"_id","")+"_replay.mat";
+% TODO: streamline
+
+
 end
+

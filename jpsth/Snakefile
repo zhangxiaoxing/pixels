@@ -17,9 +17,7 @@ rule delay_vs_iti_covered_per_sec:
 
 rule delay_vs_iti_runlength_covered:
 	input:
-		"binary/rings_tag_trl.mat",
-		"binary/chain_tag_all_trl.mat",
-		"binary/trials_dict.mat"
+		"binary/motif_replay.mat"
 	output:
 		"binary/delay_iti_runlength_covered.mat"
 	shell:
@@ -39,8 +37,7 @@ rule wrs_mux_meta:
 	output:
 		"binary/wrs_mux_meta.mat"
 	shell:
-		'matlab -noFigureWindows -batch "ephys.get_wrs_mux_meta(savefile=true,loadfile=false)"'
-
+		'matlab -noFigureWindows -batch "ephys.get_wrs_mux_meta(save_file=true,load_file=false)"'
 		
 rule su_meta:
 	output:
@@ -48,4 +45,29 @@ rule su_meta:
 	shell:
 		'matlab -noFigureWindows -batch "ephys.util.load_meta(save_file=true,adjust_white_matter=true)"'
 
+rule replay_stats:
+	input:
+		"binary/trials_dict.mat",
+		"binary/chain_tag_all_trl.mat",
+		"binary/rings_tag_trl.mat"
+	output:
+		"binary/motif_replay.mat"
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false)"'
 
+rule delay_iti_motif_per_spike:
+	input:
+		"binary/motif_replay.mat"
+	output:
+		"binary/delay_vs_iti_pivot_spike.mat"	
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_per_spike(skip_save=false)"'
+
+rule delay_iti_motif_spike_plot:
+	input:
+		"binary/delay_vs_iti_pivot_spike.mat"	
+	output:
+		"binary/delay_iti_alt_path_per_spk.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.plot_pivot()"'
+		

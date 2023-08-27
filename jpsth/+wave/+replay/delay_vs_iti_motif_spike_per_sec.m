@@ -1,8 +1,27 @@
-function composite_spk_per_sec=delay_vs_iti_motif_spike_per_sec(chain_replay,ring_replay_tbl,trials_dict)
+function composite_spk_per_sec=delay_vs_iti_motif_spike_per_sec(chain_replay,ring_replay,trials_dict)
+arguments
+    chain_replay = []
+    ring_replay = []
+    trials_dict = []
+end
+
+if isempty(ring_replay)
+    load(fullfile('binary','motif_replay.mat'),'ring_replay');
+end
+
+if isempty(chain_replay)
+    load(fullfile('binary','motif_replay.mat'),'chain_replay');
+end
+
+if isempty(trials_dict)
+    load(fullfile('binary','trials_dict.mat'),'trials_dict');
+end
+
+
 sps=30000;
 % per session
 composite_spk_per_sec=[];
-for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
+for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
     disp(sess)
     session_tick=wave.replay.sessid2length(sess);
     trials=cell2mat(trials_dict(sess));
@@ -11,7 +30,7 @@ for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
 
     for onewave=["s1d3","s1d6","s2d3","s2d6"]
         chain_sel=chain_replay.session==sess & chain_replay.wave==onewave;
-        ring_sel=ring_replay_tbl.session==sess & ring_replay_tbl.wave==onewave;
+        ring_sel=ring_replay.session==sess & ring_replay.wave==onewave;
         if nnz(chain_sel)+nnz(ring_sel)<2 % TODO: should be 1 or 2?
             continue
         end
@@ -40,20 +59,20 @@ for sess=reshape(unique([ring_replay_tbl.session;chain_replay.session]),1,[])
         % loops -------------------------------------------
         for cii=reshape(find(ring_sel),1,[])
             % per preferred trial
-            trl_align=ring_replay_tbl.trl_align{cii};
+            trl_align=ring_replay.trl_align{cii};
             pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
-            delay_spikes=unique([delay_spikes;cell2mat(ring_replay_tbl.ts{cii}(pref_delay))]);
+            delay_spikes=unique([delay_spikes;cell2mat(ring_replay.ts{cii}(pref_delay))]);
 
             pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
                 & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
                 & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
-            iti_spikes=unique([iti_spikes;cell2mat(ring_replay_tbl.ts{cii}(pref_succeed_iti))]);
+            iti_spikes=unique([iti_spikes;cell2mat(ring_replay.ts{cii}(pref_succeed_iti))]);
 
                 % corresponding network in pre task, post task
             pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
                 | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
 
-            surround_spikes=unique([surround_spikes;cell2mat(ring_replay_tbl.ts{cii}(pre_post_motif))]);
+            surround_spikes=unique([surround_spikes;cell2mat(ring_replay.ts{cii}(pre_post_motif))]);
         end
         switch onewave
             case "s1d3"

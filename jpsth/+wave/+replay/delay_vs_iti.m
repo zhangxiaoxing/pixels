@@ -1,22 +1,16 @@
-function [run_length,covered_tbl]=delay_vs_iti(chain_replay,ring_replay,trials_dict,opt)
+function [run_length,covered_tbl]=delay_vs_iti(chain_replay,ring_replay,opt)
 arguments
     chain_replay = []
     ring_replay = []
-    trials_dict = []
     opt.skip_save (1,1) logical = false
-end
-if isempty(trials_dict)
-    load(fullfile('binary','trials_dict.mat'),'trials_dict');
 end
 
 if isempty(ring_replay)
-    load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
-    [ring_replay,ring_stats,~]=wave.replay.stats_tbl(ssloop_trl,trials_dict,'var_len',true);
+    load(fullfile('binary','motif_replay.mat'),'ring_replay');
 end
 
 if isempty(chain_replay)
-   fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
-   [chain_replay,chain_stats,~]=wave.replay.stats_tbl(fstr.out,trials_dict,'var_len',false);
+    load(fullfile('binary','motif_replay.mat'),'chain_replay');
 end
 
 % per session

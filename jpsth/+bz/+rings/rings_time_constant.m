@@ -179,6 +179,7 @@ classdef rings_time_constant <handle
                             if opt.compress
                                 % TODO: complete output codes
                                 onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                                oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
                                 onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
                                 % 3s 6s or both
                                 if all(ismember(rstats{ri,7},[1 2 5]),'all')
