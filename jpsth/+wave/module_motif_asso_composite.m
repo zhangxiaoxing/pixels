@@ -2,14 +2,27 @@
 % olf, enc-both disconnect, composite proportion, bargraph
 % TODO: overall refactoring
 
-function [disconnected,degree_sums,complexity_sums]=module_motif_asso_composite(sschain,pstats,trials_dict,opt)
+function [disconnected,degree_sums,complexity_sums]=module_motif_asso_composite(sschain_trl,ssloop_trl,trials_dict,opt)
 arguments
-    sschain
-    pstats
-    trials_dict
+    sschain_trl = []
+    ssloop_trl = []
+    trials_dict = []
     opt.readfile (1,1) logical=false
-    opt.skipfile (1,1) logical=true
+    opt.skip_save (1,1) logical=true
     opt.merge_odor_sel (1,1) logical = true
+end
+
+if isempty(sschain_trl)
+    fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+    sschain_trl=fstr.out;
+    clear fstr;
+end
+if isempty(ssloop_trl)
+    load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl');
+end
+
+if isempty(trials_dict)
+    load(fullfile('binary','trials_dict.mat'),'trials_dict');
 end
 
 stats=struct();
@@ -18,136 +31,118 @@ complexity_sums=[];
 degree_sums=[];
 
 
-if true%~exist('inited','var') || ~inited  % denovo data generation
+
+%% single spike chain
+if opt.readfile
+    keyboard()
+    sschain_trl=load(fullfile('bzdata','chain_tag.mat'),'out');
+    load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'ssloop_trl'); % bz.rings.rings_time_constant
+end
+ssc_sess=unique(sschain_trl.session);
+
+%% single spike loop
+ssloop_trl=ssloop_trl(ssloop_trl.wave~="none",:);
+ssl_sess=unique(ssloop_trl.session);
+usess=union(ssc_sess,ssl_sess);
+
+% single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
+
+%% per-session entrance
+per_trial_motif_cid=cell(0);
+per_trial_motif_freq=[];
+
+stats.chain=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
+stats.loop=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
+for sessid=reshape(usess,1,[])
+    disp(sessid)
+    trials=cell2mat(trials_dict(sessid));
+
+    wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
+    per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),3)];
+    per_trial_motif_freq=[per_trial_motif_freq;...
+        repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),...
+        zeros(nnz(wtsel),4)];
 
     %% single spike chain
-    if opt.readfile
-        keyboard()
-        sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
-        load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
-    end
-    ssc_sess=unique(sschain.out.session);
 
+    for sidx=reshape(find(sschain_trl.session==sessid),1,[])
+        % ts_id: ts, cid, pos, trial_time, trial
+        % per-trial frequency.
+        tsel=[];
+        if sschain_trl.delay(sidx)==3
+            switch sschain_trl.wave(sidx)
+                case "s1d3"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                    ttag='both';
+                case "s2d3"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                    ttag='both';
+                case "olf_s1"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
+                    ttag='olf';
+                case "olf_s2"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
+                    ttag='olf';
+                case "dur_d3"
+                    tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
+                    ttag='dur';
+            end
+        else
+            switch sschain_trl.wave(sidx)
+                case "s1d6"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                    ttag='both';
+                case "s2d6"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                    ttag='both';
+                case "olf_s1"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
+                    ttag='olf';
+                case "olf_s2"
+                    tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
+                    ttag='olf';
+                case "dur_d6"
+                    tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
+                    ttag='dur';
+            end
+        end
+
+        cids=sschain_trl.meta(sidx,2);
+        stats.chain.(ttag)=[stats.chain.(ttag);{sessid},cids];
+        if ~isempty(tsel)
+            for ttt=reshape(find(tsel),1,[])
+                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),sschain_trl.delay(sidx),ttt];
+                per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},cids];
+            end
+        end
+    end
     %% single spike loop
-    if isfield(pstats,'nonmem'), pstats=rmfield(pstats,"nonmem");end
-    ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
-    usess=union(ssc_sess,ssl_sess);
+    for cc=reshape(find(ssloop_trl.session==sessid),1,[])
 
-    % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
+        % per-trial frequency.
+        [pref3,pref6]=bz.rings.preferred_trials_rings(ssloop_trl.wave(cc),trials);
+        tsel3=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),pref3);
+        tsel6=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),pref6);
+        % TODO: merge all to both at the moment
+        stats.loop.both=[stats.loop.both;{sessid},ssloop_trl.meta(cc,2)];
 
-    %% per-session entrance
-    per_trial_motif_cid=cell(0);
-    per_trial_motif_freq=[];
 
-    stats.chain=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
-    stats.loop=cell2struct({cell(0);cell(0);cell(0)},{'olf','dur','both'},1);
-    for sessid=reshape(usess,1,[])
-        disp(sessid)
-        if trials_dict.isKey(sessid)
-            trials=cell2mat(trials_dict(sessid));
-        else % no chains, could be optimized
-            [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false); % TODO optimize
+        for ttt=reshape(find(tsel3),1,[])
+            per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),3,ttt];
+            per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},ssloop_trl.meta(cc,2)];
         end
-        wtsel=trials(:,9)>0 & trials(:,10)>0 & ismember(trials(:,5),[4 8]) &ismember(trials(:,8),[3 6]);
-        per_trial_motif_cid=[per_trial_motif_cid;cell(nnz(wtsel),3)];
-
-        per_trial_motif_freq=[per_trial_motif_freq;...
-            repmat(sessid,nnz(wtsel),1),find(wtsel),trials(wtsel,5),trials(wtsel,8),...
-            zeros(nnz(wtsel),4)];
-
-        %% single spike chain
-
-
-        for sidx=reshape(find(sschain.out.session==sessid),1,[])
-            % ts_id: ts, cid, pos, trial_time, trial
-            % per-trial frequency.
-            tsel=[];
-            if sschain.out.delay(sidx)==3
-                switch sschain.out.wave(sidx)
-                    case "s1d3"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
-                        ttag='both';
-                    case "s2d3"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
-                        ttag='both';
-                    case "olf_s1"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
-                        ttag='olf';
-                    case "olf_s2"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
-                        ttag='olf';
-                    case "dur_d3"
-                        tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==3;
-                        ttag='dur';
-                end
-            else
-                switch sschain.out.wave(sidx)
-                    case "s1d6"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
-                        ttag='both';
-                    case "s2d6"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
-                        ttag='both';
-                    case "olf_s1"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
-                        ttag='olf';
-                    case "olf_s2"
-                        tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
-                        ttag='olf';
-                    case "dur_d6"
-                        tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,3),[4 8]) & per_trial_motif_freq(:,4)==6;
-                        ttag='dur';
-                end
-            end
-            if isempty(sschain.out.ts_id(1))
-                cids=sschain.out.meta{sidx,2};
-            else
-                cids=sschain.out.meta(sidx,1);
-            end
-            stats.chain.(ttag)=[stats.chain.(ttag);{sessid},cids];
-            if ~isempty(tsel)
-                for ttt=reshape(find(tsel),1,[])
-                    per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),sschain.out.delay(sidx),ttt];
-                    per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},cids];
-                end
-            end
+        for ttt=reshape(find(tsel6),1,[])
+            per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),6,ttt];
+            per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},ssloop_trl.meta(cc,2)];
         end
-        %% single spike loop
-        for cc=reshape(fieldnames(pstats.congru),1,[])
-            if ~startsWith(cc{1},['s',num2str(sessid),'r'])
-                continue
-            end
-            oneloop=pstats.congru.(cc{1});
-            % per-trial frequency.
-            [pref3,pref6]=bz.rings.preferred_trials_rings(oneloop.rstats{4},trials);
-            tsel3=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),pref3);
-            tsel6=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),pref6);
-
-            if ismember(oneloop.rstats{5},{'olf','dur','both'})
-                stats.loop.(oneloop.rstats{5})=[stats.loop.(oneloop.rstats{5});{sessid},oneloop.rstats(3)];
-            else
-                keyboard()
-            end
-
-            for ttt=reshape(find(tsel3),1,[])
-                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),3,ttt];
-                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},oneloop.rstats(3)];
-            end
-            for ttt=reshape(find(tsel6),1,[])
-                per_trial_motif_cid{ttt,3}=[sessid,per_trial_motif_freq(ttt,2),6,ttt];
-                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},oneloop.rstats(3)];
-            end
-
-            %check cid in largest network
-        end
+        %check cid in largest network
     end
-    if ~opt.skipfile
-        blame=vcs.blame();
-        save(fullfile("bzdata","SingleSpikeChainedLoopCid.mat"),'per_trial_motif_cid','per_trial_motif_freq','blame','stats')
-    end
-else
-    load(fullfile("bzdata","SingleSpikeChainedLoopCid.mat"),'per_trial_motif_cid','per_trial_motif_freq','blame')
 end
+if ~opt.skip_save
+    blame=vcs.blame();
+    save(fullfile("binary","SingleSpikeChainedLoopCid.mat"),'per_trial_motif_cid','per_trial_motif_freq','blame','stats')
+end
+
 
 processed=cell(0);
 disconnected=cell(0);
@@ -207,14 +202,15 @@ for tt=1:size(per_trial_motif_cid,1)
 
     for subsidx=subs
         subgh=gh.subgraph(conncomp==subsidx);
-        complexity_sums=[complexity_sums;double(per_trial_motif_cid{tt,3}),subgh.numnodes,subgh.numedges,subgh.numedges./nchoosek(subgh.numnodes,2),max(max(subgh.distances))];
+        complexity_sums=[complexity_sums;double(per_trial_motif_cid{tt,3}),subgh.numnodes,subgh.numedges,subgh.numedges./(nchoosek(subgh.numnodes,2)*2),max(max(subgh.distances))];
         per_trl_nodes=[per_trl_nodes;{per_trial_motif_cid{tt,3}(1),str2double(table2array(subgh.Nodes))}];
         degree_sums=[degree_sums;repmat(per_trial_motif_cid{tt,3},subgh.numnodes,1),str2double(table2array(subgh.Nodes)),subgh.degree];
     end
 end
 
-if false
-    save(fullfile('bzdata','motifs_graph_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
+if ~opt.skip_save
+    blame=vcs.blame;
+    save(fullfile('binary','nested_loops_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
 end
 disconn_count=[];
 for di=1:size(disconnected,1)
@@ -237,37 +233,37 @@ if opt.merge_odor_sel
     stats.loop=rmfield(stats.loop,'both');
 end
 
-figure()
-tiledlayout(1,2)
+fh1=figure();
+% tiledlayout(1,2)
 mcount=struct();
-
-for wv=["olf","both"] % dur
-    if opt.merge_odor_sel && wv=="both"
-        break
+wv="olf";
+% for wv=["olf","both"] % dur
+%     if opt.merge_odor_sel && wv=="both"
+%         break
+%     end
+% nexttile()
+hold on
+for motif=["chain","loop"]
+    ulist=unique(arrayfun(@(kii) string(sprintf('%d-',stats.(motif).(wv){kii,1},sort(stats.(motif).(wv){kii,2}))),1:size(stats.(motif).(wv),1)));
+    if isempty(disconn_count)
+        disconn_n=0;
+    else
+        disconn_n=nnz(contains(disconn_count,wv) & contains(disconn_count,motif));
     end
-    nexttile()
-    hold on
-    for motif=["chain","loop"]
-        ulist=unique(arrayfun(@(kii) string(sprintf('%d-',stats.(motif).(wv){kii,1},sort(stats.(motif).(wv){kii,2}))),1:size(stats.(motif).(wv),1)));
-        if isempty(disconn_count)
-            disconn_n=0;
-        else
-            disconn_n=nnz(contains(disconn_count,wv) & contains(disconn_count,motif));
-        end
-        mcount.(wv).(motif)=[numel(ulist),disconn_n];
-    end
-    mm=[(mcount.(wv).chain(1)-mcount.(wv).chain(2))./mcount.(wv).chain(1),...
-        (mcount.(wv).loop(1)-mcount.(wv).loop(2))./mcount.(wv).loop(1)];
-    sem=[sqrt(mm(1).*(1-mm(1))./mcount.(wv).chain(1)),sqrt(mm(2).*(1-mm(2))./mcount.(wv).loop(1))];
-
-    bh=bar(1:2,mm,'FaceColor','none');
-    errorbar(1:2,bh.YData,sem,'k.');
-    set(gca(),'XTick',1:2,'XTicklabel',{'Chain','Loop'},'YTick',0:0.5:1,'YTickLabel',0:50:100)
-    xlim([0.25,2.75]);
-    title(wv)
-    ylabel('Associated with composite loops (%)')
-    disp(wv+string(mm))
+    mcount.(wv).(motif)=[numel(ulist),disconn_n];
 end
+mm=[(mcount.(wv).chain(1)-mcount.(wv).chain(2))./mcount.(wv).chain(1),...
+    (mcount.(wv).loop(1)-mcount.(wv).loop(2))./mcount.(wv).loop(1)];
+sem=[sqrt(mm(1).*(1-mm(1))./mcount.(wv).chain(1)),sqrt(mm(2).*(1-mm(2))./mcount.(wv).loop(1))];
+
+bh=bar(1:2,mm,'FaceColor','none');
+errorbar(1:2,bh.YData,sem,'k.');
+set(gca(),'XTick',1:2,'XTicklabel',{'Chain','Loop'},'YTick',0:0.5:1,'YTickLabel',0:50:100)
+xlim([0.25,2.75]);
+ylabel('Associated with composite loops (%)')
+title(wv+string(mm))
+savefig(fh1,fullfile('binary','chain_loop_in_nests.fig'))
+% end
 
 %% plot per region degree
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
@@ -311,7 +307,7 @@ others_sem=std(cell2mat(subsref(struct2cell(per_reg),substruct('()',{~thresh_sel
 [plotmm,plotidx]=sort([per_reg_mm;others_mm],'descend');
 plotsem=[per_reg_sem;others_sem];
 %figure
-figure();
+fh3=figure();
 hold on;
 bh=bar(plotmm,'FaceColor','w');
 xlbl=[subsref(fieldnames(per_reg),substruct('()',{thresh_sel}));'Others'];
@@ -319,8 +315,10 @@ set(gca,'XTick',1:(nnz(thresh_sel)+1),'XTickLabel',xlbl(plotidx));
 errorbar(bh.XData,bh.YData,plotsem(plotidx),'k.')
 ylabel('Average node degree')
 title('Per region neuron degrees')
+savefig(fh3,fullfile('binary','nests_per_region_degree.fig'))
 
 %% overall graph stats
+
 ukeys=string.empty(0,1);
 uniq_net=[];
 for nidx=1:size(complexity_sums,1)
@@ -330,18 +328,19 @@ for nidx=1:size(complexity_sums,1)
         uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:end])];
     end
 end
-figure()
-scatter(uniq_net(:,3),uniq_net(:,4),'ko','filled')
-xlabel('Neuron (node) number')
-ylabel('FC (edge) number')
-set(gca,'XScale','log','YScale','log','XTick',[5:5:40])
-xlim([4,50])
-ylim([4,250])
-title('SS composite loops neuron vs FC')
+if false
+    figure()
+    scatter(uniq_net(:,3),uniq_net(:,4),'ko','filled')
+    xlabel('Neuron (node) number')
+    ylabel('FC (edge) number')
+    set(gca,'XScale','log','YScale','log','XTick',[5:5:40])
+    xlim([4,50])
+    ylim([4,250])
+    title('SS composite loops neuron vs FC')
+end
 
-
-figure('Position',[100,100,250,250])
-tiledlayout(1,2)
+fh2=figure('Position',[100,100,250,250]);
+tiledlayout(1,3)
 nexttile
 hold on
 boxplot(complexity_sums(:,5),'Colors','k','Whisker',inf,'Widths',0.5)
@@ -356,12 +355,14 @@ set(gca,'YScale','log')
 ylim([1,1000])
 xlim([0.5,1.5])
 ylabel('Number of FCs')
-
-
-figure('Position',[100,100,150,400])
+nexttile
 boxplot(uniq_net(:,5),'Colors','k','Whisker',inf,'Widths',1)
 ylim([0,1])
 set(gca,'XTick',[],'YTick',0:0.25:1,'YTickLabel',0:25:100)
 ylabel('Network density')
 title(sprintf('%.4f',median(uniq_net(:,5))));
+savefig(fh2,fullfile('binary','nests_graph_stats.fig'))
+appendfig('tag','nested_loops_graph_stats, module_motif_asso_composite.m','multi',true)
+
+
 end

@@ -1,52 +1,44 @@
 % Plot per-spike raster showcase of chained loops
 % sessid=100;
-function [in_maximum_tags,in_trial_tags,meta]=chain_loop_SC_spk(bburst,sessid,maxidx,opt)
+function [in_maximum_tags,in_trial_tags,meta]=chain_loop_SC_spk(sessid,maxidx,sschain_trl,ssloop_trl,opt)
 arguments
-    bburst (1,1) logical
     sessid (1,1) double {mustBeInteger,mustBePositive} % session id
     maxidx (1,1) double {mustBeInteger,mustBePositive} % index of sorted activity pattern
+    sschain_trl = []
+    ssloop_trl = []
     opt.skip_plot(1,1) logical = true
     opt.by_cover_rate (1,1) logical = false
     opt.all_trial_stats (1,1) logical = false
 end
 
-persistent sschain bschain pstats
 global_init;
 
-% burst spike loop, keys only
-dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
 % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
-
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
-
-if isempty(sschain) || isempty(bschain) || isempty(pstats)
-    % single spike chain
-    sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
-    % multi spike
-    bschain=load(fullfile("bzdata","chain_sust_tag_600.mat"),'out');
-    % single spike loop
-    load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats');
-    pstats=rmfield(pstats,"nonmem");
+if isempty(sschain_trl)
+    fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+    sschain_trl=fstr.out;
+    clear fstr;
 end
+if isempty(ssloop_trl)
+    load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl');
+end
+
 
 %[ 14    18    22    33    34    68   100   102   114]
 
 % extract connected components with graph tools; option: per-trial
 % dynamic graph=============================
-ssel=sig.sess==sessid;
-gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
-[sgbin,binsize]=conncomp(gh);
-bidx=binsize(sgbin)==max(binsize);
-largec=subgraph(gh,bidx);
-conn_cid=str2double(table2cell(largec.Nodes));
+% ssel=sig.sess==sessid;
+% gh=graph(cellstr(int2str(sig.suid(ssel,1))),cellstr(int2str(sig.suid(ssel,2))));
+% [sgbin,binsize]=conncomp(gh);
+% bidx=binsize(sgbin)==max(binsize);
+% largec=subgraph(gh,bidx);
+% conn_cid=str2double(table2cell(largec.Nodes));
 %^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 % TODO: Use the information.
+load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
 
-if ~exist('bburst','var') || bburst
-    load(fullfile("bzdata","ChainedLoop"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
-else
-    load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered','FT_SPIKE')
-end
 if ~opt.by_cover_rate
     % sort by max run length
     edges = find(diff([0;covered;0]==1));

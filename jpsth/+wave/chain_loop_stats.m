@@ -1,17 +1,28 @@
 % tag spikes in neuron with loop or chain activity
 % streamline related/duplicate code sniplet.
 
-function run_length=chain_loop_stats(sschain,pstats,disconnected,opt)
+function run_length=chain_loop_stats(chain_replay,ring_replay,disconnected,opt)
 arguments
-    sschain
-    pstats
-    disconnected
+    chain_replay = []
+    ring_replay = []
+    disconnected = []
     opt.skipfile (1,1) logical = true
 end
-per_spk_tag=true;
-% burstinterval=600;
-%     save(fullfile('bzdata','motifs_graph_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
 
+if isempty(ring_replay)
+    load(fullfile('binary','motif_replay.mat'),'ring_replay');
+end
+
+if isempty(chain_replay)
+    load(fullfile('binary','motif_replay.mat'),'chain_replay');
+end
+
+if isempty(disconnected)
+    load(fullfile('binary','nested_loops_stats.mat'),"disconnected")
+end
+
+
+per_spk_tag=true;
 
 disconnKey=cell(0);
 for ii=1:size(disconnected,1)
@@ -23,14 +34,13 @@ end
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
     %% single spike chain
-
-    ssc_sess=unique(sschain.out.session);
+    ssc_sess=unique(chain_replay.session);
 
     %% single spike loop
     %     load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats'); % bz.rings.rings_time_constant
-    if isfield(pstats,'nonmem'),pstats=rmfield(pstats,"nonmem");end
-    ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
-    usess=intersect(ssc_sess,ssl_sess);
+    ring_replay=ring_replay(ring_replay.wave~="none",:);
+    ssl_sess=unique(ring_replay.session);
+    usess=union(ssc_sess,ssl_sess);
 
     % single spk chn:1, burst spk chn:2, single spk loop:4, burst spk loop:8
 
@@ -47,11 +57,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     per_trial_motif_cid=cell(0);
 
     for sessid=double(reshape(usess,1,[]))
-
-        covered=false(1000,1); % 2hrs of milli-sec bins
-
+        len_ms=wave.replay.sessid2length(sessid)./3;
+        covered=false(ceil(len_ms),1); % 2hrs of milli-sec bins
         [~,~,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
         FT_SPIKE.lc_tag=cell(size(FT_SPIKE.timestamp));
+
         for cidx=1:numel(FT_SPIKE.timestamp)
             FT_SPIKE.lc_tag{cidx}=zeros(size(FT_SPIKE.timestamp{cidx}),'uint8');
         end
@@ -66,14 +76,10 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
 
         %% single spike chain
 
-        for sidx=1:size(sschain.out,1)
-            if isempty(sschain.out.ts_id(1))
-                cids=sschain.out.meta{sidx,2};
-            else
-                cids=sschain.out.meta(sidx,1);
-            end
+        for sidx=reshape(find(chain_replay.session==sessid),1,[])
+            cids=chain_replay.meta{sidx,2};
 
-            currkey=sprintf('%d-',sessid,sort(cids{1}));
+            currkey=sprintf('%d-',sessid,sort(cids));
             if ismember(currkey,disconnKey)
                 warning('skipped disconnected motif') % TODO: varify logic
                 continue
@@ -83,14 +89,16 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
 
             % per-trial frequency.
             tsel=[];
-            if sschain.out.delay(sidx)==3
-                switch sschain.out.wave(sidx)
+            if chain_replay.delay(sidx)==3
+                switch chain_replay.wave(sidx)
                     case "s1d3"
                         tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
                         perwaveidx=[2,5];
+                        samp=4;
                     case "s2d3"
                         tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==3;
                         perwaveidx=[2,5];
+                        samp=8;
                     case "olf_s1"
                         tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==3;
                         perwaveidx=[1,4];
@@ -102,13 +110,15 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                         perwaveidx=[3,6];
                 end
             else
-                switch wid{1}
+                switch chain_replay.wave(sidx)
                     case "s1d6"
                         tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
                         perwaveidx=[2,5];
+                        samp=4;
                     case "s2d6"
                         tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==8 & per_trial_motif_freq(:,4)==6;
                         perwaveidx=[2,5];
+                        samp=8;
                     case "olf_s1"
                         tsel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,3)==4 & per_trial_motif_freq(:,4)==6;
                         perwaveidx=[1,4];
@@ -128,10 +138,11 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
                 for ttt=reshape(find(tsel),1,[])
                     per_trial_motif_cid{ttt,1}=[per_trial_motif_cid{ttt,1},cids];
                 end
-
-                [~,tid]=ismember(sschain.out.ts{sidx}(:,1),sschain.out.ts{sidx}(:,1));
-                for onetid=reshape(tid,1,[])
-                    activitysel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==sschain.out.ts_id{sidx}.Trial(onetid);
+                
+                trl_align=chain_replay.trl_align{sidx};
+                pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                for onetid=reshape(trl_align(pref_delay,1),1,[])
+                    activitysel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==onetid;
                     per_trial_motif_freq(activitysel,6)=per_trial_motif_freq(activitysel,6)+1;
                     per_trial_motif_freq_perwave(activitysel,perwaveidx(2))=per_trial_motif_freq_perwave(activitysel,perwaveidx(2))+1;
                 end
@@ -140,32 +151,28 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             %check cid in largest network
 
             if per_spk_tag
-                for cidx=1:size(sschain.out.ts{sidx},2)
-                    cid=cids{1}(cidx);
+                for cidx=1:size(chain_replay.ts{sidx},2)
+                    cid=cids(cidx);
                     %                     ucid=[ucid,cid];
                     cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                    totag=sschain.out.ts{sidx}(:,cidx);
+                    totag=chain_replay.ts{sidx}(:,cidx);
                     [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
                     FT_SPIKE.lc_tag{cidsel}(totagidx(ism))=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx(ism)),1,'uint8');
                 end
             end
             % run length tag
-            for cidx=1:size(sschain.out.ts{sidx},1)
-                onset=floor(sschain.out.ts{sidx}(cidx,1)./3); % 0.1ms precision
-                offset=ceil(sschain.out.ts{sidx}(cidx,end)./3); % 0.1ms precision
+            for cidx=1:size(chain_replay.ts{sidx},1)
+                onset=floor(chain_replay.ts{sidx}(cidx,1)./3); % 0.1ms precision
+                offset=ceil(chain_replay.ts{sidx}(cidx,end)./3); % 0.1ms precision
                 covered(onset:offset)=true;
             end
         end
 
 
         %% single spike loop
-        for cc=reshape(fieldnames(pstats.congru),1,[])
-            if ~startsWith(cc{1},['s',num2str(sessid),'r'])
-                continue
-            end
-            oneloop=pstats.congru.(cc{1});
-
-            currkey=sprintf('%d-',sessid,sort(oneloop.rstats{3}));
+        
+        for cc=reshape(find(ring_replay.session==sessid),1,[])
+            currkey=sprintf('%d-',sessid,sort(ring_replay.meta{cc,2}));
             if ismember(currkey,disconnKey)
                 warning('skipped disconnected motif')
                 continue
@@ -173,27 +180,30 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
 
             % .ts_id(:,6) => loop tag
             % per-trial frequency.
-            [pref3,pref6]=bz.rings.preferred_trials_rings(oneloop.rstats{4},trials);
+            [pref3,pref6]=bz.rings.preferred_trials_rings(ring_replay.wave(cc),trials);
             tsel=per_trial_motif_freq(:,1)==sessid & ismember(per_trial_motif_freq(:,2),[pref3;pref6]);
             per_trial_motif_freq(tsel,7)=per_trial_motif_freq(tsel,7)+1;
             % per wave
-            switch oneloop.rstats{5}
-                case 'olf'
-                    perwaveidx=[7,10];
-                case 'both'
+            % switch oneloop.rstats{5}
+            %     case 'olf'
+                    % perwaveidx=[7,10];
+                % case 'both'
                     perwaveidx=[8,11];
-                case 'dur'
-                    perwaveidx=[9,12];
-                otherwise
-                    keyboard();
-            end
+                % case 'dur'
+            %         perwaveidx=[9,12];
+            %     otherwise
+            %         keyboard();
+            % end
 
             per_trial_motif_freq_perwave(tsel,perwaveidx(1))=per_trial_motif_freq_perwave(tsel,perwaveidx(1))+1;
 
             for ttt=reshape(find(tsel),1,[])
-                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},oneloop.rstats(3)];
+                per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},ring_replay.meta(cc,2)];
             end
+            
+            pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
 
+            % TODO: WIP0828
             u_act_per_trl=unique(oneloop.ts_id(oneloop.ts_id.Loop_tag>0,{'Trial','Loop_tag'}),'rows');
             [gc,gr]=groupcounts(u_act_per_trl.Trial);
             for aa=1:numel(gr)
@@ -205,8 +215,8 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             %check cid in largest network
 
             if per_spk_tag
-                for cidx=1:size(oneloop.rstats{3},2)
-                    cid=oneloop.rstats{3}(cidx);
+                for cidx=1:size(ring_replay.meta(cc,2),2)
+                    % cid=ssloop_trl.meta(cc,2)(cidx);
                     %             ucid=[ucid,cid];
                     cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
                     
@@ -316,14 +326,6 @@ set(gca(),'XScale','log','YScale','log')
 xlabel('Time (ms)')
 ylabel('Probability density')
 end
-
-
-
-function remove_before_after
-figure()
-boxplot([ss.run_length;rmv.run_length])
-end
-
 
 
 function relaxed_consecutive()

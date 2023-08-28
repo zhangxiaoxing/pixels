@@ -71,3 +71,22 @@ rule delay_iti_motif_spike_plot:
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.plot_pivot()"'
 		
+rule motif_nest:
+	input:
+		"binary/chain_tag_all_trl.mat",
+		"binary/rings_tag_trl.mat",
+		"binary/trials_dict.mat"
+	output:
+		"binary/nested_loops_stats.mat",
+		"binary/SingleSpikeChainedLoopCid.mat",
+		"binary/nests_graph_stats.fig",
+		"binary/nests_per_region_degree.fig",
+		"binary/chain_loop_in_nests.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.module_motif_asso_composite(skip_save=false)"'
+
+rule nest_runlength:
+	input:
+		"binary/chain_tag_all_trl.mat",
+		"binary/rings_tag_trl.mat"
+	// WIP0828
