@@ -32,7 +32,7 @@ toc % ~10 sec
 %%
 tic
 
-cross_only=true;
+cross_only=false;
 
 len_thresh=3;
 reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
@@ -40,6 +40,49 @@ chains_uf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'cross_only',
 chains_uf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true,'cross_only',cross_only);
 chains_nm_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true,'cross_only',cross_only);
 chains_nm_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'non_mem',true,'reverse',true,'cross_only',cross_only);
+
+nnz(~chains_uf_all.cross_reg)
+
+
+usess=unique([chains_uf_all.sess;chains_uf_rev_all.sess;chains_nm_rev_all.sess;chains_nm_all.sess]);
+sums=[];
+for ss=reshape(double(usess),1,[])
+    fwdcnt=nnz(chains_uf_all.sess==ss & chains_uf_all.cross_reg);
+    wtncnt=nnz(chains_uf_all.sess==ss & ~chains_uf_all.cross_reg);
+    revcnt=nnz(chains_uf_rev_all.sess==ss & chains_uf_rev_all.cross_reg);
+
+    % nmfwdcnt=nnz(chains_nm_all.sess==ss & chains_nm_all.cross_reg);
+    % nmwtncnt=nnz(chains_nm_all.sess==ss & ~chains_nm_all.cross_reg);
+    % nmrevcnt=nnz(chains_nm_rev_all.sess==ss & chains_nm_rev_all.cross_reg);
+
+    ssr=[fwdcnt,revcnt,wtncnt]./sum([wtncnt;revcnt;fwdcnt]);
+    sums=[sums;ss,fwdcnt,revcnt,wtncnt,ssr];
+
+
+
+end
+
+mm=mean(sums(:,[7,5,6])).*100;
+sem=std(sums(:,[7,5,6]))./sqrt(size(sums,1)).*100;
+
+figure()
+hold on
+bh=bar(mm.*eye(3),'stacked');
+errorbar(1:3,mm,sem,'k.')
+bh(1).FaceColor=[0.5,0.5,0.5];
+bh(2).FaceColor='k';
+bh(3).FaceColor='w';
+set(gca,'XTick',[]);
+legend(bh,{'Within','Consistent','Inconsistent'},'Location','northoutside','Orientation','horizontal')
+
+consistent_incon=ranksum(sums(:,5),sums(:,6));
+within_consis=ranksum(sums(:,5),sums(:,7));
+within_incon=ranksum(sums(:,6),sums(:,7));
+
+title(sprintf('consis-incon%.4f',p))
+ylabel('Proportion of all chains (%)')
+ylim([0,50])
+appendfig('tag','chain consistent inconsistent,chain_plots.m')
 
 numel(chains_uf_all.sess)./sum([numel(chains_uf_all.sess),numel(chains_uf_rev_all.sess)])
 numel(chains_nm_all.sess)./sum([numel(chains_nm_all.sess),numel(chains_nm_rev_all.sess)])
