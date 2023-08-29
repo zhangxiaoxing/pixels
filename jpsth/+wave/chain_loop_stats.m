@@ -6,7 +6,7 @@ arguments
     chain_replay = []
     ring_replay = []
     disconnected = []
-    opt.skipfile (1,1) logical = true
+    opt.skip_save (1,1) logical = true
 end
 
 if isempty(ring_replay)
@@ -29,7 +29,7 @@ for ii=1:size(disconnected,1)
     onekey=sprintf('%d-',disconnected{ii,1},disconnected{ii,2});
     disconnKey=[disconnKey;onekey];
 end
-
+blame=vcs.blame();
 
 if true%~exist('inited','var') || ~inited  % denovo data generation
     inited=true;
@@ -200,45 +200,44 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
             for ttt=reshape(find(tsel),1,[])
                 per_trial_motif_cid{ttt,2}=[per_trial_motif_cid{ttt,2},ring_replay.meta(cc,2)];
             end
-            
+            trl_align=ring_replay.trl_align{cc};
             pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
 
-            % TODO: WIP0828
-            u_act_per_trl=unique(oneloop.ts_id(oneloop.ts_id.Loop_tag>0,{'Trial','Loop_tag'}),'rows');
-            [gc,gr]=groupcounts(u_act_per_trl.Trial);
-            for aa=1:numel(gr)
-                asel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==gr(aa);
-                per_trial_motif_freq(asel,8)=per_trial_motif_freq(asel,8)+gc(aa);
-                per_trial_motif_freq_perwave(asel,perwaveidx(2))=per_trial_motif_freq_perwave(asel,perwaveidx(2))+gc(aa);
+            % unique activit per trial?
+            for rptidx=reshape(find(pref_delay),1,[])
+                currtrial=trl_align(rptidx,1);
+                asel=per_trial_motif_freq(:,1)==sessid & per_trial_motif_freq(:,2)==currtrial;
+                per_trial_motif_freq(asel,8)=per_trial_motif_freq(asel,8)+numel(ring_replay.ts{cc}{rptidx});
+                per_trial_motif_freq_perwave(asel,perwaveidx(2))=per_trial_motif_freq_perwave(asel,perwaveidx(2))+numel(ring_replay.ts{cc}{rptidx});
             end
 
             %check cid in largest network
 
             if per_spk_tag
-                for cidx=1:size(ring_replay.meta(cc,2),2)
-                    % cid=ssloop_trl.meta(cc,2)(cidx);
-                    %             ucid=[ucid,cid];
+                for cidx=1:size(ring_replay.meta{cc,2},2)
+                    cid=ring_replay.meta{cc,2}(cidx);
                     cidsel=find(strcmp(FT_SPIKE.label,num2str(cid)));
-                    
-                    totag=oneloop.ts_id.TS(oneloop.ts_id.Loop_tag>0 & oneloop.ts_id.CID==cid);
+                    totag=[];
+                    for rptidx=reshape(find(pref_delay),1,[])
+                        totag=[totag;ring_replay.ts{cc}{rptidx}(ring_replay.ts_seq{cc}{rptidx}==cid)];
+                    end
                     [ism,totagidx]=ismember(totag,FT_SPIKE.timestamp{cidsel});
                     FT_SPIKE.lc_tag{cidsel}(totagidx)=bitor(FT_SPIKE.lc_tag{cidsel}(totagidx),4,'uint8');
                 end
             end
             % run length tag
-            for tagi=reshape(setdiff(unique(oneloop.ts_id.Loop_tag),0),1,[])
-                tseq=oneloop.ts_id.TS(oneloop.ts_id.Loop_tag==tagi);
-                onset=floor(tseq(1)./3); % 0.1ms precision
+            for tagi=reshape(find(pref_delay),1,[])
+                tseq=ring_replay.ts{cc}{tagi};
+                onset=ceil(tseq(1)./3); % 0.1ms precision
                 offset=ceil(tseq(end)./3); % 0.1ms precision
-                %                 if offset-onset<2,keyboard();end
                 covered(onset:offset)=true;
             end
         end
 
 
-        if ~opt.skipfile
+        if ~opt.skip_save
             blame=vcs.blame();
-            save(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
+            save(fullfile("binary","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'FT_SPIKE','covered','blame')
         end
         per_sess_coverage.("SSS"+num2str(sessid))=covered;
 
@@ -246,36 +245,15 @@ if true%~exist('inited','var') || ~inited  % denovo data generation
     denovoflag=true;
 else % load from file
     per_sess_coverage=struct();
-    for bi=[150,300,600]
-        for sessid=[14,18,22,33,34,68,100,102,114]
-            load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
-            per_sess_coverage.("SSS"+num2str(sessid))=covered;
-        end
+    for sessid=[14,18,22,33,34,68,100,102,114]
+        load(fullfile("bzdata","SingleSpikeChainedLoop"+num2str(sessid)+".mat"),'covered')
+        per_sess_coverage.("SSS"+num2str(sessid))=covered;
     end
     denovoflag=false;
 end
-if denovoflag
-    disp("New set of data file generated")
-    %     keyboard();
-    if false
-        blame=vcs.blame();
-        save(fullfile("bzdata","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid','blame')
-        % chains
-        unique(cellfun(@(x) numel(x),per_trial_motif_cid(:,1)))
-        % loops
-        trlcnt=cellfun(@(x) numel(x),per_trial_motif_cid(:,2))
-        unique(trlcnt(per_trial_motif_freq(:,7)>1))
-        % chained-loops
-        trlcnt=arrayfun(@(x) numel(unique([per_trial_motif_cid{x,1},per_trial_motif_cid{x,2}])),1:size(per_trial_motif_cid,1))
-        unique(trlcnt(per_trial_motif_freq(:,5)>=1 & per_trial_motif_freq(:,7)>=1))
 
-    end
-end
 covcell=struct2cell(per_sess_coverage);
 covfn=fieldnames(per_sess_coverage);
-covered=struct();
-run_length=struct();
-
 
 %%
 relax_cosec=false;
@@ -305,8 +283,11 @@ for jj=1:numel(covered)
     end
     run_length =[run_length; (offset-onset)./10];  % Consecutive ones counts
 end
+if ~opt.skip_save
+    save(fullfile("binary","per_trial_motif_spk_freq.mat"),'per_trial_motif_freq','per_trial_motif_freq_perwave','per_trial_motif_cid','run_length','covered','blame')
+end
 
-figure()
+fh=figure();
 hold on;
 if relax_cosec
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
@@ -319,12 +300,13 @@ else
     xlim([2,500])
 end
 qtrs=prctile(run_length,[10,50,90]);
-xline(qtrs,'--k',string(qtrs)) % 17 24 35
+xline(qtrs,'--k',["10pct","50pct","90pct"]+string(qtrs)) % 17 24 35
 
 ylim([8e-6,0.1])
 set(gca(),'XScale','log','YScale','log')
 xlabel('Time (ms)')
 ylabel('Probability density')
+savefig(fh,fullfile('binary','nested_loop_time_constant.fig'));
 end
 
 

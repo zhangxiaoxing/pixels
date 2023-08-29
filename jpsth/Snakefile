@@ -85,8 +85,24 @@ rule motif_nest:
 	shell:
 		'matlab -noFigureWindows -batch "wave.module_motif_asso_composite(skip_save=false)"'
 
-rule nest_runlength:
+rule nest_loop_runlength:
 	input:
-		"binary/chain_tag_all_trl.mat",
-		"binary/rings_tag_trl.mat"
-	// WIP0828
+		"binary/motif_replay.mat",
+		"binary/nested_loops_stats.mat"
+	output:
+		"binary/nested_loop_time_constant.fig",
+		"binary/per_trial_motif_spk_freq.mat",
+		"binary/SingleSpikeChainedLoop115.mat"
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain_loop_stats(skip_save=false)"'
+
+rule delay_vs_iti_spike_per_sec:
+	input:
+		"binary/motif_replay.mat",
+		"binary/trials_dict.mat"
+	output:
+		"binary/delay_iti_motif_spike_per_sec.mat",
+		"binary/delay_iti_motif_spike_per_sec.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false)"'
+
