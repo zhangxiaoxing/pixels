@@ -2,7 +2,9 @@ rule all:
 	input:
 		"binary/sschain_time_constant.fig",
 		"binary/nested_loop_time_constant.fig",
-		"binary/ssloop_time_constant.fig"
+		"binary/ssloop_time_constant.fig",
+		"binary/delay_vs_iti_per_sec.fig",
+		"binary/delay_iti_motif_spike_per_sec.fig"
 
 rule trials_dict:
 	input:
@@ -93,14 +95,11 @@ rule motif_nest:
 
 rule nest_loop_runlength:
 	input:
-		"binary/motif_replay.mat",
-		"binary/nested_loops_stats.mat"
+		"binary/delay_iti_runlength_covered.mat"
 	output:
-		"binary/nested_loop_time_constant.fig",
-		"binary/per_trial_motif_spk_freq.mat",
-		"binary/SingleSpikeChainedLoop115.mat"
+		"binary/nested_loop_time_constant.fig"
 	shell:
-		'matlab -noFigureWindows -batch "wave.chain_loop_stats(skip_save=false)"'
+		'matlab -noFigureWindows -batch "wave.loop.nested_loop_time_const()"'
 
 rule delay_vs_iti_spike_per_sec:
 	input:

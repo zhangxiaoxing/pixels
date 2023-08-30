@@ -37,7 +37,11 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
 
         chain_sel=chain_replay.session==sess & chain_replay.wave==onewave;
         ring_sel=ring_replay.session==sess & ring_replay.wave==onewave;
-        if nnz(chain_sel)+nnz(ring_sel)<2
+
+        chain_su=[chain_replay.meta{chain_sel,2}];
+        ring_su=[ring_replay.meta{ring_sel,2}];
+        
+        if numel([chain_su,ring_su])==numel(unique([chain_su,ring_su]))
             continue
         end
 

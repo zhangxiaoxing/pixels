@@ -23,8 +23,8 @@ ylim([1e-6,1]);
 xlim([1,500])
 xlabel('Time (ms)');
 ylabel('Probability density');
-qtrs=prctile(runlength,[2.5,50,97.5]);
-xline(qtrs,'--k',["2.5pct ","50pct ","97.5pct "]+string(num2cell(qtrs)));
+qtrs=prctile(runlength,[1,2.5,5,10,50,90,95,97.5,99]);
+xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+string(num2cell(qtrs)));
 title('single spike loops')
 if ~opt.skip_save
     savefig(fh,fullfile('binary','ssloop_time_constant.fig'));
