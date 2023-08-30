@@ -1,3 +1,9 @@
+rule all:
+	input:
+		"binary/sschain_time_constant.fig",
+		"binary/nested_loop_time_constant.fig",
+		"binary/ssloop_time_constant.fig"
+
 rule trials_dict:
 	input:
 	output:
@@ -106,3 +112,19 @@ rule delay_vs_iti_spike_per_sec:
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false)"'
 
+rule sschain_time_constant:
+	input:
+		"binary/motif_replay.mat"
+	output:
+		"binary/sschain_time_constant.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.sschain_time_const(skip_save=false)"'
+		
+rule ssloop_time_constant:
+	input:
+		"binary/motif_replay.mat"
+	output:
+		"binary/ssloop_time_constant.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.loop.ssloop_time_const(skip_save=false)"'
+		

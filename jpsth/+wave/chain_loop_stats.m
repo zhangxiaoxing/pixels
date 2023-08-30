@@ -292,20 +292,21 @@ hold on;
 if relax_cosec
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
     plot([0.5:19.5,30:20:190,250:100:1950],chained_loops_pdf,'-k');
-    xlim([2,2000])
+    xlim([1,2000])
     titie("Consecutive window "+(consecthresh/30)+" msec")
 else
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:300],'Normalization','pdf');
     plot([0.5:19.5,30:20:290],chained_loops_pdf,'-k');
-    xlim([2,500])
+    xlim([1,500])
 end
-qtrs=prctile(run_length,[10,50,90]);
-xline(qtrs,'--k',["10pct","50pct","90pct"]+string(qtrs)) % 17 24 35
+qtrs=prctile(run_length,[2.5,50,97.5]);
+xline(qtrs,'--k',["2.5pct ","50pct ","97.5pct "]+string(qtrs)) % 17 24 35
 
-ylim([8e-6,0.1])
+ylim([1e-6,1])
 set(gca(),'XScale','log','YScale','log')
 xlabel('Time (ms)')
 ylabel('Probability density')
+title('nest loops')
 savefig(fh,fullfile('binary','nested_loop_time_constant.fig'));
 end
 

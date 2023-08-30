@@ -1,14 +1,17 @@
 %TODO brain region filter, olfaction filter.
-function out=pct_decoding_correct_error(pct_meta,ids,opt)
+function out=pct_decoding_correct_error(su_meta,sel_meta,ids,opt)
 arguments
-    pct_meta
-    ids (1,:) double {mustBeInteger,mustBePositive}
+    su_meta = []
+    sel_meta = []
+    ids (1,:) double {mustBeInteger,mustBePositive} = 1:6
     opt.new_data (1,1) logical=true
     opt.calc_dec (1,1) logical=true
     opt.lblidx (1,1) double {mustBeMember(opt.lblidx,[5,8])} = 8 %5 for sample 8 for duration
     opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 25 % x10 fold x4 test/fold = 1000
     opt.n_su (1,:) double {mustBeInteger,mustBePositive} =100;
     opt.switch_trial (1,1) logical = false
+    opt.reg_sel (1,1) logical = false
+    opt.delay (1,:) double = 3
 end
 
 if opt.lblidx==5
@@ -20,14 +23,17 @@ else
 end
 
 % select su by wave_id>>>>>>>>>>>>>>>
-susel=ismember(pct_meta.wave_id,ids);
+susel=ismember(sel_meta.wave_id,ids);
 %% gen data
 if opt.new_data
     decode_mat=struct();
     [~,~,sessmap]=ephys.sessid2path(0);
-    meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
     homedir=ephys.util.getHomedir('type','raw');
-    regsel=ismember(meta.reg_tree(1,:),{'CH','BS'}).';
+    if opt.reg_sel
+        regsel=ismember(su_meta.reg_tree(1,:),{'CH','BS'}).';
+    else
+        regsel=true(size(su_meta.sess));
+    end
     frmap=struct();
     
     for ii=reshape(cell2mat(sessmap.keys()),1,[])
@@ -35,8 +41,12 @@ if opt.new_data
         fpath=fullfile(homedir,sessmap(ii),"FR_All_1000.hdf5");
         fr=h5read(fpath,'/FR_All');
         trials=h5read(fpath,'/Trials');
-        sesssel=meta.sess==ii;
-        fr_t_align=mean(fr(:,:,5:7),3);
+        sesssel=su_meta.sess==ii;
+        if any(opt.delay==3,'all')
+            fr_t_align=mean(fr(:,:,5:7),3);
+        else
+            fr_t_align=mean(fr(:,:,5:10),3);
+        end
         if opt.switch_trial
             blk_idx=behav.tag_block(trials,'wt',false);
             trials=[trials,blk_idx(:,3)];
@@ -52,22 +62,22 @@ if opt.new_data
         trls=decode_mat.(skey{1}).trials;
         if opt.switch_trial
             csel=trls(:,9)~=0 & trls(:,10)~=0 ...
-                & ismember(trls(:,8),[3 6]) ...
+                & ismember(trls(:,8),opt.delay) ...
                 & ismember(trls(:,5),[4 8]) ...
                 & ismember(trls(:,11),2:4);
             esel=trls(:,10)==0 ...
-                & ismember(trls(:,8),[3 6]) ...
+                & ismember(trls(:,8),opt.delay) ...
                 & ismember(trls(:,5),[4 8]) ...
                 & ismember(trls(:,11),2:4);
             cssel=trls(:,9)~=0 & trls(:,10)~=0 ...
-                & ismember(trls(:,8),[3 6]) ...
+                & ismember(trls(:,8),opt.delay) ...
                 & ismember(trls(:,5),[4 8]) ...
                 & trls(:,11)==1;
 
             dec_cs_lbl=trls(cssel,opt.lblidx);
         else
-            csel=trls(:,9)~=0 & trls(:,10)~=0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,5),[4 8]);
-            esel=trls(:,10)==0 & ismember(trls(:,8),[3 6]) & ismember(trls(:,5),[4 8]);
+            csel=trls(:,9)~=0 & trls(:,10)~=0 & ismember(trls(:,8),opt.delay) & ismember(trls(:,5),[4 8]);
+            esel=trls(:,10)==0 & ismember(trls(:,8),opt.delay) & ismember(trls(:,5),[4 8]);
         end
 
         dec_c_lbl=trls(csel,opt.lblidx);

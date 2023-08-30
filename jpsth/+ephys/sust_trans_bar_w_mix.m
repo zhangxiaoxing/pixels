@@ -7,6 +7,7 @@ arguments
     sel_meta
     opt.exclude_switched (1,1) logical = true
     opt.merge_3_6 (1,1) logical = true
+    opt.odor_only (1,1) logical = true
 end
 % meta=ephys.util.load_meta('skip_stats',true);
 if opt.exclude_switched
