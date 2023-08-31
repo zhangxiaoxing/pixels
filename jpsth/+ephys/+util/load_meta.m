@@ -6,7 +6,7 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.n_bin (1,1) double {mustBeInteger,mustBePositive} = 3
     opt.skip_stats (1,1) logical = true
-    opt.adjust_white_matter (1,1) logical
+    opt.adjust_white_matter (1,1) logical = true
     opt.save_file (1,1) logical = false
 end
 persistent opt_ out_

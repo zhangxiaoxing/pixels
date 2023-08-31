@@ -19,21 +19,24 @@ if ~opt.skip_save
     save(fullfile("binary","su_decoding.mat"),"o3","o6","blame");
 end
 
-mm=[mean([o3.olf.c_result_50su;o6.olf.c_result_50su]),mean([o3.olf.e_result_50su;o6.olf.e_result_50su])...
-    ];
-sem=sqrt(mm.*(1-mm)./numel([o3.olf.c_result_50su;o6.olf.c_result_50su]));
+rptdata=[o3.olf.c_result_50su,o3.olf.e_result_50su;o6.olf.c_result_50su,o6.olf.e_result_50su];
+mm=mean(rptdata);
+sem=sqrt(mm.*(1-mm)./size(rptdata,1));
+
+[~,~,p]=crosstab([zeros(size(rptdata,1),1);ones(size(rptdata,1),1)],[rptdata(:,1);rptdata(:,2)]);
 
 
 fh=figure('Color','w','Position',[100,100,300,240]);
 hold on
 bh=bar(mm);
-errorbar(1:2,mm,sem,'k.');
+errorbar(1:2,mm,sem,'k.','CapSize',12);
 ylim([0.5,1]);
 set(gca(),'XTick',1:2,...
     'XTickLabel',{'Correct','Error'},...
     'YTick',0.5:0.25:1,'YTickLabel',50:25:100)
 ylabel('Classification accuracy');
-title('Odor only su dec');
+
+title(sprintf('Odor chisq %.4f',p));
 
 if ~opt.skip_save
     savefig(fh,fullfile("binary","su_decoding.fig"));

@@ -1,3 +1,20 @@
+% cmc=struct2cell(com_map);
+% sums=0;
+% for ii=1:numel(cmc)
+%     if isfield(cmc{ii},'s1d6')
+%         sums=sums+cmc{ii}.s1d6.com6.Count;
+%     end
+%     if isfield(cmc{ii},'s2d6')
+%         sums=sums+cmc{ii}.s2d6.com6.Count;
+%     end
+%     if isfield(cmc{ii},'olf_s1')
+%         sums=sums+cmc{ii}.olf_s1.com6.Count;
+%     end
+%     if isfield(cmc{ii},'olf_s2')
+%         sums=sums+cmc{ii}.olf_s2.com6.Count;
+%     end
+% end
+
 
 function [fh,imdata]=plot_pct_wave(com_map,opt)
 arguments

@@ -4,7 +4,8 @@ rule all:
 		"binary/nested_loop_time_constant.fig",
 		"binary/ssloop_time_constant.fig",
 		"binary/delay_vs_iti_per_sec.fig",
-		"binary/delay_iti_motif_spike_per_sec.fig"
+		"binary/delay_iti_motif_spike_per_sec.fig",
+		"binary/FC_congru_incon_nonmem.fig"
 
 rule trials_dict:
 	input:
@@ -127,3 +128,39 @@ rule ssloop_time_constant:
 	shell:
 		'matlab -noFigureWindows -batch "wave.loop.ssloop_time_const(skip_save=false)"'
 		
+rule su_decoding:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/su_decoding.mat",
+		"binary/su_decoding.fig"
+	shell:
+		'matlab -noFigureWindows -batch "ephys.su_decoding_corr_err(skip_save=false)"'
+
+rule su_trans_sustain:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/su_trans_sustain.fig"
+	shell:
+		'matlab -noFigureWindows -batch "ephys.sust_trans_bar_w_mix(skip_save=false)"'
+		
+rule FC_congru_incon_nonmem:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/FC_congru_incon_nonmem.fig"
+	shell:
+		'matlab -noFigureWindows -batch "bz.inter_wave_pct(odor_only=true,skip_save=false)"'
+
+rule sust_trans_correct_err_AUC:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/corr_err_trans_sust_AUC_olf.fig",
+		"binary/corr_err_trans_sust_AUC.mat"
+	shell:
+		'matlab -noFigureWindows -batch "ephys.sust_trans_correct_error(odor_only=true,skip_save=false)"'
+		
+

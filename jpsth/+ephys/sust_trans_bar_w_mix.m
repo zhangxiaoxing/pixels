@@ -4,12 +4,44 @@
 
 function fh=sust_trans_bar_w_mix(sel_meta,opt)
 arguments
-    sel_meta
+    sel_meta = [];
     opt.exclude_switched (1,1) logical = true
     opt.merge_3_6 (1,1) logical = true
     opt.odor_only (1,1) logical = true
+    opt.skip_save (1,1) logical = true
 end
 % meta=ephys.util.load_meta('skip_stats',true);
+if isempty(sel_meta)
+    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+    sel_meta=fstr.wrs_mux_meta;
+    clear fstr
+end
+
+
+if opt.odor_only
+    olf_sw=ephys.get_switched(sel_meta,'odor_only',true);
+    t3=nnz(~olf_sw & ismember(sel_meta.wave_id,[1 3 5 6]) & (any(sel_meta.p_olf<0.05,2) | any(sel_meta.p_mux<0.05,2)))./numel(sel_meta.wave_id);
+    s3=nnz(~olf_sw & all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2))./numel(sel_meta.wave_id);
+
+    t6=nnz(~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) &(any([sel_meta.p_olf,sel_meta.p_olf6]<0.05,2) | any(sel_meta.p_mux<0.05,2)))./numel(sel_meta.wave_id);
+    s6=nnz(~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) & (all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2)) & all(sel_meta.p_olf6<0.05,2))./numel(sel_meta.wave_id);
+
+    sem=sqrt([t3,t6,s3,s6].*(1-[t3,t6,s3,s6])./numel(sel_meta.wave_id));
+
+    fh=figure();
+    hold on
+    bh=bar([t3,s3;t6,s6].*100);
+    [bh(1).FaceColor,bh(2).FaceColor]=deal('k','w');
+    errorbar([bh.XEndPoints],[bh.YEndPoints],sem.*100,'k.','CapSize',12)
+    legend(bh,{'Transient','Sustained'},'Location','northoutside','Orientation','horizontal')
+    set(gca,'XTick',1:2,'XTickLabel',{'3s delay','6s delay'})
+    ylabel('Proportion of all neurons (%)')
+    savefig(fullfile('binary','su_trans_sustain.fig'));
+    title(sprintf('%.3f',t3,s3,t6,s6))
+    return
+end
+
+
 if opt.exclude_switched
     [olf_sw,dur_sw,mux_sw]=ephys.get_switched(sel_meta);
     sw_sel=olf_sw|dur_sw|mux_sw;
@@ -17,9 +49,7 @@ if opt.exclude_switched
 else
     [olf_sw,dur_sw,mux_sw]=deal(false);
 end
-% for fn=reshape(fieldnames(sel_meta),1,[])
-%     meta.(fn{1})=sel_meta.(fn{1});
-% end
+
 all_olf_sel=ismember(sel_meta.wave_id,5:6);
 sust_olf_sel=all(sel_meta.p_olf<0.05,2) & all_olf_sel;
 trans_olf_sel=all_olf_sel & ~sust_olf_sel;

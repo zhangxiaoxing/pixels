@@ -1,21 +1,28 @@
-function fh=inter_wave_pct(pct_meta,opt)
+function fh=inter_wave_pct(sel_meta,opt)
 arguments
-    pct_meta
+    sel_meta = []
     opt.min_pair_per_session (1,1) double = 20
     opt.per_sess (1,1) logical = false
     opt.inhibit (1,1) logical = false
     opt.asym_congru (1,1) logical = false
     opt.odor_only (1,1) logical = true
+    opt.skip_save (1,1) logical = true
 end
-% selstr=load('perm_sens.mat','sens_meta');
+
+if isempty(sel_meta)
+    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+    sel_meta=fstr.wrs_mux_meta;
+    clear fstr
+end
 
 % persistent sig pair
+global_init;
 [sig,pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',opt.inhibit);
 if opt.odor_only
-    pct_meta.wave_id(ismember(pct_meta.wave_id,7:8))=-1;
+    sel_meta.wave_id(ismember(sel_meta.wave_id,7:8))=0;
 end
-sig=bz.join_fc_waveid(sig,pct_meta.wave_id);
-pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
+sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
+pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
 
 %>>>>>>>>>>>>>>>>>>Skip hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
@@ -25,16 +32,20 @@ pair=bz.join_fc_waveid(pair,pct_meta.wave_id);
 % [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
 fh.fig=figure('Color','w','Position',[100,100,500,235]);
 tiledlayout(1,2)
-fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru);
-fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru);
+fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
+fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
 sgtitle('same-reg, cross-reg')
+if ~opt.skip_save
+    savefig(fh,fullfile("binary","FC_congru_incon_nonmem.fig"));
+end
+
 %% single-mixed % separated into own code. 
 % statsMixed(sig,pair)
 
 %% graded mat
-if isfield(pct_meta,'mat_coord')
-    sig=bz.join_fc_waveid(sig,pct_meta.mat_coord,'pct_mat',true); %lead_olf, lead_dur,folo_olf,folo_dur
-    pair=bz.join_fc_waveid(pair,pct_meta.mat_coord,"pct_mat",true);
+if isfield(sel_meta,'mat_coord')
+    sig=bz.join_fc_waveid(sig,sel_meta.mat_coord,'pct_mat',true); %lead_olf, lead_dur,folo_olf,folo_dur
+    pair=bz.join_fc_waveid(pair,sel_meta.mat_coord,"pct_mat",true);
     statsMat(sig,pair)
 end
 %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -252,14 +263,14 @@ end
 
 
 
-function ax=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru)
+function ax=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru,odor_only)
 % [fromhat,tohat,fromsem,tosem]=deal(nan(5,1));
 
 nonmem_sig=pct.su_pairs.get_nonmem(sig.waveid);
 nonmem_pair=pct.su_pairs.get_nonmem(pair.waveid);
 
-congru_sig=pct.su_pairs.get_congru(sig.waveid,'asym_congru',asym_congru);
-congru_pair=pct.su_pairs.get_congru(pair.waveid,'asym_congru',asym_congru);
+congru_sig=pct.su_pairs.get_congru(sig.waveid,'asym_congru',asym_congru,'odor_only',odor_only);
+congru_pair=pct.su_pairs.get_congru(pair.waveid,'asym_congru',asym_congru,'odor_only',odor_only);
 
 incong_sig=pct.su_pairs.get_incongru(sig.waveid);
 incong_pair=pct.su_pairs.get_incongru(pair.waveid);

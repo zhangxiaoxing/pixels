@@ -1,13 +1,15 @@
 % TODO migrate to wrs_mux data set
-% major revision 20221104
+
 function stats=sust_trans_correct_error(sel_meta,opt)
 arguments
-    sel_meta
+    sel_meta = []
 %     opt.single_bin (1,1) logical = true
     opt.plot_scatter (1,1) logical = false
     opt.plot_per_su (1,1) logical = true
     opt.plot_per_trial (1,1) logical = false
     opt.plot_showcase (1,1) logical = false
+    opt.odor_only (1,1) logical = true
+    opt.skip_save (1,1) logical = true
 end
 set(groot,'defaultTextFontSize',10);
 sumeta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
@@ -17,12 +19,19 @@ if opt.plot_scatter
     hold on;
 end
 
+if isempty(sel_meta)
+    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+    sel_meta=fstr.wrs_mux_meta;
+    clear fstr
+end
+
 % should be selective types, i.e. olf, dur, mux
 types={1:4,5:6,7:8};
 type_desc={'mix','olf','dur'};
 pref_trls={{'s1d3'};{'s1d6'};{'s2d3'};{'s2d6'};{'s1d3','s1d6'};{'s2d3','s2d6'};{'s1d3','s2d3'};{'s1d6','s2d6'}};
 
-[olf_sw,dur_sw,mux_sw]=ephys.get_switched(sel_meta);
+
+[olf_sw,dur_sw,mux_sw]=ephys.get_switched(sel_meta,'odor_only',opt.odor_only);
 sel_meta.wave_id(olf_sw | dur_sw | mux_sw)=-1;
 % sel_meta.wave_id(...
 %     ismember(sel_meta.wave_id,1:4) & ~any(sel_meta.p_mux<0.05,2))=-1;
@@ -41,9 +50,17 @@ for typeIdx=1:2%1:numel(types)
 
     switch typeIdx
         case 1
-            sust_sel=all(sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2)...
-                & ismember(sel_meta.wave_id,1:4);
-            sig_bins=sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05;
+            if opt.odor_only
+                sust_sel=all(sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05,2)...
+                    & ismember(sel_meta.wave_id,1:4);
+                sig_bins=sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05;                
+                sig_bins6=sel_meta.p_olf6<0.05;                
+            else
+                sust_sel=all(sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05,2)...
+                    & ismember(sel_meta.wave_id,1:4);
+                sig_bins=sel_meta.p_mux<0.05 | sel_meta.p_olf<0.05 | sel_meta.p_dur<0.05;
+                sig_bins6=sel_meta.p_olf6<0.05;
+            end
         case 2
             sust_sel=all(sel_meta.p_olf<0.05,2) & ismember(sel_meta.wave_id,5:6);
             sig_bins=sel_meta.p_olf<0.05;
@@ -79,14 +96,25 @@ for typeIdx=1:2%1:numel(types)
         waveids=sel_meta.wave_id(sess_sel);
         sess_sust=sust_sel(sess_sel);
         sess_sig_bins=sig_bins(sess_sel,:);
+        sess_sig_bins6=sig_bins6(sess_sel,:);
+
         [~,su_pos]=ismember(sessuid,suid);
         for suidx=reshape(su_pos,1,[])
             su_waveid=waveids(suidx);
             su_pref_trls=pref_trls{su_waveid};
             if sess_sust(suidx)
-                bins=5:7;
+                if ismember(su_waveid,[2,4])
+                    bins=5:10;
+                else
+                    bins=5:7;
+                end
             else
-                bins=find(sess_sig_bins(suidx,:))+4;
+                if ismember(su_waveid,[2,4])
+                    bins=[find(sess_sig_bins(suidx,:))+4,find(sess_sig_bins6(suidx,:))+7];
+                else
+                    bins=find(sess_sig_bins(suidx,:))+4;
+                end
+                
             end
 
             [cpref,cnonpref,epref,enonpref]=deal([]);
@@ -191,7 +219,16 @@ end
 % SU per session mean
 % correct trial
 if opt.plot_per_su
-    for ff=["olf","mix"] % not enough number for mix and duration-sustained
+    if opt.odor_only
+        sets=["olf"];
+        stats.olf.sust=[stats.olf.sust;stats.mix.sust];
+        stats.olf.transient=[stats.olf.transient;stats.mix.transient];
+        stats=rmfield(stats,'mix');
+    else
+        sets=["olf","mix"];
+    end
+
+    for ff=sets % not enough number for mix and duration-sustained
 %         stats.(ff).sust=stats.(ff).sust(stats.(ff).sust(:,1)>0,:);
 %         stats.(ff).transient=stats.(ff).transient(stats.(ff).transient(:,1)>0,:);
 
@@ -278,8 +315,16 @@ if opt.plot_per_su
         xlabel('False positive rate (fpr)');
         ylabel('True positive rate (tpr)');
         title(ff)
+        if ~opt.skip_save
+            savefig(fullfile('binary',"corr_err_trans_sust_AUC_"+ff+".fig"));
+        end
     end
 end
+if ~opt.skip_save
+    blame=vcs.blame();
+    save(fullfile('binary','corr_err_trans_sust_AUC.mat'),"stats","blame");
+end
+
 
 %Per trial
 if opt.plot_per_trial
@@ -289,12 +334,12 @@ if opt.plot_per_trial
     hold on;
     xbins=-3:0.15:3;
     prefmat=cell2mat(cellfun(@(x) histcounts(x,xbins,'Normalization','probability'),...
-        [stats.(sprintf('type%d_pertrial',types(1)))(:,1);...
-        stats.(sprintf('type%d_pertrial',types(2)))(:,2)],...
+        [stats.(sprintf('type%d_pertrial',types{1}))(:,1);...
+        stats.(sprintf('type%d_pertrial',types{2}))(:,2)],...
         'UniformOutput',false));
     nonprefmat=cell2mat(cellfun(@(x) histcounts(x,xbins,'Normalization','probability'),...
-        [stats.(sprintf('type%d_pertrial',types(1)))(:,2);...
-        stats.(sprintf('type%d_pertrial',types(2)))(:,1)],...
+        [stats.(sprintf('type%d_pertrial',types{1}))(:,2);...
+        stats.(sprintf('type%d_pertrial',types{2}))(:,1)],...
         'UniformOutput',false));
 
     ph=bar(xbins(1:end-1)+0.075,mean(prefmat),'FaceColor','r','FaceAlpha',0.4);
@@ -313,12 +358,12 @@ if opt.plot_per_trial
     hold on;
     xbins=-3:0.15:3;
     prefmat=cell2mat(cellfun(@(x) histcounts(x,xbins,'Normalization','probability'),...
-        [stats.(sprintf('type%d_pertrial',types(1)))(:,3);...
-        stats.(sprintf('type%d_pertrial',types(2)))(:,4)],...
+        [stats.(sprintf('type%d_pertrial',types{1}))(:,3);...
+        stats.(sprintf('type%d_pertrial',types{2}))(:,4)],...
         'UniformOutput',false));
     nonprefmat=cell2mat(cellfun(@(x) histcounts(x,xbins,'Normalization','probability'),...
-        [stats.(sprintf('type%d_pertrial',types(1)))(:,4);...
-        stats.(sprintf('type%d_pertrial',types(2)))(:,3)],...
+        [stats.(sprintf('type%d_pertrial',types{1}))(:,4);...
+        stats.(sprintf('type%d_pertrial',types{2}))(:,3)],...
         'UniformOutput',false));
 
     ph=bar(xbins(1:end-1)+0.075,nanmean(prefmat),'FaceColor','r','FaceAlpha',0.4);
@@ -339,10 +384,10 @@ if opt.plot_per_trial
     subplot(1,3,3);
     hold on;
     xq=0.005:0.01:1;
-    prefs1=arrayfun(@(x) auc_per_su(stats.(sprintf('type%d_pertrial',types(1)))(x,:),0,xq),...
-        1:size(stats.(sprintf('type%d_pertrial',types(1))),1));
-    prefs2=arrayfun(@(x) auc_per_su(stats.(sprintf('type%d_pertrial',types(2)))(x,:),1,xq),...
-        1:size(stats.(sprintf('type%d_pertrial',types(2))),1));
+    prefs1=arrayfun(@(x) auc_per_su(stats.(sprintf('type%d_pertrial',types{1}))(x,:),0,xq),...
+        1:size(stats.(sprintf('type%d_pertrial',types{1})),1));
+    prefs2=arrayfun(@(x) auc_per_su(stats.(sprintf('type%d_pertrial',types{2}))(x,:),1,xq),...
+        1:size(stats.(sprintf('type%d_pertrial',types{2})),1));
 
     hc=plot(xq,mean([cell2mat({prefs1.yc}.');cell2mat({prefs2.yc}.')]),'-r','LineWidth',1);
     he=plot(xq,mean([cell2mat({prefs1.ye}.');cell2mat({prefs2.ye}.')]),'-k','LineWidth',1);

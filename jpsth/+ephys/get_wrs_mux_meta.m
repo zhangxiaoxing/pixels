@@ -28,7 +28,9 @@ if isempty(out) || ~isequaln(opt,opt_)
         end
         for sessid=sesskeys
             disp(sessid);
-	    fpath=fullfile(homedir,replace(sessmap(sessid),("\"|"/"),filesep),"FR_All_1000.hdf5");
+
+            fpath=fullfile(homedir,replace(sessmap(sessid),("\"|"/"),filesep),"FR_All_1000.hdf5");
+
             fr=h5read(fpath,'/FR_All');
             trials=h5read(fpath,'/Trials');
 
