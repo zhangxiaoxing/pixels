@@ -40,7 +40,7 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
 
         chain_su=[chain_replay.meta{chain_sel,2}];
         ring_su=[ring_replay.meta{ring_sel,2}];
-        
+	%if nnz(chain_sel)+nnz(ring_sel)<2  
         if numel([chain_su,ring_su])==numel(unique([chain_su,ring_su]))
             continue
         end

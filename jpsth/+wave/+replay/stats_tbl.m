@@ -57,7 +57,7 @@ for tidx=1:size(motif_replay,1)
         continue
     end
 
-    trials=trials_dict{motif_replay.session(tidx)};
+    trials=cell2mat(trials_dict(motif_replay.session(tidx)));
     if ~(strcmp(motif_replay.wave(tidx),"none") || contains(motif_replay.wave(tidx),'nm'))
         dur_pref=motif_replay.delay(tidx);
         if contains(motif_replay.wave(tidx),"s1")

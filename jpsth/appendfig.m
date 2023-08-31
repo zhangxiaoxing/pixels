@@ -8,6 +8,10 @@ arguments
     opt.multi (1,1) logical = false
 end
 
+if isunix
+	warning("Skip onedrive update on *nix");
+	return
+end
 if isempty(opt.path)
     opt.path=fullfile(getenv('userprofile'),'OneDrive','Neupix');
 end
