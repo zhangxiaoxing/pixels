@@ -1,35 +1,31 @@
 % The preferred shuffle method as of 2022.12.05
 
 % The distinction between the original shuffle approach and this one is
-% whether or not the FC rate difference of memory and non-memory neurons
-% should be taken into account. 
+% whether the FC rate difference of memory and non-memory neurons
+% should be taken into account (original) or not (This). 
 
 function shufs=shuffle_conn_bz_alt(opt)
 arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive} = 2
     opt.rpt (1,1) double {mustBeInteger,mustBePositive} = 2
 end
+warning("Using "+opt.poolsize+" workers");
+
 poolo=parpool(opt.poolsize);
 shufs=cell(opt.rpt,1);
 parfor rpt=1:opt.rpt
-    shufs{rpt}=shuffle_conn_onerpt(rpt);
+    shufs{rpt}=shuffle_conn_onerpt();
 end
 blame=vcs.blame();
-blame.author_tag=['shuffled （structural) connection data for further loop analysis,' ...
+blame.author_tag=['shuffled （structural) connection data for further motif analysis,' ...
     ' Not distinguishing F.C. rate between memory and non-memory neurons' ...
     ' and brain areas '];
-save('bz_ring_shufs.mat','shufs','blame')
+save(fullfile("binary","bz_ring_shufs.mat"),'shufs','blame')
 delete(poolo);
 end
 
-function shuf=shuffle_conn_onerpt(rptid,opt)
-arguments
-    rptid (1,1) double {mustBeInteger,mustBePositive}
-    opt.reg_branch (1,1) double {mustBeMember(opt.reg_branch,1:5)}=5;
-%     opt.mem_type (1,:) char
-%     {mustBeMember(opt.mem_type,{'congru','nonmem'})}='congru'  Will not
-%     respect memory type in alternative method
-end
+function shuf=shuffle_conn_onerpt()
+
 shuf=struct();
 shuf_list=[];
 % cnt=[];
@@ -42,7 +38,6 @@ pair_reg_sel=all(ismember(pair.reg(:,1,:),[343,567]),3);
 usess=unique(sig.sess);
 %per session
 for si=1:numel(usess)
-%     fprintf('%d,%d\n',rptid,si);
     curr_sess=usess(si);
     sig_sess_sel=sig.sess==curr_sess;
     pair_sess_sel=pair.sess==curr_sess;

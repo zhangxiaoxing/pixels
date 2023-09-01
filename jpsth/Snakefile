@@ -138,7 +138,7 @@ rule su_decoding:
 	shell:
 		'matlab -noFigureWindows -batch "ephys.su_decoding_corr_err(skip_save=false)"'
 
-rule su_trans_sustain:
+rule su_trans_sustain_percentage:
 	input:
 		"binary/wrs_mux_meta.mat"
 	output:
@@ -163,4 +163,9 @@ rule sust_trans_correct_err_AUC:
 	shell:
 		'matlab -noFigureWindows -batch "ephys.sust_trans_correct_error(odor_only=true,skip_save=false)"'
 		
-
+rule gen_shuffled_coupling:
+	output:
+		"binary/bz_ring_shufs.mat"
+	threads: 32
+	shell:
+		'matlab -noFigureWindows -batch "bz.shuffle_conn_bz_alt(poolsize={threads},rpt=100)"'
