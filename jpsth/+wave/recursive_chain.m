@@ -34,8 +34,8 @@ else
     for ii=1:size(chain{1}{1},1)
         if chain{1}{1}(ii,1)==prior.cids{1}(end)
             cutoff=false;
-            out.cids={[prior.cids{1},chain{1}{1}(ii,2)]};
-            out.tcoms={[prior.tcoms{1},chain{1}{2}(ii,2)]};
+            out.cids=[out.cids;{[prior.cids{1},chain{1}{1}(ii,2)]}];
+            out.tcoms=[out.tcoms;{[prior.tcoms{1},chain{1}{2}(ii,2)]}];
         end
     end
     if cutoff

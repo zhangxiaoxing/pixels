@@ -23,7 +23,7 @@ classdef chain_tag < handle
                 opt.idces double = []
                 opt.load_file (1,1) logical = false % reserved but not used
                 opt.filename (1,:) char = 'chain_tag.mat'
-
+                opt.poolsize (1,1) double = 2
             end
 
             assert(~opt.load_file,"Unfinished yet")
@@ -53,11 +53,9 @@ classdef chain_tag < handle
                 % if isempty(sess_indices), continue;end
                 % processed.("d"+duration)=[processed.("d"+duration),reshape(sess_indices,1,[])];
             end
-            if ispc
-                poolh=parpool(2);
-            else
-                poolh=parpool(50);
-            end
+            
+            poolh=parpool(opt.poolsize);
+            
             F=parallel.FevalFuture.empty(0,1);
             for sessid=sesses %TODO: threads
                 % if opt.DEBUG && sessid>33

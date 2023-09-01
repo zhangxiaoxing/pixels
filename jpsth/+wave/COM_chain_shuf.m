@@ -10,13 +10,14 @@ arguments
     shuf_idices (1,:) double = 1:100
     opt.reverse (1,1) logical = false
     opt.odor_only (1,1) logical = false
+    opt.skip_save (1,1) logical = true
 end
 % global_init
 % load('sums_conn.mat','sums_conn_str');
 % [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 % meta_str=ephys.util.load_meta('skip_stats',true);
 % warning('partial iteration for illustration')
-load('bz_ring_shufs.mat','shufs');
+load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
 shuf_chains=cell(max(shuf_idices),1);
 for shufid=shuf_idices
     disp("SHUF"+shufid);

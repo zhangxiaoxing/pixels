@@ -10,23 +10,35 @@ arguments
     opt.odor_only (1,1) logical = true
     opt.non_mem (1,1) logical = false
     opt.cross_only (1,1) logical = false
+    opt.shuf (1,1) logical = false
+    opt.shuf_data = []
+    
 end
 assert(opt.odor_only,"Unfinished")
-% global_init
-load('sums_conn_10.mat','sums_conn_str');
-% [sig,~]=bz.load_sig_sums_conn_file('pair',false);
-% meta_str=ephys.util.load_meta('skip_stats',true);
+if ~opt.shuf
+    load('sums_conn_10.mat','sums_conn_str');
+else
+    sums_conn_str=zeros(max(opt.shuf_data.sess),1);
+end
+
 
 chains=cell(0);
 for fidx=1:numel(sums_conn_str)
     disp(fidx)
     % TODO update following code to reflect revised order
-    ffpath=sums_conn_str(fidx).folder;
-    dpath=regexp(ffpath,'(?<=SPKINFO[\\/]).*$','match','once');
-    if isempty(dpath)
-        dpath=ffpath;
+    if opt.shuf
+        sessid=fidx;
+        if ~any(opt.shuf_data.sess==sessid)
+            continue
+        end
+    else
+        ffpath=sums_conn_str(fidx).folder;
+        dpath=regexp(ffpath,'(?<=SPKINFO[\\/]).*$','match','once');
+        if isempty(dpath)
+            dpath=ffpath;
+        end
+        sessid=ephys.path2sessid(dpath);
     end
-    sessid=ephys.path2sessid(dpath);
     sess_sel=su_meta.sess==sessid;
     %separate 3s & 6s
     for delay=[3 6]
@@ -64,8 +76,13 @@ for fidx=1:numel(sums_conn_str)
             sess_con=sums_conn_str(fidx).sig_con(strict_sel,:); %jitter controlled significant functional coupling
             disp([fidx,nnz(strict_sel),numel(strict_sel)]);
         else % full input from English, Buzsaki code
-            oneccg=sums_conn_str(fidx).ccg_sc;
-            sess_con=sums_conn_str(fidx).sig_con;
+            if opt.shuf
+                oneccg=[];
+                sess_con=uint16(opt.shuf_data.suid(opt.shuf_data.sess==sessid,:));
+            else
+                oneccg=sums_conn_str(fidx).ccg_sc;
+                sess_con=sums_conn_str(fidx).sig_con;
+            end
         end
         % TODO: nonmem,incongruent possible if relax criteria?
 

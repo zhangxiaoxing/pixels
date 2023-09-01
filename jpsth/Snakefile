@@ -1,11 +1,20 @@
 rule all:
 	input:
-		"binary/sschain_time_constant.fig",
-		"binary/nested_loop_time_constant.fig",
-		"binary/ssloop_time_constant.fig",
-		"binary/delay_vs_iti_per_sec.fig",
+		"binary/chain_loop_in_nests.fig",
+		"binary/chains_consist_incon.fig",
+		"binary/corr_err_trans_sust_AUC_olf.fig,",
+		"binary/delay_iti_alt_path_per_spk.fig",
 		"binary/delay_iti_motif_spike_per_sec.fig",
-		"binary/FC_congru_incon_nonmem.fig"
+		"binary/delay_vs_iti_per_sec.fig,",
+		"binary/FC_congru_incon_nonmem.fig",
+		"binary/nested_loop_time_constant.fig",
+		"binary/nests_graph_stats.fig",
+		"binary/nests_per_region_degree.fig",
+		"binary/sschain_time_constant.fig",
+		"binary/ssloop_time_constant.fig",
+		"binary/su_decoding.fig",
+		"binary/su_trans_sustain.fig"
+
 
 rule trials_dict:
 	input:
@@ -169,3 +178,22 @@ rule gen_shuffled_coupling:
 	threads: 32
 	shell:
 		'matlab -noFigureWindows -batch "bz.shuffle_conn_bz_alt(poolsize={threads},rpt=100)"'
+
+rule chain_consist_incon:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/chains_consist_incon.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false)"'
+
+rule gen_chain_tag_file:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/chain_tag_all_trl.mat"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads})"'
