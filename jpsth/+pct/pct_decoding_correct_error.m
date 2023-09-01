@@ -38,7 +38,7 @@ if opt.new_data
     
     for ii=reshape(cell2mat(sessmap.keys()),1,[])
         disp(ii)
-        fpath=fullfile(homedir,sessmap(ii),"FR_All_1000.hdf5");
+        fpath=fullfile(homedir,replace(sessmap(ii),("\"|"/"),filesep),"FR_All_1000.hdf5");
         fr=h5read(fpath,'/FR_All');
         trials=h5read(fpath,'/Trials');
         sesssel=su_meta.sess==ii;

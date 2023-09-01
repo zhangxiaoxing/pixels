@@ -72,6 +72,7 @@ for typeIdx=1:2%1:numel(types)
     for sessIdx=reshape(usess,1,[])
         dpath=ephys.sessid2path(sessIdx);
         fpath=fullfile(homedir,dpath,'FR_All_1000.hdf5');
+        fpath=replace(fpath,("\"|"/"),filesep);
         trials=h5read(fpath,'/Trials');
         suid=h5read(fpath,'/SU_id');
         fr=h5read(fpath,'/FR_All');

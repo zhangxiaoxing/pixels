@@ -36,7 +36,7 @@ fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per
 fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
 sgtitle('same-reg, cross-reg')
 if ~opt.skip_save
-    savefig(fh,fullfile("binary","FC_congru_incon_nonmem.fig"));
+    savefig(fh.fig,fullfile("binary","FC_congru_incon_nonmem.fig"));
 end
 
 %% single-mixed % separated into own code. 
