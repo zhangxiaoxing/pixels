@@ -61,14 +61,50 @@ if ~opt.skip_save
 end
 
 if opt.shuf
+    fwdcnt=nnz(chains_uf_all.cross_reg);
+    wtncnt=nnz(~chains_uf_all.cross_reg);
+    revcnt=nnz(chains_uf_rev_all.cross_reg);
+
+    [shuf_fwdcnt,shuf_wtncnt,shuf_revcnt]=deal([]);
     load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
     for shufidx=1:numel(shufs)
         chains_shuf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only);
         chains_shuf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only);
-        fwdcnt=nnz(chains_uf_all.sess==ss & chains_uf_all.cross_reg);
-        wtncnt=nnz(chains_uf_all.sess==ss & ~chains_uf_all.cross_reg);
-        revcnt=nnz(chains_uf_rev_all.sess==ss & chains_uf_rev_all.cross_reg);
+        shuf_fwdcnt=[shuf_fwdcnt;nnz(chains_shuf_all.cross_reg)];
+        shuf_wtncnt=[shuf_wtncnt;nnz(~chains_shuf_all.cross_reg)];
+        shuf_revcnt=[shuf_revcnt;nnz(chains_shuf_rev_all.cross_reg)];
+    end
+    
+    boot_delta_mm=bootstrp(100,@(x) [wtncnt,fwdcnt,revcnt]-mean(x),[shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
+    shufstd=std([shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
+    zscores=boot_delta_mm./shufstd;
+    mm=mean(zscores);
+    sem=std(zscores)./sqrt(size(zscores,1));
 
+    pp=ranksum(zscores(:,2),zscores(:,3));
+
+    fh=figure();
+    tiledlayout(1,2);
+    nexttile();
+    hold on
+    bh=bar(mm(1));
+    errorbar(1,mm(1),sem(1),'k.','CapSize',12)
+    set(gca,'XTick',1,'XtickLabel',{'Within'})
+    ylim([0,110])
+    ylabel('Normalized occurrence (Z-Score)')
+
+    nexttile();
+    hold on
+    bh=bar(mm(2:3));
+    errorbar(1:2,mm(2:3),sem(2:3),'k.','CapSize',12)
+    ylim([0,50])
+    set(gca,'XTick',1:2,'XtickLabel',{'Consistent','Inconsistent'})
+    ylabel('Normalized occurrence (Z-Score)')
+
+    sgtitle(sprintf('consist-vs-incong %.4f',pp))
+
+    if ~opt.skip_save
+        savefig(fh,fullfile('binary','chain_consist_incong_z_score.fig'));
     end
 end
 end

@@ -2,10 +2,10 @@ rule all:
 	input:
 		"binary/chain_loop_in_nests.fig",
 		"binary/chains_consist_incon.fig",
-		"binary/corr_err_trans_sust_AUC_olf.fig,",
+		"binary/corr_err_trans_sust_AUC_olf.fig",
 		"binary/delay_iti_alt_path_per_spk.fig",
 		"binary/delay_iti_motif_spike_per_sec.fig",
-		"binary/delay_vs_iti_per_sec.fig,",
+		"binary/delay_vs_iti_per_sec.fig",
 		"binary/FC_congru_incon_nonmem.fig",
 		"binary/nested_loop_time_constant.fig",
 		"binary/nests_graph_stats.fig",
@@ -186,7 +186,7 @@ rule chain_consist_incon:
 	output:
 		"binary/chains_consist_incon.fig"
 	shell:
-		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false)"'
+		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true)"'
 
 rule gen_chain_tag_file:
 	input:
