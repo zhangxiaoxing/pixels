@@ -184,11 +184,13 @@ rule chain_consist_incon:
 		"binary/su_meta.mat",
 		"binary/wrs_mux_meta.mat"
 	output:
-		"binary/chains_consist_incon.fig"
+		"binary/chains_consist_incon.fig",
 		"binary/chains_consist_incon_nonmem.fig"
 	shell:
-		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true)"'
-		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,non_mem=true)"'
+		'''
+		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true)"
+		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,non_mem=true)"
+		'''
 
 rule gen_chain_tag_file:
 	input:
@@ -199,3 +201,22 @@ rule gen_chain_tag_file:
 	threads: 52
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads})"'
+
+rule motif_freq_w_without_HIP:
+	input:
+		"binary/motif_replay.mat"
+	output:
+		"binary/chain_freq_w_without_HIP.fig",
+		"binary/loop_freq_w_without_HIP.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.motif_freq_w_without_HIP()"'
+
+rule motif_pref_nonpref_correct_error_freq:
+	input:
+		"binary/motif_replay.mat"
+	output:
+		"binary/motif_freq_correct_error.fig",
+		"binary/motif_freq_prefer_nonpref.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.motif_prefer_nonprefer()"'
+

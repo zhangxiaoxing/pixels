@@ -5,6 +5,7 @@ arguments
     opt.title (1,:) char = 'chains'
     opt.median_value (1,1) logical = false
     opt.stats char {mustBeMember(opt.stats,{'mean','median'})} = 'median'
+    opt.ratio (1,1) logical = true
 end
 
 cmatv=reshape(per_sess_mat,[],1);

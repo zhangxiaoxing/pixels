@@ -1,5 +1,5 @@
 function reg_com_maps=get_reg_com_maps(sel_meta)
-
+global_init;
 com_map=wave.get_pct_com_map(sel_meta,'curve',true,'odor_only',true);
 
 tcom3_maps=struct();
