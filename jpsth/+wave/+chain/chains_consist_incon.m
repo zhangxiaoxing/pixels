@@ -5,6 +5,7 @@ arguments
     sel_meta = []
     opt.skip_save (1,1) logical = true
     opt.shuf (1,1) logical = false
+    opt.non_mem (1,1) logical = false
 
 end
 cross_only=false;
@@ -20,8 +21,8 @@ end
 global_init;
 reg_com_maps=wave.get_reg_com_maps(sel_meta);
 
-chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',cross_only);
-chains_uf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'cross_only',cross_only);
+chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',cross_only,'non_mem',opt.non_mem);
+chains_uf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'cross_only',cross_only,'non_mem',opt.non_mem);
 
 usess=unique([chains_uf_all.sess;chains_uf_rev_all.sess]);
 sums=[];
@@ -57,7 +58,11 @@ ylabel('Proportion of all chains (%)')
 ylim([0,50])
 if ~opt.skip_save
     % appendfig('tag','chain consistent inconsistent,chain_plots.m')
-    savefig(fh,fullfile('binary','chains_consist_incon.fig'))
+    if opt.non_mem
+        savefig(fh,fullfile('binary','chains_consist_incon_nonmem.fig'))
+    else
+        savefig(fh,fullfile('binary','chains_consist_incon.fig'))
+    end
 end
 
 if opt.shuf
@@ -68,8 +73,8 @@ if opt.shuf
     [shuf_fwdcnt,shuf_wtncnt,shuf_revcnt]=deal([]);
     load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
     for shufidx=1:numel(shufs)
-        chains_shuf_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only);
-        chains_shuf_rev_all=wave.COM_chain_reg(su_meta,wrs_mux_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only);
+        chains_shuf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem);
+        chains_shuf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem);
         shuf_fwdcnt=[shuf_fwdcnt;nnz(chains_shuf_all.cross_reg)];
         shuf_wtncnt=[shuf_wtncnt;nnz(~chains_shuf_all.cross_reg)];
         shuf_revcnt=[shuf_revcnt;nnz(chains_shuf_rev_all.cross_reg)];
@@ -90,21 +95,41 @@ if opt.shuf
     bh=bar(mm(1));
     errorbar(1,mm(1),sem(1),'k.','CapSize',12)
     set(gca,'XTick',1,'XtickLabel',{'Within'})
-    ylim([0,110])
+    if opt.non_mem
+        bh.BaseValue=0;
+        bh.BaseLine.LineStyle = ':';
+        bh.BaseLine.Color = 'k';
+        bh.BaseLine.LineWidth = 1;
+        ylim([-2,1]);
+    else
+        ylim([0,110])
+    end
     ylabel('Normalized occurrence (Z-Score)')
 
     nexttile();
     hold on
     bh=bar(mm(2:3));
     errorbar(1:2,mm(2:3),sem(2:3),'k.','CapSize',12)
+    if opt.non_mem
+        bh.BaseValue=0;
+        bh.BaseLine.LineStyle = ':';
+        bh.BaseLine.Color = 'k';
+        bh.BaseLine.LineWidth = 1;
+        ylim([-8,1]);
+    else
     ylim([0,50])
+    end
     set(gca,'XTick',1:2,'XtickLabel',{'Consistent','Inconsistent'})
     ylabel('Normalized occurrence (Z-Score)')
 
     sgtitle(sprintf('consist-vs-incong %.4f',pp))
 
     if ~opt.skip_save
-        savefig(fh,fullfile('binary','chain_consist_incong_z_score.fig'));
+        if opt.non_mem
+            savefig(fh,fullfile('binary','chain_consist_incong_z_score_nonmem.fig'));
+        else
+            savefig(fh,fullfile('binary','chain_consist_incong_z_score.fig'));
+        end
     end
 end
 end

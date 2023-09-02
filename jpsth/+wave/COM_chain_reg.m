@@ -21,7 +21,6 @@ else
     sums_conn_str=zeros(max(opt.shuf_data.sess),1);
 end
 
-
 chains=cell(0);
 for fidx=1:numel(sums_conn_str)
     disp(fidx)

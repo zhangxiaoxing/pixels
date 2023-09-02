@@ -185,8 +185,10 @@ rule chain_consist_incon:
 		"binary/wrs_mux_meta.mat"
 	output:
 		"binary/chains_consist_incon.fig"
+		"binary/chains_consist_incon_nonmem.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true)"'
+		'matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,non_mem=true)"'
 
 rule gen_chain_tag_file:
 	input:
