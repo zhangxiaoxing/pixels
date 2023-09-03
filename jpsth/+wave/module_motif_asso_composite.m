@@ -210,7 +210,7 @@ end
 
 if ~opt.skip_save
     blame=vcs.blame;
-    save(fullfile('binary','nested_loops_stats.mat'),"disconnected","degree_sums","complexity_sums","blame")
+    save(fullfile('binary','nested_loops_stats.mat'),"disconnected","degree_sums","complexity_sums","blame","per_trl_nodes")
 end
 disconn_count=[];
 for di=1:size(disconnected,1)
@@ -319,25 +319,25 @@ savefig(fh3,fullfile('binary','nests_per_region_degree.fig'))
 
 %% overall graph stats
 
-ukeys=string.empty(0,1);
-uniq_net=[];
-for nidx=1:size(complexity_sums,1)
-    onekey=string(sprintf('%d-',per_trl_nodes{nidx,1},sort(per_trl_nodes{nidx,2})));
-    if ~ismember(onekey,ukeys)
-        ukeys=[ukeys;onekey];
-        uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:end])];
-    end
-end
-if false
-    figure()
-    scatter(uniq_net(:,3),uniq_net(:,4),'ko','filled')
-    xlabel('Neuron (node) number')
-    ylabel('FC (edge) number')
-    set(gca,'XScale','log','YScale','log','XTick',[5:5:40])
-    xlim([4,50])
-    ylim([4,250])
-    title('SS composite loops neuron vs FC')
-end
+% ukeys=string.empty(0,1);
+% uniq_net=[];
+% for nidx=1:size(complexity_sums,1)
+%     onekey=string(sprintf('%d-',per_trl_nodes{nidx,1},sort(per_trl_nodes{nidx,2})));
+%     if ~ismember(onekey,ukeys)
+%         ukeys=[ukeys;onekey];
+%         uniq_net=[uniq_net;complexity_sums(nidx,[1,2,5:end])];
+%     end
+% end
+% if false
+%     figure()
+%     scatter(uniq_net(:,3),uniq_net(:,4),'ko','filled')
+%     xlabel('Neuron (node) number')
+%     ylabel('FC (edge) number')
+%     set(gca,'XScale','log','YScale','log','XTick',[5:5:40])
+%     xlim([4,50])
+%     ylim([4,250])
+%     title('SS composite loops neuron vs FC')
+% end
 
 fh2=figure('Position',[100,100,250,250]);
 tiledlayout(1,3)
@@ -345,22 +345,22 @@ nexttile
 hold on
 boxplot(complexity_sums(:,5),'Colors','k','Whisker',inf,'Widths',0.5)
 set(gca,'YScale','log')
-ylim([1,1000])
+ylim([1,500])
 xlim([0.5,1.5])
 ylabel('Number of neurons')
 nexttile
 hold on
 boxplot(complexity_sums(:,6),'Colors','k','Whisker',inf,'Widths',0.5)
 set(gca,'YScale','log')
-ylim([1,1000])
+ylim([1,500])
 xlim([0.5,1.5])
 ylabel('Number of FCs')
 nexttile
-boxplot(uniq_net(:,5),'Colors','k','Whisker',inf,'Widths',1)
-ylim([0,1])
+boxplot(complexity_sums(:,7),'Colors','k','Whisker',inf,'Widths',1)
+ylim([0,0.5])
 set(gca,'XTick',[],'YTick',0:0.25:1,'YTickLabel',0:25:100)
 ylabel('Network density')
-title(sprintf('%.4f',median(uniq_net(:,5))));
+title(sprintf('%.4f',median(complexity_sums(:,7))));
 savefig(fh2,fullfile('binary','nests_graph_stats.fig'))
 appendfig('tag','nested_loops_graph_stats, module_motif_asso_composite.m','multi',true)
 

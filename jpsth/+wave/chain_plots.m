@@ -121,9 +121,7 @@ wave.replay.region_replay(chain_replay,'reg',"HIP")
 %% vs non-mem motif spike rate
 % complete and self-sufficient if data file present
 
-load('temp230803.mat') % TODO: proper pipeline
 
-[chain_replay,chain_stats,chain_raw]=wave.replay.stats(sschain_trl_all,'var_len',false);
 [chain_replay_nm,chain_stats_nm,chain_raw_incon]=wave.replay.stats(sschain_trl_nm_samp,'var_len',false);
 cyy=[chain_stats(1,:),chain_stats_nm(1,:),...
     chain_stats(5,:),chain_stats_nm(2,:),chain_stats(11,:),chain_stats_nm(4,:),...

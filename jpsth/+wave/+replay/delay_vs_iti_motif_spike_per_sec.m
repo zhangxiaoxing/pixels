@@ -3,7 +3,8 @@ arguments
     chain_replay = []
     ring_replay = []
     trials_dict = []
-    opt.skip_save = true
+    opt.skip_save (1,1) logical = true
+    opt.per_unit_motif (1,1) logical = false
 end
 
 if isempty(ring_replay)
@@ -17,7 +18,6 @@ end
 if isempty(trials_dict)
     load(fullfile('binary','trials_dict.mat'),'trials_dict');
 end
-
 
 sps=30000;
 % per session
@@ -40,8 +40,7 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
             continue
         end
 
-        
-        [delay_spikes,iti_spikes,out_task_spikes,npdelay_spikes,npiti_spikes]=deal([]);
+                [delay_spikes,iti_spikes,out_task_spikes,npdelay_spikes,npiti_spikes]=deal([]);
         switch onewave
             case "s1d3"
                 samp=4;delay=3;
@@ -57,25 +56,29 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
             % per preferred trial
             trl_align=chain_replay.trl_align{chainii};
             pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
-            delay_spikes=unique([delay_spikes;reshape(chain_replay.meta{chainii,2}+chain_replay.ts{chainii}(pref_delay,:).*100000,[],1)]);
+            if opt.per_unit_motif
 
-            nonpref_delay=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1) & trl_align(:,4)==delay;
-            npdelay_spikes=unique([npdelay_spikes;reshape(chain_replay.meta{chainii,2}+chain_replay.ts{chainii}(nonpref_delay,:).*100000,[],1)]);
+            else
+                delay_spikes=unique([delay_spikes;reshape(chain_replay.meta{chainii,2}+chain_replay.ts{chainii}(pref_delay,:).*100000,[],1)]);
 
-            pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
-                & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
-                & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
-            iti_spikes=unique([iti_spikes;reshape(chain_replay.meta{chainii,2}+100000.*chain_replay.ts{chainii}(pref_succeed_iti,:),[],1)]);
+                nonpref_delay=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1) & trl_align(:,4)==delay;
+                npdelay_spikes=unique([npdelay_spikes;reshape(chain_replay.meta{chainii,2}+chain_replay.ts{chainii}(nonpref_delay,:).*100000,[],1)]);
 
-            nonpref_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp & trl_align(:,4)==delay...
-                & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
-                & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
-            npiti_spikes=unique([npiti_spikes;reshape(chain_replay.meta{chainii,2}+100000.*chain_replay.ts{chainii}(nonpref_iti,:),[],1)]);
+                pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref
+                    & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                    & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+                iti_spikes=unique([iti_spikes;reshape(chain_replay.meta{chainii,2}+100000.*chain_replay.ts{chainii}(pref_succeed_iti,:),[],1)]);
+
+                nonpref_iti=all(trl_align(:,5:6)==1,2) & trl_align(:,3)~=samp & trl_align(:,4)==delay...
+                    & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                    & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14));
+                npiti_spikes=unique([npiti_spikes;reshape(chain_replay.meta{chainii,2}+100000.*chain_replay.ts{chainii}(nonpref_iti,:),[],1)]);
 
                 %  corresponding network in pre task, post task
-            pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
-                | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
-            out_task_spikes=unique([out_task_spikes;reshape(chain_replay.meta{chainii,2}+100000.*chain_replay.ts{chainii}(pre_post_motif,:),[],1)]);
+                pre_post_motif=(trl_align(:,8)==1 & trl_align(:,9)>60) ...
+                    | (trl_align(:,8)<0 & trl_align(:,2)>(60+5+trl_align(:,4)));
+                out_task_spikes=unique([out_task_spikes;reshape(chain_replay.meta{chainii,2}+100000.*chain_replay.ts{chainii}(pre_post_motif,:),[],1)]);
+            end
         end
 
         % loops -------------------------------------------

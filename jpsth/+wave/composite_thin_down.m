@@ -492,7 +492,8 @@ classdef composite_thin_down < handle
         end
 
         function plot_one_by_one()
-            load(fullfile("binary","onebyonermv.mat"),"system_rmv_stats");
+            
+            load(fullfile("binary","one_by_one_rmv.mat"),"system_rmv_stats");
             mm=struct();
             sem=struct();
             for motifType=["chains","loops","ctrl","HIP"]
@@ -501,7 +502,8 @@ classdef composite_thin_down < handle
                     sem.(motifType)(lvl+1,:)=std(system_rmv_stats.(motifType).("L"+lvl).out)./sqrt(size(system_rmv_stats.(motifType).("L"+lvl).out,1));
                 end
             end
-            hexcmap=["#0072BD","#D95319","#EDB120","#7E2F8E","#77AC30","#4DBEEE","#A2142F"];
+            hexcmap=["#D95319","#0072BD","#EDB120","#7E2F8E","#77AC30","#4DBEEE","#A2142F"];
+                    %  B           
             fh=figure();
             tiledlayout(1,4)
 
@@ -509,7 +511,7 @@ classdef composite_thin_down < handle
             hold on
             for cc=1:5
                 fill([5:10:95,100,100,95:-10:5],[mm.ctrl(:,cc)-sem.ctrl(:,cc);flip(mm.ctrl(:,cc)+sem.ctrl(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
-                ph(cc)=plot([5:10:95,100],mm.ctrl(:,cc),'-','Color',hexcmap(cc));
+                ph(cc)=plot([5:10:95,100],mm.ctrl(:,cc),'-','Color',hexcmap(cc),'LineWidth',1);
             end
             
             
@@ -523,7 +525,7 @@ classdef composite_thin_down < handle
             hold on
             for cc=1:5
                 fill([5:10:95,100,100,95:-10:5],[mm.chains(:,cc)-sem.chains(:,cc);flip(mm.chains(:,cc)+sem.chains(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
-                ph(cc)=plot([5:10:95,100],mm.chains(:,cc),'-','Color',hexcmap(cc));
+                ph(cc)=plot([5:10:95,100],mm.chains(:,cc),'-','Color',hexcmap(cc),'LineWidth',1);
             end
             
             legend(ph,{'abolish','split','shrank','weakened','noeffect'},'Location','northoutside','Orientation','horizontal')
@@ -537,7 +539,7 @@ classdef composite_thin_down < handle
             hold on
             for cc=1:5
                 fill([5:10:95,100,100,95:-10:5],[mm.loops(:,cc)-sem.loops(:,cc);flip(mm.loops(:,cc)+sem.loops(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
-                ph(cc)=plot([5:10:95,100],mm.loops(:,cc),'-','Color',hexcmap(cc));
+                ph(cc)=plot([5:10:95,100],mm.loops(:,cc),'-','Color',hexcmap(cc),'LineWidth',1);
             end
             set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
             xlim([0,100])
@@ -549,7 +551,7 @@ classdef composite_thin_down < handle
             hold on
             for cc=1:5
                 fill([5:10:95,100,100,95:-10:5],[mm.HIP(:,cc)-sem.HIP(:,cc);flip(mm.HIP(:,cc)+sem.HIP(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
-                ph(cc)=plot([5:10:95,100],mm.HIP(:,cc),'-','Color',hexcmap(cc));
+                ph(cc)=plot([5:10:95,100],mm.HIP(:,cc),'-','Color',hexcmap(cc),'LineWidth',1);
             end
             
             set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)

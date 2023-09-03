@@ -235,8 +235,6 @@ fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,reg_com_maps,'delay',6,'odor_only
 fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt,'condense_plot',true,'odor_only',true);
 % TODO: nonmem
 
-
-
 % 
 % fc.wave_stay_disappear(wrs_mux_meta)
 
@@ -285,19 +283,6 @@ load(fullfile('binary','rings_tag.mat'))
 [ring_replay,stats_ring,~]=wave.replay.stats(rmfield(rings_tag,"none"),'var_len',true);
 ring_replay_tbl=wave.replay.quickconvert(ring_replay);
 
-
-% [fhb,fhs]=wave.replay.plot_replay(stats_ring([1 4 8 5 11 12],:),...
-%     {'Delay','Test','Prior ITI','Later ITI','Before session','After session',},'title','loops')
-% fhb.Children.YLim=[0,3.5];
-% fhs.Children.YLim=[0,3.5];
-% 
-% [fhb,fhs]=wave.replay.plot_replay(stats_ring([1 2 8 9 5 6],:),...
-%     {'Correct','Error','Correct','Error','Correct','Error',},'title','loops delay-prior-after');
-% fhb.Children.YLim=[0,3.5];
-% fhs.Children.YLim=[0,3.5];
-% delete(fhb.Children.Children(5))
-% [ranksum(stats_ring(1,:),stats_ring(2,:)),ranksum(stats_ring(8,:),stats_ring(9,:)),ranksum(stats_ring(5,:),stats_ring(6,:))]
-% text(fhb.Children(1),1.5:2:5.5,[1.5,1.5,1.5],{'***','***','***'},'VerticalAlignment','top','HorizontalAlignment','center')
 
 
 
@@ -352,14 +337,7 @@ ring_replay_tbl=wave.replay.quickconvert(ring_replay);
 % load(fullfile("bzdata","chain_tag_tbl.mat"),"sschain")
 
 
-% serveral minutes %TODO tic toc?
-% consider load file
-tic
-[sschain_trl,unfound]=wave.chain_tag.tag(chains_uf,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
-toc
-tic
-[sschain_trl_rev,unfound_rev]=wave.chain_tag.tag(chains_uf_rev,len_thresh,'skip_save',true,'odor_only',true,'extend_trial',true,'skip_ts_id',true); % per-spk association
-toc
+
 %% replay figure Jun13 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % optional import saved data from tempdata folder
@@ -454,8 +432,6 @@ bh=findobj(fhb,'-depth',2,'Type','Bar');
 text(bh.XEndPoints,repmat(1.2,1,6), ...
     num2str(srp([2 3 5 6 8 9]).','%.3f'),'HorizontalAlignment','center','VerticalAlignment','top');
 ylabel('Normalized motif spike frequency')
-
-
 
 
 
@@ -602,24 +578,7 @@ if false % no working due to unbalanced nunmber and median frequency
 end
 
 
-wave.replay.region_replay(chain_replay,'reg',"HIP")
-title('Chains, HIP')
-wave.replay.region_replay(chain_replay,'reg',"ORB")
-title('Chains, ORB')
-wave.replay.region_replay(ring_replay,'reg',"HIP")
-title('Loops, HIP')
-ylim([0,3])
-wave.replay.region_replay(ring_replay,'reg',"ORB")
-title('Loops, ORB')
-ylim([0,3])
 
-
-
-
-%% composite ablation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%>>
-% sschain=load(fullfile('bzdata','chain_tag.mat'),'out');
-% load(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats')
-wave.composite_thin_down.demo(sschain,pstats)
 
 
 %%

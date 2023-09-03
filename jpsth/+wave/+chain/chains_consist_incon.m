@@ -134,16 +134,3 @@ if opt.shuf
 end
 end
 
-%% All reverse within is either fwd within or fwd partial
-% nonovl=cell(0,3);
-% wisel=find(~chains_uf_rev_all.cross_reg);
-% for ii=reshape(wisel,1,[])
-%     sess=chains_uf_rev_all.sess(ii);
-%     rcid=chains_uf_rev_all.cids{ii};
-%     fcids=chains_uf_all.cids(chains_uf_all.sess==sess);
-%     if any(cellfun(@(x) all(ismember(rcid,x),'all'), fcids))
-%         continue
-%     else
-%         nonovl=[nonovl;{ii,sess,rcid}];
-%     end
-% end
