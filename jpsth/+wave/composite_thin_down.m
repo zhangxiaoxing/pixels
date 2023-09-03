@@ -4,79 +4,20 @@
 classdef composite_thin_down < handle
 
     methods (Static)
-        function chains=getChains(sschain,dur,fns,sessid)
-            chains=cell(0);
-            for fn=fns
-                sesssel=startsWith(fieldnames(sschain.out.(dur).(fn)),['s',num2str(sessid),'c']);
-                if ~any(sesssel)
-                    continue
-                else
-                    chains=[chains;...
-                        cellfun(@(x) x.meta{1},...
-                        subsref(struct2cell(sschain.out.(dur).(fn)),substruct('()',{sesssel})),...
-                        'UniformOutput',false)...
-                        ];
-                end
-            end
-            ukey=cellfun(@(x) mat2str(x),chains,'UniformOutput',false);
-            [~,IA]=unique(ukey);
-            chains=chains(IA);
-        end
 
-        function loops=getLoops(pstats,wids,sessid)
-            sesssel=startsWith(fieldnames(pstats.congru),['s',num2str(sessid),'r']);
-            sess_loops=subsref(struct2cell(pstats.congru),substruct('()',{sesssel}));
-            wave_sel=cellfun(@(x) all(ismember(x.rstats{4},wids)),sess_loops);
-            loops=cellfun(@(x) x.rstats{3},sess_loops(wave_sel),'UniformOutput',false);
-
-            ukey=cellfun(@(x) mat2str(x),loops,'UniformOutput',false);
-            [~,IA]=unique(ukey);
-            loops=loops(IA);
-        end
-
-        function per_sess_condition=merge_motif(sschain,pstats)
+        function per_sess_condition=merge_motif(sschain,ssloop)
             arguments
                 sschain
-                pstats
+                ssloop
             end
-
-            %% single spike chain
-            keys=[struct2cell(structfun(@(x) fieldnames(x), sschain.out.d6, 'UniformOutput', false));...
-                struct2cell(structfun(@(x) fieldnames(x), sschain.out.d3, 'UniformOutput', false))];
-            keys=vertcat(keys{:});
-            ssc_sess=unique(str2double(regexp(keys,'(?<=s)\d{1,3}(?=c)','match','once')));
-
-            %% single spike loop
-            if isfield(pstats,'nonmem'), pstats=rmfield(pstats,"nonmem");end
-            ssl_sess=unique(str2double(regexp(fieldnames(pstats.congru),'(?<=s)\d{1,3}(?=r)','match','once')));
-            usess=union(ssc_sess,ssl_sess);
-
+            usess=union(sschain.session,ssloop.session);
             %% per-session entrance
-
-
             for sessid=reshape(usess,1,[])
-
-                %% single spike chain
-                % four conditions
-                % d3s1
-                per_sess_condition.("s"+sessid+"s1d3")=struct();
-                per_sess_condition.("s"+sessid+"s1d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s1","s1d3"],sessid);
-                per_sess_condition.("s"+sessid+"s1d3").loops=wave.composite_thin_down.getLoops(pstats,[1 5],sessid);
-
-                % d6s1
-                per_sess_condition.("s"+sessid+"s1d6")=struct();
-                per_sess_condition.("s"+sessid+"s1d6").chains=wave.composite_thin_down.getChains(sschain,"d6",["olf_s1","s1d6"],sessid);
-                per_sess_condition.("s"+sessid+"s1d6").loops=wave.composite_thin_down.getLoops(pstats,[2 5],sessid);
-
-                % d3s2
-                per_sess_condition.("s"+sessid+"s2d3")=struct();
-                per_sess_condition.("s"+sessid+"s2d3").chains=wave.composite_thin_down.getChains(sschain,"d3",["olf_s2","s2d3"],sessid);
-                per_sess_condition.("s"+sessid+"s2d3").loops=wave.composite_thin_down.getLoops(pstats,[3 6],sessid);
-
-                % d6s2
-                per_sess_condition.("s"+sessid+"s2d6")=struct();
-                per_sess_condition.("s"+sessid+"s2d6").chains=wave.composite_thin_down.getChains(sschain,"d6",["olf_s2","s2d6"],sessid);
-                per_sess_condition.("s"+sessid+"s2d6").loops=wave.composite_thin_down.getLoops(pstats,[4 6],sessid);
+                for waveid=["s1d3","s1d6","s2d3","s2d6"]
+                per_sess_condition.("s"+sessid+waveid)=struct();
+                per_sess_condition.("s"+sessid+waveid).chains=sschain.meta(sschain.session==sessid & sschain.wave==waveid,2);
+                per_sess_condition.("s"+sessid+waveid).loops=ssloop.meta(ssloop.session==sessid & ssloop.wave==waveid,2);
+                end
             end
         end
 
@@ -228,14 +169,21 @@ classdef composite_thin_down < handle
             end
         end
 
-        function demo(sschain,pstats)
-            %% ================================================================
-
-            % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
-            % load(fullfile("bzdata","chain_tag.mat"),"out")
-            % sschain.out=out;
-
-            per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
+        function demo(sschain_trl,ssloop_trl) % This plots only the end-result bar graph
+            arguments
+                sschain_trl
+                ssloop_trl
+            end
+            if isempty(sschain_trl) && isempty(ssloop_trl)
+                fstr=load(fullfile('binary','motif_replay.mat'));
+                sschain_trl=fstr.chain_replay;
+                ssloop_trl=fstr.ring_replay;
+                clear fstr
+            elseif isempty(sschain_trl) || isempty(ssloop_trl)
+                error("Unfinished")
+            end
+            
+            per_sess_condition=wave.composite_thin_down.merge_motif(sschain_trl,ssloop_trl);
             noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
             removechain=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','chains');
             removeloops=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','loops');
@@ -267,16 +215,12 @@ classdef composite_thin_down < handle
             ylabel('Percent (%)')
             ylim([0,100])
             %% ================================================================
-
-
         end
 
 
-        % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
-        % load(fullfile("bzdata","chain_tag.mat"),"out")
-        % sschain.out=out;
-        % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
-        % onebyone.ctrl=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','ctrl')
+            % per_sess_condition=wave.composite_thin_down.merge_motif(sschain_trl,ssloop_trl);
+            % onebyone.ctrl=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','ctrl')
+        % 
         % onebyone.HIP=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','HIP')
         function stats=one_by_one_remove(per_sess_condition,opt)
             arguments
@@ -547,38 +491,41 @@ classdef composite_thin_down < handle
             end
         end
 
-        function plot_one_by_one(system_rmv_stats)
-        % global_init
-        % load(fullfile(gather_config.odpath,'Tempdata','onebyone.mat'))
-        % load(fullfile(gather_config.odpath,'Tempdata','abalation_ctrl.mat'))
-        % onebyone.ctrl=statsctrl;
-        % pstats=bz.rings.rings_time_constant.stats([],[],'load_file',true,'skip_save',true)
-        % load(fullfile("bzdata","chain_tag.mat"),"out")
-        % sschain.out=out;
-        % per_sess_condition=wave.composite_thin_down.merge_motif(sschain,pstats);
-        % noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
-        % [system_rmv_stats,rmv_nets]=wave.composite_thin_down.match_system(noremove,onebyone);
-
+        function plot_one_by_one()
+            load(fullfile("binary","onebyonermv.mat"),"system_rmv_stats");
             mm=struct();
             sem=struct();
             for motifType=["chains","loops","ctrl","HIP"]
                 for lvl=0:10
-               
                     mm.(motifType)(lvl+1,:)=mean(system_rmv_stats.(motifType).("L"+lvl).out);
                     sem.(motifType)(lvl+1,:)=std(system_rmv_stats.(motifType).("L"+lvl).out)./sqrt(size(system_rmv_stats.(motifType).("L"+lvl).out,1));
-
                 end
             end
             hexcmap=["#0072BD","#D95319","#EDB120","#7E2F8E","#77AC30","#4DBEEE","#A2142F"];
-            figure()
+            fh=figure();
             tiledlayout(1,4)
+
+            nexttile()
+            hold on
+            for cc=1:5
+                fill([5:10:95,100,100,95:-10:5],[mm.ctrl(:,cc)-sem.ctrl(:,cc);flip(mm.ctrl(:,cc)+sem.ctrl(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
+                ph(cc)=plot([5:10:95,100],mm.ctrl(:,cc),'-','Color',hexcmap(cc));
+            end
+            
+            
+            set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
+            xlim([0,100])
+            ylim([0,1])
+            xlabel('Percentage of removed random SC (%)')
+            ylabel('Effect to composite loops (%)')
+
             nexttile()
             hold on
             for cc=1:5
                 fill([5:10:95,100,100,95:-10:5],[mm.chains(:,cc)-sem.chains(:,cc);flip(mm.chains(:,cc)+sem.chains(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
                 ph(cc)=plot([5:10:95,100],mm.chains(:,cc),'-','Color',hexcmap(cc));
             end
-            % plot(mm.chains)
+            
             legend(ph,{'abolish','split','shrank','weakened','noeffect'},'Location','northoutside','Orientation','horizontal')
             set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
             xlim([0,100])
@@ -601,32 +548,28 @@ classdef composite_thin_down < handle
             nexttile()
             hold on
             for cc=1:5
-                fill([5:10:95,100,100,95:-10:5],[mm.ctrl(:,cc)-sem.ctrl(:,cc);flip(mm.ctrl(:,cc)+sem.ctrl(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
-                ph(cc)=plot([5:10:95,100],mm.ctrl(:,cc),'-','Color',hexcmap(cc));
-            end
-            % plot(mm.chains)
-            
-            set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
-            xlim([0,100])
-            ylim([0,1])
-            xlabel('Percentage of removed random FC (%)')
-            ylabel('Effect to composite loops (%)')
-
-            nexttile()
-            hold on
-            for cc=1:5
                 fill([5:10:95,100,100,95:-10:5],[mm.HIP(:,cc)-sem.HIP(:,cc);flip(mm.HIP(:,cc)+sem.HIP(:,cc))],'k','FaceColor',hexcmap(cc),'EdgeColor','none','FaceAlpha','0.2');
                 ph(cc)=plot([5:10:95,100],mm.HIP(:,cc),'-','Color',hexcmap(cc));
             end
-            % plot(mm.chains)
             
             set(gca,'YTick',0.2:0.2:1,'YTickLabel',20:20:100)
             xlim([0,100])
             ylim([0,1])
-            xlabel('Percentage of removed HIP FC (%)')
+            xlabel('Percentage of removed HIP Neuron (%)')
             ylabel('Effect to composite loops (%)')
-
+            savefig(fh,fullfile("binary","one_by_one_rmv.fig"));
         end
-
+        function gen_one_by_one_rmv_data()
+            load(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay');
+            per_sess_condition=wave.composite_thin_down.merge_motif(chain_replay,ring_replay);
+            noremove=wave.composite_thin_down.stats_remove(per_sess_condition);
+            onebyone.ctrl=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','ctrl');
+            onebyone.HIP=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','HIPNode');
+            onebyone.chains=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','chains');
+            onebyone.loops=wave.composite_thin_down.one_by_one_remove(per_sess_condition,'remove','loops');
+            [system_rmv_stats,rmv_nets]=wave.composite_thin_down.match_system(noremove,onebyone);
+            blame=vcs.blame();
+            save(fullfile("binary","one_by_one_rmv.mat"),"onebyone","system_rmv_stats","rmv_nets","blame");
+        end
     end
 end

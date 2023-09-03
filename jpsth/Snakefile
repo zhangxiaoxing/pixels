@@ -219,4 +219,19 @@ rule motif_pref_nonpref_correct_error_freq:
 		"binary/motif_freq_prefer_nonpref.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.motif_prefer_nonprefer()"'
+rule gen_one_by_one_rmv_data:
+	input:
+		"binary/motif_replay.mat"
+	output:
+		"binary/one_by_one_rmv.mat"
+	shell:
+		'matlab -noFigureWindows -batch "wave.composite_thin_down.gen_one_by_one_rmv_data()"'
+
+rule plot_one_by_one_rmv_data:
+	input:
+		"binary/one_by_one_rmv.mat"
+	output:
+		"binary/one_by_one_rmv.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.composite_thin_down.plot_one_by_one()"'
 
