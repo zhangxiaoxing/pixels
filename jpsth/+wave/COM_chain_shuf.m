@@ -1,3 +1,6 @@
+% Pending removal as of 2023.09.05
+% Mostly duplicated and fall behind updates
+
 % Major revision around 2022.12.20
 % Major update around 2023.07.16, removed duplicates
 

@@ -1,24 +1,36 @@
-function [fh3,fhf]=chain_stats_regs(chains_input,su_meta,len_thresh,opt)
+function [fh3,fhf]=chain_stats_regs(su_meta,sel_meta,len_thresh,opt)
 arguments
-    chains_input
-    su_meta
-    len_thresh (1,1) double
-    opt.odor_only (1,1) logical = 1
+    su_meta = []
+    sel_meta = []
+    len_thresh (1,1) double =3
+    opt.odor_only (1,1) logical = true
 end
+
+if isempty(su_meta)
+    load(fullfile('binary','su_meta.mat'))
+end
+
+if isempty(sel_meta)
+    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+    sel_meta=fstr.wrs_mux_meta;
+    clear fstr
+end
+
+reg_com_maps=wave.get_reg_com_maps(sel_meta);
+
 shuf_sum=struct([]);
 %% data collection
 greys=ephys.getGreyRegs('range','grey');
 % vs shuffle
 % jpsth/+bz/+rings/shuffle_conn_bz_alt.m
 global gather_config
-load(fullfile(gather_config.odpath,'Tempdata','chains_shuf.mat'),'shuf_chains')
-warning('Loading %d shuffle repeats',numel(shuf_chains));
+load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
 
-for shuf_idx=[1:numel(shuf_chains),0]
-    if shuf_idx>0
-        chains_uf=shuf_chains{shuf_idx};
+for shufidx=[1:numel(shufs),0] % 0 has to be last to keep value for later pipeline
+    if shufidx>0
+        chains_uf=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',false,'non_mem',false);
     else
-        chains_uf=chains_input;
+        chains_uf=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',false,'non_mem',false);
     end
 
     % region tag
@@ -80,7 +92,7 @@ for shuf_idx=[1:numel(shuf_chains),0]
 
         olf_ratio.(curr_tag)=[];
         both_ratio.(curr_tag)=[];
-        if shuf_idx>0
+        if shufidx>0
             all_chain_regs.(curr_tag)=greys;
         else
             all_chain_regs.(curr_tag)=unique([struct2array(olf_u_reg_cat),struct2array(both_u_reg_cat)]);
@@ -94,56 +106,66 @@ for shuf_idx=[1:numel(shuf_chains),0]
                 both_ratio.(curr_tag)=[both_ratio.(curr_tag);chains_occur_both./su_cnt];
             end
         end
-        if shuf_idx==0
+        if shufidx==0
             [olf_ratio.(curr_tag),olf_srt.(curr_tag)]=sort(olf_ratio.(curr_tag),'descend');
             if ~opt.odor_only
                 [both_ratio.(curr_tag),both_srt.(curr_tag)]=sort(both_ratio.(curr_tag),'descend');
             end
         end
     end
-    if shuf_idx>0
+    if shufidx>0
         shuf_sum=[shuf_sum;struct('all_chain_regs',all_chain_regs,'olf_ratio',olf_ratio,'both_ratio',both_ratio)];
     end
 end
 
 %% occurrence of chain neuron per region neuron
-fh3=figure();
-tiledlayout(2,2)
-for curr_tag=["within","cross"]
-    nexttile()
-    bary=zeros(1,3);
-    barn=min(numel(olf_ratio.(curr_tag)),3);
-    bary(1:barn)=olf_ratio.(curr_tag)(1:barn);
-    bar(bary);
-    set(gca(),'XTick',1:barn,'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)(1:barn)),'YScale','log','XTickLabelRotation',90);
-    ylim([0.001,10]);
-    ylabel('occurrence per neuron')
-    title("olf "+curr_tag)
+if false
+    fh3=figure();
     if opt.odor_only
-        continue
+        tiledlayout(1,2)
+    else
+        tiledlayout(2,2)
     end
-    nexttile()
-    bary=zeros(1,3);
-    barn=min(numel(both_ratio.(curr_tag)),3);
-    bary(1:barn)=both_ratio.(curr_tag)(1:barn);
-    bar(bary);
-    set(gca(),'XTick',1:barn,'XTickLabel',all_chain_regs.(curr_tag)(both_srt.(curr_tag)(1:barn)),'YScale','log','XTickLabelRotation',90);
-    ylim([0.001,10]);
-    ylabel('occurrence per neuron')
-    title("both "+curr_tag)
+    for curr_tag=["within","cross"]
+        nexttile()
+        bary=zeros(1,3);
+        barn=min(numel(olf_ratio.(curr_tag)),3);
+        bary(1:barn)=olf_ratio.(curr_tag)(1:barn);
+        bar(bary);
+        set(gca(),'XTick',1:barn,'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)(1:barn)),'YScale','log','XTickLabelRotation',90);
+        ylim([0.001,10]);
+        ylabel('occurrence per neuron')
+        title("olf "+curr_tag)
+        if opt.odor_only
+            continue
+        end
+        nexttile()
+        bary=zeros(1,3);
+        barn=min(numel(both_ratio.(curr_tag)),3);
+        bary(1:barn)=both_ratio.(curr_tag)(1:barn);
+        bar(bary);
+        set(gca(),'XTick',1:barn,'XTickLabel',all_chain_regs.(curr_tag)(both_srt.(curr_tag)(1:barn)),'YScale','log','XTickLabelRotation',90);
+        ylim([0.001,10]);
+        ylabel('occurrence per neuron')
+        title("both "+curr_tag)
+    end
 end
-
 
 %% full list vs shuffle
 
 fhf=figure();
-tiledlayout(2,2)
+if opt.odor_only
+    tiledlayout(1,2)
+else
+    tiledlayout(2,2)
+end
+chain_reg=struct();
 for curr_tag=["within","cross"]
     nexttile()
     hold on
     barsel=olf_ratio.(curr_tag)>0;
     regsel=all_chain_regs.(curr_tag)(olf_srt.(curr_tag)(barsel));
-    shufmat=nan(numel(shuf_chains),numel(regsel));
+    shufmat=nan(numel(shuf_sum),numel(regsel));
     regidx=1;
     for onereg=reshape(regsel,1,[])
         for ii=1:numel(shuf_sum)
@@ -161,7 +183,7 @@ for curr_tag=["within","cross"]
     if numel(bh)>1
         errorbar(bh(2).XEndPoints,bh(2).YData,shufsem,'k.')
     end
-    olf_ratio.(curr_tag)(barsel)-mean(shufmat).'
+    % olf_ratio.(curr_tag)(barsel)-mean(shufmat).'
 
 
     set(gca(),'XTick',1:numel(regsel),'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)),'YScale','log','XTickLabelRotation',90);
@@ -170,11 +192,13 @@ for curr_tag=["within","cross"]
     title("olf "+curr_tag)
 
     zscores=abs(olf_ratio.(curr_tag)(barsel)-mean(shufmat).')./std(shufmat).';
-    disp(curr_tag)
-    disp(zscores)
-    text(find(zscores>norminv(0.9995)),repmat(9,nnz(zscores>norminv(0.9995)),1),'***','HorizontalAlignment','center')
-    text(find(zscores>norminv(0.995)),repmat(3.16,nnz(zscores>norminv(0.995)),1),'**','HorizontalAlignment','center')
-    text(find(zscores>norminv(0.975)),repmat(1,nnz(zscores>norminv(0.975)),1),'*','HorizontalAlignment','center')
+    chain_reg.(curr_tag).zscore=zscores;
+    stars3=zscores>norminv(0.9995);
+    stars2=zscores>norminv(0.995) & zscores<=norminv(0.9995);
+    stars1=zscores>norminv(0.975) & zscores<=norminv(0.995);
+    text(find(stars3),repmat(9,nnz(stars3),1),'***','HorizontalAlignment','center')
+    text(find(stars2),repmat(3.16,nnz(stars2),1),'**','HorizontalAlignment','center')
+    text(find(stars1),repmat(1,nnz(stars1),1),'*','HorizontalAlignment','center')
     
     if opt.odor_only
         continue
@@ -184,7 +208,7 @@ for curr_tag=["within","cross"]
     hold on
     barsel=both_ratio.(curr_tag)>0;
     regsel=all_chain_regs.(curr_tag)(both_srt.(curr_tag)(barsel));
-    shufmat=nan(numel(shuf_chains),numel(regsel));
+    shufmat=nan(numel(shuf_sum),numel(regsel));
     regidx=1;
     for onereg=reshape(regsel,1,[])
         for ii=1:numel(shuf_sum)
@@ -204,8 +228,14 @@ for curr_tag=["within","cross"]
     zscores=abs(both_ratio.(curr_tag)(barsel)-mean(shufmat).')./std(shufmat).';
     disp(curr_tag)
     disp(zscores)
-    text(find(zscores>norminv(0.9995)),repmat(9,nnz(zscores>norminv(0.9995)),1),'***','HorizontalAlignment','center')
-    text(find(zscores>norminv(0.995)),repmat(3.16,nnz(zscores>norminv(0.995)),1),'**','HorizontalAlignment','center')
-    text(find(zscores>norminv(0.975)),repmat(1,nnz(zscores>norminv(0.975)),1),'*','HorizontalAlignment','center')
+    stars3=zscores>norminv(0.9995);
+    stars2=zscores>norminv(0.995) & zscores<=norminv(0.9995);
+    stars1=zscores>norminv(0.975) & zscores<=norminv(0.995);
+    text(find(stars3),repmat(9,nnz(stars3),1),'***','HorizontalAlignment','center')
+    text(find(stars2),repmat(3.16,nnz(stars2),1),'**','HorizontalAlignment','center')
+    text(find(stars1),repmat(1,nnz(stars1),1),'*','HorizontalAlignment','center')
 end
+savefig(fhf,fullfile('binary','chains_occur_per_neuron_per_reg.fig'));
+blame=vcs.blame();
+save(fullfile('binary','chains_occur_per_neuron_per_reg.mat'),'chain_reg','blame');
 end

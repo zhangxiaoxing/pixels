@@ -5,6 +5,7 @@ arguments
     opt.poolsize (1,1) double = 2
     opt.ignore_reg (1,1) logical = false
 end
+    global_init;
     load(fullfile("binary","bz_ring_shufs.mat"),'shufs')
     [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 

@@ -1,19 +1,34 @@
 function loop_occurrence_per_reg_su(sums_all,su_meta,sel_meta,opt)
 arguments
-    sums_all
-    su_meta
-    sel_meta
+    sums_all = []
+    su_meta = []
+    sel_meta = []
     opt.pie (1,1) logical = false
     opt.bar (1,1) logical = true
     opt.barn (1,1) double = 3
     opt.loopPerSU (1,1) logical = true
     opt.vs_shuf (1,1) logical = true
     opt.unique_su (1,1) logical = false
-    opt.odor_only (1,1) logical = false
+    opt.odor_only (1,1) logical = true
 end
 
+if isempty(sums_all)
+    load(fullfile('binary','sums_ring_stats_all.mat'),'sums_all');
+end
+
+if isempty(su_meta)
+    load(fullfile('binary','su_meta.mat'))
+end
+
+if isempty(sel_meta)
+    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+    sel_meta=fstr.wrs_mux_meta;
+    clear fstr
+end
+
+
 su_reg=categorical(su_meta.reg_tree(5,:));
-fstr=load(fullfile('bzdata','rings_bz_vs_shuf.mat')); % shuffle
+fstr=load(fullfile('binary','rings_bz_vs_shuf.mat')); % shuffle
 
 lbls={{'Olfactory within region','Sum of total node in loops'};...
     {'Olfactory cross region','Sum of total node in loops'};...
@@ -126,8 +141,12 @@ end
 
 %% data vs shuffled
 if opt.vs_shuf
-    figure()
-    tiledlayout(1,4)
+    fvs=figure();
+    if opt.odor_only
+        tiledlayout(1,4);
+    else
+        tiledlayout(1,2);
+    end
     for dsetidx=[1 2 5 6]
         if opt.odor_only && dsetidx>2
             continue
@@ -172,6 +191,8 @@ if opt.vs_shuf
         ylabel('occurrence in loops per neuron')
         title(lbls{dsetidx});
     end
+    savefig(fvs,fullfile('binary','loops_occur_per_neuron_per_reg.fig'));
+
 end
 
 
