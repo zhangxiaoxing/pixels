@@ -33,7 +33,7 @@ classdef chain_tag < handle
             end
 
             if opt.ccg
-                load('sums_conn_10.mat','sums_conn_str');
+                load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
             end
 
             ch_len=cellfun(@(x) numel(x),chains.cids);

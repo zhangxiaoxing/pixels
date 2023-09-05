@@ -14,6 +14,8 @@ if isempty(chain_replay)
 end
 
 pivot_dict.delay=struct();
+pivot_dict.delay_chain=struct();
+pivot_dict.delay_loop=struct();
 pivot_dict.iti=struct();
 pivot_dict.out_task=struct();
 % per session
@@ -51,6 +53,18 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
                     end
                 else
                     pivot_dict.delay.("ses"+sess+onewave+"U"+suii)=dictionary(chain_replay.ts{chainii}(pref_delay,suidx),1);
+                end
+                % chain_only for spike fraction
+                if isfield(pivot_dict.delay_chain,"ses"+sess+onewave+"U"+suii)
+                    for kk=reshape(chain_replay.ts{chainii}(pref_delay,suidx),1,[])
+                        if pivot_dict.delay_chain.("ses"+sess+onewave+"U"+suii).isKey(kk)
+                            pivot_dict.delay_chain.("ses"+sess+onewave+"U"+suii)(kk)=pivot_dict.delay_chain.("ses"+sess+onewave+"U"+suii)(kk)+1;
+                        else
+                            pivot_dict.delay_chain.("ses"+sess+onewave+"U"+suii)(kk)=1;
+                        end
+                    end
+                else
+                    pivot_dict.delay_chain.("ses"+sess+onewave+"U"+suii)=dictionary(chain_replay.ts{chainii}(pref_delay,suidx),1);
                 end
 
                 if isfield(pivot_dict.iti,"ses"+sess+onewave+"U"+suii)
@@ -109,7 +123,20 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
                         end
                     end
                 else
-                    pivot_dict.delay.("ses"+sess+onewave+"U"+suii)=dictionary(ring_replay.ts{rii}(pref_delay,suidx),1);
+                    pivot_dict.delay.("ses"+sess+onewave+"U"+suii)=dictionary(spkts,1);
+                end
+
+                % loop_only for spike fraction
+                if isfield(pivot_dict.delay_loop,"ses"+sess+onewave+"U"+suii)
+                    for kk=spkts.'
+                        if pivot_dict.delay_loop.("ses"+sess+onewave+"U"+suii).isKey(kk)
+                            pivot_dict.delay_loop.("ses"+sess+onewave+"U"+suii)(kk)=pivot_dict.delay_loop.("ses"+sess+onewave+"U"+suii)(kk)+1;
+                        else
+                            pivot_dict.delay_loop.("ses"+sess+onewave+"U"+suii)(kk)=1;
+                        end
+                    end
+                else
+                    pivot_dict.delay_loop.("ses"+sess+onewave+"U"+suii)=dictionary(spkts,1);
                 end
 
                 spkts=[];

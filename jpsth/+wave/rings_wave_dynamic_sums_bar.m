@@ -42,7 +42,7 @@ if false % skip lower level burst stats at the moment
 end
 
 %% individual FC ====================
-load('sums_conn_10.mat','sums_conn_str');
+load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
 qcmat=cell2mat({sums_conn_str.qc}.'); % from bz.sums_conn -> bz.goodccg
 sumdata.FC=(qcmat(:,2)-250)./30; % #2 is peak TS, offset left half of symmatric ccg
 

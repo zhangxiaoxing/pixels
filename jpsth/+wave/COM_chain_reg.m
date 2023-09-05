@@ -16,7 +16,7 @@ arguments
 end
 assert(opt.odor_only,"Unfinished")
 if ~opt.shuf
-    load('sums_conn_10.mat','sums_conn_str');
+    load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
 else
     sums_conn_str=zeros(max(opt.shuf_data.sess),1);
 end

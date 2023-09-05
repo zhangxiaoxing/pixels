@@ -30,7 +30,7 @@ persistent sig pair opt_
 if isempty(sig) || isempty(pair) || ~isequaln(opt,opt_) || opt.override
     warning(['using FC file ',opt.fn]);
     meta=ephys.util.load_meta('skip_stats',true);
-    conn_str=load(opt.fn);
+    conn_str=load(fullfile("binary",opt.fn));
     flns=fieldnames(conn_str);
     fln=flns{startsWith(flns,'sums_conn')};
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));

@@ -23,7 +23,7 @@ end
 % keyboard()
 
 if opt.ccg
-    load('sums_conn_10.mat','sums_conn_str');
+    load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
 end
 %% set up
 % all_chains=fieldnames(pstats.congru);

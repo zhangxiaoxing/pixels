@@ -17,7 +17,8 @@ arguments
     opt.odor_only (1,1) logical = false
 end
 % global_init
-load('sums_conn_10.mat','sums_conn_str');
+load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
+
 % [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 % meta_str=ephys.util.load_meta('skip_stats',true);
 

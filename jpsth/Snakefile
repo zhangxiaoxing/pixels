@@ -235,3 +235,41 @@ rule plot_one_by_one_rmv_data:
 	shell:
 		'matlab -noFigureWindows -batch "wave.composite_thin_down.plot_one_by_one()"'
 
+rule plot_chain_loop_freq:
+	input:
+		"binary/motif_replay.mat",
+		"binary/trials_dict.mat"
+	output:
+		"binary/chains_loops_freq.mat",
+		"binary/chains_loops_freq.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,per_unit_motif=true)"'
+
+rule frac_neuron_in_motif:
+	input:
+		"binary/motif_replay.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/frac_neuron_in_motif.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.frac_neuron_in_motif()"'
+
+rule motif_spike_total_spike_proportion:
+	input:
+		"binary/delay_vs_iti_pivot_spike.mat"
+	output:
+		"binary/motif_spike_total_spike_proportion.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.motif_spike_total_spike_proportion()"'
+
+rule gen_shuf_rings:
+	input:
+		"binary/bz_ring_shufs.mat",
+		"binary/sums_conn_10.mat"
+	output:
+		"binary/rings_bz_vs_shuf.mat"
+	threads: 52 
+	shell:
+		'matlab -noFigureWindows -batch "bz.rings.ring_list_bz_alt(poolsize={threads})"'
+
+

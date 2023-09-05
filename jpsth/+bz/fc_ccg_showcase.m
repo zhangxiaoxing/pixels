@@ -2,7 +2,7 @@
 fcsel=(sig.reg(:,5,1)==idmap.reg2ccfid('TT') & sig.reg(:,5,2)==idmap.reg2ccfid('DP'));
 sess=sig.sess(fcsel);
 cids=sig.suid(fcsel,:);
-load('sums_conn_10.mat','sums_conn_str');
+load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
 
 ccgsess=cellfun(@(x) ephys.path2sessid(x),{sums_conn_str.folder});
 

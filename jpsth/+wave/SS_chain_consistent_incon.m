@@ -255,53 +255,5 @@ cellfun(@(x) set(x,'YLim',[0,max(struct2array(yspan))]),struct2cell(aax))
 
 %     sgtitle("Single spike");
 
-%% spike proportion
-sums=cell2struct({[],[]},{'FWD','REV'},2);
-for fkey=["FWD","REV"]
-    sessfn=fieldnames(lc_tags.(fkey));
-    for fn=reshape(sessfn,1,[])
-        sessid=str2double(replace(fn{1},'S',''));
-        [~,~,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
-
-        sesssel=per_trial_motif_freq.(fkey)(:,1)==sessid;
-        sess_uid=unique(cell2mat([per_trial_motif_cid.(fkey){sesssel,1}]));
-        for onecid=sess_uid
-            % trial sel
-            trialsel=cellfun(@(x) ismember(onecid,cell2mat(x)), per_trial_motif_cid.(fkey)(sesssel,1));
-            trial3sel=intersect(find(trialsel), find(FT_SPIKE.trialinfo(:,8)==3));
-            trial6sel=intersect(find(trialsel), find(FT_SPIKE.trialinfo(:,8)==6));
-
-            idsel=strcmp(FT_SPIKE.label,num2str(onecid));
-            tssel=(ismember(FT_SPIKE.trial{idsel},trial3sel) & FT_SPIKE.time{idsel}>1 & FT_SPIKE.time{idsel}<=4)...
-                |(ismember(FT_SPIKE.trial{idsel},trial6sel) & FT_SPIKE.time{idsel}>1 & FT_SPIKE.time{idsel}<=7);
-            %                 if any(lc_tags.(ftype).(fn{1}){idsel}(tssel)==4)
-            %                     disp(4)
-            %                     keyboard()
-            %                 end
-
-            fc_tagged=nnz(bitand(lc_tags.(fkey).(fn{1}){idsel}(tssel),1));
-            burst_tagged=nnz(bitand(lc_tags.(fkey).(fn{1}){idsel}(tssel),2));
-            % 1:sess, 2:cid, 3:chain fc spk count, 4: chain burst spk count, 5:total spk count
-            sums.(fkey)=[sums.(fkey);sessid,onecid,fc_tagged,burst_tagged,nnz(tssel)];
-        end
-    end
-end
-% mean
-% [mean(sums.FWD(:,3:4)./sums.FWD(:,5)),mean(sums.REV(:,3:4)./sums.REV(:,5))]
-% median
-% [median(sums.FWD(:,3:4)./sums.FWD(:,5)),median(sums.REV(:,3:4)./sums.REV(:,5))]
-
-boxdata=[sums.FWD(:,3)./sums.FWD(:,5),ones(size(sums.FWD(:,3)));sums.REV(:,3)./sums.REV(:,5),2*ones(size(sums.REV(:,3)))];
-nexttile()
-bh=boxplot(boxdata(:,1),boxdata(:,2),'Colors','k','Symbol','c+','OutlierSize',4);
-prcdata=[prctile(boxdata(boxdata(:,2)==1),[25,75]);...
-    prctile(boxdata(boxdata(:,2)==2),[25,75])];
-ylim([0,1.25*max(prcdata(:,2)+1.5*diff(prcdata,1,2))])
-
-set(gca,'XTick',1:2,'XTickLabel',{'Consistent','Inconsistent'},'YTick',0:0.02:0.04,'YTickLabel',0:2:4)
-ylabel('Proportion of associated spikes (%)')
-title('Proportion of spikes')
-
-
 sgtitle('Single spike chains')
 

@@ -57,7 +57,7 @@ classdef  motif_dynamic < handle
 
 
             %% individual FC
-            load('sums_conn_10.mat','sums_conn_str');
+            load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
             qcmat=cell2mat({sums_conn_str.qc}.'); % from bz.sums_conn -> bz.goodccg
             fwhm_all=(qcmat(:,2)-250)./30; % offset left half of symmatric ccg
             fcxx=0:0.8:20;

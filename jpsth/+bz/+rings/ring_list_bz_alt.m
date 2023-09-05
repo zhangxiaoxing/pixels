@@ -5,6 +5,7 @@ arguments
     opt.poolsize (1,1) double = 2
     opt.ignore_reg (1,1) logical = false
 end
+    load(fullfile("binary","bz_ring_shufs.mat"),'shufs')
     [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 
     if opt.ignore_reg
@@ -17,7 +18,7 @@ end
     sig.suid=sig.suid(sig_reg_sel,:);
     rings=onerpt(sig);
 
-    load('bz_ring_shufs.mat','shufs')
+    
     rings_shuf=cell(size(shufs,1),1);
     poolo=parpool(opt.poolsize);
     parfor rpt=1:size(shufs,1)
@@ -27,14 +28,13 @@ end
     blame=vcs.blame();
     blame.tag='ring count actual vs shuffle';
     fname='rings_bz_vs_shuf.mat';
-    save(fullfile('bzdata',fname),'rings_shuf','rings','blame');
+    save(fullfile('binary',fname),'rings_shuf','rings','blame');
     delete(poolo);
     out=struct();
     out.rings=rings;
     out.rings_shuf=rings_shuf;
 end
 function rings=onerpt(sig)
-
 rings=cell(max(sig.sess),3);
 for sess=1:max(sig.sess)
     disp(sess);
