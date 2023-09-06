@@ -1,11 +1,12 @@
-
+function fc_coding_all(opt)
+arguments
+    opt.poolsize = 1
+end
 ephys.util.dependency('buz',false);
 sig=bz.load_sig_sums_conn_file();
 %sig=bz.load_sig_pair();
 sess=unique(sig.sess);
-if isunix
-    ph=parpool(16);
-end
+ph=parpool(opt.poolsize);
 for si=1:numel(sess)
     onesess=sess(si);
     sesssel=sig.sess==onesess;
@@ -16,4 +17,4 @@ for si=1:numel(sess)
         bz.fccoding.fc_coding_one_sess(onesess,sig.suid(sesssel,:));
     end
 end
-
+delete(ph)

@@ -293,3 +293,31 @@ rule chain_occur_per_su_per_reg:
 		"binary/chains_occur_per_neuron_per_reg.mat"
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.chain_stats_regs()"'
+
+rule gen_fc_coding_data:
+	input:
+		"binary/sums_conn_10.mat"
+	output:
+		expand("binary/fccoding/fc_coding_{sess}.mat",sess=list(range(1,117)))
+	shell:
+		'matlab -noFigureWindows -batch "bz.fccoding.fc_coding_all()"'
+
+rule fc_coding_congru_incon:
+	input:
+		"binary/wrs_mux_meta.mat",
+		expand("binary/fccoding/fc_coding_{sess}.mat",sess=list(range(1,117)))
+	output:
+		"binary/fc_coding_congru_incong.fig"
+	shell:
+		'matlab -noFigureWindows -batch "bz.fccoding.plot_coding(odor_only=true)"'
+
+rule fc_spike_of_all_spike_proportion:
+	input:
+		"binary/wrs_mux_meta.mat",
+		"binary/sums_conn_10.mat"
+	output:
+		"binary/FC_spike_proportion.mat",
+		"binary/FC_spike_proportion.fig"
+	shell:
+		'matlab -noFigureWindows -batch "bz.FC_spike_proportion()"'
+

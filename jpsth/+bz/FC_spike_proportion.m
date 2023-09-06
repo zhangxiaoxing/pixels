@@ -1,9 +1,10 @@
-global_init;
-wrs_mux_meta=ephys.get_wrs_mux_meta();
+function FC_spike_proportion()
 
+global_init;
+load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
 [sig,~]=bz.load_sig_sums_conn_file('pair',false);
 sig=bz.join_fc_waveid(sig,wrs_mux_meta.wave_id);
-sig.congrusel=pct.su_pairs.get_congru(sig.waveid);
+sig.congrusel=pct.su_pairs.get_congru(sig.waveid,'odor_only',true);
 
 usess=unique(sig.sess(sig.congrusel));
 
@@ -26,7 +27,7 @@ for sessid=reshape(usess,1,[])
         for tt=reshape([pref3;pref6],1,[])
             leadtssel=FT_SPIKE.trial{leadsel}==tt & FT_SPIKE.time{leadsel}>1 & FT_SPIKE.time{leadsel}<=(trials(tt,8)+1);
             folotssel=FT_SPIKE.trial{folosel}==tt & FT_SPIKE.time{folosel}>1 & FT_SPIKE.time{folosel}<=(trials(tt,8)+1);
-            
+
             % in preferred trial tag
             FT_SPIKE.fc_tag{leadsel}(leadtssel)=bitor(FT_SPIKE.fc_tag{leadsel}(leadtssel),1);
             FT_SPIKE.fc_tag{folosel}(folotssel)=bitor(FT_SPIKE.fc_tag{folosel}(folotssel),1);
@@ -35,7 +36,7 @@ for sessid=reshape(usess,1,[])
                 leadts=FT_SPIKE.timestamp{leadsel}(leadtssel);
                 folots=FT_SPIKE.timestamp{folosel}(folotssel);
                 latency=folots-leadts.';
-                
+
                 leadtag=any(latency>24 & latency<=300,2);
                 folotag=any(latency>24 & latency<=300,1);
 
@@ -58,7 +59,7 @@ for sessid=reshape(usess,1,[])
     end
 end
 blame=vcs.blame();
-save(fullfile("bzdata","FC_spike_proportion.mat"),'sums','blame')
+save(fullfile("binary","FC_spike_proportion.mat"),'sums','blame')
 % prctile(double(sums(:,3))./double(sums(:,4)),[25 50 75])
 fc_spk_frac=double(sums(:,3))./double(sums(:,4));
 prctile(fc_spk_frac,[25 50 75])
@@ -70,4 +71,5 @@ fh.Children.Children.Children(6).LineStyle='-';
 % xlim([0.75,1.25])
 ylabel('FC spikes / all spikes (%)')
 set(gca,'YTick',0:0.2:1,'YTickLabel',0:20:100,'XTick',[])
-
+savefig(fh,fullfile('binary','FC_spike_proportion.fig'))
+end

@@ -187,7 +187,7 @@ for curr_tag=["within","cross"]
 
 
     set(gca(),'XTick',1:numel(regsel),'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)),'YScale','log','XTickLabelRotation',90);
-    ylim([1e-5,10]);
+    ylim([1e-4,10]);
     ylabel('occurrence per neuron')
     title("olf "+curr_tag)
 
@@ -222,7 +222,7 @@ for curr_tag=["within","cross"]
     shufsem=std(shufmat)./sqrt(size(shufmat,1));
     errorbar(bh(2).XEndPoints,bh(2).YData,shufsem,'k.')
     set(gca(),'XTick',1:numel(regsel),'XTickLabel',all_chain_regs.(curr_tag)(both_srt.(curr_tag)),'YScale','log','XTickLabelRotation',90);
-    ylim([1e-5,10]);
+    ylim([1e-4,10]);
     ylabel('occurrence per neuron')
     title("both "+curr_tag)
     zscores=abs(both_ratio.(curr_tag)(barsel)-mean(shufmat).')./std(shufmat).';

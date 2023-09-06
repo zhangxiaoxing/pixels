@@ -2,7 +2,7 @@
 
 function out=plot_coding(sel_meta,opt)
 arguments
-    sel_meta
+    sel_meta = []
     opt.plot_trial_frac (1,1) logical = false
     opt.plot_fwd_rev (1,1) logical = false
     opt.plot_coding_idx (1,1) logical = false
@@ -10,9 +10,15 @@ arguments
     opt.plot_svm (1,1) logical = true
     opt.wave_dir (1,1) logical = false
     opt.dtype (1,:) char {mustBeMember(opt.dtype,{'olf','dur'})} ='olf'
-    opt.nrpt (1,1) double = 100
+    opt.nrpt (1,1) double = 50
     opt.skip_plot (1,1) logical = false
     opt.nfc_grp (1,:) double = [10 50 100 200 300 400 500]
+    opt.odor_only (1,1) logical = true
+end
+global_init
+if isempty(sel_meta)
+    load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
+    sel_meta=wrs_mux_meta;
 end
 
 % [~,~,ratiomap]=ref.get_pv_sst();
@@ -33,8 +39,8 @@ if opt.plot_svm
     % resample trials
     stats_all=cell(1,NRPT/5);
     for ii=1:NRPT/5
-        [~,stats_all{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype); % olfactory duration mix
-        [~,stats_incong{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype,'incong',true); % olfactory duration mix
+        [~,stats_all{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype,'odor_only',opt.odor_only); % olfactory duration mix
+        [~,stats_incong{ii}]=bz.fccoding.get_fc_coding(sel_meta,'force_update',true,'type',dtype,'incong',true,'odor_only',opt.odor_only); % olfactory duration mix
         
     end
     S=max(cell2mat(cellfun(@(x) max([x.lbl1;x.lbl2]).',stats_all,'UniformOutput',false)),[],2).';
@@ -119,7 +125,7 @@ if opt.plot_svm
     xlim([0,500])
     set(gca(),'YTick',0.5:0.25:1,'YTickLabel',50:25:100)
 
-
+    savefig(fh,fullfile('binary','fc_coding_congru_incong.fig'));
 end
 
 if opt.plot_trial_frac

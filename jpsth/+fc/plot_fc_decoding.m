@@ -1,3 +1,4 @@
+% pending removal
 % likely obsolete as of 22-06-15
 % use bz.fccoding.plot_coding
 
