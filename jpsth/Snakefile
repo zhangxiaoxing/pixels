@@ -321,3 +321,10 @@ rule fc_spike_of_all_spike_proportion:
 	shell:
 		'matlab -noFigureWindows -batch "bz.FC_spike_proportion()"'
 
+rule fc_su_decode_comparison:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/FC_SU_decode_comparison.fig"
+	shell:
+		'matlab -noFigureWindows -batch "bz.fc_su_decode_comparison()"'
