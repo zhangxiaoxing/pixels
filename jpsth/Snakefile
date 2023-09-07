@@ -356,4 +356,11 @@ rule nested_loops_extrapolation:
 	shell:
 		'matlab -noFigureWindows -batch "wave.chained_loops_extrapol()"'
 
+rule nested_loop_time_const_relax_gap:
+	input:
+		"binary/delay_iti_runlength_covered.mat"
+	output:
+		"binary/nested_loop_time_const_relax_gap.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.loop.nested_loop_time_const_relax_gap()"'
 
