@@ -1,7 +1,8 @@
-function sschain_time_const(chain_replay,opt)
+function runlength=sschain_time_const(chain_replay,opt)
 arguments
     chain_replay= []
     opt.skip_save = true
+    opt.skip_plot = false
 end
 if isempty(chain_replay)
     load(fullfile('binary','motif_replay.mat'),'chain_replay');
@@ -14,19 +15,20 @@ for cii=1:size(chain_replay,1)
 end
 
 singlehist=histcounts(runlength,[0:9,10:10:100],'Normalization','pdf');
-
-fh=figure();
-hold on
-sh=plot([0.5:9.5,15:10:95],singlehist,'-k');
-set(gca(),'XScale','log','YScale','log');
-ylim([1e-6,1]);
-xlim([1,500])
-xlabel('Time (ms)');
-ylabel('Probability density');
-qtrs=prctile(runlength,[1,2.5,5,10,50,90,95,97.5,99]);
-xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+string(num2cell(qtrs)));
-title('single spike chains')
-if ~opt.skip_save
-    savefig(fh,fullfile('binary','sschain_time_constant.fig'));
+if ~opt.skip_plot
+    fh=figure();
+    hold on
+    sh=plot([0.5:9.5,15:10:95],singlehist,'-k');
+    set(gca(),'XScale','log','YScale','log');
+    ylim([1e-6,1]);
+    xlim([1,500])
+    xlabel('Time (ms)');
+    ylabel('Probability density');
+    qtrs=prctile(runlength,[1,2.5,5,10,50,90,95,97.5,99]);
+    xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+string(num2cell(qtrs)));
+    title('single spike chains')
+    if ~opt.skip_save
+        savefig(fh,fullfile('binary','sschain_time_constant.fig'));
+    end
 end
 end

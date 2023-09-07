@@ -1,24 +1,15 @@
 function [fh,mdl]=conn_prob_spatial_dist(sig,pair,opt)
 arguments
-    sig (1,1) struct
-    pair (1,1) struct
+    sig = []
+    pair = []
     opt.dist (1,1) double = 5
     opt.pair_count = 1000
 end
-
-addpath('k:\code\align\')
-sess_cnt=max(sig.sess);
-same_stats=struct();
-[same_stats.nm_nm,same_stats.congr,same_stats.incon,same_stats.mem_nm,same_stats.nm_mem]...
-    =deal(nan(sess_cnt,1));
+global_init;
+if isempty(sig) || isempty (pair)
+    [sig,pair]=bz.load_sig_sums_conn_file('pair',true);
+end
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-% l2h_stats=same_stats;
-% h2l_stats=same_stats;
-%  [sig_same, sig_h2l, sig_l2h,pair_same, pair_h2l, pair_l2h]=hier.get_reg_hier_relation();
-
-% [diff_reg_pair,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
-% diff_reg_pair=diff_reg_pair(:,5);
-
 grey_reg=ephys.getGreyRegs('range','grey');
 ureg=cell2mat(idmap.reg2ccfid.values(grey_reg));
 same_stats=[];
@@ -57,7 +48,6 @@ for di=reshape(unique(Y),1,[])
 end
 
 dist_sums(:,2:end)=dist_sums(:,2:end).*100;
-% [r,p]=corr([same_stats(:,3);dist_stats(:,3)]./100,[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100);
 
 xx=[same_stats(:,3);dist_stats(:,3)].*10;% micro-meter unit
 yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
@@ -86,5 +76,5 @@ xlim([-0.5,7])
 ylim([0,3])
 legend([mh,fith],{'Mean','Power law fit'},'Location','northoutside')
 text(max(xlim()),max(ylim()),sprintf('%.2f,%.2f',sqrt(mdl.Rsquared.Ordinary),0),'HorizontalAlignment','right','VerticalAlignment','top');
-keyboard()
-% exportgraphics(fh,'fc_rate_vs_spatial_dist.pdf')
+savefig(fh,fullfile('binary','SC_rate_vs_distance.fig'));
+

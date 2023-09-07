@@ -1,7 +1,8 @@
-function ssloop_time_const(ring_replay,opt)
+function runlength=ssloop_time_const(ring_replay,opt)
 arguments
     ring_replay= []
     opt.skip_save = true
+    opt.skip_plot = false
 end
 if isempty(ring_replay)
     load(fullfile('binary','motif_replay.mat'),'ring_replay');
@@ -14,19 +15,20 @@ for rii=1:size(ring_replay,1)
 end
 
 singlehist=histcounts(runlength,[0:9,10:10:100],'Normalization','pdf');
-
-fh=figure();
-hold on
-sh=plot([0.5:9.5,15:10:95],singlehist,'-k');
-set(gca(),'XScale','log','YScale','log');
-ylim([1e-6,1]);
-xlim([1,500])
-xlabel('Time (ms)');
-ylabel('Probability density');
-qtrs=prctile(runlength,[1,2.5,5,10,50,90,95,97.5,99]);
-xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+string(num2cell(qtrs)));
-title('single spike loops')
-if ~opt.skip_save
-    savefig(fh,fullfile('binary','ssloop_time_constant.fig'));
+if ~opt.skip_plot
+    fh=figure();
+    hold on
+    sh=plot([0.5:9.5,15:10:95],singlehist,'-k');
+    set(gca(),'XScale','log','YScale','log');
+    ylim([1e-6,1]);
+    xlim([1,500])
+    xlabel('Time (ms)');
+    ylabel('Probability density');
+    qtrs=prctile(runlength,[1,2.5,5,10,50,90,95,97.5,99]);
+    xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+string(num2cell(qtrs)));
+    title('single spike loops')
+    if ~opt.skip_save
+        savefig(fh,fullfile('binary','ssloop_time_constant.fig'));
+    end
 end
 end

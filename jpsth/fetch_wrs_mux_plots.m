@@ -1,8 +1,6 @@
 % TODO: switch neuron?
 % TODO: FC/Chain both-duration congruent 
 
-keyboard()
-
 %% basic stats %%%%%%%%%%%%%%%%%%%%>>
 global_init;
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);

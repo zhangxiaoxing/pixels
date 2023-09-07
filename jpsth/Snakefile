@@ -328,3 +328,32 @@ rule fc_su_decode_comparison:
 		"binary/FC_SU_decode_comparison.fig"
 	shell:
 		'matlab -noFigureWindows -batch "bz.fc_su_decode_comparison()"'
+
+rule hierarchy_time_const_sums:
+	input:
+		"binary/delay_iti_runlength_covered.mat",
+		"binary/motif_replay.mat"
+	output:
+		"binary/hierarchy_time_const_sums.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.rings_wave_dynamic_sums_bar()"'
+		
+rule FC_rate_vs_distance:
+	input:
+		"binary/sums_conn_10.mat"
+	output:
+		"binary/SC_rate_vs_distance.fig"
+	shell:
+		'matlab -noFigureWindows -batch "bz.conn_prob_spatial_dist()"'
+
+rule nested_loops_extrapolation:
+	input:
+		"binary/motif_replay.mat",
+		"binary/su_meta.mat"
+	output:
+		"binary/chainned_loops_thinned.mat",
+		"binarychained_loops_extrapolation.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.chained_loops_extrapol()"'
+
+
