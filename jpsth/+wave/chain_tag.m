@@ -139,7 +139,6 @@ classdef chain_tag < handle
                         trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
                     end
                 end
-
                 
                 outid=wid;
                 

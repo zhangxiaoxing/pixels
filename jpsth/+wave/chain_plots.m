@@ -1,13 +1,5 @@
 %%
 
-%%
-
-numel(chains_uf_all.sess)./sum([numel(chains_uf_all.sess),numel(chains_uf_rev_all.sess)])
-numel(chains_nm_all.sess)./sum([numel(chains_nm_all.sess),numel(chains_nm_rev_all.sess)])
-
-wave.chain_stats(chains_uf_all,chains_uf_rev_all,su_meta,'odor_only',true); % static number count
-wave.chain_stats(chains_nm_all,chains_nm_rev_all,su_meta,'odor_only',true);
-
 
 % will not 
 if false

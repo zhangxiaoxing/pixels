@@ -364,3 +364,12 @@ rule nested_loop_time_const_relax_gap:
 	shell:
 		'matlab -noFigureWindows -batch "wave.loop.nested_loop_time_const_relax_gap()"'
 
+rule gen_nonmem_chain_tag_file:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/chain_tag_nonmem_all_trl.mat"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},nonmem=true)"'

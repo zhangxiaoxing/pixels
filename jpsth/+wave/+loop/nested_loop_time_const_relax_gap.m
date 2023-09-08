@@ -39,5 +39,5 @@ ylim([8e-6,0.1])
 set(gca(),'XScale','log','YScale','log')
 xlabel('Time (ms)')
 ylabel('Probability density')
-save(fh,fullfile('binary','nested_loop_time_const_relax_gap.fig'));
+savefig(fh,fullfile('binary','nested_loop_time_const_relax_gap.fig'));
 end

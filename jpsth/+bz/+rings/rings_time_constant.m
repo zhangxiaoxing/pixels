@@ -1,3 +1,6 @@
+%% WIP, assume not working
+
+
 % We found that larger proportions of spikes were associated with
 % such activity loops of same-memory neurons than that of non-memory
 % neurons (fig. Sx). For all the recorded neurons, we observed xx% of
@@ -250,31 +253,35 @@ classdef rings_time_constant <handle
         end
 
 
-        function stats=plotStats(pstats,opt)
+        function stats=plotStats(chain_replay,ring_replay,opt)
             arguments
-                pstats
+                chain_replay = []
+                ring_replay = []
                 opt.skip_showcase (1,1) logical = false
                 opt.odor_only (1,1) logical = true
                 opt.skip_save (1,1) logical = false
             end
-            fn=fieldnames(pstats.congru); %rings
-            sess=str2double(string(regexp(fn,'(?<=s)\d+(?=r.*)','match')));
+            if isempty(chain_replay) || isempty(ring_replay)
+                load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');
+            end
+            
+            sess=union(chain_replay.session,ring_replay.session);
             if ~opt.skip_showcase
                 waveid=[3 6];
-                figure();pie(categorical(sess));
+                % figure();pie(categorical(sess));
                 for sessid=33%[100,18,33]
                     sess_ring=fn(sess==sessid);
                     su_per_region=cell(0);
                     for onefn=reshape(sess_ring,1,[])
-                        if any(ismember(waveid,pstats.congru.(onefn{1}).rstats{4}),'all')
-                            su_per_region(end+1)=pstats.congru.(onefn{1}).rstats(3);
+                        if any(ismember(waveid,ring_replay.congru.(onefn{1}).rstats{4}),'all')
+                            su_per_region(end+1)=ring_replay.congru.(onefn{1}).rstats(3);
                         end
                     end
                     usus=unique([su_per_region{:}]);
                     %     sumap=nan(numel(sess_ring),numel(usus));
                     sumap=[];
                     for onefn=reshape(sess_ring,1,[])
-                        sumap=[sumap;ismember(usus,pstats.congru.(onefn{1}).rstats{3})];
+                        sumap=[sumap;ismember(usus,ring_replay.congru.(onefn{1}).rstats{3})];
                     end
                     Z=linkage(sumap);
                     ZV=linkage(sumap.');
@@ -289,67 +296,6 @@ classdef rings_time_constant <handle
                     imagesc(~sumapV(outperm,:))
                     colormap('gray')
                     set(gca,'YDir','normal')
-
-                    trials=pstats.congru.(sess_ring{1}).trials;
-                    if ismember(3,waveid)
-                        trial_sel=find(trials(:,5)==8 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
-                    elseif ismember(1,waveid)
-                        trial_sel=find(trials(:,5)==4 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
-                    end
-                    ring_spikes=cell(0,numel(sess_ring));
-                    ring_cid=cell(0,numel(sess_ring));
-                    for t=reshape(trial_sel,1,[])
-                        onetrial=cell(1,0);
-                        onecid=cell(1,0);
-                        for onefn=reshape(sess_ring(outperm),1,[])
-                            ts_id=pstats.congru.(onefn{1}).ts_id();
-                            tsel=ts_id(:,5)==t & ts_id(:,6)~=0;
-                            time_trial={reshape(ts_id(tsel,4),1,[])};
-                            cid_trial={reshape(ts_id(tsel,2),1,[])};
-                            onetrial(1,end+1)=time_trial;
-                            onecid(1,end+1)=cid_trial;
-                        end
-                        ring_spikes=[ring_spikes;onetrial];
-                        ring_cid=[ring_cid;onecid];
-                    end
-                    %% hebbian composite loop showcase
-                    totalspk=arrayfun(@(x) numel([ring_spikes{x,:}]),1:size(ring_spikes,1));
-                    [totalspk,sidx]=sort(totalspk,'descend');
-
-                    tt=sidx(1);
-                    covered=zeros(1,3000);
-                    %         join_spk=[];
-                    figure()
-                    hold on
-                    for rridx=1:size(ring_spikes,2)
-                        if isempty(ring_spikes{tt,rridx})
-                            continue
-                        end
-                        ts=ring_spikes{tt,rridx}-1;
-                        scatter(ts,rridx,'k','|')
-                        for ii=2:numel(ts)
-                            if ts(ii)-ts(ii-1)<0.01005
-                                onset=floor(ts(ii-1)*1000);
-                                offset=ceil(ts(ii)*1000);
-                                %                     disp([onset,offset]);
-                                covered(onset:offset)=1;
-                            end
-                        end
-                        %             join_spk=[join_spk,[repmat(rridx,1,numel(ring_spikes{tt,rridx}));ring_cid{tt,rridx};ring_spikes{tt,rridx}-1]];
-                    end
-
-                    xlim([0,3])
-                    xlabel('Time (s)')
-                    ylim([0.5,size(ring_spikes,2)+0.5])
-                    %% currently working on this
-                    ylabel('Loops #')
-                    edges = find(diff([0,covered,0]==1));
-                    onset = edges(1:2:end-1);  % Start indices
-                    run_length = edges(2:2:end)-onset;  % Consecutive ones counts
-                    ymax=max(ylim());
-                    for ii=1:numel(onset)
-                        plot([onset(ii),onset(ii)+run_length(ii)]./1000,[ymax,ymax],'r-','LineWidth',2);
-                    end
                 end
             end
 
@@ -366,14 +312,14 @@ classdef rings_time_constant <handle
                     allsessfn=fn(sess==sessid);
                     sess_ring=cell(0);
                     for onefn=reshape(allsessfn,1,[])
-                        if all(ismember(pstats.congru.(onefn{1}).rstats{1,4},waveid),'all')
+                        if all(ismember(ring_replay.congru.(onefn{1}).rstats{1,4},waveid),'all')
                             sess_ring=[sess_ring;onefn];
                         end
                     end
                     if size(sess_ring,1)<2
                         continue
                     end
-                    trials=pstats.congru.(sess_ring{1}).trials;
+                    trials=ring_replay.congru.(sess_ring{1}).trials;
                     if ismember(1,waveid)
                         trial_sel=find(trials(:,5)==4 & trials(:,8)==3 & all(trials(:,9:10)>0,2));
                     elseif ismember(3,waveid)
@@ -387,7 +333,7 @@ classdef rings_time_constant <handle
                     for t=reshape(trial_sel,1,[])
                         onetrial=cell(1,0);
                         for onefn=reshape(sess_ring,1,[])
-                            ts_id=pstats.congru.(onefn{1}).ts_id;
+                            ts_id=ring_replay.congru.(onefn{1}).ts_id;
                             tsel=ts_id.Trial==t & ts_id.Loop_tag~=0;
                             time_trial={reshape(ts_id.Time(tsel),1,[])};
                             onetrial(1,end+1)=time_trial;

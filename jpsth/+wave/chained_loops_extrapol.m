@@ -139,9 +139,6 @@ for sessid=reshape(usess,1,[])
     end
 end
 
-blame=vcs.blame();
-save(fullfile("binary","chainned_loops_thinned.mat"),"thinned","blame")
-
 
 %%
 sessfn=fieldnames(thinned);
@@ -221,4 +218,7 @@ ylabel('Longest chained-loops pattern duration (msec)')
 legend([loglogh,poly1h,pwrh],{'log-linear','linear','power-law'},'Location','northoutside','Orientation','horizontal')
 %%
 savefig(fh,fullfile('binary','chained_loops_extrapolation.fig'));
+
+blame=vcs.blame();
+save(fullfile("binary","chainned_loops_thinned.mat"),"thinned","blame","-v7.3")
 end
