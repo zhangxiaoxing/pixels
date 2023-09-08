@@ -67,11 +67,11 @@ classdef chain_tag < handle
                 end
             end
 
-            fini=[];
+            % fini=[];
             notfound=cell(0,3);
             trials_dict=dictionary([],cell(0));
             while ~all([F.Read],'all')
-                try
+                % try
                     [ftidx,sess_out,sess_notfound]=fetchNext(F);
                     notfound=[notfound;sess_notfound];
             		if isempty(sess_out)
@@ -83,26 +83,25 @@ classdef chain_tag < handle
             		    out=[out;sess_out];
                     end
 
-                    fini=[fini,ftidx];
+                    % fini=[fini,ftidx];
                     disp(ftidx);
-
-                    if ~opt.skip_save
-                        blame=vcs.blame();
-                        if opt.rev
-                            save(fullfile('bzdata','chain_rev_tag.mat'),'out','notfound','blame');
-                        elseif opt.shuf_trl
-                            save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','notfound','blame');
-                        else
-                            save(fullfile('binary',opt.filename),'out','notfound','blame','-v7.3')
-                        end
-                    end
-                catch ME
-                    fstate={F.State};
-                    save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
-                end
-
-
+                % catch ME
+                %     fstate={F.State};
+                %     save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
+                % end
             end
+
+            if ~opt.skip_save
+                blame=vcs.blame();
+                if opt.rev
+                    save(fullfile('bzdata','chain_rev_tag.mat'),'out','notfound','blame');
+                elseif opt.shuf_trl
+                    save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','notfound','blame');
+                else
+                    save(fullfile('binary',opt.filename),'out','notfound','blame','-v7.3')
+                end
+            end
+
             % if opt.ccg
             %     for dur=reshape(fieldnames(out),1,[])
             %         for wv=reshape(fieldnames(out.(dur{1})),1,[])
