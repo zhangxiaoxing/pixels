@@ -56,7 +56,6 @@ classdef chain_tag < handle
             if opt.poolsize>1
                 poolh=parpool(opt.poolsize);
             end
-
             F=parallel.FevalFuture.empty(0,1);
             for sessid=sesses %TODO: threads
                 % if opt.DEBUG && sessid>33
@@ -210,7 +209,10 @@ classdef chain_tag < handle
                             ts=wave.chain_tag.chain_alt(ts_id(:,[1 3]));
                         end
                     end
-                    if ~isempty(ts)
+                    if size(ts,1)<2
+                        ts={ts};
+                    end
+                    if ~isempty(ts) && ~(iscell(ts) && isempty(ts{1}))
                         outkey="s"+sessid+"c"+cc;
                         if opt.skip_ts_id
                             meta={sessid,cids,chains.cross_reg(cc)};
