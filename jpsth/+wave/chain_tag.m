@@ -82,9 +82,10 @@ classdef chain_tag < handle
                     else
             		    out=[out;sess_out];
                     end
-
+                    remain=find(~strcmp({F.State},'finished'));
+                    disp(remain);
                     % fini=[fini,ftidx];
-                    disp(ftidx);
+                    % disp(ftidx);
                 % catch ME
                 %     fstate={F.State};
                 %     save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
