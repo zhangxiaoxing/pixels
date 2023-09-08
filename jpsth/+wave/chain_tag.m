@@ -53,17 +53,18 @@ classdef chain_tag < handle
                 % if isempty(sess_indices), continue;end
                 % processed.("d"+duration)=[processed.("d"+duration),reshape(sess_indices,1,[])];
             end
-            
-            poolh=parpool(opt.poolsize);
-            
+            if opt.poolsize>1
+                poolh=parpool(opt.poolsize);
+            end
+
             F=parallel.FevalFuture.empty(0,1);
             for sessid=sesses %TODO: threads
                 % if opt.DEBUG && sessid>33
                 %     break
                 % end
                 for duration=[3 6]
-                    F(end+1)=parfeval(poolh,@wave.chain_tag.per_session_func,3,chains,len_thresh,ch_len,sessid,duration,waveids,opt);
-                    % [sess_out,sess_notfound,trials]=wave.chain_tag.per_session_func(chains,len_thresh,ch_len,sessid,duration,waveids,opt);
+                    F(end+1)=parfeval(poolh,@wave.chain_tag.per_session_func,2,chains,len_thresh,ch_len,sessid,duration,waveids,opt);
+                    % [sess_out,sess_notfound]=wave.chain_tag.per_session_func(chains,len_thresh,ch_len,sessid,duration,waveids,opt);
                 end
             end
 
@@ -71,21 +72,37 @@ classdef chain_tag < handle
             notfound=cell(0,3);
             trials_dict=dictionary([],cell(0));
             while ~all([F.Read],'all')
-                [ftidx,sess_out,sess_notfound,sess_trials]=fetchNext(F);
-                notfound=[notfound;sess_notfound];
-		if isempty(sess_out)
-			continue
-		end
-                if ~exist('out','var') 
-                    out=sess_out;
-                else
-		    out=[out;sess_out];
+                try
+                    [ftidx,sess_out,sess_notfound]=fetchNext(F);
+                    notfound=[notfound;sess_notfound];
+            		if isempty(sess_out)
+            			continue
+            		end
+                    if ~exist('out','var')
+                        out=sess_out;
+                    else
+            		    out=[out;sess_out];
+                    end
+
+                    fini=[fini,ftidx];
+                    disp(ftidx);
+
+                    if ~opt.skip_save
+                        blame=vcs.blame();
+                        if opt.rev
+                            save(fullfile('bzdata','chain_rev_tag.mat'),'out','notfound','blame');
+                        elseif opt.shuf_trl
+                            save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','notfound','blame');
+                        else
+                            save(fullfile('binary',opt.filename),'out','notfound','blame','-v7.3')
+                        end
+                    end
+                catch ME
+                    fstate={F.State};
+                    save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
                 end
-                if ~trials_dict.isKey(sess_out.session(1))
-                    trials_dict(sess_out.session(1))={sess_trials};
-                end
-                fini=[fini,ftidx];
-                disp(ftidx);
+
+
             end
             % if opt.ccg
             %     for dur=reshape(fieldnames(out),1,[])
@@ -104,23 +121,13 @@ classdef chain_tag < handle
             %     end
             % end
             delete(poolh);
-            if ~opt.skip_save
-                blame=vcs.blame();
-                if opt.rev
-                    save(fullfile('bzdata','chain_rev_tag.mat'),'out','trials_dict','notfound','blame');
-                elseif opt.shuf_trl
-                    save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','trials_dict','notfound','blame');
-                else
-                    save(fullfile('binary',opt.filename),'out','trials_dict','notfound','blame','-v7.3')
-                end
-            end
         end
         %
 
-
-        function [sess_out,sess_notfound,trials]=per_session_func(chains,len_thresh,ch_len,sessid, duration,waveids,opt)
-	    [sess_out,sess_notfound]=deal([]);
-            [~,~,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false);
+        function [sess_out,sess_notfound]=per_session_func(chains,len_thresh,ch_len,sessid, duration,waveids,opt)
+    	    [sess_out,sess_notfound]=deal([]);
+            load(fullfile('binary','trials_dict.mat'),'trials_dict');
+            trials=cell2mat(trials_dict(sessid));
             for wid=waveids
                 if (contains(wid,'d3') && duration==6) ...
                         || (contains(wid,'d6') && duration ==3)
@@ -139,9 +146,9 @@ classdef chain_tag < handle
                         trial_sel=find(trials(:,8)==duration & all(trials(:,9:10)>0,2));
                     end
                 end
-                
+
                 outid=wid;
-                
+
                 if isempty(opt.idces)
                     sess_indices=reshape(find(chains.sess==sessid & strcmp(chains.wave,wid) & ch_len>=len_thresh),1,[]);
                 else
@@ -213,7 +220,7 @@ classdef chain_tag < handle
                             ts_id=table(uint32(ts_id(:,1)),uint16(ts_id(:,2)),uint8(ts_id(:,3)),ts_id(:,4),uint16(ts_id(:,5)),'VariableNames',{'TS','CID','POS','Time','Trial'});
                             outcell={sessid,duration,outid,outkey,ts,meta,ts_id};
                         end
-                        
+
                         if ~isempty(sess_out)
                             sess_out=[sess_out;cell2table(outcell,"VariableNames",{ ...
                                 'session','delay','wave','chain_id','ts','meta','ts_id'})];

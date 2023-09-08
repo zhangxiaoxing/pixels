@@ -93,35 +93,6 @@ title('chains consis-incon')
 wave.replay.region_replay(chain_replay,'reg',"HIP")
 
 
-%% vs non-mem motif spike rate
-% complete and self-sufficient if data file present
-
-
-[chain_replay_nm,chain_stats_nm,chain_raw_incon]=wave.replay.stats(sschain_trl_nm_samp,'var_len',false);
-cyy=[chain_stats(1,:),chain_stats_nm(1,:),...
-    chain_stats(5,:),chain_stats_nm(2,:),chain_stats(11,:),chain_stats_nm(4,:),...
-    chain_stats(12,:),chain_stats_nm(5,:)];
-
-ggn=[size(chain_stats,2),size(chain_stats_nm,2)];
-
-cgg=[ones(ggn(1),1);2*ones(ggn(2),1);...
-    3*ones(ggn(1),1);4*ones(ggn(2),1);...
-    5*ones(ggn(1),1);6*ones(ggn(2),1);...
-    7*ones(ggn(1),1);8*ones(ggn(2),1)];
-
-cmm=arrayfun(@(x) median(cyy(cgg==x & isfinite(cyy.'))),1:8);
-cci=cell2mat(arrayfun(@(x) bootci(100,@(x) median(x), cyy(cgg==x & isfinite(cyy.'))),1:8,'UniformOutput',false));
-
-
-figure()
-hold on
-bar(cmm.','grouped','FaceColor','none','EdgeColor','k')
-errorbar(1:numel(cmm),cmm,cci(1,:)-cmm,cci(2,:)-cmm,'k.');
-set(gca(),'XTick',1.5:2:10,'XTickLabel',{'Delay','ITI','Before','After'})
-title('chains consis vs nonmem 5000 sample')
-
-
-
 %% unused control stats 
 
 yy=[chain_stats(1,:),chain_stats_rev(1,:)];
