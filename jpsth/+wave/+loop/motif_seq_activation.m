@@ -1,6 +1,6 @@
 function motif_seq_activation(chain_replay,ring_replay,trials_dict)
 arguments
-    chain_replay = [];
+    chain_replay = []
     ring_replay = []
     trials_dict = []
 end
@@ -12,7 +12,7 @@ if isempty(trials_dict)
 end
 
 usess=union(chain_replay.session,ring_replay.session);
-for sessid=36%reshape(usess,1,[])
+for sessid=reshape(usess,1,[])
     trials=cell2mat(trials_dict(sessid));
     for wid=["s1d3","s2d3","s1d6","s2d6"]
         samp=str2double(regexp(wid,"(?<=s)\d(?=d)",'match','once')).*4;
@@ -20,7 +20,7 @@ for sessid=36%reshape(usess,1,[])
         trial_sel=find(trials(:,5)==samp & trials(:,8)==delay & all(trials(:,9:10)>0,2));
         ringsel=find(ring_replay.session==sessid & ring_replay.wave==wid);
         chainsel=find(chain_replay.session==sessid & chain_replay.wave==wid);
-        for tt=153%reshape(trial_sel,1,[])
+        for tt=reshape(trial_sel,1,[])
             tonset=trials(tt,1);
             motif_spk=cell(0,1);
             motif_id=[];
@@ -42,8 +42,11 @@ for sessid=36%reshape(usess,1,[])
                     motif_id=[motif_id;"c"+cidx];
                 end
             end
+            if isempty(motif_id) || ~any(startsWith(motif_id,"r")) || ~any(startsWith(motif_id,"c"))
+                continue
+            end
 
-            if numel(motif_id)<50 || numel(motif_id)>100
+            if numel(motif_id)<40 || numel(motif_id)>80
                 continue
             end
             %% plot
@@ -59,10 +62,7 @@ for sessid=36%reshape(usess,1,[])
                 end
             end
             
-            if mean(covered)<0.20
-                continue
-            end
-
+ 
             edges = find(diff([0,covered,0]==1));
             eonset = edges(1:2:end-1);  % Start indices
             run_length = edges(2:2:end)-eonset;  % Consecutive ones counts
@@ -78,9 +78,10 @@ for sessid=36%reshape(usess,1,[])
             per_motif_hist=cell2mat(cellfun(@(x) histcounts((x-tonset-30000)./30000,0:0.25:delay),motif_spk,'UniformOutput',false));
             TCOM=sum(repmat(0.125:0.25:delay,size(per_motif_hist,1),1).*per_motif_hist,2)./sum(per_motif_hist,2);
             [~,sidx]=sort(TCOM);
-            cmap=colormap('lines');
-            close all
+            
+            
             figure()
+            cmap=colormap('lines');
             tiledlayout(2,1);
             nexttile()
             hold on

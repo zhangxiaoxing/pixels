@@ -373,3 +373,15 @@ rule gen_nonmem_chain_tag_file:
 	threads: 52
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},nonmem=true)"'
+
+
+rule behav_previous_trls_glm:
+	input:
+		"binary/trials_dict.mat"
+	output:
+		"binary/behav_previous_trls_glm.fig"
+	shell:
+		'matlab -noFigureWindows -batch "behav.previous_trial_glm()"'
+
+# /+wave/+replay/motif_seq_activation_replay
+# /+wave/+loop/motif_seq_activation

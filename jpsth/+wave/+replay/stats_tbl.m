@@ -47,6 +47,8 @@ sps=30000;
 if ~opt.nonmem
     selsel=~(motif_replay.wave=="none" | contains(motif_replay.wave,'nm'));
     motif_replay=motif_replay(selsel,:);
+else
+    %？
 end
 
 stat_cell=cell(size(motif_replay,1),2);
