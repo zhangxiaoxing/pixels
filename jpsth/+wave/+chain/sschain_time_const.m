@@ -21,11 +21,11 @@ if ~opt.skip_plot
     sh=plot([0.5:9.5,15:10:95],singlehist,'-k');
     set(gca(),'XScale','log','YScale','log');
     ylim([1e-6,1]);
-    xlim([1,500])
+    xlim([1,500]);
     xlabel('Time (ms)');
     ylabel('Probability density');
-    qtrs=prctile(runlength,[1,2.5,5,10,50,90,95,97.5,99]);
-    xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+string(num2cell(qtrs)));
+    qtrs=prctile(runlength,[1,25,50,75,99]);
+    xline(qtrs,'--k',["1% ","25% ","50% ","75% ","99% "]+string(num2cell(qtrs)));
     title('single spike chains')
     if ~opt.skip_save
         savefig(fh,fullfile('binary','sschain_time_constant.fig'));

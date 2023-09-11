@@ -65,6 +65,9 @@ title(sprintf('pref/nonpref,delay,preITI,postITI,%.4f,%.4f,%.4f',pdelay,ppre,ppo
 savefig(fce,fullfile("binary","motif_freq_correct_error.fig"));
 savefig(fpnp,fullfile("binary","motif_freq_prefer_nonpref.fig"));
 
+
+
+[~,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
 qtrs=prctile(jemat(:,[1,5,11,12]),[25,50,75]);
 fh=figure('Position',[100,100,800,300]);
 hold on

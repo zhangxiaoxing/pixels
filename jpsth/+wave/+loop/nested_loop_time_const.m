@@ -4,8 +4,8 @@ fh=figure();
 chained_loops_pdf=histcounts(run_length.delay(:,2),[0:19,20:20:500],'Normalization','pdf');
 plot([0.5:19.5,30:20:490],chained_loops_pdf,'-k');
 xlim([1,500])
-qtrs=prctile(run_length.delay(:,2),[1,2.5,5,10,50,90,95,97.5,99]);
-xline(qtrs,'--k',["1% ","2.5% ","5% ","10% ","50% ","90%","95% ","97.5% ","99% "]+qtrs);
+qtrs=prctile(run_length.delay(:,2),[1,25,50,75,99]);
+xline(qtrs,'--k',["1% ","25% ","50% ","75% ","99% "]+qtrs);
 ylim([1e-6,1])
 set(gca(),'XScale','log','YScale','log')
 xlabel('Time (ms)')

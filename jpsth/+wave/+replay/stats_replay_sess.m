@@ -2,7 +2,7 @@ function [per_sess_struct,per_sess_mat]=stats_replay_sess(stats_all,opt)
 arguments
     stats_all cell
     opt.feat_sel = []
-    % opt.two_or_more (1,1) logical = false
+    opt.unique_spike (1,1) logical = false
 end
 
 per_sess_struct=struct();

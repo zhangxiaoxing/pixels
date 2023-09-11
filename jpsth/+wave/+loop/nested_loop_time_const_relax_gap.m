@@ -30,8 +30,8 @@ for consecthresh=[100 200 500] % 10 tick/ms
     end
     chained_loops_pdf=histcounts(run_length,[0:19,20:20:180,200:100:2000],'Normalization','pdf');
     plot([0.5:19.5,30:20:190,250:100:1950],chained_loops_pdf,'-','Color',cmap(cidx,:));
-    qtrs=prctile(run_length,[1,50,99]);
-    xline(qtrs,'--',string(qtrs),'Color',cmap(cidx,:))
+    qtrs=prctile(run_length,[1,25,50,75,99]);
+    xline(qtrs,'--',["1% ","25% ","50% ","75% ","99% "]+(qtrs),'Color',cmap(cidx,:))
     cidx=cidx+1;
 end
 xlim([2,2000])
