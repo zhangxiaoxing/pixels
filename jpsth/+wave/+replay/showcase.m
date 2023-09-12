@@ -62,7 +62,7 @@ for sampkey=["olf_s1","olf_s2"]
             before_sess_sel=onechain.ts(:,end)<sbound(1) & onechain.ts(:,1)>(sbound(1)-660*sps);
             bg_fr=nan(size(onechain.ts,2),1);
             for yy=1:size(onechain.ts,2)
-                suid=onechain.meta{1}(yy);
+                suid=onechain.meta{2}(yy);
                 suspk=SPKTS(SPKID==suid & SPKTS<sbound(1) & SPKTS>(sbound(1)-660*sps));
                 bg_fr(yy)=numel(suspk)./660;
                 plot((onechain.ts(before_sess_sel,yy)-sbound(1))./sps,yy,'|','Color',hexcmap(yy));
@@ -71,8 +71,10 @@ for sampkey=["olf_s1","olf_s2"]
             ylim([0.5,yy+0.5])
             set(gca(),YDir="reverse")
             % set(gca(),'YTick',10:5:29,'YTickLabel',100:50:290,'XTick',0:5:10,'XTickLabel',10:-5:0)
-            xlabel('Time relative to session onset (s)')
-
+            t=(onechain.ts(before_sess_sel,1)-sbound(1))./sps;
+            
+            xlabel("Time relative to session onset (s)"+nnz(t>-300)*5/300+"Hz")
+            
             % during session >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             nexttile(2)
             hold on
@@ -121,7 +123,7 @@ for sampkey=["olf_s1","olf_s2"]
 end
 %% =============================================
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-for ii=sschain_trl.d3.olf_s2.s102c1648.meta{1}
+for ii=sschain_trl.d3.olf_s2.s102c1648.meta{2}
     disp(su_meta.reg_tree(5,su_meta.sess==102 & su_meta.allcid==ii))
 end
 

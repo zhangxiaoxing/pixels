@@ -654,3 +654,16 @@ fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out','trials_dict');
 
 [run_length,covered]=wave.replay.delay_vs_iti(chain_replay,ring_replay_tbl);
 
+%% before after task
+onset=[];
+offset=[];
+for ii=1:116
+    t=trials_dict{ii};
+    onset=[onset;t(1,1)./30000];
+    session_tick=wave.replay.sessid2length(ii);
+    offset=[offset;(session_tick-t(end,2))./3000];
+end
+%%
+
+
+%%
