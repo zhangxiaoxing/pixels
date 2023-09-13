@@ -3,14 +3,24 @@ arguments
     chain_replay = []
     ring_replay = []
     opt.skip_save (1,1) logical = false
+    opt.shuf (1,1) logical = false
+    opt.shufidx=1
 end
 
-if isempty(ring_replay)
-    load(fullfile('binary','motif_replay.mat'),'ring_replay');
+if isempty(ring_replay) 
+    if opt.shuf
+        load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'ring_replay');
+    else
+        load(fullfile('binary','motif_replay.mat'),'ring_replay');
+    end
 end
 
 if isempty(chain_replay)
-    load(fullfile('binary','motif_replay.mat'),'chain_replay');
+    if opt.shuf
+        load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay');
+    else
+        load(fullfile('binary','motif_replay.mat'),'chain_replay');
+    end
 end
 
 % per session
@@ -148,7 +158,12 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
 end
 if ~opt.skip_save
     blame=vcs.blame();
-    save(fullfile('binary','delay_iti_runlength_covered.mat'),'run_length','covered_tbl','blame');
+    if opt.shuf
+        save(fullfile("binary","delay_iti_runlength_covered_shuf"+opt.shufidx+".mat"),'run_length','covered_tbl','blame');
+    else
+        save(fullfile('binary','delay_iti_runlength_covered.mat'),'run_length','covered_tbl','blame');
+    end
+   
 end
 end
 

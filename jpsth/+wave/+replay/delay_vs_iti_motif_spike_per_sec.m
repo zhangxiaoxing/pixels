@@ -6,14 +6,24 @@ arguments
     opt.skip_save (1,1) logical = true
     opt.per_unit_motif (1,1) logical = false
     opt.nested (1,1) logical = true
+    opt.shuf (1,1) logical = false
+    opt.shufidx=1
 end
 
-if isempty(ring_replay)
-    load(fullfile('binary','motif_replay.mat'),'ring_replay');
+if isempty(ring_replay) 
+    if opt.shuf
+        load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'ring_replay');
+    else
+        load(fullfile('binary','motif_replay.mat'),'ring_replay');
+    end
 end
 
 if isempty(chain_replay)
-    load(fullfile('binary','motif_replay.mat'),'chain_replay');
+    if opt.shuf
+        load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay');
+    else
+        load(fullfile('binary','motif_replay.mat'),'chain_replay');
+    end
 end
 
 if isempty(trials_dict)

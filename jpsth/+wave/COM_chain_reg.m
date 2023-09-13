@@ -77,7 +77,7 @@ for fidx=1:numel(sums_conn_str)
         else % full input from English, Buzsaki code
             if opt.shuf
                 oneccg=[];
-                sess_con=uint16(opt.shuf_data.suid(opt.shuf_data.sess==sessid,:));
+                sess_con=double(opt.shuf_data.suid(opt.shuf_data.sess==sessid,:));
             else
                 oneccg=sums_conn_str(fidx).ccg_sc;
                 sess_con=sums_conn_str(fidx).sig_con;

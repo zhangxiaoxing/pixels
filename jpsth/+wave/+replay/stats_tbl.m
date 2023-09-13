@@ -9,17 +9,27 @@ arguments
     opt.nonmem (1,1) logical = false
     opt.skip_save (1,1) logical = true
     opt.nonmem_ring (1,1) logical = false
+    opt.shuf (1,1) logical = false
+    opt.shufidx = 1
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
 
 if isempty(sschain_trl)
-   fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
-   sschain_trl=fstr.out;
-   clear fstr
+    if opt.shuf
+        fstr=load(fullfile('binary',sprintf('chain_tag_shuf%d.mat',opt.shufidx)),'out');
+    else
+        fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+    end
+    sschain_trl=fstr.out;
+    clear fstr
 end
 
 if isempty(ssloop_trl)
-    load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+    if opt.shuf
+        load(fullfile('binary',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
+    else
+        load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+    end
 end
 
 if isempty(trials_dict)
@@ -36,7 +46,11 @@ loops=cell2struct({ring_replay;loops_sums;loops_raw},{'replay','sums','raw'});
 
 if ~opt.skip_save
     blame=vcs.blame();
-    save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame');
+    if opt.shuf
+        save(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame');
+    else
+        save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','-v7.3');
+    end
 end
 
 end

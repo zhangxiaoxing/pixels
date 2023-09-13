@@ -3,9 +3,15 @@ arguments
     covered = []
     trials_dict = []
     opt.skip_save (1,1) logical = false
+    opt.shuf (1,1) logical = false
+    opt.shufidx=1
 end
 if isempty(covered)
-    fstr=load(fullfile('binary','delay_iti_runlength_covered.mat'),'covered_tbl');
+    if opt.shuf
+        fstr=load(fullfile("binary","delay_iti_runlength_covered_shuf"+opt.shufidx+".mat"),'covered_tbl');
+    else
+        fstr=load(fullfile('binary','delay_iti_runlength_covered.mat'),'covered_tbl');
+    end
     covered=fstr.covered_tbl;
     clear fstr;
 end
