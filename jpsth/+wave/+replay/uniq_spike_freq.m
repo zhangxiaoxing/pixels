@@ -1,3 +1,9 @@
+% duplicate in fucntion
+% pending removal
+% mostly overlapping with delay_vs_iti_motif_spike_per_sec.m
+% TODO: should merge ASAP.
+
+
 function sums=uniq_spike_freq(chain_replay,ring_replay,trials_dict)
 arguments
     chain_replay = []
@@ -45,6 +51,10 @@ for sessid=reshape(usess,1,[])
 
         ringsel=find(ring_replay.session==sessid & ring_replay.wave==wid);
         chainsel=find(chain_replay.session==sessid & chain_replay.wave==wid);
+
+        if nnz([ringsel;chainsel])==0
+            continue
+        end
 
         trl_sel=find(trials(:,5)==samp & trials(:,8)==delay & all(trials(:,9:10)>0,2));
         pref_delay_sec=sum(diff(trials(trl_sel,1:2),1,2)./sps-1);
@@ -176,13 +186,12 @@ mm=[dhat,ihat,bhat,ahat];
 ci=[dci,ici,bci,aci];
 figure()
 hold on
-bar(mm,'FaceColor','k')
+bh=bar(mm,'FaceColor','k','BarWidth',0.5)
 errorbar(1:4,mm,ci(1,:)-mm,ci(2,:)-mm,'k.')
 title(sprintf('p%.4f',pi,pb,pa));
 ylabel('Unique motif spike frequencey (Hz)')
-xlim([0.25,4.75])
+xlim([0.4,4.6])
 set(gca,'XTick',1:4,'XTickLabel',{'Delay','ITI','Before','After'})
-
 
 end
 

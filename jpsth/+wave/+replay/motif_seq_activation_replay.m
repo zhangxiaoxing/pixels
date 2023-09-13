@@ -1,4 +1,4 @@
-function motif_seq_activation(chain_replay,ring_replay,trials_dict)
+function motif_seq_activation_replay(chain_replay,ring_replay,trials_dict)
 arguments
     chain_replay = []
     ring_replay = []
@@ -10,10 +10,15 @@ end
 if isempty(trials_dict)
     load(fullfile('binary','trials_dict.mat'),'trials_dict');
 end
+sps=30000;
 
 usess=union(chain_replay.session,ring_replay.session);
 for sessid=reshape(usess,1,[])
     trials=cell2mat(trials_dict(sessid));
+    before_sec=trials(1,1)./sps-60;
+    session_tick=wave.replay.sessid2length(sessid);
+    after_sec=(session_tick-trials(end,2))./sps-60-1;
+
     for wid=["s1d3","s2d3","s1d6","s2d6"]
         samp=str2double(regexp(wid,"(?<=s)\d(?=d)",'match','once')).*4;
         delay=str2double(regexp(wid,"(?<=d)\d$",'match','once'));
@@ -21,65 +26,68 @@ for sessid=reshape(usess,1,[])
         ringsel=find(ring_replay.session==sessid & ring_replay.wave==wid);
         chainsel=find(chain_replay.session==sessid & chain_replay.wave==wid);
         for tt=reshape(trial_sel,1,[])
+            trl_sel=intersect(find(trials(:,5)==samp),tt-5:tt);
+            if numel(trl_sel)<3
+                continue
+            end
+            pref_delay_sec=sum(diff(trials(trl_sel,1:2),1,2)./sps-1);
+
+            np_trl_sel=intersect(find(trials(:,5)~=samp),tt-5:tt);
+            np_delay_sec=sum(diff(trials(np_trl_sel,1:2),1,2)./sps-1);
+            trials(end+1,:)=trials(end,2)+14*sps;
+            iti_sec=sum((trials(tt-4:tt+1,1)-trials(tt-5:tt,2))./sps-4); % 1s test + 3s response
+            trials(end,:)=[];
+
+
             %% trial
             tonset=trials(tt,1);
             motif_spk=cell(0,1);
             motif_id=[];
+            prefspk=0;
+            npspk=0;
+            itispk=0;
+            beforespk=0;
+            afterspk=0;
             for ridx=reshape(ringsel,1,[])
                 trl_align=ring_replay.trl_align{ridx};
-                pref_delay=trl_align(:,1)>=tt-5 & trl_align(:,1)<=tt;% & all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
-                currts=cell2mat(ring_replay.ts{ridx}(pref_delay));
+                plottrl=trl_align(:,1)>=tt-5 & trl_align(:,1)<=tt;% & all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                currts=cell2mat(ring_replay.ts{ridx}(plottrl));
                 if ~isempty(currts)
                     motif_spk=[motif_spk;reshape(currts,1,[])];
                     motif_id=[motif_id;"r"+ridx];
                 end
+                prefspk=prefspk+nnz(ismember(trl_align(:,1),trl_sel) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1));
+                npspk=npspk+nnz(ismember(trl_align(:,1),np_trl_sel) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1));
+                itispk=itispk+nnz(ismember(trl_align(:,1),tt-5:tt) & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                    & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14)));
             end
             for cidx=reshape(chainsel,1,[])
                 trl_align=chain_replay.trl_align{cidx};
-                pref_delay=trl_align(:,1)>=tt-5 & trl_align(:,1)<=tt;% & all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
-                currts=chain_replay.ts{cidx}(pref_delay,:);
+                plottrl=trl_align(:,1)>=tt-5 & trl_align(:,1)<=tt;% & all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+                currts=chain_replay.ts{cidx}(plottrl,:);
                 if ~isempty(currts)
                     motif_spk=[motif_spk;reshape(currts,1,[])];
                     motif_id=[motif_id;"c"+cidx];
                 end
+                prefspk=prefspk+nnz(ismember(trl_align(:,1),trl_sel) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1));
+                npspk=npspk+nnz(ismember(trl_align(:,1),np_trl_sel) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1));
+                itispk=itispk+nnz(ismember(trl_align(:,1),tt-5:tt) & trl_align(:,2)>=(trl_align(:,4)+5)...  % not in delay or test/ 1s sample /1s test, 3s response?
+                    & (trl_align(:,8)>0|(trl_align(:,8)==-1 & trl_align(:,2)<trl_align(:,4)+1+14)));
             end
 
             if isempty(motif_id) || ~any(startsWith(motif_id,"r")) || ~any(startsWith(motif_id,"c"))
                 continue
             end
 
-            if numel(motif_id)<40 || numel(motif_id)>100
+            if numel(motif_id)<20 || numel(motif_id)>60
                 continue
             end
 
-            % covered=false(1,3000);
-            % for rridx=1:size(motif_spk,1)
-            %     raster=unique(round((motif_spk{rridx}-tonset-30000)./30)); % 30 @ 1ms resolution
-            %     for ii=2:numel(raster)
-            %         if raster(ii)-raster(ii-1)<10
-            %             onset=ceil(raster(ii-1));
-            %             offset=ceil(raster(ii));
-            %             covered((onset+1):(offset+1))=true;
-            %         end
-            %     end
-            % end
-            % 
-            % if mean(covered)<0.20
-            %     continue
-            % end
-
-            % edges = find(diff([0,covered,0]==1));
-            % eonset = edges(1:2:end-1);  % Start indices
-            % run_length = edges(2:2:end)-eonset;  % Consecutive ones counts
-            % 
-            % if ~any(run_length>100)
-            %     continue
-            % end
-
-            % allspk=cell2mat(motif_spk.');
-            % allspk_sec=(allspk-tonset-30000)./30000;
-            % sumhist=histcounts(allspk_sec,0:0.25:delay);
-
+            if ((prefspk./pref_delay_sec)/(npspk./np_delay_sec)<1.6)...
+                    || ((prefspk./pref_delay_sec)/(itispk./iti_sec)<1.6)
+                continue
+            end
+            
             
             %% before 
 
@@ -92,6 +100,7 @@ for sessid=reshape(usess,1,[])
                     trl_align=ring_replay.trl_align{ridx};
                     if any(trl_align(:,9)>300),beforepass=true;end
                     before_task=trl_align(:,8)==1 & trl_align(:,9)<=120;
+                    beforespk=beforespk+nnz(before_task);
                     currts=cell2mat(ring_replay.ts{ridx}(before_task));
                     if isempty(currts), currts={[]};end
                     before_motif_spk=[before_motif_spk;reshape(currts,1,[])];
@@ -100,13 +109,14 @@ for sessid=reshape(usess,1,[])
                     trl_align=chain_replay.trl_align{cidx};
                     if any(trl_align(:,9)>300),beforepass=true;end
                     before_task=trl_align(:,8)==1 & trl_align(:,9)<=120;
+                    beforespk=beforespk+nnz(before_task);
                     currts=chain_replay.ts{cidx}(before_task,:);
                     if isempty(currts), currts={[]};end
                     before_motif_spk=[before_motif_spk;reshape(currts,1,[])];
                 end
             end
             
-            if ~beforepass
+            if ~beforepass || ((prefspk./pref_delay_sec)/(beforespk/before_sec)<1.6)
                 continue
             end
 
@@ -120,6 +130,7 @@ for sessid=reshape(usess,1,[])
                     trl_align=ring_replay.trl_align{ridx};
                     if any(trl_align(:,2)>360),afterpass=true;end
                     after_task=trl_align(:,1)==size(trials,1) & trl_align(:,2)>60 & trl_align(:,2)<=180;
+                    afterspk=afterspk+nnz(after_task);
                     currts=cell2mat(ring_replay.ts{ridx}(after_task));
                     if isempty(currts), currts={[]};end
                     after_motif_spk=[after_motif_spk;reshape(currts,1,[])];
@@ -128,33 +139,17 @@ for sessid=reshape(usess,1,[])
                     trl_align=chain_replay.trl_align{cidx};
                     if any(trl_align(:,2)>360),afterpass=true;end
                     after_task=trl_align(:,1)==size(trials,1) & trl_align(:,2)>60 & trl_align(:,2)<=180;
+                    afterspk=afterspk+nnz(after_task);
                     currts=chain_replay.ts{cidx}(after_task,:);
                     if isempty(currts), currts={[]};end
                     after_motif_spk=[after_motif_spk;reshape(currts,1,[])];
                 end
             end
 
-            if ~afterpass
+            if ~afterpass || ((prefspk./pref_delay_sec)/(afterspk/after_sec)<1.6)
                 continue
             end
             
-            % selectivity criteria
-            for shadet=tt-5:tt
-                if trials(shadet,5)==trials(tt,5)
-                else
-                end
-            end
-
-
-
-            % before after half of pref
-
-            % nonpref half of pref
-
-            % ITI half of pref
-
-
-
             %% plot trial
             % skip sort due to low visibiliby
             % per_motif_hist=cell2mat(cellfun(@(x) histcounts((x-tonset-30000)./30000,0:0.25:delay),motif_spk,'UniformOutput',false));
@@ -235,8 +230,9 @@ for sessid=reshape(usess,1,[])
             xlabel("Time (s)")
             ylabel("Motif #")
             title("S"+sessid+"T"+tt+"After")
+            keyboard()
             appendfig("close",true,"multi",true,"fn","nested_loops_in_out_task.pdf","tag","in out task population motif activity")
-            close all
+            % close all
         end
     end
 end

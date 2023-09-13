@@ -1,6 +1,5 @@
-function loop_occurrence_per_reg_su(sums_all,su_meta,sel_meta,opt)
+function loop_occurrence_per_reg_su(su_meta,sel_meta,opt)
 arguments
-    sums_all = []
     su_meta = []
     sel_meta = []
     opt.pie (1,1) logical = false
@@ -10,10 +9,7 @@ arguments
     opt.vs_shuf (1,1) logical = true
     opt.unique_su (1,1) logical = false
     opt.odor_only (1,1) logical = true
-end
-
-if isempty(sums_all)
-    load(fullfile('binary','sums_ring_stats_all.mat'),'sums_all');
+    opt.rpt=100
 end
 
 if isempty(su_meta)
@@ -39,11 +35,11 @@ lbls={{'Olfactory within region','Sum of total node in loops'};...
     {'Both within region','Unique neurons in loops'};...
     {'Both cross region','Unique neurons in loops'}};
 
-dsets_shuf=cell(100,8);
+dsets_shuf=cell(opt.rpt,8);
 % loop_reg_shuf=[];
-for shufrpt=0:100
+for shufrpt=0:opt.rpt
     if shufrpt==0
-        rstats=bz.rings.rings_reg_pie(sums_all,su_meta,sel_meta,'plot',false,'odor_only',opt.odor_only); % 116X3
+        rstats=bz.rings.rings_reg_pie(fstr.rings,su_meta,sel_meta,'plot',false,'odor_only',opt.odor_only); 
     else
         rstats=bz.rings.rings_reg_pie(fstr.rings_shuf{shufrpt},su_meta,sel_meta,'plot',false,'odor_only',opt.odor_only);
     end

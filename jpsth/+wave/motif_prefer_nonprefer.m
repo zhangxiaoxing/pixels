@@ -31,13 +31,14 @@ ring_corr_err=cell2struct({loops_raw.count;...
 
 ratiomat=jemat(:,[2,9,6])./jemat(:,[1,8,5]); %npdelay/pdelay, npiti/piti
 qtrs=prctile(ratiomat,[25,50,75]);
+bci=bootci(1000,@(x) median(x),ratiomat);
 
 fce=figure('Position',[100,100,800,300]);
 hold on
 bh=bar([1,qtrs(2,1);1,qtrs(2,2);1,qtrs(2,3)],'grouped');
 bh(1).FaceColor='k';
 bh(2).FaceColor='w';
-errorbar(bh(2).XEndPoints,qtrs(2,:),qtrs(1,:)-qtrs(2,:),qtrs(3,:)-qtrs(2,:),'k.')
+errorbar(bh(2).XEndPoints,qtrs(2,:),bci(1,:)-qtrs(2,:),bci(2,:)-qtrs(2,:),'k.')
 set(gca(),'XTick',1:3,'XTickLabel',{'Corr-err-delay','ITI pre-corr-err','ITI-post-corr-err'})
 
 pdelay=signrank(jemat(:,2),jemat(:,1));
@@ -48,6 +49,7 @@ title(sprintf('Correct/error,delay,preITI,postITI,%.4f,%.4f,%.4f',pdelay,ppre,pp
 
 ratiomat=jemat(:,[3,10,7])./jemat(:,[1,8,5]); %npdelay/pdelay, npiti/piti
 qtrs=prctile(ratiomat,[25,50,75]);
+bci=bootci(1000,@(x) median(x),ratiomat);
 
 fpnp=figure('Position',[100,100,800,300]);
 hold on
@@ -65,21 +67,21 @@ title(sprintf('pref/nonpref,delay,preITI,postITI,%.4f,%.4f,%.4f',pdelay,ppre,ppo
 savefig(fce,fullfile("binary","motif_freq_correct_error.fig"));
 savefig(fpnp,fullfile("binary","motif_freq_prefer_nonpref.fig"));
 
-
-
-[~,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
-qtrs=prctile(jemat(:,[1,5,11,12]),[25,50,75]);
-fh=figure('Position',[100,100,800,300]);
-hold on
-bh=bar(qtrs(2,:),'grouped','FaceColor','k');
-
-errorbar(bh.XEndPoints,qtrs(2,:),qtrs(1,:)-qtrs(2,:),qtrs(3,:)-qtrs(2,:),'k.')
-set(gca(),'XTick',1:3,'XTickLabel',{'Corr-err-delay','ITI pre-corr-err','ITI-post-corr-err'})
-
-pdelay=signrank(jemat(:,2),jemat(:,1));
-ppre=signrank(jemat(:,9),jemat(:,8));
-ppost=signrank(jemat(:,6),jemat(:,5));
-title(sprintf('Correct/error,delay,preITI,postITI,%.4f,%.4f,%.4f',pdelay,ppre,ppost))
+% 
+% 
+% [~,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
+% qtrs=prctile(jemat(:,[1,5,11,12]),[25,50,75]);
+% fh=figure('Position',[100,100,800,300]);
+% hold on
+% bh=bar(qtrs(2,:),'grouped','FaceColor','k');
+% 
+% errorbar(bh.XEndPoints,qtrs(2,:),qtrs(1,:)-qtrs(2,:),qtrs(3,:)-qtrs(2,:),'k.')
+% set(gca(),'XTick',1:3,'XTickLabel',{'Corr-err-delay','ITI pre-corr-err','ITI-post-corr-err'})
+% 
+% pdelay=signrank(jemat(:,2),jemat(:,1));
+% ppre=signrank(jemat(:,9),jemat(:,8));
+% ppost=signrank(jemat(:,6),jemat(:,5));
+% title(sprintf('Correct/error,delay,preITI,postITI,%.4f,%.4f,%.4f',pdelay,ppre,ppost))
 
 
 

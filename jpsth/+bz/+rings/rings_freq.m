@@ -10,7 +10,7 @@ arguments
     opt.ccg  (1,1) logical = false
 end
 % bz.rings.ring_list_bz
-load(fullfile('bzdata','rings_bz.mat'),'rings');
+% load(fullfile('bzdata','rings_bz.mat'),'rings');
 
 blame=vcs.blame();
 
