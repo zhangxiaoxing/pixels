@@ -20,6 +20,8 @@ classdef rings_time_constant <handle
                 opt.remove_non_motif (1,1) logical = true
                 opt.delay (1,1) logical = true
                 opt.iti (1,1) logical = false
+                opt.shuf (1,1) logical = false
+                opt.shufidx = 1
             end
 
             assert(~(opt.delay && opt.iti),"wrong switch combination")
@@ -34,40 +36,44 @@ classdef rings_time_constant <handle
                 clear fstr
             end
 
-            if isempty(sums_all)
-                load(fullfile('binary','sums_ring_stats_all.mat'),'sums_all');
-            end
-            
+            % if isempty(sums_all)
+            %     load(fullfile('binary','sums_ring_stats_all.mat'),'sums_all');
+            % end
 
+            if isempty(sums_all)
+                fstr=load(fullfile('binary','rings_bz_vs_shuf.mat'),'rings','rings_shuf');
+                if opt.shuf
+                    sums_all=fstr.rings_shuf{opt.shufidx};
+                else
+                    sums_all=fstr.rings;
+                end
+            end            
+            
             ssloop_trl=[];
             if ~opt.load_file
                 pstats=struct();
                 pstats.congru=struct();
                 pstats.nonmem=struct();
 
-                rstats=cell(0,11);
-                for rsize=3:5
-                    one_rsize=sums_all{rsize-2};
-                    curr_sess=-1;
-                    for ridx=1:size(one_rsize,1)
-                        if curr_sess~=one_rsize{ridx,1}
-                            curr_sess=one_rsize{ridx,1};
-                            sesscid=su_meta.allcid(su_meta.sess==curr_sess);
-                            sesswaveid=sel_meta.wave_id(su_meta.sess==curr_sess);
-                            sess_wave_map=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
+                rstats=cell(0,10);
+                for curr_sess=1:size(sums_all,1)
+                    sesscid=su_meta.allcid(su_meta.sess==curr_sess);
+                    sesswaveid=sel_meta.wave_id(su_meta.sess==curr_sess);
+                    sess_wave_map=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
+                    for rsize=3:5
+                        one_rsize=sums_all{curr_sess,rsize-2};
+                        if isempty(one_rsize),continue;end
+                        for ridx=1:size(one_rsize,1)
+                            curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize(ridx,:))));
+                            [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
+                            if (~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem'))...
+                                    ||(opt.odor_only && strcmp(seltype,'dur'))
+                                continue
+                            end
+                            rstats=[rstats;{curr_sess,rsize.*100000+ridx,one_rsize(ridx,:),[],[],[],curr_waveid,seltype,rsize,rwid}];
+                            %  ////////////////^^^^^^^^^^\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+                            % {sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)}
                         end
-                        curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize{ridx,3})));
-
-                        [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
-
-                        if (~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem'))...
-                                ||(opt.odor_only && strcmp(seltype,'dur'))
-                            continue
-                        end
-
-                        rstats=[rstats;one_rsize(ridx,:),curr_waveid,seltype,rsize,rwid];
-                        %  ////////////////^^^^^^^^^^\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-                        % {sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)}
                     end
                 end
                 rstats=rstats(cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
@@ -76,7 +82,7 @@ classdef rings_time_constant <handle
                 usess=unique(cell2mat(rstats(:,1)));
 
                 for sessid=usess.'
-                    susel=su_meta.sess==sessid & ~ismissing(su_meta.reg_tree(5,:).');
+                    susel=su_meta.sess==sessid & ~ismissing(su_meta.reg_tree(5,:).'); % removed any remaining white matter tagged su
                     reg_dict=dictionary(su_meta.allcid(susel),su_meta.reg_tree(5,susel).');
 
                     [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
@@ -123,7 +129,8 @@ classdef rings_time_constant <handle
                                 ext_trl]); % 5
                         end
                         ts_id=sortrows(ts_id,1);
-                        ts_id=[ts_id,full(rstats{ri,5}.tags)]; % join TS, ring tag % 6
+                        ring_stats=bz.rings.relax_tag(ts_id(:,[1 3]),rstats{ri,9});
+                        ts_id=[ts_id,full(ring_stats.tags)]; % join TS, ring tag % 6
 
                         uidtag=sprintf('s%dr%d',sessid,ri);
                         if strcmp(rstats{ri,8},'none')
@@ -201,9 +208,10 @@ classdef rings_time_constant <handle
                                     warning("Incongruent ring under congruent context")
                                     keyboard()
                                 end
-
-                                ssloop_trl=[ssloop_trl;cell2table({sessid,pref_delay,pref_samp+"d"+pref_delay,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
-                                    'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
+                                if ~isempty(onets)
+                                    ssloop_trl=[ssloop_trl;cell2table({sessid,pref_delay,pref_samp+"d"+pref_delay,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
+                                        'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
+                                end
 
                             else
                                 [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
@@ -242,7 +250,11 @@ classdef rings_time_constant <handle
                 if ~opt.skip_save
                     blame=vcs.blame();
                     if opt.compress
-                        save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame')
+                        if opt.shuf
+                            save(fullfile('binary',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame')
+                        else
+                            save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame')
+                        end
                     else
                         save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
                     end

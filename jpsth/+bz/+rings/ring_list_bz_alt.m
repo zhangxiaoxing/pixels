@@ -1,4 +1,4 @@
-% Active developed as of 23.05.27
+% Active developed as of 23.09.12
 
 function out=ring_list_bz_alt(opt)
 arguments

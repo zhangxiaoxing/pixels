@@ -80,7 +80,7 @@ if opt.shuf
         shuf_revcnt=[shuf_revcnt;nnz(chains_shuf_rev_all.cross_reg)];
     end
     
-    boot_delta_mm=bootstrp(100,@(x) [wtncnt,fwdcnt,revcnt]-mean(x),[shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
+    boot_delta_mm=bootstrp(1000,@(x) [wtncnt,fwdcnt,revcnt]-mean(x),[shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
     shufstd=std([shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
     zscores=boot_delta_mm./shufstd;
     mm=mean(zscores);

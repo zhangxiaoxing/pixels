@@ -1,3 +1,5 @@
+% previous version. may or may not work. 2023.09.11
+
 % Plot per-spike raster showcase of chained loops
 % sessid=100;
 function [in_maximum_tags,in_trial_tags,meta]=chain_loop_SC_spk(sessid,maxidx,sschain_trl,ssloop_trl,opt)

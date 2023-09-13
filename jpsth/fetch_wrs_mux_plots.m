@@ -654,3 +654,55 @@ fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out','trials_dict');
 
 [run_length,covered]=wave.replay.delay_vs_iti(chain_replay,ring_replay_tbl);
 
+%% before after task duration
+onset=[];
+offset=[];
+for ii=1:116
+    t=trials_dict{ii};
+    onset=[onset;t(1,1)./30000];
+    session_tick=wave.replay.sessid2length(ii);
+    offset=[offset;(session_tick-t(end,2))./3000];
+end
+%%
+
+
+%%
+load(fullfile('binary','su_meta.mat'));
+load(fullfile('binary','wrs_mux_meta.mat'));
+
+load(fullfile('binary','sums_ring_stats_all.mat'));
+sums=cell(0,4);
+for ss=1:3
+    for rr=1:size(sums_all{ss},1)
+        sess=sums_all{ss}{rr,1};
+        cid=sums_all{ss}{rr,3};
+        waveid=wrs_mux_meta.wave_id(su_meta.sess==sess & ismember(su_meta.allcid,cid));
+        [relat,sel]=bz.rings.ring_wave_type(waveid,"odor_only",true);
+        sums=[sums;{ss,rr,relat,sel}];
+    end
+end
+
+%%
+[sig,~]=bz.load_sig_sums_conn_file('pair',false);
+sig=bz.join_fc_waveid(sig,wrs_mux_meta.wave_id);
+congrucnt=nnz(pct.su_pairs.get_congru(sig.waveid,'odor_only',true));
+incongrucnt=nnz(pct.su_pairs.get_incongru(sig.waveid,'odor_only',true));
+nonmemcnt=nnz(pct.su_pairs.get_nonmem(sig.waveid));
+
+%%
+ring_tag_fstr=load(fullfile('binary','rings_tag_trl.mat'))
+ssloop=ring_tag_fstr.ssloop_trl;
+load(fullfile('binary','su_meta.mat'));
+load(fullfile('binary','wrs_mux_meta.mat'));
+greys=ephys.getGreyRegs('range','grey','mincount',0);
+regall=cell(0);
+for ii=1:size(ssloop,1)
+        sess=ssloop.session(ii);
+        cid=ssloop.meta{ii,2};
+        regs=su_meta.reg_tree(5,su_meta.sess==sess & ismember(su_meta.allcid,cid));
+        if ~all(ismember(regs,greys))
+            keyboard()
+        end
+        regall=[regall;{regs}];
+end
+

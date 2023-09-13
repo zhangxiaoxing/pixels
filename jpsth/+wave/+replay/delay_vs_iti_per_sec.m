@@ -3,9 +3,15 @@ arguments
     covered = []
     trials_dict = []
     opt.skip_save (1,1) logical = false
+    opt.shuf (1,1) logical = false
+    opt.shufidx=1
 end
 if isempty(covered)
-    fstr=load(fullfile('binary','delay_iti_runlength_covered.mat'),'covered_tbl');
+    if opt.shuf
+        fstr=load(fullfile("binary","delay_iti_runlength_covered_shuf"+opt.shufidx+".mat"),'covered_tbl');
+    else
+        fstr=load(fullfile('binary','delay_iti_runlength_covered.mat'),'covered_tbl');
+    end
     covered=fstr.covered_tbl;
     clear fstr;
 end
@@ -96,13 +102,15 @@ npiprop=(npips(:,1)./npips(:,2));
 sps=cover_per_sec.surround;
 sprop=(sps(:,1)./sps(:,2)); % Due to 4 waves
 
-mm=[mean(dprop),mean(npdprop),mean(iprop),mean(npiprop),mean(sprop),];
-sem=[std(dprop),std(npdprop),std(iprop),std(npiprop),std(sprop)]./sqrt([numel(dprop),numel(npdprop),numel(iprop),numel(npiprop),numel(sprop)]);
+mdm=median([dprop,npdprop,iprop,npiprop,sprop]);
+ci=bootci(1000,@(x) median(x),[dprop,npdprop,iprop,npiprop,sprop]);
+% mm=[mean(dprop),mean(npdprop),mean(iprop),mean(npiprop),mean(sprop),];
+% sem=[std(dprop),std(npdprop),std(iprop),std(npiprop),std(sprop)]./sqrt([numel(dprop),numel(npdprop),numel(iprop),numel(npiprop),numel(sprop)]);
 
 fh=figure('Position',[100,100,400,300]);
 hold on
-bh=bar(mm.*100,'FaceColor','none');
-errorbar(bh.XEndPoints,bh.YEndPoints,sem.*100,'k.')
+bh=bar(mdm.*100,'FaceColor','none','FaceColor','k');
+errorbar(bh.XEndPoints,bh.YEndPoints,(ci(1,:)-mdm).*100,(ci(2,:)-mdm).*100,'k.')
 set(gca,'XTick',1:5,'XTickLabelRotation',90,'XTickLabel',{'Delay','NPDelay','ITI','NPITI','Surround'});
 ylabel('Motif duration / total duration (%)');
 
