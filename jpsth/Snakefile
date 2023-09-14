@@ -73,6 +73,20 @@ rule replay_stats:
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false)"'
 
+rule gen_all_replay_shuf_stats:
+	input:
+		expand("binary/motif_replay_shuf{sidx}.mat",sidx=list(range(1,101)))
+
+rule replay_shuf_stats:
+	input:
+		"binary/trials_dict.mat",
+		"binary/chain_tag_shuf{sidx}.mat",
+		"binary/ring_tag_shuf{sidx}.mat"
+	output:
+		"binary/motif_replay_shuf{sidx}.mat"
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf=true,shufidx={wildcards.sidx})"'
+
 rule delay_iti_motif_per_spike:
 	input:
 		"binary/motif_replay.mat"
@@ -202,13 +216,9 @@ rule gen_chain_tag_file:
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads})"'
 
-rule gen_1h_shuf_chain_tag_file:
+rule gen_all_shuf_chain_tag_file:
 	input:
-		expand("binary/chain_tag_shuf{cidx}.mat",cidx=list(range(1,51)))
-
-rule gen_2h_shuf_chain_tag_file:
-	input:
-		expand("binary/chain_tag_shuf{cidx}.mat",cidx=list(range(51,101)))
+		expand("binary/chain_tag_shuf{cidx}.mat",cidx=list(range(1,101)))
 
 rule gen_one_shuf_chain_tag_file:
 	input:
@@ -221,13 +231,9 @@ rule gen_one_shuf_chain_tag_file:
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuf=true,shufidx={wildcards.cidx})"'
 
-rule gen_1h_shuf_ring_tag_file:
+rule gen_all_shuf_ring_tag_file:
 	input:
-		expand("binary/ring_tag_shuf{ridx}.mat",ridx=list(range(1,51)))
-
-rule gen_2h_shuf_ring_tag_file:
-	input:
-		expand("binary/ring_tag_shuf{ridx}.mat",ridx=list(range(51,101)))
+		expand("binary/ring_tag_shuf{ridx}.mat",ridx=list(range(1,101)))
 
 rule gen_one_shuf_ring_tag_file:
 	input:
@@ -339,6 +345,7 @@ rule gen_fc_coding_data:
 	shell:
 		'matlab -noFigureWindows -batch "bz.fccoding.fc_coding_all()"'
 
+# TODO: verify necessity of intermediate file
 rule fc_coding_congru_incon:
 	input:
 		"binary/wrs_mux_meta.mat",
