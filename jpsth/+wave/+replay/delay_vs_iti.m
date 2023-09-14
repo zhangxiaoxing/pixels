@@ -4,25 +4,48 @@ arguments
     ring_replay = []
     opt.skip_save (1,1) logical = false
     opt.shuf (1,1) logical = false
-    opt.shufidx=1
+    opt.shufidx=1:100
+    opt.poolsize=2
 end
 
-if isempty(ring_replay) 
-    if opt.shuf
-        load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'ring_replay');
-    else
+blame=vcs.blame();
+if opt.shuf
+    poolh=parpool(opt.poolsize);
+    load(fullfile('binary','trials_dict.mat'),'trials_dict');
+    F=parallel.FevalFuture.empty(0,1);
+    for ii=opt.shufidx
+        F(ii)=parfeval(poolh,@stats_shuf,2,ii,trials_dict);
+    end
+    covered_shuf=[];
+    per_sess_shuf=[];
+    while ~all([F.Read],'all')
+        % try
+        [Fidx,cover_per_sec,per_sess]=fetchNext(F);
+        if isempty(cover_per_sec)
+            continue
+        end
+        covered_shuf=[covered_shuf;cover_per_sec];
+        per_sess_shuf=[per_sess_shuf;per_sess];
+        disp(find(~strcmp({F.State},'finished')));
+    end
+    delete(poolh);
+    save(fullfile("binary","delay_iti_runlength_covered_shuf.mat"),'covered_shuf','per_sess_shuf','blame');
+else
+    if isempty(ring_replay)
         load(fullfile('binary','motif_replay.mat'),'ring_replay');
     end
-end
-
-if isempty(chain_replay)
-    if opt.shuf
-        load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay');
-    else
+    if isempty(chain_replay)
         load(fullfile('binary','motif_replay.mat'),'chain_replay');
     end
+    [run_length,covered_tbl]=statsOne(chain_replay,ring_replay);
+    if ~opt.skip_save
+        save(fullfile('binary','delay_iti_runlength_covered.mat'),'run_length','covered_tbl','blame');
+    end
+end
 end
 
+
+function [run_length,covered_tbl]=statsOne(chain_replay,ring_replay)
 % per session
 run_length=cell2struct({[];[];[];[];[]},{'delay','iti','out_task','npdelay','npiti'});
 covered_tbl=[];
@@ -156,14 +179,12 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
         run_length.out_task=[run_length.out_task;repmat(double(sess),numel(out_task_run_len),1),out_task_run_len];
     end
 end
-if ~opt.skip_save
-    blame=vcs.blame();
-    if opt.shuf
-        save(fullfile("binary","delay_iti_runlength_covered_shuf"+opt.shufidx+".mat"),'run_length','covered_tbl','blame');
-    else
-        save(fullfile('binary','delay_iti_runlength_covered.mat'),'run_length','covered_tbl','blame');
-    end
-   
-end
-end
 
+end
+function [cover_per_sec,per_sess]=stats_shuf(ii,trials_dict)
+load(fullfile("binary","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
+[~,covered_tbl]=statsOne(chain_replay,ring_replay);
+[cover_per_sec,~,~,per_sess]=wave.replay.delay_vs_iti_per_sec.statsOne(covered_tbl,trials_dict);
+cover_per_sec=[cover_per_sec,table(repmat(ii,size(covered_tbl,1),1),'VariableNames',{'rpt'})];
+per_sess=[struct2table(per_sess),table(repmat(ii,size(covered_tbl,1),1),'VariableNames',{'rpt'})];
+end

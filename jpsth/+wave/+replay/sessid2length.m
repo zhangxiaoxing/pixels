@@ -12,6 +12,7 @@ if isempty(sessidx_) || sessidx~=sessidx_
         ./385/2;
     rec_dur_=rec_dur;
     sessidx_=sessidx;
+    fclose('all');
 else
     rec_dur=rec_dur_;
 end
