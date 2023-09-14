@@ -4,22 +4,26 @@ arguments
     trials_dict = []
     opt.skip_save (1,1) logical = false
     opt.shuf (1,1) logical = false
-    opt.shufidx=1
-end
-if isempty(covered)
-    if opt.shuf
-        fstr=load(fullfile("binary","delay_iti_runlength_covered_shuf"+opt.shufidx+".mat"),'covered_tbl');
-    else
-        fstr=load(fullfile('binary','delay_iti_runlength_covered.mat'),'covered_tbl');
-    end
-    covered=fstr.covered_tbl;
-    clear fstr;
 end
 if isempty(trials_dict)
     load(fullfile('binary','trials_dict.mat'),'trials_dict');
 end
+if isempty(covered)
+    fstr=load(fullfile('binary','delay_iti_runlength_covered.mat'),'covered_tbl');
+end
+cover_per_sec=statsOne(fstr.covered_tbl,trials_dict);
+if opt.shuf
+    shufstr=load(fullfile("binary","delay_iti_runlength_covered_shuf.mat"),'covered_shuf');
+    keyboard()
+    plotshuf(cover_per_sec,shufstr.covered_shuf);
+else
+    fh=plotOne(cover_per_sec);
+    blame=vcs.blame();
+    save(fullfile('binary','motif_cover_per_sec.mat'),'cover_per_sec','blame');
+end
+end
 
-
+function cover_per_sec=statsOne(covered,trials_dict)
 sps=30000;
 % per session
 cover_per_sec=[];
@@ -54,7 +58,7 @@ for sessidx=1:size(covered,1)
     for tt=reshape(trl_sel,1,[])
         delay_motif_sec=delay_motif_sec+nnz(delayc(floor(trials(tt,1)./3):ceil(trials(tt,2)./3)))./10000;
     end
-        
+
     np_delay_sec=sum(diff(trials(np_trl_sel,1:2),1,2)./sps-1);
     npdelayc=covered.npdelay{sessidx};
     npdelay_motif_sec=0;
@@ -78,15 +82,13 @@ for sessidx=1:size(covered,1)
     end
 
     trials(end,:)=[];
-
     cover_per_sec=[cover_per_sec;...
         cell2table({sess,samp,delay,[delay_motif_sec,pref_delay_sec],[iti_motif_sec,pref_succeed_iti_sec],[surround_motif_sec,surround_sec],[npdelay_motif_sec,np_delay_sec],[npiti_motif_sec,npiti_sec]},...
         'VariableNames',{'session','sample','dur','delay','iti','surround','npdelay','npiti'})];
-
 end
-
+end
 %% plot
-
+function fh=plotOne(cover_per_sec)
 dps=cover_per_sec.delay;
 dprop=(dps(:,1)./dps(:,2));
 
@@ -121,8 +123,44 @@ psur=signrank(dprop,sprop);
 
 title(sprintf('%s%.4f,','p-np',pnpdelay,'d-iti',piti,'iti-iti',piti_iti,'otask',psur));
 savefig(fh,fullfile('binary','delay_vs_iti_per_sec.fig'));
-appendfig('close',true,'tag','delay vs iti composite motif coverage time, delay_vs_iti_per_sec.m');
-blame=vcs.blame();
-save(fullfile('binary','motif_cover_per_sec.mat'),'cover_per_sec','blame');
+appendfig('close',isunix,'tag','delay vs iti composite motif coverage time, delay_vs_iti_per_sec.m');
+end
 
+
+function fh=plotshuf(observ,shuf)
+dps=observ.delay;
+dprop=(dps(:,1)./dps(:,2));
+
+npdps=observ.npdelay;
+npdprop=(npdps(:,1)./npdps(:,2));
+
+ips=observ.iti;
+iprop=(ips(:,1)./ips(:,2));
+
+npips=observ.npiti;
+npiprop=(npips(:,1)./npips(:,2));
+
+sps=observ.surround;
+sprop=(sps(:,1)./sps(:,2)); % Due to 4 waves
+
+mdm=median([dprop,npdprop,iprop,npiprop,sprop]);
+ci=bootci(1000,@(x) median(x),[dprop,npdprop,iprop,npiprop,sprop]);
+% mm=[mean(dprop),mean(npdprop),mean(iprop),mean(npiprop),mean(sprop),];
+% sem=[std(dprop),std(npdprop),std(iprop),std(npiprop),std(sprop)]./sqrt([numel(dprop),numel(npdprop),numel(iprop),numel(npiprop),numel(sprop)]);
+
+fh=figure('Position',[100,100,400,300]);
+hold on
+bh=bar(mdm.*100,'FaceColor','none','FaceColor','k');
+errorbar(bh.XEndPoints,bh.YEndPoints,(ci(1,:)-mdm).*100,(ci(2,:)-mdm).*100,'k.')
+set(gca,'XTick',1:5,'XTickLabelRotation',90,'XTickLabel',{'Delay','NPDelay','ITI','NPITI','Surround'});
+ylabel('Motif duration / total duration (%)');
+
+pnpdelay=signrank(dprop,npdprop);
+piti=signrank(dprop,iprop);
+piti_iti=signrank(iprop,npiprop);
+psur=signrank(dprop,sprop);
+
+title(sprintf('%s%.4f,','p-np',pnpdelay,'d-iti',piti,'iti-iti',piti_iti,'otask',psur));
+savefig(fh,fullfile('binary','delay_vs_iti_per_sec.fig'));
+appendfig('close',isunix,'tag','delay vs iti composite motif coverage time, delay_vs_iti_per_sec.m');
 end
