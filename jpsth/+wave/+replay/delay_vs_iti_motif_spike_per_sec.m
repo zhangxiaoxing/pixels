@@ -158,7 +158,7 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
         pref_delay_sec=sum(diff(trials(trl_sel,1:2),1,2)./sps-1);
         np_delay_sec=sum(diff(trials(np_trl_sel,1:2),1,2)./sps-1);
 
-        trials(end+1,:)=trials(end,2)+14*sps;
+        trials(end+1,:)=min(session_tick-3,trials(end,2)+14*sps);
         pref_succeed_iti_sec=sum((trials(trl_sel+1,1)-trials(trl_sel,2))./sps-4); % 1s test + 3s response
         npiti_sec=sum((trials(np_trl_sel+1,1)-trials(np_trl_sel,2))./sps-4); % 1s test + 3s response
         trials(end,:)=[];

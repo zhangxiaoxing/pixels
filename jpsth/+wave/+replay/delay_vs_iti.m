@@ -10,8 +10,9 @@ end
 
 blame=vcs.blame();
 if opt.shuf
-    poolh=parpool(opt.poolsize);
     load(fullfile('binary','trials_dict.mat'),'trials_dict');
+    poolh=parpool(opt.poolsize);
+    
     F=parallel.FevalFuture.empty(0,1);
     for ii=opt.shufidx
         F(ii)=parfeval(poolh,@stats_shuf,2,ii,trials_dict);

@@ -427,5 +427,15 @@ rule behav_previous_trls_glm:
 	shell:
 		'matlab -noFigureWindows -batch "behav.previous_trial_glm()"'
 
+rule motif_freq_chain_mem_vs_nonmem:
+	input:
+		"binary/motif_replay.mat",
+		"binary/motif_replay_chain_shuf.mat"
+	output:
+		"binary/motif_freq_chain_mem_vs_nonmem.fig"
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.motif_freq_chain_mem_vs_nonmem()"'
+
+
 # /+wave/+replay/motif_seq_activation_replay
 # /+wave/+loop/motif_seq_activation

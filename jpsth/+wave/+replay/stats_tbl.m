@@ -14,9 +14,19 @@ arguments
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
 
+if isempty(trials_dict)
+    load(fullfile('binary','trials_dict.mat'),'trials_dict');
+end
+
 if isempty(sschain_trl)
     if opt.shuf
         fstr=load(fullfile('binary',sprintf('chain_tag_shuf%d.mat',opt.shufidx)),'out');
+    elseif opt.nonmem
+        fstr=load(fullfile('binary','chain_tag_nonmem_all_trl.mat'),'out');
+        opt.var_len=false;
+        [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
+        blame=vcs.blame();
+        save(fullfile('binary','motif_replay_chain_shuf.mat'),'chain_raw','chain_sums','chain_replay','-v7.3');
     else
         fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
     end
@@ -32,9 +42,6 @@ if isempty(ssloop_trl)
     end
 end
 
-if isempty(trials_dict)
-    load(fullfile('binary','trials_dict.mat'),'trials_dict');
-end
 
 opt.var_len=false;
 [chain_replay,chain_sums,chain_raw]=stats_one(sschain_trl,trials_dict,opt);
@@ -74,6 +81,7 @@ for tidx=1:size(motif_replay,1)
     end
 
     trials=cell2mat(trials_dict(motif_replay.session(tidx)));
+    session_tick=wave.replay.sessid2length(motif_replay.session(tidx));
     if ~(strcmp(motif_replay.wave(tidx),"none") || contains(motif_replay.wave(tidx),'nm'))
         dur_pref=motif_replay.delay(tidx);
         if contains(motif_replay.wave(tidx),"s1")
@@ -150,7 +158,7 @@ for tidx=1:size(motif_replay,1)
         freqstats.pref_test=[sum(pref_test.*len),nnz(pref_delay_trls)]; % 1 sec per trl
     end
     %supply for last trial
-    trials(end+1,:)=trials(end,2)+14*sps;
+    trials(end+1,:)=min(session_tick-3,trials(end,2)+14*sps);
 
     % succeed ITI pref correct
     pref_succeed_iti=all(trl_align(:,5:7)==1,2)... % WT, pref

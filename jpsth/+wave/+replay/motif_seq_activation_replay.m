@@ -34,7 +34,7 @@ for sessid=reshape(usess,1,[])
 
             np_trl_sel=intersect(find(trials(:,5)~=samp),tt-5:tt);
             np_delay_sec=sum(diff(trials(np_trl_sel,1:2),1,2)./sps-1);
-            trials(end+1,:)=trials(end,2)+14*sps;
+            trials(end+1,:)=min(session_tick-3,trials(end,2)+14*sps);
             iti_sec=sum((trials(tt-4:tt+1,1)-trials(tt-5:tt,2))./sps-4); % 1s test + 3s response
             trials(end,:)=[];
 
