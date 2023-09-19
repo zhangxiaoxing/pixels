@@ -26,7 +26,7 @@ if isempty(sschain_trl)
         opt.var_len=false;
         [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
         blame=vcs.blame();
-        save(fullfile('binary','motif_replay_chain_shuf.mat'),'chain_raw','chain_sums','chain_replay','-v7.3');
+        save(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_raw','chain_sums','chain_replay','-v7.3');
     else
         fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
     end

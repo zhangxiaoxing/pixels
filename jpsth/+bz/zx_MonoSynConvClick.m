@@ -150,8 +150,7 @@ if ~sorted
 end
 
 %restrict by cells and epochs
-
-[status] = InIntervals(spiketimes,epoch);
+status = InIntervals(spiketimes,epoch);
 allID = unique(spikeIDs(:,3));
 kp = ismember(spikeIDs(:,1:2),cells,'rows') & status;
 spikeIDs = spikeIDs(kp,:);
