@@ -4,11 +4,11 @@ load(fullfile('binary','motif_replay.mat'))
 
 fhc=wave.replay.region_replay(chain_replay,'reg',"HIP");
 ylim([0,1.5])
-title('Chains, HIP')
+title('Chains, HIP vs No-HIP')
 % wave.replay.region_replay(chain_replay,'reg',"ORB")
 % title('Chains, ORB')
 fhl=wave.replay.region_replay(ring_replay,'reg',"HIP");
-title('Loops, HIP')
+title('Loops, HIP vs No-HIP')
 ylim([0,1.5])
 % wave.replay.region_replay(ring_replay,'reg',"ORB")
 % title('Loops, ORB')

@@ -8,7 +8,7 @@ arguments
     opt.within_only (1,1) logical = false
     opt.nonmem (1,1) logical = false
     opt.skip_save (1,1) logical = true
-    opt.nonmem_ring (1,1) logical = false
+    % opt.nonmem_ring (1,1) logical = false
     opt.shuf (1,1) logical = false
     opt.shufidx = 1
 end
@@ -37,6 +37,12 @@ end
 if isempty(ssloop_trl)
     if opt.shuf
         load(fullfile('binary',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
+    elseif opt.nonmem
+        load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+        opt.var_len=true;
+        [ring_replay,loops_sums,loops_raw]=stats_one(ssloop_trl,trials_dict,opt);
+        blame=vcs.blame();
+        save(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_raw','loops_sums','ring_replay','-v7.3');
     else
         load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
     end
@@ -64,14 +70,13 @@ end
 
 function [motif_replay,sum_stats,raw]=stats_one(motif_replay,trials_dict,opt)
 sps=30000;
-
-if ~opt.nonmem
-    selsel=~(motif_replay.wave=="none" | contains(motif_replay.wave,'nm'));
-    motif_replay=motif_replay(selsel,:);
+nmsel=(motif_replay.wave=="none" | contains(motif_replay.wave,'nm'));
+if opt.nonmem
+    motif_replay=motif_replay(nmsel,:);
 else
-    %？
+    motif_replay=motif_replay(~nmsel,:);
 end
-
+    
 stat_cell=cell(size(motif_replay,1),2);
 for tidx=1:size(motif_replay,1)
     % onechain=motif_replay.(dd{1}).(ww{1}).(cc{1});
@@ -140,9 +145,9 @@ for tidx=1:size(motif_replay,1)
         pref_delay_trls=all(trials(:,9:10)==1,2) & trials(:,5)==samp_pref & trials(:,8)==dur_pref;
     end
     freqstats.pref_delay_correct=[sum(pref_delay.*len),sum(trials(pref_delay_trls,8))];
-
-    % delay error
+    
     if ~nnonmem
+        % delay error
         pref_delay_err=trl_align(:,6)==0 & trl_align(:,7)==1 & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
         pref_delay_err_trls=trials(:,10)==0 & trials(:,5)==samp_pref & trials(:,8)==dur_pref;
         freqstats.pref_delay_error=[sum(pref_delay_err.*len),sum(trials(pref_delay_err_trls,8))];
@@ -217,6 +222,14 @@ for tidx=1:size(motif_replay,1)
 
     if freqstats.after_session(2)<=30
         freqstats.after_session=nan(1,2);
+    end
+
+    if ~nnonmem
+        % nonpreferred error, last-minute addition
+        % prev_trl,onset,trials(prev_trl,[5 8 9 10]),pref_trl(prev_trl)
+        np_delay_err=trl_align(:,6)==0 & trl_align(:,3)==setdiff([4,8],samp_pref) & trl_align(:,4)==dur_pref & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+        np_delay_err_trls=trials(:,10)==0 & trials(:,5)==setdiff([4,8],samp_pref) & trials(:,8)==dur_pref;
+        freqstats.np_delay_error=[sum(np_delay_err.*len),sum(trials(np_delay_err_trls,8))];
     end
 
     stat_cell(tidx,1)={trl_align};
