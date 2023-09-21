@@ -63,7 +63,7 @@ if isempty(fidx_)...
             elseif opt.align_test
                 cfg.trl=[trials(:,2)-1*sps,trials(:,2)+13*sps,zeros(size(trials,1),1)-1*sps,trials];
             elseif opt.jagged
-                cfg.trl=[trials(:,1)-3*sps,trials(:,1)+(trials(:,8)+10)*sps,zeros(size(trials,1),1)-3*sps,trials];
+                cfg.trl=[trials(:,1)-10*sps,trials(:,1)+(trials(:,8)+14)*sps,zeros(size(trials,1),1)-10*sps,trials];
             else
                 cfg.trl=[trials(:,1)-3*sps,trials(:,1)+11*sps,zeros(size(trials,1),1)-3*sps,trials];
             end

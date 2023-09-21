@@ -2,6 +2,8 @@ function [fh,out]=region_replay(motif_replay,opt)
 arguments
     motif_replay
     opt.reg="HIP"
+    opt.iti (1,:) char {mustBeMember(opt.iti,{'nonpref_precede_ITI','pref_succeed_ITI'})}='pref_succeed_ITI'
+    opt.normalize (1,1) logical = false
 end
 out=cell2struct({[];[]},{'REG','Others'});
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
@@ -12,7 +14,7 @@ for midx=1:size(motif_replay,1)
     motif_reg=arrayfun(@(x) string(su_meta.reg_tree{5,su_meta.sess==sessid & su_meta.allcid==x}),cids);
     onefreq=[motif_replay.freqstats{midx}.pref_delay_correct,...
         motif_replay.freqstats{midx}.nonpref_delay_correct,...
-        motif_replay.freqstats{midx}.pref_succeed_ITI,...
+        motif_replay.freqstats{midx}.(opt.iti),...
         motif_replay.freqstats{midx}.before_session,...
         motif_replay.freqstats{midx}.after_session];
 
@@ -22,6 +24,12 @@ for midx=1:size(motif_replay,1)
         out.Others=[out.Others;onefreq(1:2:9)./onefreq(2:2:10)];
     end
 end
+
+if opt.normalize
+    out.Others=out.Others./out.Others(:,1);
+    out.REG=out.REG./out.REG(:,1);
+end
+
 dd=reshape([out.REG;out.Others],[],1);
 gg=reshape([repmat([1:2:10],size(out.REG,1),1);...
     repmat([2:2:10],size(out.Others,1),1)],[],1);
