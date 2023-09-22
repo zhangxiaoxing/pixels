@@ -1,3 +1,10 @@
+% lead=false;
+% follow=false;
+if lead || follow
+    global_init
+    sig=bz.load_sig_sums_conn_file();
+end
+
 load(fullfile('binary','su_meta.mat'));
 load(fullfile('binary','wrs_mux_meta.mat'));
 load(fullfile('binary','trials_dict.mat'),'trials_dict');
@@ -26,6 +33,11 @@ for sess=reshape(unique(su_meta.sess),1,[])
 
     for onewave=1:6
         cids=su_meta.allcid(su_meta.sess==sess  & wrs_mux_meta.wave_id==onewave & ismember(su_meta.reg_tree(5,:),statreg).');
+        if lead
+            cids=intersect(cids,uint16(sig.suid(sig.sess==sess,1)));
+        else
+            cids=intersect(cids,uint16(sig.suid(sig.sess==sess,2)));
+        end
         if ~any(cids)
             continue
         end
@@ -78,9 +90,6 @@ for sess=reshape(unique(su_meta.sess),1,[])
     end
 end
 
-blame=vcs.blame();
-save(fullfile("binary","per_reg_per_su_fr_replay.mat"),"su_sums","blame");
-
 %% plot
 fh=figure();
 tiledlayout('flow')
@@ -97,5 +106,22 @@ for onereg=reshape(statreg,1,[])
     ylabel('FR (Hz)');
     title(onereg{1});
 end
-savefig(fh,fullfile('binary','per_reg_WM_neuron_FR_replay.fig'));
 
+if lead
+    lead_blame=vcs.blame();
+    lead_su_sums=su_sums;
+    save(fullfile("binary","per_reg_per_su_fr_replay.mat"),"lead_su_sums","lead_blame","-append");
+    sgtitle("Leading neuron firing rate")
+    savefig(fh,fullfile('binary','per_reg_lead_neuron_FR_replay.fig'));
+elseif follow
+    follow_blame=vcs.blame();
+    follow_su_sums=su_sums;
+    save(fullfile("binary","per_reg_per_su_fr_replay.mat"),"follow_su_sums","follow_blame","-append");
+    sgtitle("Following neuron firing rate")
+    savefig(fh,fullfile('binary','per_reg_follow_neuron_FR_replay.fig'));
+else
+    blame=vcs.blame();
+    save(fullfile("binary","per_reg_per_su_fr_replay.mat"),"su_sums","blame","-append");
+    sgtitle("WM neuron firing rate")
+    savefig(fh,fullfile('binary','per_reg_WM_neuron_FR_replay.fig'));
+end
