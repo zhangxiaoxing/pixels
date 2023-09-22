@@ -158,7 +158,7 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
         pref_delay_sec=sum(diff(trials(trl_sel,1:2),1,2)./sps-1);
         np_delay_sec=sum(diff(trials(np_trl_sel,1:2),1,2)./sps-1);
 
-        trials(end+1,:)=trials(end,2)+14*sps;
+        trials(end+1,:)=min(session_tick-3,trials(end,2)+14*sps);
         pref_succeed_iti_sec=sum((trials(trl_sel+1,1)-trials(trl_sel,2))./sps-4); % 1s test + 3s response
         npiti_sec=sum((trials(np_trl_sel+1,1)-trials(np_trl_sel,2))./sps-4); % 1s test + 3s response
         trials(end,:)=[];
@@ -223,9 +223,10 @@ function [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt)
     ips=composite_spk_per_sec.iti;
     iprop=(ips(:,1)./ips(:,2));
 
+    npdps=composite_spk_per_sec.npdelay;
+    npdprop=(npdps(:,1)./npdps(:,2));
+
     if opt.nested
-        npdps=composite_spk_per_sec.npdelay;
-        npdprop=(npdps(:,1)./npdps(:,2));
 
         npips=composite_spk_per_sec.npiti;
         npiprop=(npips(:,1)./npips(:,2));
@@ -240,9 +241,9 @@ function [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt)
         beforeprop=(beforeps(:,1)./beforeps(:,2));
         afterps=composite_spk_per_sec.after_task;
         afterprop=(afterps(:,1)./afterps(:,2));
-        mdm=median([dprop,iprop,beforeprop,afterprop]);
-        ci=bootci(1000,@(x) median(x),[dprop,iprop,beforeprop,afterprop]);
-        per_sess=cell2struct({dprop;iprop;beforeprop;afterprop},{'delay','iti','before','after'});
+        mdm=median([dprop,npdprop,iprop,beforeprop,afterprop]);
+        ci=bootci(1000,@(x) median(x),[dprop,npdprop,iprop,beforeprop,afterprop]);
+        per_sess=cell2struct({dprop;npdprop;iprop;beforeprop;afterprop},{'delay','npdelay','iti','before','after'});
     end
 end
 
@@ -304,14 +305,15 @@ if opt.nested % plot bars for nested loops
     savefig(fh,fullfile("binary","delay_iti_motif_spike_per_sec_w_shuf.fig"))
 
 else % plot bars for all motifs per session
-    set(gca,'XTick',1:4,'XTickLabelRotation',90,'XTickLabel',{'Delay','ITI','Before','After'});
-    xlim([0.25,4.75])
+    set(gca,'XTick',1:5,'XTickLabelRotation',90,'XTickLabel',{'Delay','NP Delay','ITI','Before','After'});
+    xlim([0.25,5.75])
     ylabel('Motif spike frequency (Hz)');
+    pnp=signrank(per_sess.delay,per_sess.npdelay);
     piti=signrank(per_sess.delay,per_sess.iti);
     pbefore=signrank(per_sess.delay,per_sess.before);
     pafter=signrank(per_sess.delay,per_sess.after);
     ylim([0,5.25]);
-    title({sprintf('iti%.4f,before%.4f,after%.4f',piti,pbefore,pafter); ...
+    title({sprintf('iti%.4f,pnp%.4f,before%.4f,after%.4f',pnp,piti,pbefore,pafter); ...
         sprintf('z%.4f',pz)});
     savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf.fig"))
 end

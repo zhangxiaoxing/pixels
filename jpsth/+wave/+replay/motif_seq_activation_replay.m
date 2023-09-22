@@ -34,7 +34,7 @@ for sessid=reshape(usess,1,[])
 
             np_trl_sel=intersect(find(trials(:,5)~=samp),tt-5:tt);
             np_delay_sec=sum(diff(trials(np_trl_sel,1:2),1,2)./sps-1);
-            trials(end+1,:)=trials(end,2)+14*sps;
+            trials(end+1,:)=min(session_tick-3,trials(end,2)+14*sps);
             iti_sec=sum((trials(tt-4:tt+1,1)-trials(tt-5:tt,2))./sps-4); % 1s test + 3s response
             trials(end,:)=[];
 
@@ -87,7 +87,6 @@ for sessid=reshape(usess,1,[])
                     || ((prefspk./pref_delay_sec)/(itispk./iti_sec)<1.6)
                 continue
             end
-            
             
             %% before 
 
@@ -155,7 +154,7 @@ for sessid=reshape(usess,1,[])
             % per_motif_hist=cell2mat(cellfun(@(x) histcounts((x-tonset-30000)./30000,0:0.25:delay),motif_spk,'UniformOutput',false));
             % TCOM=sum(repmat(0.125:0.25:delay,size(per_motif_hist,1),1).*per_motif_hist,2)./sum(per_motif_hist,2);
             % [~,sidx]=sort(TCOM);
-            fh=figure(); % avoid use tiled layout for performance reasons.
+            trialh=figure(); % avoid use tiled layout for performance reasons.
             cmap=colormap('lines');
             hold on
 
@@ -198,7 +197,7 @@ for sessid=reshape(usess,1,[])
 
 
             %% plot before
-            fh=figure();
+            beforeh=figure();
             cmap=colormap('lines');
             hold on
             for rridx=1:size(before_motif_spk,1)
@@ -215,7 +214,7 @@ for sessid=reshape(usess,1,[])
             title("S"+sessid+"T"+tt+"Before")
 
             %% plot after
-            fh=figure();
+            afterh=figure();
             cmap=colormap('lines');
             hold on
             for rridx=1:size(after_motif_spk,1)
@@ -230,8 +229,38 @@ for sessid=reshape(usess,1,[])
             xlabel("Time (s)")
             ylabel("Motif #")
             title("S"+sessid+"T"+tt+"After")
-            keyboard()
-            appendfig("close",true,"multi",true,"fn","nested_loops_in_out_task.pdf","tag","in out task population motif activity")
+            
+            edges=unique([...
+            cell2mat(cellfun(@(x) [x(1:end-1);x(2:end)].',chain_replay.meta(chainsel,2),'UniformOutput',false));...
+            cell2mat(cellfun(@(x) [x(1:end);x([2:end,1])].',ring_replay.meta(ringsel,2),'UniformOutput',false))],...
+            'rows');
+            [unodes,~,uedge]=unique(edges);
+            gh=digraph(table(reshape(uedge,[],2),'VariableNames',{'EndNodes'}),table(string(unodes),'VariableNames',{'Name'}));
+            
+            load(fullfile('binary','su_meta.mat'),'su_meta');
+            load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
+            reg_com_maps=wave.get_reg_com_maps(wrs_mux_meta);
+            regdict=dictionary(su_meta.allcid(su_meta.sess==sessid),su_meta.reg_tree(5,su_meta.sess==sessid).');
+            regs=regdict(unodes);
+            nodetcom=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(regs);
+            % fgh=figure();
+            % plot(gh,'NodeLabel',regs,'Layout','force3');
+
+            csvcell=[{'Source','Target'};gh.Edges.EndNodes];
+            writecell(csvcell,fullfile('binary','gephi',sprintf('NestedLoopsConn4gephi_s%dt_%d.csv',sessid,tt)));
+
+            nodecell=[{'Id','Label','TCOM','REG'};...
+                gh.Nodes.Name,gh.Nodes.Name,nodetcom,regs];
+            writecell(nodecell,fullfile('binary','gephi',sprintf('NestedLoopsNode4gephi_s%dt_%d.csv',sessid,tt)));
+            if ispc
+                keyboard()
+                appendfig("close",true,"multi",true,"fn","nested_loops_in_out_task.pdf","tag","in out task population motif activity")
+            else
+                savefig(trialh,fullfile('binary','nested_motif_replay_trials.fig'));
+                savefig(beforeh,fullfile('binary','nested_motif_replay_before.fig'));
+                savefig(afterh,fullfile('binary','nested_motif_replay_after.fig'));
+                quit(0);
+            end
             % close all
         end
     end

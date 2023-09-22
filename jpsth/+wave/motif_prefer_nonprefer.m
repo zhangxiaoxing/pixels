@@ -29,22 +29,23 @@ ring_corr_err=cell2struct({loops_raw.count;...
 
 [~,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
 
-ratiomat=jemat(:,[2,9,6])./jemat(:,[1,8,5]); %npdelay/pdelay, npiti/piti
-qtrs=prctile(ratiomat,[25,50,75]);
+ratiomat=jemat(:,[2,13,9,6])./jemat(:,[1,3,8,5]); %npdelay/pdelay, npiti/piti
+qtrs=prctile(ratiomat,[25,50,75]); % only median were used
 bci=bootci(1000,@(x) median(x),ratiomat);
 
 fce=figure('Position',[100,100,800,300]);
 hold on
-bh=bar([1,qtrs(2,1);1,qtrs(2,2);1,qtrs(2,3)],'grouped');
+bh=bar([ones(1,4);qtrs(2,:)].','grouped');
 bh(1).FaceColor='k';
 bh(2).FaceColor='w';
 errorbar(bh(2).XEndPoints,qtrs(2,:),bci(1,:)-qtrs(2,:),bci(2,:)-qtrs(2,:),'k.')
-set(gca(),'XTick',1:3,'XTickLabel',{'Corr-err-delay','ITI pre-corr-err','ITI-post-corr-err'})
+set(gca(),'XTick',1:4,'XTickLabel',{'Corr-err-delay','Corr-err-npdelay','ITI pre-corr-err','ITI-post-corr-err'})
 
 pdelay=signrank(jemat(:,2),jemat(:,1));
+pnpdelay=signrank(jemat(:,13),jemat(:,3));
 ppre=signrank(jemat(:,9),jemat(:,8));
 ppost=signrank(jemat(:,6),jemat(:,5));
-title(sprintf('Correct/error,delay,preITI,postITI,%.4f,%.4f,%.4f',pdelay,ppre,ppost))
+title(sprintf('Correct/error,delay,npdelay,preITI,postITI,%.4f,%.4f,%.4f,%.4f',pdelay,pnpdelay,ppre,ppost))
 
 
 ratiomat=jemat(:,[3,10,7])./jemat(:,[1,8,5]); %npdelay/pdelay, npiti/piti

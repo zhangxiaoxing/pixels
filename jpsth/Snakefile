@@ -26,12 +26,13 @@ rule trials_dict:
 rule delay_vs_iti_covered_per_sec:
 	input:
 		"binary/delay_iti_runlength_covered.mat",
-		"binary/trials_dict.mat"
+		"binary/trials_dict.mat",
+		"binary/delay_iti_runlength_covered_shuf.mat"
 	output:
-		"binary/delay_vs_iti_per_sec.fig",
+		"binary/delay_vs_iti_per_sec_w_shuf.fig",
 		"binary/motif_cover_per_sec.mat"
 	shell:
-		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_per_sec()"'
+		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_per_sec.run_shuf()"'
 
 rule delay_vs_iti_runlength_covered:
 	input:
@@ -40,6 +41,16 @@ rule delay_vs_iti_runlength_covered:
 		"binary/delay_iti_runlength_covered.mat"
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti()"'
+
+rule delay_vs_iti_runlength_covered_shuf:
+	input:
+		expand("binary/motif_replay_shuf{sidx}.mat",sidx=list(range(1,101))),
+		"binary/trials_dict.mat"
+	output:
+		"binary/delay_iti_runlength_covered_shuf.mat"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti(shuf=true,poolsize={threads})"'
 
 rule rings_tag_trl:
 	input:
@@ -427,5 +438,33 @@ rule behav_previous_trls_glm:
 	shell:
 		'matlab -noFigureWindows -batch "behav.previous_trial_glm()"'
 
-# /+wave/+replay/motif_seq_activation_replay
+rule motif_freq_mem_vs_nonmem:
+	input:
+		"binary/motif_replay.mat",
+		"binary/motif_replay_chain_nonmem.mat"
+	output:
+		"binary/motif_freq_chain_mem_vs_nonmem.fig",
+		"binary/motif_freq_loops_mem_vs_nonmem.fig"
+	shell:
+		'''
+		matlab -noFigureWindows -batch "wave.motif_freq_mem_vs_nonmem(type='chain')"
+		matlab -noFigureWindows -batch "wave.motif_freq_mem_vs_nonmem(type='loop')"
+		'''
+
+
+rule nested_motif_showcase:
+	input:
+		"binary/motif_replay.mat",
+		"binary/trials_dict.mat",
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/nested_motif_replay_trials.fig",
+		"binary/nested_motif_replay_before.fig",
+		"binary/nested_motif_replay_after.fig"
+
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.motif_seq_activation_replay()"'
+
 # /+wave/+loop/motif_seq_activation
+# motif_replay_chain_nonmem

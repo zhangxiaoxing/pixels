@@ -9,7 +9,7 @@ classdef su_pairs
                 waveid (:,2) double
                 opt.asym_congru (1,1) logical = false
                 opt.strict_mix (1,1) logical = false
-                opt.odor_only (1,1) logical = false
+                opt.odor_only (1,1) logical = true % default value changed on 2023.09.21
             end
 
             congrumix=(waveid(:,1)==waveid(:,2) & waveid(:,1)>0);
