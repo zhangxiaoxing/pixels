@@ -19,6 +19,7 @@ np_dur=[6 3 6 3 0 0];
 
 sps=30000;
 % per session
+
 for sess=reshape(unique(su_meta.sess),1,[])
     if ~any(ismember(su_meta.reg_tree(5,su_meta.sess==sess & ismember(wrs_mux_meta.wave_id,1:6)),statreg))
         continue
@@ -35,7 +36,7 @@ for sess=reshape(unique(su_meta.sess),1,[])
         cids=su_meta.allcid(su_meta.sess==sess  & wrs_mux_meta.wave_id==onewave & ismember(su_meta.reg_tree(5,:),statreg).');
         if lead
             cids=intersect(cids,uint16(sig.suid(sig.sess==sess,1)));
-        else
+        elseif follow
             cids=intersect(cids,uint16(sig.suid(sig.sess==sess,2)));
         end
         if ~any(cids)
@@ -81,7 +82,6 @@ for sess=reshape(unique(su_meta.sess),1,[])
             else
                 after_spk=nnz(spkID==cid & spkTS>=(trials(end,2)+60.*sps));
             end
-
             cidreg=su_meta.reg_tree{5,su_meta.sess==sess & su_meta.allcid==cid};
             su_sums.(cidreg)=[su_sums.(cidreg);...
                 array2table([prefspk,prefsec,npspk,npsec,pref_iti_spk,pref_iti_sec,np_iti_spk,np_iti_sec,before_spk,before_sec,after_spk,after_sec],...

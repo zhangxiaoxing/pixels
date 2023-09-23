@@ -39,6 +39,13 @@ bh(2).FaceColor='w';
 errorbar(bh(1).XEndPoints,bh(1).YEndPoints,cci(1,1:2:10)-cmm(1:2:10),cci(2,1:2:10)-cmm(1:2:10),'k.');
 errorbar(bh(2).XEndPoints,bh(2).YEndPoints,cci(1,2:2:10)-cmm(2:2:10),cci(2,2:2:10)-cmm(2:2:10),'k.');
 set(gca(),'XTick',1:5,'XTickLabel',{'Delay','NPDelay','ITI','Before','After'})
+
+pp=[ranksum(cyy(cgg==1),cyy(cgg==2)),ranksum(cyy(cgg==3),cyy(cgg==4)),...
+    ranksum(cyy(cgg==5),cyy(cgg==6)),ranksum(cyy(cgg==7),cyy(cgg==8)),...
+    ranksum(cyy(cgg==9),cyy(cgg==10))];
+
+subtitle(sprintf('%.4f,',pp));
+
 if strcmp(opt.type,'chain')
     title('chains consis vs nonmem sample')
     savefig(fh,fullfile('binary','motif_freq_chain_mem_vs_nonmem.fig'))

@@ -45,9 +45,9 @@ errorbar([bh.XEndPoints],[bh.YEndPoints],rci(1,[1:2:9,2:2:10])-mm([1:2:9,2:2:10]
 set(gca,'XTick',1:5,'XTickLabel',{'Delay','N.P.Delay','ITI','Before task','After task'})
 % ylim([0,2])
 
-for ii=1:5
+for ii=1:2:10
     pp=ranksum(dd(gg==ii), dd(gg==ii+1));
-    text(ii,max(ylim()),sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center');
+    text((ii+1)./2,max(ylim()),sprintf('%.3f',pp),'VerticalAlignment','top','HorizontalAlignment','center');
 end
 
 end

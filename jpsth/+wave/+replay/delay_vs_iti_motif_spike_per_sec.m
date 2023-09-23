@@ -8,6 +8,8 @@ arguments
     opt.nested (1,1) logical = true
     opt.shuf (1,1) logical = false
     opt.shufidx=1:100
+    opt.NOHIP=false;
+    opt.HIP_only=false;
 end
 
 if isempty(trials_dict)
@@ -48,11 +50,14 @@ end
 
 
 function composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt)
+load(fullfile('binary','su_meta.mat'),'su_meta');
 sps=30000;
 % per session
 composite_spk_per_sec=[];
 for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
     disp(sess)
+    regdict=dictionary(su_meta.allcid(su_meta.sess==sess),su_meta.reg_tree(5,su_meta.sess==sess).');
+
     session_tick=wave.replay.sessid2length(sess);
     trials=cell2mat(trials_dict(sess));
     before_sec=(trials(1,1)./sps-60);
@@ -71,6 +76,11 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
         ring_su=[ring_replay.meta{ring_sel,2}];
 
         if opt.nested && numel([chain_su,ring_su])==numel(unique([chain_su,ring_su]))
+            continue
+        end
+
+        sessreg=regdict(unique([chain_su,ring_su]));
+        if (opt.HIP_only && ~ismember('HIP',sessreg)) || (opt.NOHIP && ismember('HIP',sessreg))
             continue
         end
 
@@ -262,7 +272,9 @@ if opt.nested % plot bars for nested loops
     pnpiti=signrank(per_sess.iti,per_sess.npiti);
 
     title(sprintf('iti%.4f,np%.4f,out%.4f,itiiti%.4f',piti,pnp,pout,pnpiti));
-    savefig(fh,fullfile("binary","delay_iti_motif_spike_per_sec.fig"))
+    if ~opt.skip_save
+        savefig(fh,fullfile("binary","delay_iti_motif_spike_per_sec.fig"))
+    end
 
 else % plot bars for all motifs per session
     set(gca,'XTick',1:4,'XTickLabelRotation',90,'XTickLabel',{'Delay','ITI','Before','After'});
@@ -273,7 +285,9 @@ else % plot bars for all motifs per session
     pafter=signrank(per_sess.delay,per_sess.after);
     ylim([0,5.25]);
     title(sprintf('iti%.4f,before%.4f,after%.4f',piti,pbefore,pafter));
-    savefig(fh,fullfile("binary","sess_motif_spike_per_sec.fig"))
+    if ~opt.skip_save
+        savefig(fh,fullfile("binary","sess_motif_spike_per_sec.fig"))
+    end
 end
 end
 
