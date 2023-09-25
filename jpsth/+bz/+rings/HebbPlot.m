@@ -4,6 +4,7 @@ hebbPattern=cell(0,4);
 [sig,~]=bz.load_sig_pair();
 if ~exist('pstats3','var') || ~exist('pstats4','var')
     load('loops_proportion_stats_all.mat','pstats3','pstats4','mstats3','mstats4');
+    %bz.rings.ring_activity_proportion
 end
 
 for sess=1:size(rings,1)

@@ -22,16 +22,21 @@ np_dur=[6 3 6 3 0 0];
 
 sps=30000;
 % per session
+reg_pairs=cell(0,2);
 for sess=reshape(unique(sig.sess(congrusel & regsel)),1,[])
     disp(sess)
+
     [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sess,'keep_trial',true,'jagged',true); 
     spkID=uint16(spkID);
+
     trials=cell2mat(trials_dict(sess));
     session_tick=wave.replay.sessid2length(sess);
     before_sec=(trials(1,1)./sps-60);
     after_sec=(session_tick-trials(end,2))./sps-60-1;
     scids=find(congrusel & regsel & sig.sess==sess);
     for scid=reshape(scids,1,[])
+        screg=cellfun(@(x)idmap.ccfid2reg(x),num2cell(squeeze(sig.reg(scid,5,:))));
+        reg_pairs=[reg_pairs;screg.'];
         wids=sig.waveid(scid,:);
         [~,keyidx]=min(wids);
         pref_delay_trls=all(trials(:,9:10)==1,2) & trials(:,5)==pref_samp(wids(keyidx)) & ismember(trials(:,8),setdiff([3 6],np_dur(wids(keyidx))));
@@ -70,7 +75,8 @@ for sess=reshape(unique(sig.sess(congrusel & regsel)),1,[])
             [after_SP,after_lead,after_follow]=coupleOuttask(sig.suid(scid,:),spkID,spkTS,trials(end,2)+60.*sps,session_tick);
         end
         %TODO gather result here
-        screg=cellfun(@(x)idmap.ccfid2reg(x),num2cell(squeeze(sig.reg(scid,5,:))));
+
+        
 
         scregs.from.(screg{1})=[scregs.from.(screg{1});...
                         array2table([prefSP,prefsec,npSP,npsec,pref_iti_SP,pref_iti_sec,np_iti_SP,np_iti_sec,before_SP,before_sec,after_SP,after_sec],...
@@ -88,12 +94,11 @@ for sess=reshape(unique(sig.sess(congrusel & regsel)),1,[])
             array2table([prefSP,pref_follow,npSP,np_follow,pref_iti_SP,iti_follow,np_iti_SP,npiti_follow,before_SP,before_follow,after_SP,after_follow],...
             'VariableNames',{'DelaySP','DelaySPK','NPDelaySP','NPDelaySPK','ITISP','ITISPK','NPITISP','NPITISPK','BeforeSP','BeforeSPK','AfterSP','AfterSPK'})];
 
-
     end
 end
 
 blame=vcs.blame();
-save(fullfile("binary","per_reg_SC_replay.mat"),"scregs","SPratio","blame");
+save(fullfile("binary","per_reg_SC_replay.mat"),"scregs","SPratio","reg_pairs","blame");
 
 %% plot
 for dir=["from","to"]

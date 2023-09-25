@@ -1,5 +1,5 @@
 %sess,activ3,tags3,all3_sel,activ4,tags4,all4_sel,selidx,ii
-function plotone(sess,activ3,tags3,all3_sel,activ4,tags4,all4_sel,selidx,hbb)
+function plotone(sess,activ3,tags3,all3_sel,activ4,tags4,all4_sel,selidx,hbb,regs)
 [spkID,spkTS,trials,~,~]=ephys.getSPKID_TS(sess);
 
 ring_spk_sums=cell(0);
@@ -27,13 +27,19 @@ for rr=reshape(find(all4_sel),1,[])
     suseq=[suseq;activ4(rr,:)];
 end
 
-trial_sel=find(trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0 & trials(:,5)==selidx*4);
+if selidx<3
+    samp=4;
+else
+    samp=8;
+end
 
-for tt=141%reshape(trial_sel,1,[])
+trial_sel=find(trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0 & trials(:,5)==samp);
+
+for tt=reshape(trial_sel,1,[]) %141
     tonset=trials(tt,1)+30000;
     toffset=trials(tt,2);
     
-    for onset=2.55*30000+tonset%((0:0.05:5.9)*30000+tonset)
+    for onset=((0:0.05:5.9)*30000+tonset) %2.55*30000+tonset%
 
 %         onset=tonset+5.05*30000;
         offset=onset+0.1*30000;
@@ -84,7 +90,7 @@ for tt=141%reshape(trial_sel,1,[])
         ymax=yidx;
 
         yidx=1;
-        for jj=[375 189 475 535 524 171]+10000%suids
+        for jj=suids %[375 189 475 535 524 171]+10000%
             spkall=spkTS(spkID==jj & spkTS>=onset & spkTS<offset);
             xin=spkinrings(jj);
             xout=spkall(~ismember(spkall,xin));
@@ -99,17 +105,26 @@ for tt=141%reshape(trial_sel,1,[])
             yidx=yidx+1;
         end
 
-%         xlim([tonset+5.05*30000,tonset+5.2*30000])
-%         set(gca(),'XTick',tonset:1500:toffset+15000,'XTickLabel',0:50:6000,'YTick',[]);
+        %         xlim([tonset+5.05*30000,tonset+5.2*30000])
+        %         set(gca(),'XTick',tonset:1500:toffset+15000,'XTickLabel',0:50:6000,'YTick',[]);
         set(gca(),'XTick',onset:1500:offset,'XTickLabel',0:50:100,'YTick',[]);
         xlabel('Time (ms)')
         %%
 
-        keyboard()
-%         exportgraphics(fh,'Hebb_spk_shocase.pdf','ContentType','vector')
+        if sess==18 && hbb==4 && tt==118
             title(sprintf('Sess%d, HebbPatt%d, Trial%d, spk%d',sess,hbb,tt,sum(per_ring_cnt)))
+            subtitle(strjoin(regs,','))
+            keyboard()
+        %         exportgraphics(fh,'Hebb_spk_shocase.pdf','ContentType','vector')
+        else
+            close(fh);
+        end
+        if false
+
             exportgraphics(fh,fullfile('SC',sprintf('Sess%d_Type%d_HebbPatt%d_Trial%d_spk%d.png',sess,selidx,hbb,tt,sum(per_ring_cnt))));
             close(fh)
+        end
+        
     end
 end
 

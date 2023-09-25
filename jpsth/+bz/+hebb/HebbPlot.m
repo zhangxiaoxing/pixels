@@ -1,3 +1,6 @@
+% based on miyashita's trial-shuffle pipeline
+% Not in active use. 2023.09.25
+
 %sample=1;
 load('rings.mat','rings'); %from ring_list.m dimord=(msize, session, bin, sample)
 hebbPattern=cell(0,4);
