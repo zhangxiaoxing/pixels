@@ -39,6 +39,11 @@ end
 fh=figure('Color','w','Position',[32,32,275,235]);
 hold on
 boxplot(reshape((r_olf_dur_mux.^2),1,[]),gg,'Colors','k','Whisker',inf);
+if false
+    fid=fopen(fullfile('binary','upload','F1P_heldin_heldout_corr.json'),'w');
+    fprintf(fid,jsonencode(array2table(r_olf_dur_mux,'VariableNames',{'Correct_delay','Error_delay','Correct_shuffle_delay','ITI'})));
+    fclose(fid);
+end
 ylabel('R-squared')
 if opt.odor_only
     if opt.iti
