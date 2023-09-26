@@ -64,6 +64,8 @@ for sess=18%reshape(usess,1,[])
         %% sufficient loop activity
         for ii=1:size(sessplist,1)
             disp([selidx,ii,size(sessplist,1)])
+            disp(sessplist(ii,:))
+            disp(subsref(arrayfun(@(x) id2reg(cell2mat(sessplist(x,:)),sess_cid,sess_reg),ii,'UniformOutput',false),substruct('{}',{':'})))
             r1idx=all(ismember(activ3,sessplist{ii,1}),2);
             r2idx=all(ismember(activ4,sessplist{ii,2}),2);
             r3idx=all(ismember(activ4,sessplist{ii,3}),2);

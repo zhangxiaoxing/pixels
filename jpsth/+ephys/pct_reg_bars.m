@@ -211,6 +211,9 @@ if opt.only_odor
         errorbar(bh(1).XEndPoints,bh(1).YEndPoints,diff(bardata(:,10:11),1,2),diff(bardata(:,[10,12]),1,2),'k.');
     end
     bh(1).FaceColor='k';% olf
+    fid=fopen(fullfile('binary','upload','WM_neuron_per_region.json'),'w');
+    fprintf(fid, jsonencode(table(bardata(:,5)+bardata(:,4),bardata(:,3),bardata(:,10),regstr,'VariableNames',{'WM_neurons','All_neurons','Proportion','Region_abbreviation'}))); 
+    fclose(fid);
 elseif opt.skip_dur
     bh=bar(bardata(:,[10,7]),1,'grouped');
     if ~opt.skip_error_bar
