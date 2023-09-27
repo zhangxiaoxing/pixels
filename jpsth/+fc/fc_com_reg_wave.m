@@ -1,6 +1,3 @@
-% TODO: rearrange the functions to facilitate the combination of 6s and 3s
-% stats when beneficial
-
 classdef fc_com_reg_wave < handle
     methods (Static)
         function fc_reg_tcom=stats(wrs_mux_meta,reg_com_maps,opt)
@@ -84,12 +81,11 @@ classdef fc_com_reg_wave < handle
 
         end
         
-        function fh=plot(barmm,barci,barcnt,opt)
+        function fh=plot(barmm,barci,barcnt)
             arguments
                 barmm
                 barci
                 barcnt
-
             end
 
 
@@ -194,5 +190,34 @@ classdef fc_com_reg_wave < handle
             %     'Location','northoutside','Orientation','horizontal');
             title(sprintf('%.3f,',bcdfp));
         end
+
+
+        function fh=run_all()
+            load(fullfile('binary','wrs_mux_meta.mat'));
+            reg_com_maps=wave.get_reg_com_maps(wrs_mux_meta);
+            scstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,reg_com_maps,'delay',6,'odor_only',true);
+            scstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,reg_com_maps,'delay',3,'odor_only',true);
+            scstats=[scstats6;scstats3];
+
+            [barmm,barci,barcnt]=fc.fc_com_reg_wave.sums(scstats,"odor_only",true);
+            fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt);
+            savefig(fh,fullfile('binary','SC_consistent_inconsistent.fig'));
+            if false
+                types=repmat("Undefined",size(scstats,1),1);
+                types(pct.su_pairs.get_congru(scstats.waveid))="Congruent";
+                types(pct.su_pairs.get_incongru(scstats.waveid))="Incongruent";
+                types(pct.su_pairs.get_nonmem(scstats.waveid))="Nonmemory";
+
+                scstats=[scstats(:,1:2),array2table(types,'VariableNames',{'Type'}),scstats(:,4:5)];
+
+                fid=fopen(fullfile('binary','upload','F2G_SC_consistent_inconsistent.json'),'w');
+                fprintf(fid,jsonencode(scstats));
+                fclose(fid);
+
+            end
+
+        end
+
+
     end
 end

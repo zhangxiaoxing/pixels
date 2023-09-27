@@ -230,16 +230,6 @@ end
 
 %% TODO: COM_CHAIN
 % K:\code\jpsth\+wave\COM_chain_SC.m
-reg_com_maps=cell2struct({tcom3_maps;tcom6_maps},{'tcom3_maps','tcom6_maps'});
-
-fcstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,reg_com_maps,'delay',6,'odor_only',true);
-
-[barmm,barci,barcnt]=fc.fc_com_reg_wave.sums([fcstats6;fcstats3],"odor_only",true);
-fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt,'condense_plot',true,'odor_only',true);
-% TODO: nonmem
-
-% 
-% fc.wave_stay_disappear(wrs_mux_meta)
 
 if false
     inter_wave_fh=bz.inter_wave_ext_bars(wrs_mux_meta);  % dur, olf vs Isocortex, Straitum and Midbrain

@@ -79,7 +79,23 @@ if opt.shuf
         shuf_wtncnt=[shuf_wtncnt;nnz(~chains_shuf_all.cross_reg)];
         shuf_revcnt=[shuf_revcnt;nnz(chains_shuf_rev_all.cross_reg)];
     end
-    
+    if false
+        if opt.non_mem
+            chain_consist=cell2struct({wtncnt;fwdcnt;revcnt;shuf_wtncnt;shuf_fwdcnt;shuf_revcnt},...
+                {'Within_observed','Consistent_observed','Inconsistent_observed','Within_shuffled','Consistent_shuffled','Inconsistent_shuffled'});
+            fid=fopen(fullfile('binary','upload','F2IR_chain_nonmemory_consistent_inconsistent.json'),'w');
+            fprintf(fid,jsonencode(chain_consist));
+            fclose(fid);
+        else
+            chain_consist=cell2struct({wtncnt;fwdcnt;revcnt;shuf_wtncnt;shuf_fwdcnt;shuf_revcnt},...
+                {'Within_observed','Consistent_observed','Inconsistent_observed','Within_shuffled','Consistent_shuffled','Inconsistent_shuffled'});
+            fid=fopen(fullfile('binary','upload','F2IL_chain_congruent_consistent_inconsistent.json'),'w');
+            fprintf(fid,jsonencode(chain_consist));
+            fclose(fid);
+        end
+    end
+
+
     boot_delta_mm=bootstrp(1000,@(x) [wtncnt,fwdcnt,revcnt]-mean(x),[shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
     shufstd=std([shuf_wtncnt,shuf_fwdcnt,shuf_revcnt]);
     zscores=boot_delta_mm./shufstd;

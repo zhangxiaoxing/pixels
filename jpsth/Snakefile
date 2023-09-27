@@ -61,6 +61,14 @@ rule rings_tag_trl:
 		"binary/rings_tag_trl.mat"
 	shell:
 		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(load_file=false,skip_save=false,compress=true)"'
+
+rule SC_consistent_inconsistent:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/SC_consistent_inconsistent.fig"
+	shell:
+		'matlab -noFigureWindows -batch "fc.fc_com_reg_wave.run_all()"'
 		
 rule wrs_mux_meta:
 	output:

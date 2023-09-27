@@ -90,6 +90,19 @@ if opt.plot_svm
     if ~opt.skip_save
         blame=vcs.blame();
         save(fullfile('binary','fc_decoding_congru_incong.mat'),'dec_result','incong_result','blame');
+        if false
+            [fcdec.congruent_correct,fcdec.congruent_error,fcdec.congruent_shuffled,fcdec.incongruent_correct]=deal([]);
+            for fn=reshape(fieldnames(dec_result),1,[])
+                fcdec.congruent_correct=[fcdec.congruent_correct,array2table(dec_result.(fn{1}).cvcorr{1},'VariableNames',replace(fn,'F','S'))];
+                fcdec.congruent_error=[fcdec.congruent_error,array2table(dec_result.(fn{1}).errcorr{1},'VariableNames',replace(fn,'F','S'))];
+                fcdec.congruent_shuffled=[fcdec.congruent_shuffled,array2table(dec_result.(fn{1}).shufcorr{1},'VariableNames',replace(fn,'F','S'))];
+                fcdec.incongruent_correct=[fcdec.incongruent_correct,array2table(incong_result.(fn{1}).cvcorr{1},'VariableNames',replace(fn,'F','S'))];
+            end
+            fid=fopen(fullfile('binary','upload','F2E_SCP_freq_decoding.json'),'w');
+            fprintf(fid,jsonencode(fcdec));
+            fclose(fid);
+        end
+
     end
     out=dec_result;
     if opt.skip_plot

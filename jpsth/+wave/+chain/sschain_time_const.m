@@ -14,6 +14,13 @@ for cii=1:size(chain_replay,1)
     runlength=[runlength;arrayfun(@(x) diff(chain_replay.ts{cii}(x,[1 end]),1,2), find(pref_delay))./30];
 end
 
+if false
+    chain.per_sequence_run_length_in_ms=runlength;
+    fid=fopen(fullfile('binary','upload','F2J_chain_activity_runlength.json'),'w');
+    fprintf(fid,jsonencode(chain));
+    fclose(fid);
+end
+
 singlehist=histcounts(runlength,[0:9,10:10:100],'Normalization','pdf');
 if ~opt.skip_plot
     fh=figure();
