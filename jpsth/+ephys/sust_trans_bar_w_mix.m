@@ -28,6 +28,18 @@ if opt.odor_only
 
     sem=sqrt([t3,t6,s3,s6].*(1-[t3,t6,s3,s6])./numel(sel_meta.wave_id));
 
+    if false
+        load(fullfile('binary','su_meta.mat'),'su_meta');
+        tmat=[su_meta.sess,su_meta.allcid,...
+            ~olf_sw & ismember(sel_meta.wave_id,[1 3 5 6]) & (any(sel_meta.p_olf<0.05,2) | any(sel_meta.p_mux<0.05,2)),...
+            ~olf_sw & all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2),...
+            ~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) &(any([sel_meta.p_olf,sel_meta.p_olf6]<0.05,2) | any(sel_meta.p_mux<0.05,2)),...
+            ~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) & (all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2)) & all(sel_meta.p_olf6<0.05,2)];
+        fid=fopen(fullfile('binary','upload','SF2A_B_transient_sustained_WM_neuron.json'),'w')
+        fprintf(fid,jsonencode(array2table(tmat,'VariableNames',{'Session','ID','Transient_3s','Sustained_3s','Transient_6s','Sustained_6s'})));
+        fclose(fid)
+    end
+
     fh=figure();
     hold on
     bh=bar([t3,s3;t6,s6].*100);

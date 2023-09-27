@@ -316,6 +316,17 @@ if opt.plot_per_su
         xlabel('False positive rate (fpr)');
         ylabel('True positive rate (tpr)');
         title(ff)
+
+        if false
+            normalize_fr.sust=array2table(stats.olf.sust,'VariableNames',{'Correct_preferred_delay','Erroneous_preferred_delay','Correct_nonpreferred_delay','Erroneous_nonpreferred_delay'});
+            normalize_fr.transient=array2table(stats.olf.transient,'VariableNames',{'Correct_preferred_delay','Erroneous_preferred_delay','Correct_nonpreferred_delay','Erroneous_nonpreferred_delay'});
+            fid=fopen(fullfile('binary','upload','SF2C_D_transient_sustained_correct_error.json'),'w')
+            fprintf(fid,jsonencode(normalize_fr));
+            fclose(fid);
+        end
+
+
+
         if ~opt.skip_save
             savefig(fullfile('binary',"corr_err_trans_sust_AUC_"+ff+".fig"));
         end

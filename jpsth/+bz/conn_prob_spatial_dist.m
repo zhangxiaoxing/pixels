@@ -52,6 +52,20 @@ dist_sums(:,2:end)=dist_sums(:,2:end).*100;
 xx=[same_stats(:,3);dist_stats(:,3)].*10;% micro-meter unit
 yy=[same_stats(:,4);dist_stats(:,4)]./[same_stats(:,5);dist_stats(:,5)].*100;
 tbl=table(xx,yy);
+
+if false
+    sumstats=[same_stats;dist_stats];
+    ttbl=table(string(idmap.ccfid2reg.values(num2cell(sumstats(:,1)))), ...
+        string(idmap.ccfid2reg.values(num2cell(sumstats(:,2)))), ...
+        sumstats(:,3),sumstats(:,4),sumstats(:,5),...
+        'VariableNames',{'Lead_region','Follow_region','Distance_um','Coupled_pair','Candidate_pair'});
+
+    fid=fopen(fullfile('binary','upload','F2C_coupling_probility_vs_distance.json'),'w')
+    fprintf(fid,jsonencode(ttbl));
+    fclose(fid);
+end
+
+
 % save('fcrate_distance.mat','tbl')
 
 % [fxy,gof] = fit(tbl.xx,tbl.yy,'exp1');

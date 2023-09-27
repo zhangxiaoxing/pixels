@@ -30,11 +30,25 @@ pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
 % 
 % [samestats,sameci]=statsMixed(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session);
 % [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
+
+
 fh.fig=figure('Color','w','Position',[100,100,500,235]);
 tiledlayout(1,2)
-fh.sameregax=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
-fh.crossregax=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
+[fh.sameregax,same_types]=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
+[fh.crossregax,diff_types]=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
 sgtitle('same-reg, cross-reg')
+
+
+if false
+    fcrate.coupled_stat=[sig.sess,sig.suid,sig_same(:,5),sig_diff(:,5),same_types.nm_sig,same_types.incong_sig,same_types.congru_sig];
+    fcrate.candidate_stat=[pair.sess,pair.suid,pair_same(:,5),pair_diff(:,5),same_types.nm_pair,same_types.incong_pair,same_types.congru_pair];
+    fcrate.VariableNames={'Session','Lead_ID','Follow_ID','Within_region','Cross_region','Nonmemory','Incongruent','Congruent'};
+
+    fid=fopen(fullfile('binary','upload','F2D_coupling_probility_vs_memory_selectivity.json'),'w');
+    fprintf(fid,jsonencode(fcrate));
+    fclose(fid);
+end
+
 if ~opt.skip_save
     savefig(fh.fig,fullfile("binary","FC_congru_incon_nonmem.fig"));
 end
@@ -263,7 +277,7 @@ end
 
 
 
-function ax=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru,odor_only)
+function [ax,types]=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru,odor_only)
 % [fromhat,tohat,fromsem,tosem]=deal(nan(5,1));
 
 nonmem_sig=pct.su_pairs.get_nonmem(sig.waveid);
@@ -274,6 +288,8 @@ congru_pair=pct.su_pairs.get_congru(pair.waveid,'asym_congru',asym_congru,'odor_
 
 incong_sig=pct.su_pairs.get_incongru(sig.waveid);
 incong_pair=pct.su_pairs.get_incongru(pair.waveid);
+types=cell2struct({nonmem_sig;nonmem_pair;congru_sig;congru_pair;incong_sig;incong_pair},...
+    {'nm_sig','nm_pair','congru_sig','congru_pair','incong_sig','incong_pair'});
 
 if per_sess
     sig_nonmem=sig.sess(sig_sel & nonmem_sig);

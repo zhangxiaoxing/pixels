@@ -14,6 +14,7 @@ arguments
     opt.skip_plot (1,1) logical = false
     opt.nfc_grp (1,:) double = [10 50 100 200 300 400 500]
     opt.odor_only (1,1) logical = true
+    opt.skip_save (1,1) logical = true
 end
 global_init
 if isempty(sel_meta)
@@ -85,6 +86,10 @@ if opt.plot_svm
         %         end % TODO multiple pair types
         dec_result.(sprintf('FC%d',N_pair))=result;
         incong_result.(sprintf('FC%d',N_pair))=inc_result;
+    end
+    if ~opt.skip_save
+        blame=vcs.blame();
+        save(fullfile('binary','fc_decoding_congru_incong.mat'),'dec_result','incong_result','blame');
     end
     out=dec_result;
     if opt.skip_plot

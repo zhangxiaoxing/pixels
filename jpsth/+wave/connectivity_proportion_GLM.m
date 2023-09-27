@@ -125,6 +125,19 @@ for featii=1:numel(fns) % both, either, summed
             %                 bhto=bar(find(s_list(:,4)==1),s_list(s_list(:,4)==1,7),0.6,'white');
             %                 bhfrom=bar(find(s_list(:,4)==2),s_list(s_list(:,4)==2,7),0.6,'black');
             bh=bar(s_list(:,7),0.8,'FaceColor','flat','Horizontal','off');
+            if false
+                if false
+                    fid=fopen(fullfile('binary','upload','F1N_fraction_anatomy_correlation.json'),'w');
+                elseif 0>1
+                    fid=fopen(fullfile('binary','upload','F1SBelow_region_timing_anatomy_correlation.json'),'w');
+                else
+                    fid=fopen(fullfile('binary','upload','SF4B_region_timing_anatomy_correlation.json'),'w');
+                end
+                fprintf(fid,jsonencode(table(xlbl,s_list(:,7),'VariableNames',{'Region','Pearsons_r'})));
+                fclose(fid);
+            end
+
+
             bh.CData(s_list(:,4)==1,:)=repmat([0.5,0.5,0.5],nnz(s_list(:,4)==1),1);
             bh.CData(s_list(:,4)==2,:)=repmat([0,0,0],nnz(s_list(:,4)==2),1);
             ylabel('Connectivity-coding proportion correlation (Pearson''s r)')
@@ -177,6 +190,17 @@ for featii=1:numel(fns) % both, either, summed
                 plot(xx,yy,'--k');
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(1,7),s_list(1,8)));
+            if false
+                if false
+                    fid=fopen(fullfile('binary','upload','F1M_fraction_AON_projection_correlation.json'),'w');
+                    ttbl=table(intersect_regs,allen_mat(glmidx,:).',feat_prop,'VariableNames',{'Region','Projection_density','WM_neuron_proportion'});
+                else
+                    fid=fopen(fullfile('binary','upload','F1SAbove_region_wave_timing_RHP_projection_correlation.json'),'w');
+                    ttbl=table(intersect_regs,allen_mat(glmidx,:).',feat_prop,'VariableNames',{'Region','Projection_density','region_wave_timing'});
+                end
+                fprintf(fid,jsonencode(ttbl));
+                fclose(fid);
+            end            
 
             
             nexttile(2,[2,1]) %negative max
@@ -211,6 +235,12 @@ for featii=1:numel(fns) % both, either, summed
                 plot(xx,yy,'--k');
             end
             title(sprintf(' r = %.3f, p = %.3f',s_list(end,7),s_list(end,8)));
+            if false
+                fid=fopen(fullfile('binary','upload','F1M_fraction_AON_projection_correlation.json'),'w');
+                ttbl=table(intersect_regs,allen_mat(glmidx,:).',feat_prop,'VariableNames',{'Region','Projection_density','WM_neuron_proportion'});
+                fprintf(fid,jsonencode(ttbl));
+                fclose(fid);
+            end
 
             th=nexttile(7,[1,2]); % data table
             tbl=cell(0);

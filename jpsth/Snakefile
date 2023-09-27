@@ -356,7 +356,6 @@ rule gen_fc_coding_data:
 	shell:
 		'matlab -noFigureWindows -batch "bz.fccoding.fc_coding_all()"'
 
-# TODO: verify necessity of intermediate file
 rule fc_coding_congru_incon:
 	input:
 		"binary/wrs_mux_meta.mat",
@@ -364,7 +363,7 @@ rule fc_coding_congru_incon:
 	output:
 		"binary/fc_coding_congru_incong.fig"
 	shell:
-		'matlab -noFigureWindows -batch "bz.fccoding.plot_coding(odor_only=true)"'
+		'matlab -noFigureWindows -batch "bz.fccoding.plot_coding(odor_only=true,skip_save=false)"'
 
 rule fc_spike_of_all_spike_proportion:
 	input:
