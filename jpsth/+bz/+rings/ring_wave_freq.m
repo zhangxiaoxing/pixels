@@ -1,12 +1,18 @@
 % calculate relative appearance frequence of rings vs shuffled control
 function ring_wave_freq(sel_meta,opt)
 arguments
-    sel_meta
+    sel_meta = []
     opt.burst (1,1) logical = false
     opt.repeats (1,1) double = 100
     opt.denovo (1,1) logical = false
 end
 %% appearance in spike sequence
+
+if isempty(sel_meta)
+    load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
+    sel_meta=wrs_mux_meta;
+end
+
 if opt.burst
     % nonmem
     nonmem_keys=struct();
@@ -104,8 +110,6 @@ else % W/o burst
             sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt);
         end
     else
-        warning("Be cautious of data inconsistency")
-        keyboard()
         load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf','sums')
     end
     wavetype=struct();
@@ -134,6 +138,17 @@ else % W/o burst
     ranksum(zscoremat(1,:),zscoremat(3,:))
     ranksum(zscoremat(2,:),zscoremat(3,:))
 
+    if false
+        loopcount=cell2struct({wavetype.nonmem;wavetype.incongru;wavetype.congru; ...
+            wavetype_shuf.nonmem;wavetype_shuf.incongru;wavetype_shuf.congru},...
+            {'Nonmemory_observed','Incongruent_observed','Congrent_observed','Nonmemory_shuffled','Incongruent_shuffled','Congruent_shuffled'})
+       fid=fopen(fullfile('binary','upload','F2L_loop_consistent_incosistent.json'),'w');
+       fprintf(fid,jsonencode(loopcount));
+       fclose(fid);
+
+    end
+
+
     fh=figure('Color','w','Position',[32,32,215,215]);
     hold on
     bh=bar(1:3,diag(flip(zscoremm)),'stacked','FaceColor','k','EdgeColor','k');
@@ -143,7 +158,7 @@ else % W/o burst
     % errorbar(1:4,mm,sems,'k.')
     ylabel('Z-Score')
     set(gca(),'XTick',1:3,'XTickLabel',{'Nonmem','Incongru.','Congru.'},'XTickLabelRotation',45)
-
+    savefig(fh,fullfile('binary','loop_occur_vs_shuf.fig'));
 
     if false
         seltype=struct();

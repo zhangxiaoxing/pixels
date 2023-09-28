@@ -297,15 +297,19 @@ rule plot_one_by_one_rmv_data:
 	shell:
 		'matlab -noFigureWindows -batch "wave.composite_thin_down.plot_one_by_one()"'
 
-rule plot_chain_loop_freq:
+rule plot_motif_combined_freq_replay:
 	input:
 		"binary/motif_replay.mat",
+		expand("binary/motif_replay_shuf{sidx}.mat",sidx=list(range(1,101))),
 		"binary/trials_dict.mat"
 	output:
-		"binary/chains_loops_freq.mat",
-		"binary/chains_loops_freq.fig"
+		"binary/nested_motif_replay_spike_per_sec_w_shuf.fig,"
+		"binary/sess_motif_spike_per_sec_w_shuf.fig"
 	shell:
-		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,per_unit_motif=true)"'
+		'''
+		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=false)"
+		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=true)"
+		'''
 
 rule frac_neuron_in_motif:
 	input:
@@ -472,6 +476,14 @@ rule nested_motif_showcase:
 
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.motif_seq_activation_replay()"'
+
+rule loop_occurrence_vs_shuf:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/loop_occur_vs_shuf.fig"
+	shell:
+		'matlab -noFigureWindows -batch "bz.rings.ring_wave_freq(denovo=true)"'
 
 # /+wave/+loop/motif_seq_activation
 # motif_replay_chain_nonmem

@@ -13,6 +13,17 @@ for nsu=[5 10 50 100 200 300 400 500]
     % both_dur.("n"+nsu)=pct.pct_decoding_correct_error(wrs_mux_meta,1:4,'lblidx',8,'n_su',nsu);% dur
 end
 fc_dec=bz.fccoding.plot_coding(wrs_mux_meta,'nfc_grp',[5 10 50 100 200 300 400 500],'skip_plot',true);
+if false
+    for nsu=[5 10 50 100 200 300 400 500]
+        dec.CSP.("N"+nsu)=fc_dec.("FC"+nsu).cvcorr{1};
+        dec.neuron.("N"+nsu)=odor.("n"+nsu).olf.("c_result_"+nsu+"su");
+    end
+    fid=fopen(fullfile('binary','upload','SF4C_decoding_with_CSP_or_neuron.json'),'w');
+    fprintf(fid,jsonencode(dec));
+    fclose(fid);
+end
+
+
 
 odormat=cell2mat(cellfun(@(x) subsref(struct2cell(x.olf),substruct('{}',{1})),struct2cell(odor),'UniformOutput',false).');
 summ=mean(odormat);

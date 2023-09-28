@@ -27,6 +27,17 @@ if opt.shuf
     load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');
     composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
     [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt);
+    if false
+        spkf=cell2struct({per_sess;shufdata},{'Observed','Shuffled'});
+        if opt.nested
+            fid=fopen(fullfile('binary','upload','F4H_Nested_Loops_combined_spike_frequency.json'),'w');
+        else
+            fid=fopen(fullfile('binary','upload','F3E_Motifs_combined_spike_frequency.json'),'w');
+        end
+        fprintf(fid,jsonencode(spkf));
+        fclose(fid);
+    end
+
     fh=plotShuf(shufdata,mdm,ci,per_sess,opt);
 else
     if isempty(ring_replay)
@@ -316,7 +327,7 @@ if opt.nested % plot bars for nested loops
 
     title({sprintf('iti%.4f,np%.4f,out%.4f,itiiti%.4f',piti,pnp,pout,pnpiti); ...
         sprintf('z%.4f',pz)});
-    savefig(fh,fullfile("binary","delay_iti_motif_spike_per_sec_w_shuf.fig"))
+    savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf.fig"))
 
 else % plot bars for all motifs per session
     set(gca,'XTick',1:5,'XTickLabelRotation',90,'XTickLabel',{'Delay','NP Delay','ITI','Before','After'});

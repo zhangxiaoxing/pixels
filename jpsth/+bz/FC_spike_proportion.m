@@ -58,6 +58,14 @@ for sessid=reshape(usess,1,[])
         sums=[sums;sessid,ccid,nnz(bitand(onefctag,2)),nnz(bitand(onefctag,1)),numel(onefctag)];
     end
 end
+
+if false
+    ttbl=array2table(sums(:,1:4),'VariableNames',{'Session','SC_ID','Coupled_spike','WM_delay_spike'});
+    fid=fopen(fullfile('binary','upload','SF4B_coupled_spike_over_WM_delay_spike.json'),'w');
+    fprintf(fid,jsonencode(ttbl));
+    fclose(fid);
+end
+
 blame=vcs.blame();
 save(fullfile("binary","FC_spike_proportion.mat"),'sums','blame')
 % prctile(double(sums(:,3))./double(sums(:,4)),[25 50 75])

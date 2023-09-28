@@ -5,6 +5,14 @@ end
 if strcmp(opt.type,'chain')
     memstr=load(fullfile("binary","motif_replay.mat"),'chain_sums');
     nmstr=load(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_sums');
+    if false
+        mvsnm.Memory=cell2struct(mat2cell(memstr.chain_sums([1 3 5 11 12],:),ones(5,1),size(memstr.chain_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
+        mvsnm.Nonmemory=cell2struct(mat2cell(nmstr.chain_sums([1 1 2 4 5],:),ones(5,1),size(nmstr.chain_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
+        fid=fopen(fullfile('binary','upload','F3F_Chains_frequency_memory_nonmemory.json'),'w');
+        fprintf(fid,jsonencode(mvsnm));
+        fclose(fid)
+    end
+
     cyy=[memstr.chain_sums(1,:),nmstr.chain_sums(1,:),...
         memstr.chain_sums(3,:),nmstr.chain_sums(1,:),...
         memstr.chain_sums(5,:),nmstr.chain_sums(2,:),...

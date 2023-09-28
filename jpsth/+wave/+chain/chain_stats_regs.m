@@ -186,7 +186,7 @@ for curr_tag=["within","cross"]
     % olf_ratio.(curr_tag)(barsel)-mean(shufmat).'
 
 
-    set(gca(),'XTick',1:numel(regsel),'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)),'YScale','log','XTickLabelRotation',90);
+    set(gca(),'XTick',1:numel(regsel),'XTickLabel',all_chain_regs.(curr_tag)(olf_srt.(curr_tag)(barsel)),'YScale','log','XTickLabelRotation',90);
     ylim([1e-4,10]);
     ylabel('occurrence per neuron')
     title("olf "+curr_tag)
@@ -201,6 +201,7 @@ for curr_tag=["within","cross"]
     text(find(stars1),repmat(1,nnz(stars1),1),'*','HorizontalAlignment','center')
     
     if opt.odor_only
+        chainreg.(curr_tag)=table(all_chain_regs.(curr_tag)(olf_srt.(curr_tag)(barsel)).',olf_ratio.(curr_tag)(barsel),shufmat.','VariableNames',{'Region','Observed','Shuffled'});
         continue
     end
 
@@ -238,4 +239,9 @@ end
 savefig(fhf,fullfile('binary','chains_occur_per_neuron_per_reg.fig'));
 blame=vcs.blame();
 save(fullfile('binary','chains_occur_per_neuron_per_reg.mat'),'chain_reg','blame');
+if false
+    fid=fopen(fullfile('binary','upload','F2P_SF6B_SF6C_Chain_occurrence_across_regions.json'),'w');
+    fprintf(fid,jsonencode(chainreg));
+    fclose(fid);
+end
 end

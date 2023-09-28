@@ -13,7 +13,12 @@ for rii=1:size(ring_replay,1)
     pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
     runlength=[runlength;cellfun(@(x) x(end)-x(1), ring_replay.ts{rii}(pref_delay))./30];
 end
-
+if false
+    loop.per_sequence_run_length_in_ms=runlength;
+    fid=fopen(fullfile('binary','upload','F2M_loop_activity_runlength.json'),'w');
+    fprintf(fid,jsonencode(loop));
+    fclose(fid);
+end
 singlehist=histcounts(runlength,[0:9,10:10:100],'Normalization','pdf');
 if ~opt.skip_plot
     fh=figure();

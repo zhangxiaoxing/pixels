@@ -162,7 +162,12 @@ if opt.vs_shuf
         [sratios,sidx]=sort(ratios,'descend','MissingPlacement','last');
        
         barn=nnz(sratios>0);
-
+        switch dsetidx
+            case 1
+            loop.within=table(loop_reg(sidx(1:barn)).',sratios(1:barn).',cell2mat(ratios_shuf(:,sidx(1:barn))).','VariableNames',{'Region','Observed','Shuffled'});
+            case 2
+            loop.cross=table(loop_reg(sidx(1:barn)).',sratios(1:barn).',cell2mat(ratios_shuf(:,sidx(1:barn))).','VariableNames',{'Region','Observed','Shuffled'});
+        end
         shufmm=cellfun(@(x) mean(x),ratios_shuf(:,sidx));
         shufstd=cellfun(@(x) std(x),ratios_shuf(:,sidx));
         shufsem=shufstd./sqrt(size(ratios_shuf{1},1));
@@ -187,6 +192,12 @@ if opt.vs_shuf
         ylabel('occurrence in loops per neuron')
         title(lbls{dsetidx});
     end
+
+    if false
+        fid=fopen(fullfile('binary','upload','F2Q_Loop_occurrence_across_regions.json'),'w');
+        fprintf(fid,jsonencode(loopreg));
+        fclose(fid);
+    end
     savefig(fvs,fullfile('binary','loops_occur_per_neuron_per_reg.fig'));
 
 end
@@ -204,7 +215,6 @@ if opt.loopPerSU  % loops per su, classed by region
         {'Olfactory cross region'};...
         {'Both within region'};...
         {'Both cross region'}};
-
 end
 
 % Withou unique 

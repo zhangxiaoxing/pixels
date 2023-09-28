@@ -28,7 +28,7 @@ for sessid=reshape(usess,1,[])
         ratios(selidx,:)=[motifspk,allspk];
 
         chainidx=strcmp(ucid_chain,ucid{selidx});
-        if any(chaindx)
+        if any(chainidx)
             chainspk=pivot_dict.delay_chain.(ucid{selidx}).numEntries;
             ratios_chain(chainidx,:)=[chainspk,allspk];
         end
@@ -41,6 +41,16 @@ for sessid=reshape(usess,1,[])
     end
 end
 
+if false
+    spkratio.all_motif_spikes=table(replace(ucid,'ses','session'),ratios(:,1),ratios(:,2),'VariableNames',{'NeuronID','Motif_spikes','Delay_spikes'});
+    spkratio.chain_spikes=table(replace(ucid_chain,'ses','session'),ratios_chain(:,1),ratios_chain(:,2),'VariableNames',{'NeuronID','Chain_spikes','Delay_spikes'});
+    spkratio.loop_spikes=table(replace(ucid_loop,'ses','session'),ratios_loop(:,1),ratios_loop(:,2),'VariableNames',{'NeuronID','Loop_spikes','Delay_spikes'});
+    
+    fid=fopen(fullfile('binary','upload','F2O_motif_spike_over_WM_delay_spike.json'),'w');
+    fprintf(fid,jsonencode(spkratio));
+    fclose(fid)
+
+end
 fh=figure();
 tiledlayout(1,3)
 for dd={ratios,ratios_chain,ratios_loop}
