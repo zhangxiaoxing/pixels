@@ -7,6 +7,7 @@ arguments
     opt.shuf (1,1) logical = false
     opt.shufidx=1;
 end
+
 if opt.shuf
     load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'ring_replay','chain_replay');
 else
@@ -103,6 +104,10 @@ for sess=reshape(unique([ring_replay.session;chain_replay.session]),1,[])
 
         % loops -------------------------------------------
         for rii=reshape(find(ring_sel),1,[])
+            if ~iscell(ring_replay.ts_seq{rii})
+                ring_replay.ts_seq{rii}=ring_replay.ts_seq(rii);
+            end
+
             % per preferred trial
             trl_align=ring_replay.trl_align{rii};
             pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);

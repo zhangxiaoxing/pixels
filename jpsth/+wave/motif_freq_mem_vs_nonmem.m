@@ -22,6 +22,15 @@ if strcmp(opt.type,'chain')
 else
     memstr=load(fullfile("binary","motif_replay.mat"),'loops_sums');
     nmstr=load(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_sums');
+    if false
+        mvsnm.Memory=cell2struct(mat2cell(memstr.loops_sums([1 3 5 11 12],:),ones(5,1),size(memstr.loops_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
+        mvsnm.Nonmemory=cell2struct(mat2cell(nmstr.loops_sums([1 1 2 4 5],:),ones(5,1),size(nmstr.loops_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
+        fid=fopen(fullfile('binary','upload','F3G_Loops_frequency_memory_nonmemory.json'),'w');
+        fprintf(fid,jsonencode(mvsnm));
+        fclose(fid)
+    end
+
+
     cyy=[memstr.loops_sums(1,:),nmstr.loops_sums(1,:),...
         memstr.loops_sums(3,:),nmstr.loops_sums(1,:),...
         memstr.loops_sums(5,:),nmstr.loops_sums(2,:),...
