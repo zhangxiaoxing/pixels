@@ -42,6 +42,16 @@ classdef delay_vs_iti_per_sec < handle
             end
             shufstr=load(fullfile("binary","delay_iti_runlength_covered_shuf.mat"),'covered_shuf');
             fh=wave.replay.delay_vs_iti_per_sec.plotshuf(cover_per_sec,shufstr.covered_shuf);
+            
+            if false
+                fid=fopen(fullfile('binary','upload','F4I_Nested_loops_covered_duration.json'),'w');
+                dout.observed=cover_per_sec.delay(:,1)./cover_per_sec.delay(:,2);
+                dout.shuffled=shufstr.covered_shuf.delay(:,1)./shufstr.covered_shuf.delay(:,2);
+                dout.shuffled_rpt_number=shufstr.covered_shuf.rpt;
+                fprintf(fid,jsonencode(dout));
+                fclose(fid);
+            end
+
         end
 
         function [cover_per_sec,mdm,ci,per_sess]=statsOne(covered,trials_dict)

@@ -14,7 +14,7 @@ load(fullfile('binary','motif_replay.mat'))
   % 10  {'nonpref_precede_ITI'  }
   % 11  {'before_session'       }
   % 12  {'after_session'        }
-
+  % 13 {nonpref_delay_error}
 % correct error chain
 chain_corr_err=cell2struct({chain_raw.count+eps;...
     chain_raw.time;...
@@ -28,6 +28,15 @@ ring_corr_err=cell2struct({loops_raw.count;...
     loops_raw.tag},{'count';'time';'condition';'tag'});
 
 [~,jemat]=wave.replay.stats_replay_sess({chain_corr_err,ring_corr_err});
+if false
+cestr=cell2struct({jemat(:,1);jemat(:,2);jemat(:,3);jemat(:,13);jemat(:,8);jemat(:,9);jemat(:,5);jemat(:,6)},...
+    {'preferred_delay_correct','preferred_delay_error','nonpreferred_delay_correct','nonpreferred_delay_error',...
+    'ITI_before_correct_trials','ITI_before_error_trials','ITI_after_correct_trials','ITI_after_error_trials'});
+fid=fopen(fullfile('binary','upload','F3H_Motif_spike_frequency_correct_error_trials.json'),'w');
+fprintf(fid,jsonencode(cestr));
+fclose(fid);
+end
+
 
 ratiomat=jemat(:,[2,13,9,6])./jemat(:,[1,3,8,5]); %npdelay/pdelay, npiti/piti
 qtrs=prctile(ratiomat,[25,50,75]); % only median were used
@@ -49,6 +58,16 @@ title(sprintf('Correct/error,delay,npdelay,preITI,postITI,%.4f,%.4f,%.4f,%.4f',p
 
 
 ratiomat=jemat(:,[3,10,7])./jemat(:,[1,8,5]); %npdelay/pdelay, npiti/piti
+
+if false
+pnpstr=cell2struct({jemat(:,1);jemat(:,3);jemat(:,8);jemat(:,10);jemat(:,5);jemat(:,7)},...
+    {'preferred_delay','nonpreferred_delay','ITI_before_preferred_trials','ITI_before_nonpreferred_trials',...
+    'ITI_after_preferred_trials','ITI_after_nonpreferred_trials'});
+fid=fopen(fullfile('binary','upload','SF7A_Motif_spike_frequency_preferred_nonpreferred_trials.json'),'w');
+fprintf(fid,jsonencode(cestr));
+fclose(fid);
+end
+
 qtrs=prctile(ratiomat,[25,50,75]);
 bci=bootci(1000,@(x) median(x),ratiomat);
 

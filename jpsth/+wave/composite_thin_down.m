@@ -194,7 +194,7 @@ classdef composite_thin_down < handle
             noD5=wave.composite_thin_down.match_one(noremove,removeD5);
             nrfns=reshape(fieldnames(noremove),1,[]);
 
-            for rpt=1:10
+            for rpt=1:10 % plotting bins
                 removeChainMatch=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','ChainMatchFC');
                 noChainMatch(rpt)=wave.composite_thin_down.match_one(noremove,removeChainMatch);
                 removeLoopMatch=wave.composite_thin_down.stats_remove(per_sess_condition,'remove','LoopMatchFC');
@@ -494,6 +494,24 @@ classdef composite_thin_down < handle
         function plot_one_by_one()
             
             load(fullfile("binary","one_by_one_rmv.mat"),"system_rmv_stats");
+            if false
+                pct=[5:10:95,100];
+                for lvl=1:11
+                    dout.remove_SC.("Removed_percent"+pct(lvl))=...
+                        table2struct(array2table(system_rmv_stats.ctrl.("L"+(lvl-1)).out(:,1:4),'VariableNames',{'abolish','split','shrank','weakened'}),'ToScalar',true);
+                    dout.remove_chain.("Removed_percent"+pct(lvl))=...
+                        table2struct(array2table(system_rmv_stats.chains.("L"+(lvl-1)).out(:,1:4),'VariableNames',{'abolish','split','shrank','weakened'}),'ToScalar',true);
+                    dout.remove_loop.("Removed_percent"+pct(lvl))=...
+                        table2struct(array2table(system_rmv_stats.loops.("L"+(lvl-1)).out(:,1:4),'VariableNames',{'abolish','split','shrank','weakened'}),'ToScalar',true);
+                    dout.remove_HIP_neuron.("Removed_percent"+pct(lvl))=...
+                        table2struct(array2table(system_rmv_stats.HIP.("L"+(lvl-1)).out(:,1:4),'VariableNames',{'abolish','split','shrank','weakened'}),'ToScalar',true);
+                end
+                fid=fopen(fullfile('binary','upload','F4KLMN_gradually_remove_components.json'),'w');
+                fprintf(fid,jsonencode(dout))
+                fclose(fid)
+            end
+    
+
             mm=struct();
             sem=struct();
             for motifType=["chains","loops","ctrl","HIP"]

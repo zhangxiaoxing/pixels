@@ -12,6 +12,13 @@ for sessid=reshape(trials_dict.keys,1,[])
             trials(wtt,7)>0];
     end
 end
+if false
+glmstr=cell2struct(mat2cell(fittbl,size(fittbl,1),ones(size(fittbl,2),1)).',...
+    {'Current_trial_pair_match','Previous_trial_pair_match','Second_to_current_trial_pair_match','Third_to_current_trial_pair_match','Lick_response'});
+fid=fopen(fullfile('binary','upload','SF7B_Previous_trial_effects_on_behavior.json'),'w');
+fprintf(fid,jsonencode(glmstr));
+fclose(fid)
+end
 [b,dev,stats]=glmfit(fittbl(:,1:4),fittbl(:,5),'binomial','link','identity');
 
 fh=figure();

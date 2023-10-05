@@ -12,3 +12,10 @@ xlabel('Time (ms)')
 ylabel('Probability density')
 title('nest loops')
 savefig(fh,fullfile('binary','nested_loop_time_constant.fig'));
+
+if false
+    fid=fopen(fullfile('binary','upload','F4G_Nested_loops_runlength.json'),'w');
+    dout.nested_loops_runlength=run_length.delay(:,2);
+    fprintf(fid,jsonencode(dout))
+    fclose(fid)
+end

@@ -213,18 +213,38 @@ if ~opt.skip_save
     save(fullfile('binary','nested_loops_stats.mat'),"disconnected","degree_sums","complexity_sums","blame","per_trl_nodes")
 end
 disconn_count=[];
+[dout.unconnected_chain,dout.unconnected_loop]=deal([]);
 for di=1:size(disconnected,1)
     if ~isempty(stats.chain.olf) && any(cell2mat(stats.chain.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.olf(:,2)))
-        disconn_count=[disconn_count;"olfchain"];
+        disconn_count=[disconn_count;"olfchain",];
+        dout.unconnected_chain=[dout.unconnected_chain;"Session"+disconnected{di,1}+", Neuron"+sprintf('%d,',sort(disconnected{di,2}))];
     elseif ~isempty(stats.chain.both) && any(cell2mat(stats.chain.both(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.chain.both(:,2)))
-        disconn_count=[disconn_count;"bothchain"];
+        if opt.merge_odor_sel
+            disconn_count=[disconn_count;"olfchain"];
+            dout.unconnected_chain=[dout.unconnected_chain;"Session"+disconnected{di,1}+", Neuron"+sprintf('%d',sort(disconnected{di,2}))];
+        else
+            disconn_count=[disconn_count;"bothchain"];
+        end
     elseif ~isempty(stats.loop.olf) && any(cell2mat(stats.loop.olf(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.loop.olf(:,2)))
         disconn_count=[disconn_count;"olfloop"];
+        dout.unconnected_loop=[dout.unconnected_loop;"Session"+disconnected{di,1}+", Neuron"+sprintf('%d',sort(disconnected{di,2}))];
     elseif ~isempty(stats.loop.both) && any(cell2mat(stats.loop.both(:,1))==disconnected{di,1} & cellfun(@(x) all(ismember(x,disconnected{di,2})),stats.loop.both(:,2)))
-        disconn_count=[disconn_count;"bothloop"];
+        if opt.merge_odor_sel
+            disconn_count=[disconn_count;"olfloop"];
+            dout.unconnected_loop=[dout.unconnected_loop;"Session"+disconnected{di,1}+", Neuron"+sprintf('%d',sort(disconnected{di,2}))];
+        else
+            disconn_count=[disconn_count;"bothloop"];
+        end
     end
 end
+dout.unconnected_chain=unique(dout.unconnected_chain);
+dout.unconnected_loop=unique(dout.unconnected_loop);
 
+if false
+    fid=fopen(fullfile('binary','upload','F4E_Chains_loops_associated_with_nested_motifs.json'),'w');
+    fprintf(fid,jsonencode(dout));
+    fclose(fid);
+end
 
 if opt.merge_odor_sel
     stats.chain.olf=[stats.chain.olf;stats.chain.both];
@@ -244,13 +264,10 @@ wv="olf";
 % nexttile()
 hold on
 for motif=["chain","loop"]
-    ulist=unique(arrayfun(@(kii) string(sprintf('%d-',stats.(motif).(wv){kii,1},sort(stats.(motif).(wv){kii,2}))),1:size(stats.(motif).(wv),1)));
-    if isempty(disconn_count)
-        disconn_n=0;
-    else
-        disconn_n=nnz(contains(disconn_count,wv) & contains(disconn_count,motif));
-    end
+    ulist=unique(arrayfun(@(kii) "Session"+stats.(motif).(wv){kii,1}+", Neuron"+sprintf('%d,',sort(stats.(motif).(wv){kii,2})),1:size(stats.(motif).(wv),1)));
+    disconn_n=numel(dout.("unconnected_"+motif));
     mcount.(wv).(motif)=[numel(ulist),disconn_n];
+    dout.(motif)=ulist.';
 end
 mm=[(mcount.(wv).chain(1)-mcount.(wv).chain(2))./mcount.(wv).chain(1),...
     (mcount.(wv).loop(1)-mcount.(wv).loop(2))./mcount.(wv).loop(1)];
@@ -316,6 +333,12 @@ errorbar(bh.XData,bh.YData,plotsem(plotidx),'k.')
 ylabel('Average node degree')
 title('Per region neuron degrees')
 savefig(fh3,fullfile('binary','nests_per_region_degree.fig'))
+if false
+    fid=fopen(fullfile('binary','upload','SF9B_per_region_neuron_degree_in_nested_loops.json'),'w');
+    fprintf(fid,jsonencode(per_reg));
+    fclose(fid);
+end
+
 
 %% overall graph stats
 
@@ -338,6 +361,16 @@ savefig(fh3,fullfile('binary','nests_per_region_degree.fig'))
 %     ylim([4,250])
 %     title('SS composite loops neuron vs FC')
 % end
+
+if false
+    dout.Number_of_neurons_in_nested_loops=complexity_sums(:,5);
+    dout.Number_of_edges_in_nested_loops=complexity_sums(:,6);
+    dout.Network_density=complexity_sums(:,7);
+
+    fid=fopen(fullfile('binary','upload','F4F_SF8B_nested_loops_graph_network_stats.json'),'w');
+    fprintf(fid,jsonencode(dout));
+    fclose(fid);
+end
 
 fh2=figure('Position',[100,100,250,250]);
 tiledlayout(1,3)

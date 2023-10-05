@@ -25,6 +25,27 @@ for midx=1:size(motif_replay,1)
     end
 end
 
+if false
+    dataout.HIP_preferred_delay=out.REG(:,1);
+    dataout.HIP_nonpreferred_delay=out.REG(:,2);
+    dataout.HIP_ITI=out.REG(:,3);
+    dataout.HIP_before_task=out.REG(:,4);
+    dataout.HIP_after_task=out.REG(:,5);
+    dataout.Others_preferred_delay=out.Others(:,1);
+    dataout.Others_nonpreferred_delay=out.Others(:,2);
+    dataout.Others_ITI=out.Others(:,3);
+    dataout.Others_before_task=out.Others(:,4);
+    dataout.Others_after_task=out.Others(:,5);
+    if false
+        fid=fopen(fullfile('binary','upload','F3I_Chain_spike_frequency_with_without_HIP_neuron.json'),'w');
+    else
+        fid=fopen(fullfile('binary','upload','F3J_Loop_spike_frequency_with_without_HIP_neuron.json'),'w');
+    end
+    fprintf(fid,jsonencode(dataout));
+    fclose(fid);
+
+end
+
 if opt.normalize
     out.Others=out.Others./out.Others(:,1);
     out.REG=out.REG./out.REG(:,1);
