@@ -7,17 +7,7 @@ end
 if strcmp(opt.dtype,'neupix') ||  strcmp(opt.dtype,'MY')
     if ispc
         if strcmp(opt.type,'sums')
-            if endsWith(pwd(),[filesep(),'jpsth'])
-                homedir = fullfile('..','per_sec');
-                [avail,attstr]=fileattrib(homedir);
-                if avail
-                    homedir=attstr.Name;
-                else
-                    keyboard();
-                end
-            else
-                keyboard();
-            end
+            error('deprecated code path, load binary su_meta instead')
         elseif strcmp(opt.type,'raw')
             if endsWith(pwd(),[filesep(),'jpsth'])
                 homedir = fullfile('..','..','neupix','SPKINFO');

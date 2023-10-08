@@ -33,7 +33,17 @@ for consecthresh=[100 200 500] % 10 tick/ms
     qtrs=prctile(run_length,[1,25,50,75,99]);
     xline(qtrs,'--',["1% ","25% ","50% ","75% ","99% "]+(qtrs),'Color',cmap(cidx,:))
     cidx=cidx+1;
+    if false
+        dout.("gap_of_"+(consecthresh./10))=run_length;
+    end
 end
+if false
+    fid=fopen(fullfile('binary','upload','SF9A_Nested_loops_with_gaps_runlength.json'),'w');
+    fprintf(fid,jsonencode(dout));
+    fclose(fid)
+end
+
+
 xlim([2,2000])
 ylim([8e-6,0.1])
 set(gca(),'XScale','log','YScale','log')

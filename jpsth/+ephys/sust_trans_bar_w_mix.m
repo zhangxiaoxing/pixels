@@ -20,13 +20,21 @@ end
 
 if opt.odor_only
     olf_sw=ephys.get_switched(sel_meta,'odor_only',true);
-    t3=nnz(~olf_sw & ismember(sel_meta.wave_id,[1 3 5 6]) & (any(sel_meta.p_olf<0.05,2) | any(sel_meta.p_mux<0.05,2)))./numel(sel_meta.wave_id);
-    s3=nnz(~olf_sw & all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2))./numel(sel_meta.wave_id);
 
-    t6=nnz(~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) &(any([sel_meta.p_olf,sel_meta.p_olf6]<0.05,2) | any(sel_meta.p_mux<0.05,2)))./numel(sel_meta.wave_id);
-    s6=nnz(~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) & (all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2)) & all(sel_meta.p_olf6<0.05,2))./numel(sel_meta.wave_id);
+    % transient3=~olf_sw & ismember(sel_meta.wave_id,[1 3 5 6]) & (any(sel_meta.p_olf<0.05,2) | any(sel_meta.p_mux<0.05,2));
+    % sustained3=~olf_sw & all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2);
+    % 
+    % transient6=~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) &(any([sel_meta.p_olf,sel_meta.p_olf6]<0.05,2) | any(sel_meta.p_mux<0.05,2));
+    % sustained6=~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) & (all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2)) & all(sel_meta.p_olf6<0.05,2);
 
-    sem=sqrt([t3,t6,s3,s6].*(1-[t3,t6,s3,s6])./numel(sel_meta.wave_id));
+
+    transient3=nnz(~olf_sw & ismember(sel_meta.wave_id,[1 3 5 6]) & (any(sel_meta.p_olf<0.05,2) | any(sel_meta.p_mux<0.05,2)))./numel(sel_meta.wave_id);
+    sustained3=nnz(~olf_sw & all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2))./numel(sel_meta.wave_id);
+
+    transient6=nnz(~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) &(any([sel_meta.p_olf,sel_meta.p_olf6]<0.05,2) | any(sel_meta.p_mux<0.05,2)))./numel(sel_meta.wave_id);
+    sustained6=nnz(~olf_sw & ismember(sel_meta.wave_id,[2 4 5 6]) & (all(sel_meta.p_olf<0.05,2) | all(sel_meta.p_mux<0.05,2)) & all(sel_meta.p_olf6<0.05,2))./numel(sel_meta.wave_id);
+
+    sem=sqrt([transient3,transient6,sustained3,sustained6].*(1-[transient3,transient6,sustained3,sustained6])./numel(sel_meta.wave_id));
 
     if false
         load(fullfile('binary','su_meta.mat'),'su_meta');
@@ -42,14 +50,14 @@ if opt.odor_only
 
     fh=figure();
     hold on
-    bh=bar([t3,s3;t6,s6].*100);
+    bh=bar([transient3,sustained3;transient6,sustained6].*100);
     [bh(1).FaceColor,bh(2).FaceColor]=deal('k','w');
     errorbar([bh.XEndPoints],[bh.YEndPoints],sem.*100,'k.','CapSize',12)
     legend(bh,{'Transient','Sustained'},'Location','northoutside','Orientation','horizontal')
     set(gca,'XTick',1:2,'XTickLabel',{'3s delay','6s delay'})
     ylabel('Proportion of all neurons (%)')
     savefig(fullfile('binary','su_trans_sustain.fig'));
-    title(sprintf('%.3f',t3,s3,t6,s6))
+    title(sprintf('%.3f',transient3,sustained3,transient6,sustained6))
     return
 end
 

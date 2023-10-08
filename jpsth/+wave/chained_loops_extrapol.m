@@ -221,4 +221,30 @@ savefig(fh,fullfile('binary','chained_loops_extrapolation.fig'));
 
 blame=vcs.blame();
 save(fullfile("binary","chainned_loops_thinned.mat"),"thinned","blame","-v7.3")
+
+if false
+for fn=reshape(sessfn,1,[])
+    onesess=thinned.(fn{1});
+    nsu=[];
+    for ii=1:size(onesess,1)
+        pct=[];
+        for jj=1:size(onesess{ii,2})
+            if ~isempty(onesess{ii,2}{jj})
+                pct=[pct;median(onesess{ii,2}{jj}),max(onesess{ii,2}{jj})];
+            else
+                pct=[pct;0,0];
+            end
+        end
+        nsu=[nsu;onesess{ii,1}(1)-onesess{ii,1}(2),mean(pct,1)];
+        dout.(replace(fn{1},'S','Session'))=array2table(nsu(:,[1 3]),'VariableNames',{'Neuron_number','Longest_duration'});
+    end
+end
+fid=fopen(fullfile('binary','upload','F4P_neuron_number_longest_duration_relation.json'),'w');
+fprintf(fid,jsonencode(dout));
+fclose(fid)
+
+
+end
+
+
 end
