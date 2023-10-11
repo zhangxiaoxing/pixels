@@ -11,15 +11,17 @@ arguments
     opt.tag_ext6s_mem (1,1) logical = false
     opt.plot_venn (1,1) logical = false
 %     opt.odor_only (1,1) logical = true
+    opt.filename (1,:) char = 'wrs_mux_meta.mat'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 persistent out opt_
 if isempty(out) || ~isequaln(opt,opt_)
     if opt.load_file
-        load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
+        load(fullfile('binary',opt.filename),'wrs_mux_meta');
         out=wrs_mux_meta;
     else
-        [~,~,sessmap]=ephys.sessid2path(0);
+        [~,~,sessmap]=ephys.sessid2path(0,'criteria',opt.criteria);
         homedir=ephys.util.getHomedir('type','raw');
         sesskeys=cell2mat(sessmap.keys());
         [out.m_pref_id,out.o_pref_id,out.d_pref_id,out.p_mux,out.p_olf,out.p_dur,out.class_fr]=deal([]);
@@ -154,7 +156,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         if  opt.save_file
             wrs_mux_meta=out;
             blame=vcs.blame();
-            save(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
+            save(fullfile('binary',opt.filename),'wrs_mux_meta');
         end
     end
 
