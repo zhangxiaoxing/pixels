@@ -11,10 +11,11 @@ arguments
     opt.skip_export (1,1) logical = true
     opt.skip_dur (1,1) logical = false
     opt.only_odor (1,1) logical = true
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-ureg=ephys.getGreyRegs('range',opt.range);
+ureg=ephys.getGreyRegs('range',opt.range,'criteria',opt.criteria);
 sums=[];
 
 for reg=reshape(ureg,1,[])

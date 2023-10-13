@@ -1,20 +1,47 @@
 rule all:
 	input:
-		"binary/chain_loop_in_nests.fig",
-		"binary/chains_consist_incon.fig",
-		"binary/corr_err_trans_sust_AUC_olf.fig",
-		"binary/delay_iti_alt_path_per_spk.fig",
-		"binary/delay_iti_motif_spike_per_sec.fig",
-		"binary/delay_vs_iti_per_sec.fig",
-		"binary/FC_congru_incon_nonmem.fig",
-		"binary/nested_loop_time_constant.fig",
-		"binary/nests_graph_stats.fig",
-		"binary/nests_per_region_degree.fig",
-		"binary/sschain_time_constant.fig",
-		"binary/ssloop_time_constant.fig",
-		"binary/su_decoding.fig",
-		"binary/su_trans_sustain.fig"
-
+                "binary/FC_SU_decode_comparison.fig",
+                "binary/FC_congru_incon_nonmem.fig",
+                "binary/FC_spike_proportion.fig",
+                "binary/SC_consistent_inconsistent.fig",
+                "binary/SC_rate_vs_distance.fig",
+                "binary/behav_previous_trls_glm.fig",
+                "binary/chain_freq_w_without_HIP.fig",
+                "binary/chain_loop_in_nests.fig",
+                "binary/chains_consist_incon.fig",
+                "binary/chains_consist_incon_nonmem.fig",
+                "binary/chains_occur_per_neuron_per_reg.fig",
+                "binary/corr_err_trans_sust_AUC_olf.fig",
+                "binary/delay_iti_alt_path_per_spk.fig",
+                "binary/delay_iti_motif_spike_per_sec.fig",
+                "binary/delay_vs_iti_per_sec.fig",
+                "binary/delay_vs_iti_per_sec_w_shuf.fig",
+                "binary/fc_coding_congru_incong.fig",
+                "binary/frac_neuron_in_motif.fig",
+                "binary/hierarchy_time_const_sums.fig",
+                "binary/loop_freq_w_without_HIP.fig",
+                "binary/loop_occur_vs_shuf.fig",
+                "binary/loops_occur_per_neuron_per_reg.fig",
+                "binary/motif_freq_chain_mem_vs_nonmem.fig",
+                "binary/motif_freq_correct_error.fig",
+                "binary/motif_freq_loops_mem_vs_nonmem.fig",
+                "binary/motif_freq_prefer_nonpref.fig",
+                "binary/motif_spike_total_spike_proportion.fig",
+                "binary/nested_loop_time_const_relax_gap.fig",
+                "binary/nested_loop_time_constant.fig",
+                "binary/nested_motif_replay_after.fig",
+                "binary/nested_motif_replay_before.fig",
+                "binary/nested_motif_replay_spike_per_sec_w_shuf.fig,",
+                "binary/nested_motif_replay_trials.fig",
+                "binary/nests_graph_stats.fig",
+                "binary/nests_per_region_degree.fig",
+                "binary/one_by_one_rmv.fig",
+                "binary/sess_motif_spike_per_sec_w_shuf.fig",
+                "binary/sschain_time_constant.fig",
+                "binary/ssloop_time_constant.fig",
+                "binary/su_decoding.fig",
+                "binary/su_trans_sustain.fig",
+                "binary/chained_loops_extrapolation.fig"
 
 rule trials_dict:
 	input:
@@ -69,13 +96,13 @@ rule SC_consistent_inconsistent:
 		"binary/SC_consistent_inconsistent.fig"
 	shell:
 		'matlab -noFigureWindows -batch "fc.fc_com_reg_wave.run_all()"'
-		
+
 rule wrs_mux_meta:
 	output:
 		"binary/wrs_mux_meta.mat"
 	shell:
 		'matlab -noFigureWindows -batch "ephys.get_wrs_mux_meta(save_file=true,load_file=false)"'
-		
+
 rule su_meta:
 	output:
 		"binary/su_meta.mat"
@@ -110,18 +137,18 @@ rule delay_iti_motif_per_spike:
 	input:
 		"binary/motif_replay.mat"
 	output:
-		"binary/delay_vs_iti_pivot_spike.mat"	
+		"binary/delay_vs_iti_pivot_spike.mat"
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_per_spike(skip_save=false)"'
 
 rule delay_iti_motif_spike_plot:
 	input:
-		"binary/delay_vs_iti_pivot_spike.mat"	
+		"binary/delay_vs_iti_pivot_spike.mat"
 	output:
 		"binary/delay_iti_alt_path_per_spk.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.plot_pivot()"'
-		
+
 rule motif_nest:
 	input:
 		"binary/chain_tag_all_trl.mat",
@@ -161,7 +188,7 @@ rule sschain_time_constant:
 		"binary/sschain_time_constant.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.sschain_time_const(skip_save=false)"'
-		
+
 rule ssloop_time_constant:
 	input:
 		"binary/motif_replay.mat"
@@ -169,7 +196,7 @@ rule ssloop_time_constant:
 		"binary/ssloop_time_constant.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.loop.ssloop_time_const(skip_save=false)"'
-		
+
 rule su_decoding:
 	input:
 		"binary/su_meta.mat",
@@ -187,7 +214,7 @@ rule su_trans_sustain_percentage:
 		"binary/su_trans_sustain.fig"
 	shell:
 		'matlab -noFigureWindows -batch "ephys.sust_trans_bar_w_mix(skip_save=false)"'
-		
+
 rule FC_congru_incon_nonmem:
 	input:
 		"binary/wrs_mux_meta.mat"
@@ -204,7 +231,7 @@ rule sust_trans_correct_err_AUC:
 		"binary/corr_err_trans_sust_AUC.mat"
 	shell:
 		'matlab -noFigureWindows -batch "ephys.sust_trans_correct_error(odor_only=true,skip_save=false)"'
-		
+
 rule gen_shuffled_coupling:
 	output:
 		"binary/bz_ring_shufs.mat"
@@ -334,7 +361,7 @@ rule gen_shuf_rings:
 		"binary/sums_conn_10.mat"
 	output:
 		"binary/rings_bz_vs_shuf.mat"
-	threads: 52 
+	threads: 52
 	shell:
 		'matlab -noFigureWindows -batch "bz.rings.ring_list_bz_alt(poolsize={threads})"'
 
@@ -403,7 +430,7 @@ rule hierarchy_time_const_sums:
 		"binary/hierarchy_time_const_sums.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.rings_wave_dynamic_sums_bar()"'
-		
+
 rule FC_rate_vs_distance:
 	input:
 		"binary/sums_conn_10.mat"
@@ -418,7 +445,7 @@ rule nested_loops_extrapolation:
 		"binary/su_meta.mat"
 	output:
 		"binary/chainned_loops_thinned.mat",
-		"binarychained_loops_extrapolation.fig"
+		"binary/chained_loops_extrapolation.fig"
 	shell:
 		'matlab -noFigureWindows -batch "wave.chained_loops_extrapol()"'
 

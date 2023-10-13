@@ -3,9 +3,10 @@ arguments
     opt.mincount (1,1) double = 100
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
     opt.table (1,1) logical = false
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
-meta=ephys.util.load_meta('skip_stats',true);
+meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria",opt.criteria,"load_file",false,"skip_stats",true);
 BSsel=strcmp(meta.reg_tree(1,:),'BS') & ~strcmp(meta.reg_tree(5,:),'');
 CHsel=strcmp(meta.reg_tree(1,:),'CH') & ~strcmp(meta.reg_tree(5,:),'');
 CTXsel=strcmp(meta.reg_tree(2,:),'CTX') & ~strcmp(meta.reg_tree(5,:),'');
