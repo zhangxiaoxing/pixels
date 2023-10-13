@@ -29,7 +29,7 @@ zthres=norminv(0.95);
 %% gen data
 curr_sess=-1;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 if isfield(opt,'su_list') && ~isempty(opt.su_list)
     globalidx=reshape(opt.su_list,1,[]);

@@ -12,7 +12,7 @@ end
 % persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 meta6=ephys.util.load_meta('delay',6);
 [~,~,sessmap]=ephys.sessid2path(0);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 [pref_FR_3,np_FR_3,pref_FR_6,np_FR_6]=deal([]);
 

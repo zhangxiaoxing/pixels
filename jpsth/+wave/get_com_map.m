@@ -29,7 +29,7 @@ if isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta_,sel_meta)
         usess=ephys.path2sessid(dpath);
     end
 
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     com_str=struct();
 
     %% RANKSUM

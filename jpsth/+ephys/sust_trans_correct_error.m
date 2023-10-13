@@ -43,7 +43,7 @@ for typeIdx=1:2%1:numel(types)
 
     % sust | transient selection previous version
 
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     [stats.(type_desc{typeIdx}).sust,stats.(type_desc{typeIdx}).transient]=deal(nan(0,4));
 %     stats.(sprintf('type%d_pertrial',onetype))=cell(0,4); %skip for now
 

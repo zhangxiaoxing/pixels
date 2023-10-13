@@ -10,7 +10,7 @@ global_sel=(sens_sel & ctx_sel).';
 sesses=unique(meta.sess(global_sel));
 
 out=cell(0,1);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 [~,~,sessmap]=ephys.sessid2path(0);
 for ii=reshape(sesses,1,[])
     disp(ii)

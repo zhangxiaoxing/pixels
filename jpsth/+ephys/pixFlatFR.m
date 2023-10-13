@@ -11,7 +11,7 @@ ephys.util.dependency("buz",false,"ft",true)
 sps=30000; %sample per second
 
 %% input from YCY's time-aligned spike file
-rootdir=ephys.util.getHomedir('type','raw');
+rootdir=ephys.util.getHomedir();
 flist=dir(fullfile(rootdir,'**','spike_info.hdf5'));
 for i=1:length(flist)
     fprintf('=== %d of %d ===\n',i,length(flist))

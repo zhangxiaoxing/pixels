@@ -28,7 +28,7 @@ if opt.new_data
     decode_mat=struct();
     [~,~,sessmap]=ephys.sessid2path(0);
     meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
 
 %     [dur_sense_mix,dur_indep,~,sens_exclu]=ephys.get_dul_sel('ranksum_stats',opt.ranksum_stats);
     typeAsel=(sel_meta.typeAsel);

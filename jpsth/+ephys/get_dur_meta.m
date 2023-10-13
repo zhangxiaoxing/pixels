@@ -14,7 +14,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         out=dur_meta;
     else
         [~,~,sessmap]=ephys.sessid2path(0);
-        homedir=ephys.util.getHomedir('type','raw');
+        homedir=ephys.util.getHomedir();
         sesskeys=cell2mat(sessmap.keys());
         [out.wrs_p_s1,out.wrs_p_s2,out.fdr_s1,out.fdr_s2,out.selec_s1,out.selec_s2,...
             out.mem_type_s1,out.per_bin_s1,out.mem_type_s2,out.per_bin_s2,out.wave_id]=deal([]);

@@ -20,7 +20,7 @@ end
 if opt.load_file
     load(fullfile('binary',opt.filename),'su_meta');
 else
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     fl=dir(fullfile(homedir,'**','FR_All_1000.hdf5'));
     % [~,sidx]=sort({fl.folder}); sorted by default
     su_meta=cell2struct({cell(0);[];{};[]},{'allpath','allcid','reg_tree','sess'});
@@ -31,8 +31,11 @@ else
             keyboard
         end
         trials=h5read(fullfile(fl(fi).folder,fl(fi).name),'/Trials');
+        if strcmp(opt.criteria,'Learning')
+            ltrials=behav.procPerf(trials,"criteria","Learning");
+        end
         if (strcmp(opt.criteria,'WT') && sum(trials(:,9))<40)...
-            || (strcmp(opt.criteria,'Learning') && sum(trials(:,9))>=40)
+            || (strcmp(opt.criteria,'Learning') && (sum(trials(:,9))>=40 || sum(ltrials(:,9))<40))
             continue
         end
         if exist(fullfile(fl(fi).folder,'su_id2reg.csv'),'file')~=2

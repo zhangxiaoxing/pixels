@@ -28,7 +28,7 @@ susel=ismember(sel_meta.wave_id,ids);
 if opt.new_data
     decode_mat=struct();
     [~,~,sessmap]=ephys.sessid2path(0);
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     if opt.reg_sel
         regsel=ismember(su_meta.reg_tree(1,:),{'CH','BS'}).';
     else

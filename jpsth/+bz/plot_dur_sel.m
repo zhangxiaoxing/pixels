@@ -18,7 +18,7 @@ su=sc(pi,3);
 
 meta=ephys.util.load_meta('type','neupix','delay',6);
 
-% homedir=ephys.util.getHomedir('type','raw');
+% homedir=ephys.util.getHomedir();
 % fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
 % 
 % dpath=regexp(fl(ii).folder,'(?<=SPKINFO[\\/]).*$','match','once');

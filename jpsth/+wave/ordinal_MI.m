@@ -11,7 +11,7 @@ arguments
 end
 
 persistent out_
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 meta=ephys.util.load_meta();
 [~,~,sessmap]=ephys.sessid2path(0);
 

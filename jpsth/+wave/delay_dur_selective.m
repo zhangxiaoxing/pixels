@@ -6,7 +6,7 @@ arguments
 end
 
 meta_str=ephys.util.load_meta('type','neupix','delay',6);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 fl=dir(fullfile(homedir,'**','FR_All_1000.hdf5'));
 out=[];
 for ii=1:size(fl,1)

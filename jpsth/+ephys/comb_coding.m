@@ -19,7 +19,7 @@ svm_meta.pdur=ones(numel(su_meta.allcid),3);
 svm_meta.lo=opt.lo;
 svm_meta.hi=opt.hi;
 currstem=[];
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 for ii=opt.lo:opt.hi
     if ~strcmp(currstem,su_meta.allpath{ii})

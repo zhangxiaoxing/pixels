@@ -16,7 +16,7 @@ if isempty(fidx_)...
         || fidx ~= fidx_ ...
         || ~isequaln(opt,opt_)
 
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     folder=replace(ephys.sessid2path(fidx,'criteria',opt.criteria),'\',filesep());
     trials=h5read(fullfile(homedir,folder,'FR_All_1000.hdf5'),'/Trials');
     if isempty(opt.suids)

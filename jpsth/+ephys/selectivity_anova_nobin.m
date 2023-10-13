@@ -1,7 +1,7 @@
 %%CONST
 meta=ephys.util.load_meta();
 [~,~,sessmap]=ephys.sessid2path(0);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 % epochs=["sample","early_delay","late_delay","test","postreward","presample"];
 epochs=["alt_delay"];

@@ -7,7 +7,7 @@ arguments
     opt.mtype (1,:) char {mustBeMember(opt.mtype,{'memory','nonmem'})}='memory'
 end
 meta_str=ephys.util.load_meta('type','neupix');
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 fl=dir(fullfile(homedir,'**','FR_All_ 250.hdf5'));
 h11=[];
 h21=[];

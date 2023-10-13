@@ -14,7 +14,7 @@ anyselidxsel=any(abs(meta3.selec(5:7,:))>0.4 | abs(meta6.selec(5:7,:))>0.4);
 bothscsel=bothsel & regsel & selidxsel;
 eitherscsel=anysel & ~bothsel & regsel & anyselidxsel;
 
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 sem=@(x) std(x)./sqrt(size(x,1));
 semfill=@(x) [smooth(mean(x)-sem(x),3);smooth(fliplr(mean(x)+sem(x)),3)];

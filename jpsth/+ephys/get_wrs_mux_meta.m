@@ -1,4 +1,3 @@
-
 function out_=get_wrs_mux_meta(opt)
 arguments
     opt.permutation (1,1) logical = false
@@ -10,7 +9,6 @@ arguments
     opt.extend6s (1,1) logical = true
     opt.tag_ext6s_mem (1,1) logical = false
     opt.plot_venn (1,1) logical = false
-%     opt.odor_only (1,1) logical = true
     opt.filename (1,:) char = 'wrs_mux_meta.mat'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
@@ -22,7 +20,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         out=wrs_mux_meta;
     else
         [~,~,sessmap]=ephys.sessid2path(0,'criteria',opt.criteria);
-        homedir=ephys.util.getHomedir('type','raw');
+        homedir=ephys.util.getHomedir();
         sesskeys=cell2mat(sessmap.keys());
         [out.m_pref_id,out.o_pref_id,out.d_pref_id,out.p_mux,out.p_olf,out.p_dur,out.class_fr]=deal([]);
         if opt.extend6s
@@ -30,17 +28,27 @@ if isempty(out) || ~isequaln(opt,opt_)
         end
         for sessid=sesskeys
             disp(sessid);
-
             fpath=fullfile(homedir,replace(sessmap(sessid),("\"|"/"),filesep),"FR_All_1000.hdf5");
-
             fr=h5read(fpath,'/FR_All');
             trials=h5read(fpath,'/Trials');
+            switch opt.criteria % TODO : pending refactoring
+                case 'WT'
+                    s2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
+                    s1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
 
-            s2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
-            s1sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==4;
+                    d3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
+                    d6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
+                case 'Learning'
+                    trials=behav.procPerf(trials,'criteria','Learning');
+                    s2sel=trials(:,9)~=0 & trials(:,5)==8;
+                    s1sel=trials(:,9)~=0 & trials(:,5)==4;
 
-            d3sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==3;
-            d6sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,8)==6;
+                    d3sel=trials(:,9)~=0 & trials(:,8)==3;
+                    d6sel=trials(:,9)~=0 & trials(:,8)==6;
+                otherwise
+                    warning("Unfinished code path")
+                    keyboard()
+            end
 
             for suidx=1:size(fr,2)
                 [mpref_id,opref_id,dpref_id,ppmux,ppolf,ppdur]=deal(nan(1,3));
@@ -67,7 +75,6 @@ if isempty(out) || ~isequaln(opt,opt_)
                     else
                         bindpref=8;
                     end
-
 
                     % determine multimodal
                     otherid=setdiff(1:4,binmpref);
@@ -147,11 +154,6 @@ if isempty(out) || ~isequaln(opt,opt_)
         end
         
         out.wave_id=wave_id;
-%         if opt.odor_only
-%             out.wave_id(ismember(out.wave_id,1:2))=5;
-%             out.wave_id(ismember(out.wave_id,3:4))=6;
-%             out.wave_id(ismember(out.wave_id,7:8))=0;
-%         end
 
         if  opt.save_file
             wrs_mux_meta=out;

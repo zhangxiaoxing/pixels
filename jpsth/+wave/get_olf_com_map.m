@@ -19,7 +19,7 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(sel_meta
         usess=opt.one_sess;
     end
 
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     com_str=struct();
     if opt.rnd_half
         com_str_h2=struct();

@@ -19,7 +19,7 @@ if isempty(anovameta) || ~isequaln(opt,opt_)
         load('anovameta.mat','anovameta')
     else
         [~,~,sessmap]=ephys.sessid2path(0);
-        homedir=ephys.util.getHomedir('type','raw');
+        homedir=ephys.util.getHomedir();
         anovameta=struct();
         [anovameta.sess,anovameta.allcid,anovameta.anovap,anovameta.dur_selidx,...
             anovameta.fdr_sense,anovameta.fdr_dur,anovameta.fdr_interact]=deal([]);

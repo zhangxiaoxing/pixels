@@ -6,7 +6,7 @@ trkfile=["42_20191125_g0\42_20191125_g0_imec0_cleaned",...
     "M42_20191121_g0\M42_20191121_g0_imec0_cleaned",...
     "M42_20191123_gc\M42_20191123_gc_imec0_cleaned"];
 
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 for dd=trkfile
     f=fullfile(homedir,dd,'FR_All_ 250.hdf5');

@@ -18,7 +18,7 @@ if nargout>0
 end
 
 [~,~,sessmap]=ephys.sessid2path(0);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 [s1_FR_3,s2_FR_3,s1_FR_6,s2_FR_6,s1_FR_3_t1,s2_FR_3_t1,s1_FR_6_t1,s2_FR_6_t1,waveids,comalls1,comalls2]=deal([]);
 [s1shufmat,s2shufmat]=deal(cell(1,2*opt.stats_rpt));

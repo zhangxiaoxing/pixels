@@ -10,7 +10,7 @@ if opt.new_data
 
     [~,~,sessmap]=ephys.sessid2path(0);
     meta=ephys.util.load_meta();
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     for ii=54%reshape(cell2mat(sessmap.keys()),1,[])
         disp(ii)
         fpath=fullfile(homedir,sessmap(ii),"FR_All_1000.hdf5");

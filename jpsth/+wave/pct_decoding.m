@@ -34,7 +34,7 @@ if opt.new_data
     decode_mat=struct();
     [~,~,sessmap]=ephys.sessid2path(0);
     meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     regsel=ismember(meta.reg_tree(1,:),{'CH','BS'}).';
     %% pct-loop
     frmap=struct();

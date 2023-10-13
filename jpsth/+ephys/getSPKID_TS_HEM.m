@@ -8,7 +8,7 @@ end
 
 persistent fstr sessid_
 if isempty(fstr) || sessid_~=sessid
-    homedir=ephys.util.getHomedir('type','raw','dtype','AIOPTO');
+    homedir=ephys.util.getHomedir('dtype','AIOPTO');
     fpath=ephys.sessid2path(sessid,'type','AIOPTO');
     fstr=load(fullfile(homedir,fpath,'FT_SPIKE.mat'));
     fstr.FT_SPIKE.labelid=cellfun(@(x) str2double(x),fstr.FT_SPIKE.label);

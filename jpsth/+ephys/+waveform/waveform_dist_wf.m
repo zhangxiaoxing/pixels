@@ -9,7 +9,7 @@
 % aligned to baseline during extraction
 
 [~,~,sessmap]=ephys.sessid2path(0);
-homedir=replace(ephys.util.getHomedir('type','raw'),'SPKINFO','WF');
+homedir=replace(ephys.util.getHomedir(),'SPKINFO','WF');
 
 wf_stats=[];
 for sesskey=reshape(cell2mat(sessmap.keys()),1,[])

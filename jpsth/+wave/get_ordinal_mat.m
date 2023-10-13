@@ -13,7 +13,7 @@ if opt.new_data
     MI=wave.ordinal_MI();
     [~,~,sessmap]=ephys.sessid2path(0);
     meta=ephys.util.load_meta();
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     for ii=reshape(cell2mat(sessmap.keys()),1,[])
         disp(ii)
         fpath=fullfile(homedir,sessmap(ii),"FR_All_ 250.hdf5");

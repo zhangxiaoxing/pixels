@@ -4,7 +4,7 @@ arguments
 end
 % persistent com_str onepath_ delay_ selidx_ decision_ rnd_half_ curve_
 [~,~,sessmap]=ephys.sessid2path(0);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 [p_FR_3,np_FR_3,p_FR_6,np_FR_6]=deal([]);
 figure('Color','w')
 spid=1;

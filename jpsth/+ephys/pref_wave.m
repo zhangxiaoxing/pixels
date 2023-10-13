@@ -5,7 +5,7 @@ su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 prefwave.pref_id=zeros(size(su_meta.allcid));
 prefwave.fr_13_23_16_26=zeros(numel(su_meta.allcid),4);
 currstem=[];
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 for ii=1:numel(su_meta.allcid)
     if ~strcmp(currstem,su_meta.allpath{ii})
         currstem=su_meta.allpath{ii};

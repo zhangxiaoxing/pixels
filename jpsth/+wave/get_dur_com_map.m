@@ -11,7 +11,7 @@ persistent com_str opt_
 
 if true || isempty(com_str) || ~isequaln(opt,opt_)
 
-    homedir=ephys.util.getHomedir('type','raw');
+    homedir=ephys.util.getHomedir();
     meta=ephys.util.load_meta('skip_stats',true);
     com_str=struct();
     usess=unique(meta.sess);

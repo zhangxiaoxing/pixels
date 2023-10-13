@@ -4,7 +4,7 @@ function out=effect_size_meta()
 %% gen data
 curr_sess=-1;
 meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 out=struct();
 out.cohen_d_olf=nan(numel(meta.allcid),3);
 out.cohen_d_dur=nan(numel(meta.allcid),3);

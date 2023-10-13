@@ -11,7 +11,7 @@ if isempty(kwh_meta) || ~isequaln(opt,opt_)
         load('kwh_meta.mat','kwh_meta')
     else
         [~,~,sessmap]=ephys.sessid2path(0);
-        homedir=ephys.util.getHomedir('type','raw');
+        homedir=ephys.util.getHomedir();
         kwh_meta=struct();
         [kwh_meta.sess,kwh_meta.allcid,kwh_meta.kwh_p,kwh_meta.fr,...
             kwh_meta.fdr_sel,kwh_meta.b,kwh_meta.in_m]=deal([]);

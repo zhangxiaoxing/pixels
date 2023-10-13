@@ -14,7 +14,7 @@ arguments
 end
 % close all
 set(groot,'defaultTextFontSize',10);
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 for ii=reshape(metaidx,1,[])
 
     fpath=fullfile(homedir,su_meta.allpath{ii},'FR_All_ 250.hdf5');

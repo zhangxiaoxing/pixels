@@ -4,7 +4,7 @@ arguments
     opt.per_bin (1,1) logical = false
 end
 meta=ephys.util.load_meta();
-homedir=ephys.util.getHomedir('type','raw');
+homedir=ephys.util.getHomedir();
 
 [selidx,eselidx]=deal([]);
 

@@ -1,7 +1,7 @@
 function [avail,dist]=get_spatial_dist(reg1,reg2)
 persistent reg_coord_map_
 if isempty(reg_coord_map_)
-    homedir=ephys.util.getHomedir('type','raw','dtype','neupix');
+    homedir=ephys.util.getHomedir('dtype','neupix');
     load(fullfile(replace(homedir,'SPKINFO','track_meta'),'reg2coord.mat'),'reg_coord_map');
     reg_coord_map_=reg_coord_map;
 end
