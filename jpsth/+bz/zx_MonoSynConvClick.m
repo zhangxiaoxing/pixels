@@ -138,7 +138,7 @@ for i = 1:2:length(varargin)
             
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) ''' (type ''help LoadBinary'' for details).']);
-            
+          
 
     end
 end
@@ -211,7 +211,6 @@ for refcellID=1:max(IDindex)
 %         end
         
         
-        
         % Store predicted values and pvalues for subsequent plotting
         Pred(:,refcellID,cell2ID)=pred;
         Pval(:,refcellID,cell2ID)=pvals(:);
@@ -246,7 +245,6 @@ for refcellID=1:max(IDindex)
         sigud  = flipud(sig);
         sigpost=max(cch(postbins))>poissinv(1-alpha,max(cch(prebins)));
         sigpre=max(cchud(postbins))>poissinv(1-alpha,max(cchud(prebins)));
-        
         
         %define likelihood of being a connection
         pvals_causal = 1 - poisscdf( max(cch(postbins)) - 1, max(cch(prebins) )) - poisspdf( max(cch(postbins)), max(cch(prebins)  )) * 0.5;
@@ -286,20 +284,13 @@ for refcellID=1:max(IDindex)
         
         %check which is bigger
         if (any(sigud(prebins)) && sigpre)
-            
             %test if causal is bigger than anti causal
-            
-            
             sig_con = [sig_con;cell2ID refcellID];
-            
         end
         
         if any(sig(postbins)) && sigpost
-            
             sig_con = [sig_con;refcellID cell2ID];
         end
-        
-        
         
     end
     
@@ -315,8 +306,6 @@ n = histc(spikeIDs(:,3),1:length(allID));
 
 temp = ccgR - Pred;
 prob = temp./permute(repmat(nn2,1,1,size(ccgR,1)),[3 1 2]);
-
-
 
 %save outputs
 mono_res.ccgR = ccgR;

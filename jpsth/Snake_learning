@@ -1,0 +1,13 @@
+rule gen_all_learning_coupling:
+	input:
+		expand("binary/SC/WT_BZ_XCORR_duo_{fidx}.mat",fidx=list(range(1,config["lastfile"])))
+
+rule gen_one_learning_coupling:
+	input:
+	output:
+		"binary/SC/WT_BZ_XCORR_duo_{fidx}.mat"
+	threads: 4
+	shell:
+		'matlab -noFigureWindows -batch "bz.xcorr_bz(fidx={wildcards.fidx},'"criteria='Learning'"')"'
+
+
