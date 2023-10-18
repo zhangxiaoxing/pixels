@@ -5,12 +5,15 @@ arguments
         {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}
     opt.inhibit (1,1) logical = false
     opt.override (1,1) logical = false
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 global gather_config
 if ~isempty(gather_config)
     if gather_config.fc_win==10
         if opt.inhibit
             opt.fn='sums_conn_inhib_10.mat';
+        elseif strcmp(opt.criteria,'Learning')
+            opt.fn=fullfile('sums_conn_learning.mat');
         else
             opt.fn='sums_conn_10.mat';
         end
@@ -29,12 +32,14 @@ assert(isfield(opt,'fn') && ~isempty(opt.fn),'FC window undefined')
 persistent sig pair opt_
 if isempty(sig) || isempty(pair) || ~isequaln(opt,opt_) || opt.override
     warning(['using FC file ',opt.fn]);
-    meta=ephys.util.load_meta('skip_stats',true);
+    meta=ephys.util.load_meta('skip_stats',true,'criteria',opt.criteria,'load_file',false,'save_file',false,'adjust_white_matter',true);
     conn_str=load(fullfile("binary",opt.fn));
     flns=fieldnames(conn_str);
     fln=flns{startsWith(flns,'sums_conn')};
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
     idmap.reg2ccfid('')=0;
+    nansel=cellfun(@(x) any(isnan(x)),meta.reg_tree,'UniformOutput',true);
+    meta.reg_tree(nansel)={''};
     meta.ccfid=int32(cell2mat(idmap.reg2ccfid.values(meta.reg_tree)));
 
     sig=struct();

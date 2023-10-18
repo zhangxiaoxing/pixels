@@ -12,14 +12,10 @@ if isunix && isempty(pool)
 end
 if strcmp(opt.type,'neupix')
     if strcmp(opt.criteria,'Learning')
-        fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*_Learning.mat',opt.prefix)));
-        sfn='sums_conn_learning.mat';
+        fl=dir(fullfile('binary','SC','Learning_BZ_XCORR_duo_f*.mat'));
+        sfn=fullfile('binary','sums_conn_learning.mat');
     else
-        if ispc
-            fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
-        elseif isunix
-            fl=dir(fullfile('/media/SSD2','bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
-        end
+        fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
         if opt.inhibit
             sfn='sums_conn_inhibit.mat';
         else

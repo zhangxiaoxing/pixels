@@ -10,6 +10,7 @@ if isempty(map) || ~isequaln(opt,opt_)
     if strcmp(opt.type,'neupix')
         if strcmp(opt.criteria,'WT')
             su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true);
+        elseif 
         else
             error("Unfinished");
         end
