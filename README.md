@@ -16,6 +16,8 @@ This repository hosts necessary codes for the statistics and visualization in FN
 
 ### Bleeding edge data pipeline
 
-- The workflow management system Snakemake manages the essential code for evaluating submitted or publicly presented data. The Snakefile with the default rules could be found at (repo-root)/jpsth/Snakefile.
+- The workflow management system Snakemake manages the essential code for evaluating submitted or publicly presented data.
 
-- The codes are currently in active development.
+- The Snakefile with the default rules could be found at {repo-root}/jpsth/Snakefile.
+
+- The codes are currently in active development, occasional errors and regressions are expected. 
