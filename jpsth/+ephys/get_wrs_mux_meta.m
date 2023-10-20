@@ -158,7 +158,7 @@ if isempty(out) || ~isequaln(opt,opt_)
         if  opt.save_file
             wrs_mux_meta=out;
             blame=vcs.blame();
-            save(fullfile('binary',opt.filename),'wrs_mux_meta');
+            save(fullfile('binary',opt.filename),'wrs_mux_meta','blame');
         end
     end
 

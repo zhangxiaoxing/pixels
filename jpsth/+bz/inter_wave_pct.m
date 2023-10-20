@@ -7,22 +7,27 @@ arguments
     opt.asym_congru (1,1) logical = false
     opt.odor_only (1,1) logical = true
     opt.skip_save (1,1) logical = true
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 if isempty(sel_meta)
-    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
-    sel_meta=fstr.wrs_mux_meta;
-    clear fstr
+    if strcmp(opt.criteria,'WT')
+        fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+        sel_meta=fstr.wrs_mux_meta;
+        clear fstr
+    elseif strcmp(opt.criteria,'Learning')
+        sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+    end
 end
 
 % persistent sig pair
 global_init;
-[sig,pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',opt.inhibit);
+[sig,pair]=bz.load_sig_sums_conn_file('pair',true,'inhibit',opt.inhibit,'criteria',opt.criteria);
 if opt.odor_only
     sel_meta.wave_id(ismember(sel_meta.wave_id,7:8))=0;
 end
-sig=bz.join_fc_waveid(sig,sel_meta.wave_id);
-pair=bz.join_fc_waveid(pair,sel_meta.wave_id);
+sig=bz.join_fc_waveid(sig,sel_meta.wave_id,'criteria',opt.criteria);
+pair=bz.join_fc_waveid(pair,sel_meta.wave_id,'criteria',opt.criteria);
 
 %>>>>>>>>>>>>>>>>>>Skip hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);

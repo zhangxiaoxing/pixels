@@ -1,21 +1,21 @@
-function [com_str_,com_str_h2]=get_pct_com_map(pct_meta,opt)
+function [com_str_,com_str_h2]=get_pct_com_map(sel_meta,opt)
 arguments
-    pct_meta  (1,1) struct
+    sel_meta  (1,1) struct
     opt.one_sess (1,:) double = [] % process one session under the given non-empty path
-    opt.curve (1,1) logical = false % Norm. FR curve % always true as of 2023.08.08
+    opt.curve (1,1) logical = true % Norm. FR curve % always true as of 2023.08.08
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
     opt.err (1,1) logical = false %u stats in error trials
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
     opt.append_late_delay (1,1) logical = false % Uses stats from early delay but include illustration for late delay
-    opt.band_width (1,1) double {mustBeMember(opt.band_width,1:2)} = 1
-    opt.odor_only (1,1) logical = false % exclude duration-only neurons
+    opt.odor_only (1,1) logical = true % exclude duration-only neurons % Always true for the 2023 pipeline
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 assert(opt.curve,"/curve/ always true since Aug-2023")
 %TODO proper declaration
 persistent com_str opt_ pct_meta_
 assert(~(opt.rnd_half && opt.err), 'Unable to handle 2Fold CV and error trial in same run')
-if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,pct_meta)
-    meta=ephys.util.load_meta('skip_stats',true);
+if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta_,sel_meta)
+    meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true,'criteria',opt.criteria,'load_file',false);
     if isempty(opt.one_sess)
         usess=unique(meta.sess);
     else
@@ -31,25 +31,25 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
     pct_sel=struct();
 
     %%  odor, mixed
-    pct_sel.s1d3=pct_meta.wave_id==1;
-    pct_sel.s1d6=pct_meta.wave_id==2;
-    pct_sel.s2d3=pct_meta.wave_id==3;
-    pct_sel.s2d6=pct_meta.wave_id==4;
+    pct_sel.s1d3=sel_meta.wave_id==1;
+    pct_sel.s1d6=sel_meta.wave_id==2;
+    pct_sel.s2d3=sel_meta.wave_id==3;
+    pct_sel.s2d6=sel_meta.wave_id==4;
 
-    pct_sel.olf_s1=pct_meta.wave_id==5;
-    pct_sel.olf_s2=pct_meta.wave_id==6;
+    pct_sel.olf_s1=sel_meta.wave_id==5;
+    pct_sel.olf_s2=sel_meta.wave_id==6;
 
     ffs=["s1d3","s2d3","s1d6","s2d6","olf_s1","olf_s2"];
 
     if ~opt.odor_only %% duration only
-        pct_sel.dur_d3=pct_meta.wave_id==7;
-        pct_sel.dur_d6=pct_meta.wave_id==8;
+        pct_sel.dur_d3=sel_meta.wave_id==7;
+        pct_sel.dur_d6=sel_meta.wave_id==8;
         ffs=[ffs,"dur_d3","dur_d6"];
     end
 
     for sessid=reshape(usess,1,[])
 
-        fpath=fullfile(homedir,ephys.sessid2path(sessid),'FR_All_ 250.hdf5');
+        fpath=fullfile(homedir,ephys.sessid2path(sessid,"criteria",opt.criteria),'FR_All_ 250.hdf5');
         sesssel=meta.sess==sessid;
         if ~any(sesssel), continue;end
         fpath=replace(fpath,'\',filesep());
@@ -65,11 +65,20 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
             if min([numel(trl.cs1d3);numel(trl.cs2d3);numel(trl.cs1d6);numel(trl.cs2d6)],[],'all')<2
                 continue
             end
-        else
+        elseif strcmp(opt.criteria,'Learning')
+            trials=behav.procPerf(trials,'criteria','Learning');
+            trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0);
+            trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0);
+            trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0);
+            trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0);
+
+        elseif strcmp(opt.criteria,'WT')
             trl.cs1d3=find(trials(:,5)==4 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
             trl.cs2d3=find(trials(:,5)==8 & trials(:,8)==3 & trials(:,9)>0 & trials(:,10)>0);
             trl.cs1d6=find(trials(:,5)==4 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
             trl.cs2d6=find(trials(:,5)==8 & trials(:,8)==6 & trials(:,9)>0 & trials(:,10)>0);
+        else
+            keyboard()
         end
 
         sess=['s',num2str(sessid)];
@@ -138,7 +147,7 @@ if opt.rnd_half || isempty(com_str) || ~isequaln(opt,opt_) || ~isequaln(pct_meta
 end
 com_str_=com_str;
 opt_=opt;
-pct_meta_=pct_meta;
+pct_meta_=sel_meta;
 end
 
 function com_str=per_su_process_mix(sess,suid,msel,fr,trls,com_str,type,opt)

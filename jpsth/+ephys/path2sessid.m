@@ -5,16 +5,19 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 persistent opt_ map
-
+path=replace(path,("\"|"/"),filesep());
+if contains(path,'SPKINFO')
+    path=regexp(path,'(?<=SPKINFO(\\|/)).*','match','once');
+end
 if isempty(map) || ~isequaln(opt,opt_)
     if strcmp(opt.type,'neupix')
-        if strcmp(opt.criteria,'WT')
-            su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true);
-        elseif 
+        if ismember(opt.criteria,{'WT','Learning'})
+            su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,'load_file',false,'criteria',opt.criteria);
         else
             error("Unfinished");
         end
-        map=containers.Map(su_meta.allpath,su_meta.sess);
+    
+        map=dictionary(string(replace(su_meta.allpath,("\"|"/"),filesep())),su_meta.sess);
     else
         error("Unfinished");
     end

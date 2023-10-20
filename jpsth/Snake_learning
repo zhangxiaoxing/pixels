@@ -1,9 +1,6 @@
 #snakemake -s Snake_learning --cluster "sbatch -p stor -c 8 --parsable -o .snakemake/slurm_logs/{rule}/%j.out -e .snakemake/slurm_logs/{rule}/%j.err" --max-jobs-per-second  0.01 --cluster-status ./cluster_status.sh -j 100 -pr gen_all_learning_coupling --config lastfile=40
 
 
-
-
-
 rule gen_all_learning_coupling:
 	input:
 		expand("binary/SC/Learning_BZ_XCORR_duo_f{fidx}.mat",fidx=list(range(1,config["lastfile"])))
@@ -16,4 +13,10 @@ rule gen_one_learning_coupling:
 	shell:
 		'matlab -noFigureWindows -batch "bz.xcorr_bz({wildcards.fidx},'"criteria='Learning'"')"'
 
-
+rule gen_SC_sums_file:
+	input:
+	output:
+		"binary/sums_conn_learning.mat"
+	threads: 40
+	shell:
+		'matlab -noFigureWindows -batch "bz.sums_conn(poolsize={threads},criteria='"'Learning')"'"'

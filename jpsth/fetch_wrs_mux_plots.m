@@ -162,8 +162,8 @@ end
 stats_half_half_fh=wave.COM_half_half_wrs_mux('iti',true);
 
 %% wave 
-fh3=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',3);
-[fh6,imdata]=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',6);
+% fh3=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',3);
+% [fh6,imdata]=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',6);
 if false
 fid=fopen(fullfile('binary','upload','F1Q_R_Mean_FR_wave_sort_by_TCOM.json'),'w');
 fprintf(fid,jsonencode(imdata));

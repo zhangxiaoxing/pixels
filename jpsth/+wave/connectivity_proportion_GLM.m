@@ -12,7 +12,7 @@ arguments
     opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
     opt.stats_type (1,:) char
     opt.data_type (1,:) char
-    
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 if opt.corr2 || opt.corr3
@@ -23,7 +23,7 @@ end
 %map_cells from K:\code\jpsth\+ephys\Both_either_reg_bars.m
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-grey_regs=ephys.getGreyRegs('range',opt.range);
+grey_regs=ephys.getGreyRegs('range',opt.range,'criteria',opt.criteria);
 
 sink_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_targets');
 src_ccfid=h5read(fullfile('..','allensdk','proj_mat.hdf5'),'/grey_srcs');
@@ -143,7 +143,7 @@ for featii=1:numel(fns) % both, either, summed
             ylabel('Connectivity-coding proportion correlation (Pearson''s r)')
             set(gca(),'XTick',1:size(s_list,1),'XTickLabel',xlbl,'XTickLabelRotation',90);
             
-            sgtitle(fns{featii});
+            sgtitle(fns{featii},'Interpreter','none');
 %                 title(sprintf('epoch%d-feature%d',epochii,featii))
             ylim([-1,1]);
 

@@ -4,7 +4,7 @@
 
 classdef chain_tag < handle
     methods(Static)
-        function [out,notfound,trials_dict]=tag(chains,len_thresh,opt)
+        function [out,notfound]=tag(chains,len_thresh,opt)
             arguments
                 chains
                 len_thresh (1,1) double
@@ -24,6 +24,7 @@ classdef chain_tag < handle
                 opt.load_file (1,1) logical = false % reserved but not used
                 opt.filename (1,:) char = 'chain_tag.mat'
                 opt.poolsize (1,1) double = 2
+                opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
             end
 
             assert(~opt.load_file,"Unfinished yet")
@@ -32,9 +33,16 @@ classdef chain_tag < handle
                 assert(opt.shuf_idx>0,"index is necessary for shuffled data")
             end
 
-            if opt.ccg
-                load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
-            end
+            % if opt.ccg
+            %     switch opt.criteria
+            %         case 'WT'
+            %             load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
+            %         case 'Learning'
+            %             load(fullfile("binary","sums_conn_learning.mat"),'sums_conn_str');
+            %         otherwise
+            %             keyboard()
+            %     end
+            % end
 
             ch_len=cellfun(@(x) numel(x),chains.cids);
             if isempty(opt.sesses)
@@ -69,7 +77,6 @@ classdef chain_tag < handle
 
             % fini=[];
             notfound=cell(0,3);
-            trials_dict=dictionary([],cell(0));
             while ~all([F.Read],'all')
                 % try
                     [ftidx,sess_out,sess_notfound]=fetchNext(F);
@@ -99,7 +106,11 @@ classdef chain_tag < handle
                 elseif opt.shuf_trl
                     save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','notfound','blame');
                 else
-                    save(fullfile('binary',opt.filename),'out','notfound','blame','-v7.3')
+                    if strcmp(opt.criteria,'WT')
+                        save(fullfile('binary',opt.filename),'out','notfound','blame','-v7.3')
+                    else
+                        keyboard()
+                    end
                 end
             end
 
@@ -125,19 +136,29 @@ classdef chain_tag < handle
 
         function [sess_out,sess_notfound]=per_session_func(chains,len_thresh,ch_len,sessid, duration,waveids,opt)
     	    [sess_out,sess_notfound]=deal([]);
-            load(fullfile('binary','trials_dict.mat'),'trials_dict');
-            trials=cell2mat(trials_dict(sessid));
+            switch opt.criteria
+                case 'WT'
+                    load(fullfile('binary','trials_dict.mat'),'trials_dict');
+                    trials=cell2mat(trials_dict(sessid));
+                case 'Learning'
+                    trials_dict=behav.get_trials_dict('skip_save',true,'criteria','Learning');
+                    trials=cell2mat(trials_dict(sessid));
+                    trials=behav.procPerf(trials,"criteria","Learning");
+                    trials(:,10)=trials(:,9);
+                otherwise
+                    keyboard()
+            end
+            
             for wid=waveids
                 if (contains(wid,'d3') && duration==6) ...
                         || (contains(wid,'d6') && duration ==3)
                     continue
                 end
+            
                 if contains(wid,'s1')
                     trial_sel=find(trials(:,5)==4 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
-                    % outid="olf_s1";
                 elseif contains(wid,'s2')
                     trial_sel=find(trials(:,5)==8 & trials(:,8)==duration & all(trials(:,9:10)>0,2));
-                    % outid="olf_s2";
                 else
                     if opt.odor_only && contains(wid,'dur')
                         continue
@@ -154,7 +175,7 @@ classdef chain_tag < handle
                     sess_indices=opt.idces;
                 end
                 if ~exist('FT_SPIKE','var')
-                    [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true);
+                    [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true,'criteria',opt.criteria);
                 end
                 for cc=sess_indices
                     ts_id=[];
@@ -231,23 +252,23 @@ classdef chain_tag < handle
                                 'session','delay','wave','chain_id','ts','meta','ts_id'});
                         end
                         % CCG
-                        if opt.ccg
-                            cursess=chains.sess(cc);
-                            sesspath=ephys.sessid2path(cursess);
-                            strippath=regexp(sesspath,'(?<=\\).*','match');
-                            sesssel=find(contains({sums_conn_str.folder},strippath));
-                            ccg=sums_conn_str(sesssel).ccg_sc;
-                            ccgid=sums_conn_str(sesssel).sig_con;
-                            chainccg=[];
-                            for ii=1:numel(cids)-1
-                                sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
-                                if nnz(sigsel)~=1
-                                    keyboard()
-                                end
-                                chainccg=[chainccg;ccg(sigsel,:)];
-                            end
-                            sess_out.("d"+duration).(outid).(outkey).ccgs=chainccg;
-                        end
+                        % if opt.ccg
+                        %     cursess=chains.sess(cc);
+                        %     sesspath=ephys.sessid2path(cursess);
+                        %     strippath=regexp(sesspath,'(?<=\\).*','match');
+                        %     sesssel=find(contains({sums_conn_str.folder},strippath));
+                        %     ccg=sums_conn_str(sesssel).ccg_sc;
+                        %     ccgid=sums_conn_str(sesssel).sig_con;
+                        %     chainccg=[];
+                        %     for ii=1:numel(cids)-1
+                        %         sigsel=ccgid(:,1)==cids(ii) & ccgid(:,2)==cids(ii+1);
+                        %         if nnz(sigsel)~=1
+                        %             keyboard()
+                        %         end
+                        %         chainccg=[chainccg;ccg(sigsel,:)];
+                        %     end
+                        %     sess_out.("d"+duration).(outid).(outkey).ccgs=chainccg;
+                        % end
                     else
                         sess_notfound=[sess_notfound;{sessid},{cc},{cids}];
                     end

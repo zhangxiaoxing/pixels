@@ -13,7 +13,7 @@ if ~isempty(gather_config)
         if opt.inhibit
             opt.fn='sums_conn_inhib_10.mat';
         elseif strcmp(opt.criteria,'Learning')
-            opt.fn=fullfile('sums_conn_learning.mat');
+            opt.fn='sums_conn_learning.mat';
         else
             opt.fn='sums_conn_10.mat';
         end
@@ -38,8 +38,6 @@ if isempty(sig) || isempty(pair) || ~isequaln(opt,opt_) || opt.override
     fln=flns{startsWith(flns,'sums_conn')};
     idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
     idmap.reg2ccfid('')=0;
-    nansel=cellfun(@(x) any(isnan(x)),meta.reg_tree,'UniformOutput',true);
-    meta.reg_tree(nansel)={''};
     meta.ccfid=int32(cell2mat(idmap.reg2ccfid.values(meta.reg_tree)));
 
     sig=struct();
@@ -49,7 +47,7 @@ if isempty(sig) || isempty(pair) || ~isequaln(opt,opt_) || opt.override
     for ii=1:numel(conn_str.(fln))
         t=conn_str.(fln)(ii);
         t.sig_con=reshape(t.sig_con,[],2);
-        sess=ephys.path2sessid(t.folder);
+        sess=ephys.path2sessid(t.folder,'criteria',opt.criteria);
         cid=meta.allcid(meta.sess==sess);
         ccfid=meta.ccfid(:,meta.sess==sess);
         sig.suid=[sig.suid;int32(t.sig_con)];

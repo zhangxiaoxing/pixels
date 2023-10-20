@@ -6,11 +6,12 @@ classdef fc_com_reg_wave < handle
                 reg_com_maps
                 opt.delay (1,1) double {mustBeMember(opt.delay,[3 6])} = 6
                 opt.odor_only (1,1) logical = false
+                opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT'})} = 'WT'
             end
 
             idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-            [sig,~]=bz.load_sig_sums_conn_file();
-            sig=bz.join_fc_waveid(sig,wrs_mux_meta.wave_id);
+            [sig,~]=bz.load_sig_sums_conn_file("criteria",opt.criteria);
+            sig=bz.join_fc_waveid(sig,wrs_mux_meta.wave_id,"criteria",opt.criteria);
                 
             grey=reg_com_maps.("tcom"+opt.delay+"_maps").odor_only.keys;
 
@@ -192,16 +193,31 @@ classdef fc_com_reg_wave < handle
         end
 
 
-        function fh=run_all()
-            load(fullfile('binary','wrs_mux_meta.mat'));
-            reg_com_maps=wave.get_reg_com_maps(wrs_mux_meta);
-            scstats6=fc.fc_com_reg_wave.stats(wrs_mux_meta,reg_com_maps,'delay',6,'odor_only',true);
-            scstats3=fc.fc_com_reg_wave.stats(wrs_mux_meta,reg_com_maps,'delay',3,'odor_only',true);
+        function fh=run_all(opt)
+            arguments
+                opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT'})} = 'WT'
+            end
+            switch opt.criteria
+                case 'WT'
+                    load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
+                    sel_meta=wrs_mux_meta;
+                    sfn=fullfile('binary','SC_consistent_inconsistent.fig');
+                case 'Learning'
+                    sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+                    sfn=fullfile('binary','LN_SC_consistent_inconsistent.fig');
+                otherwise
+                    keyboard();
+            end
+
+            reg_com_maps=wave.get_reg_com_maps(sel_meta,"criteria",opt.criteria);
+            scstats6=fc.fc_com_reg_wave.stats(sel_meta,reg_com_maps,'delay',6,'odor_only',true,'criteria',opt.criteria);
+            scstats3=fc.fc_com_reg_wave.stats(sel_meta,reg_com_maps,'delay',3,'odor_only',true,'criteria',opt.criteria);
             scstats=[scstats6;scstats3];
 
             [barmm,barci,barcnt]=fc.fc_com_reg_wave.sums(scstats,"odor_only",true);
             fh=fc.fc_com_reg_wave.plot(barmm,barci,barcnt);
-            savefig(fh,fullfile('binary','SC_consistent_inconsistent.fig'));
+            
+            savefig(fh,sfn);
             if false
                 types=repmat("Undefined",size(scstats,1),1);
                 types(pct.su_pairs.get_congru(scstats.waveid))="Congruent";

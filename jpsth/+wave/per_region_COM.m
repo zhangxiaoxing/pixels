@@ -10,6 +10,7 @@ arguments
     opt.selidx (1,1) logical = false % calculate COM of selectivity index
     opt.sel_type (1,:) char {mustBeMember(opt.sel_type,{'mixed','olf','dur','odor_only'})}
     opt.com_field (1,:) char {mustBeMember(opt.com_field,{'com','com3','com6'})}='com'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 global gather_config
@@ -20,7 +21,7 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     % per region COM
 
     % COM->SU->region
-    su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true); % TODO: move out of function
+    su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true,'criteria',opt.criteria); % TODO: move out of function
     sess=fieldnames(com_map);
 
     com_meta=cell(0,9);
@@ -61,6 +62,7 @@ if isempty(com_meta_) || isempty(collection_) || ~isequaln(opt,opt_) || ~isequal
     colormap('turbo')
     ch=colorbar('Ticks',0:0.25:1,'TickLabels',1:5);
     ch.Label.String='Mean F.R. COM';
+    
     sum1=nnz(ismember(com_meta(:,4),{'CH','BS'}));
     set(gca,'XTick',0.1:0.2:0.9,'XTickLabel',1:5,'YTick',(0:2000:8000)/sum1,'YTickLabel',0:2000:8000,'YDir','reverse')
     xlabel('Allen CCF tree branch level')

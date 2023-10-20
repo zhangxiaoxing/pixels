@@ -12,11 +12,19 @@ arguments
     opt.cross_only (1,1) logical = false
     opt.shuf (1,1) logical = false
     opt.shuf_data = []
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     
 end
 assert(opt.odor_only,"Unfinished")
 if ~opt.shuf
-    load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
+        case 'Learning'
+            load(fullfile("binary","sums_conn_learning.mat"),'sums_conn_str');
+        otherwise
+            keyboard()
+    end
 else
     sums_conn_str=zeros(max(opt.shuf_data.sess),1);
 end
@@ -36,7 +44,7 @@ for fidx=1:numel(sums_conn_str)
         if isempty(dpath)
             dpath=ffpath;
         end
-        sessid=ephys.path2sessid(dpath);
+        sessid=ephys.path2sessid(dpath,'criteria',opt.criteria);
     end
     sess_sel=su_meta.sess==sessid;
     %separate 3s & 6s

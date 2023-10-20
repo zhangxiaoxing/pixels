@@ -1,6 +1,6 @@
 %TODO Waveform based SU filter
 
-function su_meta=load_meta(opt)
+function su_meta_=load_meta(opt)
 arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
@@ -12,58 +12,64 @@ arguments
     opt.filename (1,:) char = 'su_meta.mat'
 end
 assert(opt.skip_stats,"stats have been relocated")
+persistent su_meta opt_
+if isempty(su_meta) || ~isequaln(opt,opt_)
+    global gather_config
+    if ~isempty(gather_config)
+        opt.adjust_white_matter=gather_config.adjust_white_matter;
+    end
+    if opt.load_file
+        load(fullfile('binary',opt.filename),'su_meta');
+    else
+        homedir=ephys.util.getHomedir();
+        fl=dir(fullfile(homedir,'**','FR_All_1000.hdf5'));
+        % [~,sidx]=sort({fl.folder}); sorted by default
+        su_meta=cell2struct({cell(0);[];{};[]},{'allpath','allcid','reg_tree','sess'});
+        wtsessidx=1;
+        for fi=1:numel(fl)
+            suids=h5read(fullfile(fl(fi).folder,fl(fi).name),'/SU_id');
+            if isempty(suids)
+                keyboard
+            end
+            trials=h5read(fullfile(fl(fi).folder,fl(fi).name),'/Trials');
+            if strcmp(opt.criteria,'Learning')
+                ltrials=behav.procPerf(trials,"criteria","Learning");
+            end
+            if (strcmp(opt.criteria,'WT') && sum(trials(:,9))<40)...
+                    || (strcmp(opt.criteria,'Learning') && (sum(trials(:,9))>=40 || sum(ltrials(:,9))<40))
+                continue
+            end
+            if exist(fullfile(fl(fi).folder,'su_id2reg.csv'),'file')~=2
+                continue
+            end
+            do=detectImportOptions(fullfile(fl(fi).folder,'su_id2reg.csv'));
+            do=setvartype(do,do.VariableNames,{'double','double','char','char','char','char','char','char'});
+            regtbl=readtable(fullfile(fl(fi).folder,'su_id2reg.csv'),do);
+            su_meta.allcid=[su_meta.allcid;suids];
+            su_meta.sess=[su_meta.sess;repmat(wtsessidx,numel(suids),1)];
+            wtsessidx=wtsessidx+1;
+            su_meta.reg_tree=[su_meta.reg_tree,table2cell(regtbl(:,3:8)).'];
+            pathsuffix=regexp(fl(fi).folder,'(?<=SPKINFO[\\/]).*','match','once');
+            su_meta.allpath=[su_meta.allpath;repmat({pathsuffix},numel(suids),1)];
+        end
+        su_meta.allcid=uint16(su_meta.allcid);
+        su_meta.sess=int32(su_meta.sess);
 
-global gather_config
-if ~isempty(gather_config)
-    opt.adjust_white_matter=gather_config.adjust_white_matter;
+        if opt.adjust_white_matter
+            if strcmp(opt.criteria,'WT')
+                su_meta.reg_tree=ephys.get_adjusted_reg_tree('adjust_white_matter',opt.adjust_white_matter);
+            else
+                warning("Missing adjusted file, fall back to previous alignment")
+            end
+        end
+
+        if opt.save_file
+            blame=vcs.blame();
+            save(fullfile('binary',opt.filename),'su_meta','blame');
+        end
+    end
+    
 end
-if opt.load_file
-    load(fullfile('binary',opt.filename),'su_meta');
-else
-    homedir=ephys.util.getHomedir();
-    fl=dir(fullfile(homedir,'**','FR_All_1000.hdf5'));
-    % [~,sidx]=sort({fl.folder}); sorted by default
-    su_meta=cell2struct({cell(0);[];{};[]},{'allpath','allcid','reg_tree','sess'});
-    wtsessidx=1;
-    for fi=1:numel(fl)
-        suids=h5read(fullfile(fl(fi).folder,fl(fi).name),'/SU_id');
-        if isempty(suids)
-            keyboard
-        end
-        trials=h5read(fullfile(fl(fi).folder,fl(fi).name),'/Trials');
-        if strcmp(opt.criteria,'Learning')
-            ltrials=behav.procPerf(trials,"criteria","Learning");
-        end
-        if (strcmp(opt.criteria,'WT') && sum(trials(:,9))<40)...
-            || (strcmp(opt.criteria,'Learning') && (sum(trials(:,9))>=40 || sum(ltrials(:,9))<40))
-            continue
-        end
-        if exist(fullfile(fl(fi).folder,'su_id2reg.csv'),'file')~=2
-            continue
-        end
-        regtbl=readtable(fullfile(fl(fi).folder,'su_id2reg.csv'));
-        su_meta.allcid=[su_meta.allcid;suids];
-        su_meta.sess=[su_meta.sess;repmat(wtsessidx,numel(suids),1)];
-        wtsessidx=wtsessidx+1;
-        su_meta.reg_tree=[su_meta.reg_tree,table2cell(regtbl(:,3:8)).'];
-        pathsuffix=regexp(fl(fi).folder,'(?<=SPKINFO[\\/]).*','match','once');
-        su_meta.allpath=[su_meta.allpath;repmat({pathsuffix},numel(suids),1)];
-    end
-    su_meta.allcid=uint16(su_meta.allcid);
-    su_meta.sess=int32(su_meta.sess);
-
-    if opt.adjust_white_matter
-        if strcmp(opt.criteria,'WT')
-            su_meta.reg_tree=ephys.get_adjusted_reg_tree('adjust_white_matter',opt.adjust_white_matter);
-        else
-            warning("Missing adjusted file, fall back to previous alignment")
-        end
-    end
-
-    if opt.save_file
-        blame=vcs.blame();
-        save(fullfile('binary',opt.filename),'su_meta','blame');
-    end
-end
-
+opt_=opt;
+su_meta_=su_meta;
 end
