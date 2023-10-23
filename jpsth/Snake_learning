@@ -20,3 +20,11 @@ rule gen_SC_sums_file:
 	threads: 40
 	shell:
 		'matlab -noFigureWindows -batch "bz.sums_conn(poolsize={threads},criteria='"'Learning')"'"'
+
+rule gen_chain_tag_file:
+	input:
+	output:
+		"binary/LN_chain_tag_all_trl.mat"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},'"criteria='Learning'"')"'

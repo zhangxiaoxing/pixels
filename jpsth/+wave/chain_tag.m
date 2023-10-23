@@ -104,13 +104,10 @@ classdef chain_tag < handle
                 if opt.rev
                     save(fullfile('bzdata','chain_rev_tag.mat'),'out','notfound','blame');
                 elseif opt.shuf_trl
-                    save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','notfound','blame');
+                    save(fullfile("bzdata","chain_shuf_tag_"+opt.shuf_idx+".mat"),'out','notfound','blame','opt');
                 else
-                    if strcmp(opt.criteria,'WT')
-                        save(fullfile('binary',opt.filename),'out','notfound','blame','-v7.3')
-                    else
-                        keyboard()
-                    end
+                    warning("Current save file is "+opt.filename);
+                    save(fullfile('binary',opt.filename),'out','notfound','blame','opt','-v7.3')
                 end
             end
 
