@@ -28,3 +28,8 @@ rule gen_chain_tag_file:
 	threads: 52
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},'"criteria='Learning'"')"'
+
+
+# bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
+
+# wave.chain.chains_consist_incon(skip_save=false,shuf=true,criteria='Learning')

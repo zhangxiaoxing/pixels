@@ -3,7 +3,10 @@ arguments
     chain_replay= []
     opt.skip_save = true
     opt.skip_plot = false
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
+
+% Learning implementation WIP
 if isempty(chain_replay)
     load(fullfile('binary','motif_replay.mat'),'chain_replay');
 end

@@ -6,23 +6,36 @@ arguments
     opt.skip_save (1,1) logical = true
     opt.shuf (1,1) logical = false
     opt.non_mem (1,1) logical = false
-
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
+global_init;
 cross_only=false;
 if isempty(su_meta)
-    load(fullfile('binary','su_meta.mat'))
+    switch opt.criteria
+        case 'WT'
+            load(fullfile('binary','su_meta.mat'),'su_meta');
+        case 'Learning'
+            su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","Learning","load_file",false,"skip_stats",true);
+        case 'any'
+            keyboard()
+    end
 end
 if isempty(sel_meta)
-    fstr=load(fullfile('binary','wrs_mux_meta.mat'));
-    sel_meta=fstr.wrs_mux_meta;
-    clear fstr
+    switch opt.criteria
+        case 'WT'
+            fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+            sel_meta=fstr.wrs_mux_meta;
+            clear fstr
+        case 'Learning'
+            sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+        case 'any'
+            keyboard()
+    end
 end
+reg_com_maps=wave.get_reg_com_maps(sel_meta,'criteria',opt.criteria);
 
-global_init;
-reg_com_maps=wave.get_reg_com_maps(sel_meta);
-
-chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',cross_only,'non_mem',opt.non_mem);
-chains_uf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'cross_only',cross_only,'non_mem',opt.non_mem);
+chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
+chains_uf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
 
 usess=unique([chains_uf_all.sess;chains_uf_rev_all.sess]);
 sums=[];
@@ -59,9 +72,23 @@ ylim([0,50])
 if ~opt.skip_save
     % appendfig('tag','chain consistent inconsistent,chain_plots.m')
     if opt.non_mem
-        savefig(fh,fullfile('binary','chains_consist_incon_nonmem.fig'))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile('binary','chains_consist_incon_nonmem.fig'))
+            case 'Learning'
+                savefig(fh,fullfile('binary','LN_chains_consist_incon_nonmem.fig'))
+            otherwise
+                keyboard()
+        end
     else
-        savefig(fh,fullfile('binary','chains_consist_incon.fig'))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile('binary','chains_consist_incon.fig'))
+            case 'Learning'
+                savefig(fh,fullfile('binary','LN_chains_consist_incon.fig'))
+            otherwise
+                keyboard()
+        end
     end
 end
 
@@ -71,10 +98,17 @@ if opt.shuf
     revcnt=nnz(chains_uf_rev_all.cross_reg);
 
     [shuf_fwdcnt,shuf_wtncnt,shuf_revcnt]=deal([]);
-    load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
+        case 'Learning'
+            load(fullfile('binary','LN_bz_shufs.mat'),'shufs');
+        otherwise
+            keyboard()
+    end
     for shufidx=1:numel(shufs)
-        chains_shuf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem);
-        chains_shuf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem);
+        chains_shuf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem,'criteria','Learning');
+        chains_shuf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem,'criteria','Learning');
         shuf_fwdcnt=[shuf_fwdcnt;nnz(chains_shuf_all.cross_reg)];
         shuf_wtncnt=[shuf_wtncnt;nnz(~chains_shuf_all.cross_reg)];
         shuf_revcnt=[shuf_revcnt;nnz(chains_shuf_rev_all.cross_reg)];
@@ -142,9 +176,23 @@ if opt.shuf
 
     if ~opt.skip_save
         if opt.non_mem
-            savefig(fh,fullfile('binary','chain_consist_incong_z_score_nonmem.fig'));
+            switch opt.criteria
+                case 'WT'
+                    savefig(fh,fullfile('binary','chain_consist_incong_z_score_nonmem.fig'));
+                case 'Learning'
+                    savefig(fh,fullfile('binary','LN_chain_consist_incong_z_score_nonmem.fig'));
+                otherwise
+                    keyboard()
+            end
         else
-            savefig(fh,fullfile('binary','chain_consist_incong_z_score.fig'));
+            switch opt.criteria
+                case 'WT'
+                    savefig(fh,fullfile('binary','chain_consist_incong_z_score.fig'));
+                case 'Learning'
+                    savefig(fh,fullfile('binary','LN_chain_consist_incong_z_score.fig'));
+                otherwise
+                    keyboard();
+            end
         end
     end
 end

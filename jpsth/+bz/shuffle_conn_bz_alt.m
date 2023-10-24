@@ -15,7 +15,7 @@ warning("Using "+opt.poolsize+" workers");
 
 poolo=parpool(opt.poolsize);
 shufs=cell(opt.rpt,1);
-parfor rpt=1:opt.rpt
+parfor rpt=1:opt.quit ()
     shufs{rpt}=shuffle_conn_onerpt(opt);
 end
 blame=vcs.blame();

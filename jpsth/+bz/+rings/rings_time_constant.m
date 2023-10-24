@@ -22,18 +22,31 @@ classdef rings_time_constant <handle
                 opt.iti (1,1) logical = false
                 opt.shuf (1,1) logical = false
                 opt.shufidx = 1
+                opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
             end
 
             assert(~(opt.delay && opt.iti),"wrong switch combination")
-
             if isempty(su_meta)
-                load(fullfile('binary','su_meta.mat'))
+                switch opt.criteria
+                    case 'WT'
+                        load(fullfile('binary','su_meta.mat'),'su_meta');
+                    case 'Learning'
+                        su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","Learning","load_file",false,"skip_stats",true);
+                    case 'any'
+                        keyboard()
+                end
             end
-
             if isempty(sel_meta)
-                fstr=load(fullfile('binary','wrs_mux_meta.mat'));
-                sel_meta=fstr.wrs_mux_meta;
-                clear fstr
+                switch opt.criteria
+                    case 'WT'
+                        fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+                        sel_meta=fstr.wrs_mux_meta;
+                        clear fstr
+                    case 'Learning'
+                        sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+                    case 'any'
+                        keyboard()
+                end
             end
 
             % if isempty(sums_all)
