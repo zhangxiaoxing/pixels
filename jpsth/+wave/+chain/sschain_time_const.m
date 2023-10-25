@@ -8,12 +8,26 @@ end
 
 % Learning implementation WIP
 if isempty(chain_replay)
-    load(fullfile('binary','motif_replay.mat'),'chain_replay');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile('binary','motif_replay.mat'),'chain_replay');
+        case 'Learning'
+            load(fullfile('binary','LN_motif_replay.mat'),'chain_replay');
+        otherwise
+            keyboard()
+    end
 end
 runlength=[];
 for cii=1:size(chain_replay,1)
     trl_align=chain_replay.trl_align{cii};
-    pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1);
+    switch opt.criteria
+        case 'WT'
+            pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1); % TODO: learning preferred trial
+        case 'Learning'
+            pref_delay=all(trl_align(:,5:7)==1,2) & trl_align(:,2)>=1 & trl_align(:,2)<(trl_align(:,4)+1); % TODO: learning preferred trial
+        otherwise
+    end
+
     runlength=[runlength;arrayfun(@(x) diff(chain_replay.ts{cii}(x,[1 end]),1,2), find(pref_delay))./30];
 end
 

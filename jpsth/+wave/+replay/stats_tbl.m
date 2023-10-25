@@ -11,24 +11,48 @@ arguments
     % opt.nonmem_ring (1,1) logical = false
     opt.shuf (1,1) logical = false
     opt.shufidx = 1
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
 
 if isempty(trials_dict)
-    load(fullfile('binary','trials_dict.mat'),'trials_dict');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile('binary','trials_dict.mat'),'trials_dict');
+        case 'Learning'
+            trials_dict=behav.get_trials_dict('skip_save',true,'criteria','Learning');
+        otherwise
+            keyboard()
+    end
 end
 
 if isempty(sschain_trl)
     if opt.shuf
-        fstr=load(fullfile('binary',sprintf('chain_tag_shuf%d.mat',opt.shufidx)),'out');
+        error("Learning not ready")
+        switch opt.criteria
+            case 'WT'
+                fstr=load(fullfile('binary','shufs',sprintf('chain_tag_shuf%d.mat',opt.shufidx)),'out');
+            case 'Learning'
+                fstr=load(fullfile('binary','shufs',sprintf('LN_chain_tag_shuf%d.mat',opt.shufidx)),'out');
+            otherwise
+                keyboard();
+        end
     elseif opt.nonmem
+        error("Learning not ready")
         fstr=load(fullfile('binary','chain_tag_nonmem_all_trl.mat'),'out');
         opt.var_len=false;
         [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
         blame=vcs.blame();
         save(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_raw','chain_sums','chain_replay','-v7.3');
     else
-        fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+        switch opt.criteria
+            case 'WT'
+                fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+            case 'Learning'
+                fstr=load(fullfile('binary','LN_chain_tag_all_trl.mat'),'out');
+            otherwise
+                keyboard();
+        end
     end
     sschain_trl=fstr.out;
     clear fstr
@@ -36,15 +60,30 @@ end
 
 if isempty(ssloop_trl)
     if opt.shuf
-        load(fullfile('binary',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
+        error("Learning not ready")
+        load(fullfile('binary','shufs',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
     elseif opt.nonmem
-        load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+        switch opt.criteria
+            case 'WT'
+                load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+            case 'Learning'
+                load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
+            otherwise
+                keyboard();
+        end
         opt.var_len=true;
         [ring_replay,loops_sums,loops_raw]=stats_one(ssloop_trl,trials_dict,opt);
         blame=vcs.blame();
-        save(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_raw','loops_sums','ring_replay','-v7.3');
+        save(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_raw','loops_sums','ring_replay','blame','opt','-v7.3');
     else
-        load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+        switch opt.criteria
+            case 'WT'
+                load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+            case 'Learning'
+                load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
+            otherwise
+                keyboard();
+        end
     end
 end
 
@@ -62,7 +101,14 @@ if ~opt.skip_save
     if opt.shuf
         save(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame');
     else
-        save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','-v7.3');
+        switch opt.criteria
+            case 'WT'
+                save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt','-v7.3');
+            case 'Learning'
+                save(fullfile("binary","LN_motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt','-v7.3');
+            otherwise
+                keyboard();
+        end
     end
 end
 
@@ -86,7 +132,11 @@ for tidx=1:size(motif_replay,1)
     end
 
     trials=cell2mat(trials_dict(motif_replay.session(tidx)));
-    session_tick=wave.replay.sessid2length(motif_replay.session(tidx));
+    if strcmp(opt.criteria,'Learning')
+        trials=behav.procPerf(trials,"criteria","Learning");
+        trials(:,10)=trials(:,9);
+    end
+    session_tick=wave.replay.sessid2length(motif_replay.session(tidx),'criteria',opt.criteria);
     if ~(strcmp(motif_replay.wave(tidx),"none") || contains(motif_replay.wave(tidx),'nm'))
         dur_pref=motif_replay.delay(tidx);
         if contains(motif_replay.wave(tidx),"s1")

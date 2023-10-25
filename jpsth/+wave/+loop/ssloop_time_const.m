@@ -3,10 +3,19 @@ arguments
     ring_replay= []
     opt.skip_save = true
     opt.skip_plot = false
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 if isempty(ring_replay)
-    load(fullfile('binary','motif_replay.mat'),'ring_replay');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile('binary','motif_replay.mat'),'ring_replay');
+        case 'Learning'
+            load(fullfile('binary','LN_motif_replay.mat'),'ring_replay');
+        otherwise
+            keyboard()
+    end
 end
+
 runlength=[];
 for rii=1:size(ring_replay,1)
     trl_align=ring_replay.trl_align{rii};

@@ -29,7 +29,25 @@ rule gen_chain_tag_file:
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},'"criteria='Learning'"')"'
 
+rule gen_all_shuf_chain_tag_file:
+	input:
+		expand("binary/shufs/LN_chain_tag_shuf{cidx}.mat",cidx=list(range(1,101)))
+
+rule gen_one_shuf_chain_tag_file:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat",
+		"binary/bz_ring_shufs.mat"
+	output:
+		"binary/shufs/LN_chain_tag_shuf{cidx}.mat"
+	threads: 16 
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuf=true,shufidx={wildcards.cidx}'",criteria='Learning'"')"'
+
 
 # bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
 
 # wave.chain.chains_consist_incon(skip_save=false,shuf=true,criteria='Learning')
+# bz.rings.ring_list_bz_alt(poolsize=52,criteria="Learning")
+# wave.chain.sschain_time_const(skip_save=true,criteria='Learning')
+# wave.loop.ssloop_time_const(skip_save=true,criteria='Learning')

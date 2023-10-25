@@ -54,7 +54,14 @@ classdef rings_time_constant <handle
             % end
 
             if isempty(sums_all)
-                fstr=load(fullfile('binary','rings_bz_vs_shuf.mat'),'rings','rings_shuf');
+                switch opt.criteria
+                    case 'WT'
+                        fstr=load(fullfile('binary','rings_bz_vs_shuf.mat'),'rings','rings_shuf');
+                    case 'Learning'
+                        fstr=load(fullfile('binary','LN_rings_bz_vs_shuf.mat'),'rings','rings_shuf');
+                    otherwise
+                        keyboard();
+                end
                 if opt.shuf
                     sums_all=fstr.rings_shuf{opt.shufidx};
                 else
@@ -98,7 +105,7 @@ classdef rings_time_constant <handle
                     susel=su_meta.sess==sessid & ~ismissing(su_meta.reg_tree(5,:).'); % removed any remaining white matter tagged su
                     reg_dict=dictionary(su_meta.allcid(susel),su_meta.reg_tree(5,susel).');
 
-                    [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true);
+                    [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'criteria',opt.criteria);
                     % sel3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
                     % sel6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
 
@@ -264,9 +271,23 @@ classdef rings_time_constant <handle
                     blame=vcs.blame();
                     if opt.compress
                         if opt.shuf
-                            save(fullfile('binary',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame')
+                            switch opt.criteria
+                                case 'WT'
+                                    save(fullfile('binary','shufs',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame','opt')
+                                case 'Learning'
+                                    save(fullfile('binary','shufs',sprintf('LN_ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame','opt')
+                                otherwise
+                                    keyboard()
+                            end
                         else
-                            save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame')
+                            switch opt.criteria
+                                case 'WT'
+                                    save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame','opt')
+                                case 'Learning'
+                                    save(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl','blame','opt')
+                                otherwise
+                                    keyboard()
+                            end
                         end
                     else
                         save(fullfile('bzdata','rings_spike_trial_tagged.mat'),'pstats','blame','-v7.3')
