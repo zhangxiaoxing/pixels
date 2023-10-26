@@ -140,6 +140,31 @@ for ii=1:size(chains,1)
     out.cids=[out.cids;split_chains.cids];
     out.tcoms=[out.tcoms;split_chains.tcoms];
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% over_lapping removal
+% from 2023/10/26
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+overlapping=false(size(out.sess));
+for sess=reshape(unique(out.sess),1,[])
+    for dd=[3 6]
+        sess_sel=out.sess==sess & out.dur==dd;
+        cids=out.cids(sess_sel);
+        chlen=cellfun(@(x) numel(x), cids);
+        for ii=1:numel(cids)
+            for jj=reshape(find(chlen>numel(cids{ii})),1,[])
+                [in,pos]=ismember(cids{ii},cids{jj});
+                if all(in) && max(diff(pos))==1
+                    overlapping(subsref(find(sess_sel),substruct('()',{ii})))=true;
+                end
+            end
+        end
+    end
+end
+for fn=reshape(fieldnames(out),1,[])
+    out.(fn{1})=out.(fn{1})(~overlapping);
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 curr_sess=-1;
 out.reg=cell(numel(out.sess),1);
 out.cross_reg=false(numel(out.sess),1);

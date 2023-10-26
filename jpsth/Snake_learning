@@ -48,9 +48,7 @@ rule gen_all_shuf_ring_tag_file:
 
 rule gen_one_shuf_ring_tag_file:
 	input:
-		"binary/rings_bz_vs_shuf.mat",
-		"binary/su_meta.mat",
-		"binary/wrs_mux_meta.mat"
+		"binary/LN_rings_bz_vs_shuf.mat",
 	output:
 		"binary/shufs/LN_ring_tag_shuf{ridx}.mat"
 	shell:
@@ -62,7 +60,7 @@ rule replay_shuf_stats:
 		"binary/shufs/LN_chain_tag_shuf{sidx}.mat",
 		"binary/shufs/LN_ring_tag_shuf{sidx}.mat"
 	output:
-		"binary/shus/LN_motif_replay_shuf{sidx}.mat"
+		expand("binary/shus/LN_motif_replay_shuf{sidx}.mat",ridx=list(range(1,101)))
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf=true,shufidx={wildcards.sidx},criteria='"'Learning'"')"'
 
