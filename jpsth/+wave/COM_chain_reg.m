@@ -12,11 +12,19 @@ arguments
     opt.cross_only (1,1) logical = false
     opt.shuf (1,1) logical = false
     opt.shuf_data = []
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     
 end
 assert(opt.odor_only,"Unfinished")
 if ~opt.shuf
-    load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile("binary","sums_conn_10.mat"),'sums_conn_str');
+        case 'Learning'
+            load(fullfile("binary","sums_conn_learning.mat"),'sums_conn_str');
+        otherwise
+            keyboard()
+    end
 else
     sums_conn_str=zeros(max(opt.shuf_data.sess),1);
 end
@@ -36,7 +44,7 @@ for fidx=1:numel(sums_conn_str)
         if isempty(dpath)
             dpath=ffpath;
         end
-        sessid=ephys.path2sessid(dpath);
+        sessid=ephys.path2sessid(dpath,'criteria',opt.criteria);
     end
     sess_sel=su_meta.sess==sessid;
     %separate 3s & 6s
@@ -132,6 +140,31 @@ for ii=1:size(chains,1)
     out.cids=[out.cids;split_chains.cids];
     out.tcoms=[out.tcoms;split_chains.tcoms];
 end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% over_lapping removal
+% from 2023/10/26
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+overlapping=false(size(out.sess));
+for sess=reshape(unique(out.sess),1,[])
+    for dd=[3 6]
+        sess_sel=out.sess==sess & out.dur==dd;
+        cids=out.cids(sess_sel);
+        chlen=cellfun(@(x) numel(x), cids);
+        for ii=1:numel(cids)
+            for jj=reshape(find(chlen>numel(cids{ii})),1,[])
+                [in,pos]=ismember(cids{ii},cids{jj});
+                if all(in) && max(diff(pos))==1
+                    overlapping(subsref(find(sess_sel),substruct('()',{ii})))=true;
+                end
+            end
+        end
+    end
+end
+for fn=reshape(fieldnames(out),1,[])
+    out.(fn{1})=out.(fn{1})(~overlapping);
+end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 curr_sess=-1;
 out.reg=cell(numel(out.sess),1);
 out.cross_reg=false(numel(out.sess),1);
