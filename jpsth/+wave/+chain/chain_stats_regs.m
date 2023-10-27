@@ -174,9 +174,9 @@ for curr_tag=["within","cross"]
         regidx=regidx+1;
     end
     bh=bar(1:numel(regsel),[olf_ratio.(curr_tag)(barsel),mean(shufmat).'],'grouped');
-    bh(1).FaceColor='w';
+    bh(1).FaceColor='k';
     if numel(bh)>1
-        bh(2).FaceColor='k';
+        bh(2).FaceColor='w';
     end
     shufstd=std(shufmat);
     shufsem=shufstd./sqrt(size(shufmat,1));
@@ -218,8 +218,8 @@ for curr_tag=["within","cross"]
         regidx=regidx+1;
     end
     bh=bar(1:numel(regsel),[both_ratio.(curr_tag)(barsel),mean(shufmat).'],'grouped');
-    bh(1).FaceColor='w';
-    bh(2).FaceColor='k';
+    bh(1).FaceColor='k';
+    bh(2).FaceColor='w';
     shufsem=std(shufmat)./sqrt(size(shufmat,1));
     errorbar(bh(2).XEndPoints,bh(2).YData,shufsem,'k.')
     set(gca(),'XTick',1:numel(regsel),'XTickLabel',all_chain_regs.(curr_tag)(both_srt.(curr_tag)),'YScale','log','XTickLabelRotation',90);

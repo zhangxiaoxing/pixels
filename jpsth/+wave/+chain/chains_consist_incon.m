@@ -167,7 +167,7 @@ if opt.shuf
         bh.BaseLine.LineWidth = 1;
         ylim([-8,1]);
     else
-    ylim([0,50])
+    ylim([0,70])
     end
     set(gca,'XTick',1:2,'XtickLabel',{'Consistent','Inconsistent'})
     ylabel('Normalized occurrence (Z-Score)')
