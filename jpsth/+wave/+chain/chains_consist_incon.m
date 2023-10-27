@@ -7,6 +7,7 @@ arguments
     opt.shuf (1,1) logical = false
     opt.non_mem (1,1) logical = false
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.poolsize (1,1) double = 2
 end
 global_init;
 cross_only=false;
@@ -34,8 +35,12 @@ if isempty(sel_meta)
 end
 reg_com_maps=wave.get_reg_com_maps(sel_meta,'criteria',opt.criteria);
 
-chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
-chains_uf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
+poolh=parpool(opt.poolsize);
+Fconsist=parfeval(poolh,@wave.COM_chain_reg,1,su_meta,sel_meta,reg_com_maps,'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
+Fincong=parfeval(poolh,@wave.COM_chain_reg,1,su_meta,sel_meta,reg_com_maps,'reverse',true,'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
+
+chains_uf_all=fetchOutputs(Fconsist);
+chains_uf_rev_all=fetchOutputs(Fincong);
 
 usess=unique([chains_uf_all.sess;chains_uf_rev_all.sess]);
 sums=[];
@@ -97,7 +102,7 @@ if opt.shuf
     wtncnt=nnz(~chains_uf_all.cross_reg);
     revcnt=nnz(chains_uf_rev_all.cross_reg);
 
-    [shuf_fwdcnt,shuf_wtncnt,shuf_revcnt]=deal([]);
+    
     switch opt.criteria
         case 'WT'
             load(fullfile('binary','bz_ring_shufs.mat'),'shufs');
@@ -106,13 +111,23 @@ if opt.shuf
         otherwise
             keyboard()
     end
-    for shufidx=1:numel(shufs)
-        chains_shuf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem,'criteria','Learning');
-        chains_shuf_rev_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem,'criteria','Learning');
+
+    Fconsist=parallel.FevalFuture.empty(0,numel(shufs));
+    Fincong=parallel.FevalFuture.empty(0,numel(shufs));
+    for shufidx=1:numel(shufs) 
+        Fconsist(shufidx)=parfeval(poolh,@wave.COM_chain_reg,1,su_meta,sel_meta,reg_com_maps,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
+        Fincong(shufidx)=parfeval(poolh,@wave.COM_chain_reg,1,su_meta,sel_meta,reg_com_maps,'reverse',true,'shuf',true,'shuf_data',shufs{shufidx},'cross_only',cross_only,'non_mem',opt.non_mem,'criteria',opt.criteria);
+    end
+    
+    [shuf_fwdcnt,shuf_wtncnt,shuf_revcnt]=deal([]);
+    for shufidx=1:numel(shufs) 
+        chains_shuf_all=fetchOutputs(Fconsist(shufidx));
+        chains_shuf_rev_all=fetchOutputs(Fincong(shufidx));
         shuf_fwdcnt=[shuf_fwdcnt;nnz(chains_shuf_all.cross_reg)];
         shuf_wtncnt=[shuf_wtncnt;nnz(~chains_shuf_all.cross_reg)];
         shuf_revcnt=[shuf_revcnt;nnz(chains_shuf_rev_all.cross_reg)];
     end
+
     if false
         if opt.non_mem
             chain_consist=cell2struct({wtncnt;fwdcnt;revcnt;shuf_wtncnt;shuf_fwdcnt;shuf_revcnt},...
@@ -196,5 +211,6 @@ if opt.shuf
         end
     end
 end
+delete(poolh);
 end
 
