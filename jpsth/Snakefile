@@ -246,10 +246,11 @@ rule chain_consist_incon:
 	output:
 		"binary/chains_consist_incon.fig",
 		"binary/chains_consist_incon_nonmem.fig"
+	threads: 52
 	shell:
 		'''
-		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true)"
-		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,non_mem=true)"
+		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,poolsize={threads})"
+		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,non_mem=true,poolsize={threads})"
 		'''
 
 rule gen_chain_tag_file:
