@@ -10,7 +10,7 @@ end
 % persistent meta rings_shuf
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
-fstr=load(fullfile('bzdata','rings_bz_vs_shuf.mat'));
+fstr=load(fullfile('binary','rings_bz_vs_shuf.mat'));
 if opt.shufid==0
     rings=fstr.rings;
 else
