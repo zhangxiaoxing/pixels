@@ -19,7 +19,7 @@ end
 if opt.shuf
     shufdata=[];
     for ii=opt.shufidx
-        load(fullfile("binary","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
+        load(fullfile("binary","shufs","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
         composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
         [~,~,per_sess]=statsOne(composite_spk_per_sec,opt);
         shufdata=[shufdata;per_sess];

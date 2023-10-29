@@ -16,7 +16,7 @@ motif_su_cnt=size(unique(allsu,'rows'),1);
 [bhat,bci]=binofit(motif_su_cnt,memory_su_cnt);
 shufcnt=zeros(100,1);
 for shufidx=1:100
-    load(fullfile("binary","motif_replay_shuf"+shufidx+".mat"),'chain_replay','ring_replay');
+    load(fullfile("binary","shufs","motif_replay_shuf"+shufidx+".mat"),'chain_replay','ring_replay');
     shufsu=cell2mat(...
         [arrayfun(@(x) [repmat(chain_replay.session(x),numel(chain_replay.meta{x,2}),1),chain_replay.meta{x,2}.'],(1:size(chain_replay,1)).','UniformOutput',false);...
         arrayfun(@(x) [repmat(ring_replay.session(x),numel(ring_replay.meta{x,2}),1),ring_replay.meta{x,2}.'],(1:size(ring_replay,1)).','UniformOutput',false)]);
