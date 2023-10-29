@@ -9,7 +9,7 @@ arguments
 end
 
 if opt.shuf
-    load(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'ring_replay','chain_replay');
+    load(fullfile("binary","shufs","motif_replay_shuf"+opt.shufidx+".mat"),'ring_replay','chain_replay');
 else
     if isempty(ring_replay) || isempty(chain_replay)
         load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');

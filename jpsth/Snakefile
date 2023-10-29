@@ -119,6 +119,18 @@ rule replay_stats:
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false)"'
 
+rule replay_stats_nonmem:
+	input:
+		"binary/trials_dict.mat",
+		"binary/chain_tag_nonmem_all_trl.mat",
+		"binary/rings_tag_trl.mat"
+	output:
+		"binary/motif_replay_chain_nonmem.mat",
+		"binary/motif_replay_ring_nonmem.mat"
+
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,nonmem=true)"'
+
 rule gen_all_replay_shuf_stats:
 	input:
 		expand("binary/shufs/motif_replay_shuf{sidx}.mat",sidx=list(range(1,101)))
@@ -480,7 +492,8 @@ rule behav_previous_trls_glm:
 rule motif_freq_mem_vs_nonmem:
 	input:
 		"binary/motif_replay.mat",
-		"binary/motif_replay_chain_nonmem.mat"
+		"binary/motif_replay_chain_nonmem.mat",
+		"binary/motif_replay_ring_nonmem.mat"
 	output:
 		"binary/motif_freq_chain_mem_vs_nonmem.fig",
 		"binary/motif_freq_loops_mem_vs_nonmem.fig"

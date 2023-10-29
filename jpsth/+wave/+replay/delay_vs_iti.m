@@ -183,7 +183,7 @@ end
 
 end
 function [cover_per_sec,per_sess]=stats_shuf(ii,trials_dict)
-load(fullfile("binary","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
+load(fullfile("binary","shufs","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
 [~,covered_tbl]=statsOne(chain_replay,ring_replay);
 [cover_per_sec,~,~,per_sess]=wave.replay.delay_vs_iti_per_sec.statsOne(covered_tbl,trials_dict);
 cover_per_sec=[cover_per_sec,table(repmat(ii,size(covered_tbl,1),1),'VariableNames',{'rpt'})];

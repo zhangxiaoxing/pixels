@@ -38,7 +38,9 @@ if isempty(sschain_trl)
                 keyboard();
         end
     elseif opt.nonmem
-        error("Learning not ready")
+	    if strcmp(opt.criteria,'Learning')
+		error("Learning not ready")
+	    end
         fstr=load(fullfile('binary','chain_tag_nonmem_all_trl.mat'),'out');
         opt.var_len=false;
         [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
@@ -69,11 +71,11 @@ if isempty(ssloop_trl)
                 keyboard();
         end
     elseif opt.nonmem
-        error("Not tested yet")
         switch opt.criteria
             case 'WT'
                 load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
             case 'Learning'
+		error("Not tested yet")
                 load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
             otherwise
                 keyboard();
@@ -105,10 +107,12 @@ loops=cell2struct({ring_replay;loops_sums;loops_raw},{'replay','sums','raw'});
 
 if ~opt.skip_save
     blame=vcs.blame();
-    if opt.shuf
+    if opt.nonmem
+	    % already saved 
+    elseif opt.shuf
         switch opt.criteria
             case 'WT'
-                save(fullfile("binary","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt');
+                save(fullfile("binary","shufs","motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt');
             case 'Learning'
                 save(fullfile("binary","shufs","LN_motif_replay_shuf"+opt.shufidx+".mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt');
             otherwise
