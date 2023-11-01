@@ -12,6 +12,7 @@ arguments
     opt.shuf (1,1) logical = false
     opt.shufidx = 1
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.odor_only (1,1) logical = true
 end
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
 
@@ -49,7 +50,11 @@ if isempty(sschain_trl)
     else
         switch opt.criteria
             case 'WT'
-                fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+                if opt.odor_only
+                    fstr=load(fullfile('binary','chain_tag_all_trl.mat'),'out');
+                else
+                    fstr=load(fullfile('binary','chain_tag_all_trl_mux.mat'),'out');
+                end
             case 'Learning'
                 fstr=load(fullfile('binary','LN_chain_tag_all_trl.mat'),'out');
             otherwise
@@ -75,7 +80,7 @@ if isempty(ssloop_trl)
             case 'WT'
                 load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
             case 'Learning'
-		error("Not tested yet")
+        		error("Not tested yet")
                 load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
             otherwise
                 keyboard();
@@ -87,7 +92,11 @@ if isempty(ssloop_trl)
     else
         switch opt.criteria
             case 'WT'
-                load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+                if opt.odor_only
+                    load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+                else
+                    load(fullfile('binary','rings_tag_trl_mux.mat'),'ssloop_trl')
+                end
             case 'Learning'
                 load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
             otherwise
@@ -122,7 +131,11 @@ if ~opt.skip_save
     else
         switch opt.criteria
             case 'WT'
-                save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt','-v7.3');
+                if opt.odor_only
+                    save(fullfile("binary","motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt','-v7.3');
+                else
+                    save(fullfile("binary","motif_replay_mux.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt','-v7.3');
+                end
             case 'Learning'
                 save(fullfile("binary","LN_motif_replay.mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt','-v7.3');
             otherwise

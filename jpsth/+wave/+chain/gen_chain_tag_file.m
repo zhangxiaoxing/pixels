@@ -29,6 +29,9 @@ end
 
 global_init;
 reg_com_maps=wave.get_reg_com_maps(sel_meta,'criteria',opt.criteria);
+
+% TODO: multi-mode code path
+
 if opt.nonmem
     chains_nm_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'non_mem',true,'cross_only',false,'criteria',opt.criteria);
     %[sschain_trl_nm,unfound_nm]=

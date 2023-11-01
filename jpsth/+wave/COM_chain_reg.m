@@ -15,7 +15,8 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     
 end
-assert(opt.odor_only,"Unfinished")
+assert(opt.odor_only,"Unfinished") %TODO: finish multi-mode code path
+
 if ~opt.shuf
     switch opt.criteria
         case 'WT'
@@ -32,7 +33,6 @@ end
 chains=cell(0);
 for fidx=1:numel(sums_conn_str)
     disp(fidx)
-    % TODO update following code to reflect revised order
     if opt.shuf
         sessid=fidx;
         if ~any(opt.shuf_data.sess==sessid)
@@ -73,6 +73,7 @@ for fidx=1:numel(sums_conn_str)
 
             reg_tcom.s1.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s1_regs);
             reg_tcom.s2.("d"+delay)=reg_com_maps.("tcom"+delay+"_maps").odor_only.values(s2_regs);
+
         end
         if false % opt.strict % TODO: deal with details later
             ccgqc=sums_conn_str(fidx).qc; %reference quality control parameter
@@ -111,7 +112,7 @@ for fidx=1:numel(sums_conn_str)
             end
         end
 
-        % if opt.odor_only  % TODO: .dur
+        % if opt.odor_only  % TODO: dur
         %     continue
         % end
         % if isfield(su_com_map.(skey{1}),"s1d"+delay) && isfield(su_com_map.(skey{1}),"dur_d"+delay)
@@ -127,6 +128,7 @@ for fidx=1:numel(sums_conn_str)
         %     chains=extend_chain(chains,sessid,"dur_"+delay,delay,sub_chain);
         % end
     end
+
 end
 
 % unfold chain-trees
@@ -141,8 +143,8 @@ for ii=1:size(chains,1)
     out.tcoms=[out.tcoms;split_chains.tcoms];
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% over_lapping removal
-% from 2023/10/26
+% overlapping removal
+% since 2023/10/26
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 overlapping=false(size(out.sess));
 for sess=reshape(unique(out.sess),1,[])
@@ -251,3 +253,5 @@ for i=upre
     end
 end
 end
+
+

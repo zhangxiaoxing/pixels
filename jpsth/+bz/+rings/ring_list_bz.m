@@ -6,6 +6,8 @@
 % TODO: streamline multiple dataset output.
 % TODO: Option to load rings from file.
 
+% Pending delete as of 2023.10.29
+
 function rings=ring_list_bz(opt)
 arguments
     opt.shufid {mustBeScalarOrEmpty} =[]

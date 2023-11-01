@@ -1,6 +1,3 @@
-%% WIP, assume not working
-
-
 % We found that larger proportions of spikes were associated with
 % such activity loops of same-memory neurons than that of non-memory
 % neurons (fig. Sx). For all the recorded neurons, we observed xx% of
@@ -9,6 +6,7 @@
 classdef rings_time_constant <handle
     methods (Static)
         function [pstats,ssloop_trl]=stats(su_meta,sums_all,sel_meta,opt)
+            % TODO: varify multi-mode code path
             arguments
                 su_meta = []
                 sums_all = [] % w/ loop tags
@@ -26,6 +24,9 @@ classdef rings_time_constant <handle
             end
 
             assert(~(opt.delay && opt.iti),"wrong switch combination")
+            if ~opt.odor_only
+                assert(strcmp(opt.criteria,'WT') && ~opt.shuf,"wrong switch combination")    
+            end
             if isempty(su_meta)
                 switch opt.criteria
                     case 'WT'
@@ -85,9 +86,13 @@ classdef rings_time_constant <handle
                         if isempty(one_rsize),continue;end
                         for ridx=1:size(one_rsize,1)
                             curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize(ridx,:))));
-                            [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid);
+                            
+                            [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid,'odor_only',opt.odor_only);
+                            % if any(ismember(curr_waveid,7:8)) && strcmp(rwid,'congru')
+                            %     keyboard()
+                            % end
                             if (~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem'))...
-                                    ||(opt.odor_only && strcmp(seltype,'dur'))
+                                    || (opt.odor_only && strcmp(seltype,'dur'))
                                 continue
                             end
                             rstats=[rstats;{curr_sess,rsize.*100000+ridx,one_rsize(ridx,:),[],[],[],curr_waveid,seltype,rsize,rwid}];
@@ -111,8 +116,10 @@ classdef rings_time_constant <handle
 
                     rid=find(cell2mat(rstats(:,1))==sessid);
                     for ri=reshape(rid,1,[])
-                        if opt.compress && (any(ismember(rstats{ri,7},[7 8]),'all') ||(any(rstats{ri,7}==0,'all') && ~all(rstats{ri,7}==0,'all')))
-                            % no difference between 3s or 6s
+                        if opt.compress && (any(rstats{ri,7}==0,'all') && ~all(rstats{ri,7}==0,'all'))
+                            continue
+                        end
+                        if opt.compress && opt.odor_only && (any(ismember(rstats{ri,7},[7 8]),'all'))
                             continue
                         end
 
@@ -212,17 +219,19 @@ classdef rings_time_constant <handle
                                 oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
                                 onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
                                 % 3s 6s or both
-                                if all(ismember(rstats{ri,7},[1 2 5]),'all')
+                                if all(ismember(rstats{ri,7},7:8))
+                                    pref_samp="s0";
+                                elseif all(ismember(rstats{ri,7},[1 2 5 7 8]),'all')
                                     pref_samp="s1";
-                                elseif all(ismember(rstats{ri,7},[3 4 6]),'all')
+                                elseif all(ismember(rstats{ri,7},[3 4 6 7 8]),'all')
                                     pref_samp="s2";
                                 else % TODO: verify and remove if unnecessary
                                     warning("Incongruent ring under congruent context")
                                     keyboard()
                                 end
-                                if all(ismember(rstats{ri,7},[1 3 5 6]),'all') % 3s
+                                if all(ismember(rstats{ri,7},[1 3 5 6 7]),'all') % 3s
                                     pref_delay=3;
-                                elseif all(ismember(rstats{ri,7},[2 4 5 6]),'all') % 6s
+                                elseif all(ismember(rstats{ri,7},[2 4 5 6 8]),'all') % 6s
                                     pref_delay=6;
                                 else
                                     warning("Incongruent ring under congruent context")
@@ -282,7 +291,11 @@ classdef rings_time_constant <handle
                         else
                             switch opt.criteria
                                 case 'WT'
-                                    save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame','opt')
+                                    if opt.odor_only
+                                        save(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl','blame','opt')
+                                    else
+                                        save(fullfile('binary','rings_tag_trl_mux.mat'),'ssloop_trl','blame','opt')
+                                    end
                                 case 'Learning'
                                     save(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl','blame','opt')
                                 otherwise
