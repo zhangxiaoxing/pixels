@@ -71,25 +71,24 @@ classdef chain_tag < handle
 
                 % fini=[];
                 while ~all([F.Read],'all')
-                    % try
-                    [ftidx,sess_out,sess_notfound]=fetchNext(F);
-                    notfound=[notfound;sess_notfound];
-                    if isempty(sess_out)
-                        continue
+                    try
+                        [ftidx,sess_out,sess_notfound]=fetchNext(F);
+                        notfound=[notfound;sess_notfound];
+                        if isempty(sess_out)
+                            continue
+                        end
+                        if ~exist('out','var')
+                            out=sess_out;
+                        else
+                            out=[out;sess_out];
+                        end
+                        remain=find(~strcmp({F.State},'finished'));
+                        disp(remain);
+
+                    catch ME
+                        fstate={F.State};
+                        save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
                     end
-                    if ~exist('out','var')
-                        out=sess_out;
-                    else
-                        out=[out;sess_out];
-                    end
-                    remain=find(~strcmp({F.State},'finished'));
-                    disp(remain);
-                    % fini=[fini,ftidx];
-                    % disp(ftidx);
-                    % catch ME
-                    %     fstate={F.State};
-                    %     save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
-                    % end
                 end
             else
                 for sessid=sesses %TODO: threads
@@ -178,7 +177,7 @@ classdef chain_tag < handle
                     sess_indices=opt.idces;
                 end
                 if ~exist('FT_SPIKE','var')
-                    if  ~opt.skip_ts_id && ~opt.extend_trial
+                    if  opt.skip_ts_id && opt.extend_trial
                         [spkID,spkTS,~,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false,'jagged',true,'criteria',opt.criteria);
                     else
                         [spkID,spkTS,~,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'jagged',true,'criteria',opt.criteria);
