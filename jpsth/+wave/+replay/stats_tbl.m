@@ -80,7 +80,7 @@ if isempty(ssloop_trl)
             case 'WT'
                 load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
             case 'Learning'
-        		error("Not tested yet")
+		error("Not tested yet")
                 load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
             otherwise
                 keyboard();

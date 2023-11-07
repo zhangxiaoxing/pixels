@@ -5,6 +5,7 @@ arguments
     opt.shuf (1,1) logical = false
     opt.shufidx = 1
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.shuftrl (1,1) logical = false
 end
 switch opt.criteria
     case 'WT'
@@ -16,6 +17,8 @@ switch opt.criteria
         mem_fn='chain_tag_all_trl.mat';
         shuf_fn='chain_tag_shuf%d.mat';
         shuf_input='bz_ring_shufs.mat';
+        shuf_trl_fn='chain_tag_shuftrl%d.mat';        
+
     case 'Learning'
         su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","Learning","load_file",false,"skip_stats",true);
         sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
@@ -23,6 +26,8 @@ switch opt.criteria
         mem_fn='LN_chain_tag_all_trl.mat';
         shuf_fn='LN_chain_tag_shuf%d.mat';
         shuf_input='LN_bz_shufs.mat';
+        shuf_trl_fn='LN_chain_tag_shuftrl%d.mat';
+
     otherwise
         keyboard()
 end
@@ -48,6 +53,17 @@ else
             'extend_trial',true,'skip_ts_id',true,...
             'filename',fullfile('shufs',sprintf(shuf_fn,opt.shufidx)),'poolsize',opt.poolsize, ...
             'criteria',opt.criteria); % per-spk association
+    elseif opt.shuftrl
+        %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',false,'criteria',opt.criteria);
+        wave.chain_tag.tag(...
+            chains_uf_all,3,'skip_save',false,'odor_only',true,...
+            'extend_trial',true,'skip_ts_id',true,...
+            'shuf_trl',true,'shufidx',opt.shufidx,...
+            'filename',fullfile('shufs',sprintf(shuf_trl_fn,opt.shufidx)),'poolsize',opt.poolsize, ...
+            'criteria',opt.criteria); % per-spk association
+
+
     else
         chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',false,'criteria',opt.criteria);
         wave.chain_tag.tag(...

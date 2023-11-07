@@ -131,6 +131,18 @@ rule replay_stats_nonmem:
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,nonmem=true)"'
 
+rule replay_stats_nonmem:
+	input:
+		"binary/trials_dict.mat",
+		"binary/chain_tag_nonmem_all_trl.mat",
+		"binary/rings_tag_trl.mat"
+	output:
+		"binary/motif_replay_chain_nonmem.mat",
+		"binary/motif_replay_ring_nonmem.mat"
+
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,nonmem=true)"'
+
 rule gen_all_replay_shuf_stats:
 	input:
 		expand("binary/shufs/motif_replay_shuf{sidx}.mat",sidx=list(range(1,101)))
@@ -289,6 +301,21 @@ rule gen_one_shuf_chain_tag_file:
 	threads: 4
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuf=true,shufidx={wildcards.cidx})"'
+
+rule gen_all_shuf_trl_chain_tag_file:
+	input:
+		expand("binary/shufs/chain_tag_shuftrl{cidx}.mat",cidx=list(range(1,101)))
+
+rule gen_one_shuf_chain_tag_file:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/shufs/chain_tag_shuftrl{cidx}.mat"
+	threads: 4
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuftrl=true,shufidx={wildcards.cidx})"'
+
 
 rule gen_all_shuf_ring_tag_file:
 	input:

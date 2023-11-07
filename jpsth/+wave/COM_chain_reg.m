@@ -13,7 +13,7 @@ arguments
     opt.shuf (1,1) logical = false
     opt.shuf_data = []
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
-    
+  
 end
 assert(opt.odor_only,"Unfinished") %TODO: finish multi-mode code path
 
