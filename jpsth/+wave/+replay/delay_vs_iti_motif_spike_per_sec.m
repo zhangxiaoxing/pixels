@@ -7,6 +7,7 @@ arguments
     opt.per_unit_motif (1,1) logical = false
     opt.nested (1,1) logical = true
     opt.shuf (1,1) logical = false
+    opt.shuf_trl (1,1) logical = false
     opt.shufidx=1:100
     opt.NOHIP=false;
     opt.HIP_only=false;
@@ -38,6 +39,18 @@ if opt.shuf
         fclose(fid);
     end
 
+    fh=plotShuf(shufdata,mdm,ci,per_sess,opt);
+elseif opt.shuf_trl
+    shufdata=[];
+    for ii=opt.shufidx
+        load(fullfile("binary","shufs","motif_replay_shuftrl"+ii+".mat"),'ring_replay','chain_replay');
+        composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
+        [~,~,per_sess]=statsOne(composite_spk_per_sec,opt);
+        shufdata=[shufdata;per_sess];
+    end
+    load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');
+    composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
+    [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt);
     fh=plotShuf(shufdata,mdm,ci,per_sess,opt);
 else
     if isempty(ring_replay)
@@ -327,7 +340,11 @@ if opt.nested % plot bars for nested loops
 
     title({sprintf('iti%.4f,np%.4f,out%.4f,itiiti%.4f',piti,pnp,pout,pnpiti); ...
         sprintf('z%.4f',pz)});
-    savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf.fig"))
+    if opt.shuf_trl
+        savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf_trl.fig"))
+    else
+        savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf.fig"))
+    end
 
 else % plot bars for all motifs per session
     set(gca,'XTick',1:5,'XTickLabelRotation',90,'XTickLabel',{'Delay','NP Delay','ITI','Before','After'});
@@ -340,8 +357,12 @@ else % plot bars for all motifs per session
     ylim([0,5.25]);
     title({sprintf('iti%.4f,pnp%.4f,before%.4f,after%.4f',pnp,piti,pbefore,pafter); ...
         sprintf('z%.4f',pz)});
-    savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf.fig"))
-end
+    if opt.shuf_trl
+        savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf_trl.fig"))
+    else
+        savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf.fig"))
+    end
 
+end
 
 end

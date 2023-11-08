@@ -10,6 +10,7 @@ arguments
     opt.skip_save (1,1) logical = true
     % opt.nonmem_ring (1,1) logical = false
     opt.shuf (1,1) logical = false
+    opt.shuf_trl (1,1) logical = false
     opt.shufidx = 1
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.odor_only (1,1) logical = true
@@ -38,6 +39,13 @@ if isempty(sschain_trl)
             otherwise
                 keyboard();
         end
+    elseif opt.shuf_trl
+        switch opt.criteria
+            case 'WT'
+                fstr=load(fullfile('binary','shufs',sprintf('chain_tag_shuftrl%d.mat',opt.shufidx)),'out');
+            otherwise
+                keyboard();
+        end        
     elseif opt.nonmem
 	    if strcmp(opt.criteria,'Learning')
 		error("Learning not ready")
@@ -72,6 +80,13 @@ if isempty(ssloop_trl)
                 load(fullfile('binary','shufs',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
             case 'Learning'
                 load(fullfile('binary','shufs',sprintf('LN_ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
+            otherwise
+                keyboard();
+        end
+    elseif opt.shuf_trl
+        switch opt.criteria
+            case 'WT'
+                load(fullfile('binary','shufs',sprintf('ring_tag_shuftrl%d.mat',opt.shufidx)),'ssloop_trl');
             otherwise
                 keyboard();
         end
@@ -127,7 +142,13 @@ if ~opt.skip_save
             otherwise
                 keyboard();
         end
-
+    elseif opt.shuf_trl
+        switch opt.criteria
+            case 'WT'
+                save(fullfile("binary","shufs","motif_replay_shuftrl"+opt.shufidx+".mat"),'chain_replay','ring_replay','chain_sums','loops_sums','chain_raw','loops_raw','blame','opt');
+            otherwise
+                keyboard();
+        end
     else
         switch opt.criteria
             case 'WT'

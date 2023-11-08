@@ -146,6 +146,20 @@ rule replay_shuf_stats:
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf=true,shufidx={wildcards.sidx})"'
 
+rule gen_all_replay_shuf_trl_stats:
+	input:
+		expand("binary/shufs/motif_replay_shuftrl{sidx}.mat",sidx=list(range(1,101)))
+
+rule replay_shuf_trl_stats:
+	input:
+		"binary/trials_dict.mat",
+		"binary/shufs/chain_tag_shuftrl{sidx}.mat",
+		"binary/shufs/ring_tag_shuftrl{sidx}.mat"
+	output:
+		"binary/shufs/motif_replay_shuftrl{sidx,\d+}.mat"
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuftrl=true,shufidx={wildcards.sidx})"'
+
 rule delay_iti_motif_per_spike:
 	input:
 		"binary/motif_replay.mat"
@@ -381,6 +395,20 @@ rule plot_motif_combined_freq_replay:
 		'''
 		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=false)"
 		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=true)"
+		'''
+
+rule plot_motif_combined_freq_replay_shuf_trl:
+	input:
+		"binary/motif_replay.mat",
+		expand("binary/shufs/motif_replay_shuftrl{sidx}.mat",sidx=list(range(1,101))),
+		"binary/trials_dict.mat"
+	output:
+		"binary/nested_motif_replay_spike_per_sec_w_shuf_trl.fig",
+		"binary/sess_motif_spike_per_sec_w_shuf_trl.fig"
+	shell:
+		'''
+		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf_trl=true,nested=false)"
+		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf_trl=true,nested=true)"
 		'''
 
 rule frac_neuron_in_motif:
