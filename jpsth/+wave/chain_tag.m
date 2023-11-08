@@ -72,7 +72,7 @@ classdef chain_tag < handle
                 % fini=[];
                 while ~all([F.Read],'all')
                     try
-                        [ftidx,sess_out,sess_notfound]=fetchNext(F);
+                        [~,sess_out,sess_notfound]=fetchNext(F);
                         notfound=[notfound;sess_notfound];
                         if isempty(sess_out)
                             continue
@@ -86,8 +86,10 @@ classdef chain_tag < handle
                         disp(remain);
 
                     catch ME
+                        blame=vcs.blame();
                         fstate={F.State};
-                        save(fullfile('binary/tagstate.mat'),'fstate','fini','ME');
+                        save(fullfile('binary/chain_tag_catch.mat'),'fstate','ME','blame','opt');
+                        quit(34);
                     end
                 end
             else

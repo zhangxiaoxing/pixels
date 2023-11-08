@@ -17,7 +17,7 @@ durs=[];
 tsize=size(in,1);
 % fprintf('000000');
 while curr_pre_ptr<tsize
-    if rem(curr_pre_ptr,50000)==0, fprintf('%06d.\n',curr_pre_ptr);end
+    % if rem(curr_pre_ptr,10000)==0, fprintf('%06d.\n',curr_pre_ptr);end
     %matching time window, assuming 30kHz
     %assume max 200hz neuron FR, 2spikes × 5 su in 10ms
 

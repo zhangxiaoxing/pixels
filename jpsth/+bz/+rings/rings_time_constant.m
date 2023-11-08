@@ -20,12 +20,16 @@ classdef rings_time_constant <handle
                 opt.iti (1,1) logical = false
                 opt.shuf (1,1) logical = false
                 opt.shufidx = 1
+                opt.shuf_trl (1,1) logical = false
                 opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+                opt.poolsize (1,1) double = 2 
             end
 
             assert(~(opt.delay && opt.iti),"wrong switch combination")
+            assert(~(~opt.compress && opt.shuf_trl),"unfinished")
+
             if ~opt.odor_only
-                assert(strcmp(opt.criteria,'WT') && ~opt.shuf,"wrong switch combination")    
+                assert(strcmp(opt.criteria,'WT') && ~opt.shuf,"wrong switch combination")
             end
             if isempty(su_meta)
                 switch opt.criteria
@@ -68,210 +72,44 @@ classdef rings_time_constant <handle
                 else
                     sums_all=fstr.rings;
                 end
-            end            
-            
-            ssloop_trl=[];
-            if ~opt.load_file
-                pstats=struct();
-                pstats.congru=struct();
-                pstats.nonmem=struct();
+            end
 
-                rstats=cell(0,10);
-                for curr_sess=1:size(sums_all,1)
-                    sesscid=su_meta.allcid(su_meta.sess==curr_sess);
-                    sesswaveid=sel_meta.wave_id(su_meta.sess==curr_sess);
-                    sess_wave_map=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
-                    for rsize=3:5
-                        one_rsize=sums_all{curr_sess,rsize-2};
-                        if isempty(one_rsize),continue;end
-                        for ridx=1:size(one_rsize,1)
-                            curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize(ridx,:))));
-                            
-                            [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid,'odor_only',opt.odor_only);
-                            % if any(ismember(curr_waveid,7:8)) && strcmp(rwid,'congru')
-                            %     keyboard()
-                            % end
-                            if (~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem'))...
-                                    || (opt.odor_only && strcmp(seltype,'dur'))
-                                continue
+            
+            if ~opt.load_file
+                ssloop_trl=[];
+                pstats=cell2struct({struct();struct()},{'congru','nonmem'});
+                if opt.poolsize>1
+                    poolh=parpool(opt.poolsize);
+                    F=parallel.FevalFuture.empty(0,1);
+                    for curr_sess=1:size(sums_all,1)
+                        F(end+1)=parfeval(poolh,@bz.rings.rings_time_constant.per_sess_func,2,curr_sess,su_meta,sel_meta,sums_all,opt);
+                    end
+
+                    while ~all([F.Read],'all')
+                        try
+                            [~,sess_loop_trl,~]=fetchNext(F);
+                            if size(sess_loop_trl,1)>0
+                                ssloop_trl=[ssloop_trl;sess_loop_trl];
                             end
-                            rstats=[rstats;{curr_sess,rsize.*100000+ridx,one_rsize(ridx,:),[],[],[],curr_waveid,seltype,rsize,rwid}];
-                            %  ////////////////^^^^^^^^^^\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
-                            % {sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)}
+                            remain=find(~strcmp({F.State},'finished'));
+                            disp(remain);
+                        catch ME
+                            blame=vcs.blame();
+                            fstate={F.State};
+                            save(fullfile('binary/ring_tag_catch.mat'),'fstate','ME','blame','opt');
+                            quit(34);
                         end
                     end
-                end
-                rstats=rstats(cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
-                % rstats=rstats(cell2mat(rstats(:,6))>0.1 & cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
-                % ring spike rate > 0.1 Hz & no cross link inside loops
-                usess=unique(cell2mat(rstats(:,1)));
 
-                for sessid=usess.'
-                    susel=su_meta.sess==sessid & ~ismissing(su_meta.reg_tree(5,:).'); % removed any remaining white matter tagged su
-                    reg_dict=dictionary(su_meta.allcid(susel),su_meta.reg_tree(5,susel).');
-
-                    [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'criteria',opt.criteria);
-                    % sel3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
-                    % sel6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
-
-                    rid=find(cell2mat(rstats(:,1))==sessid);
-                    for ri=reshape(rid,1,[])
-                        if opt.compress && (any(rstats{ri,7}==0,'all') && ~all(rstats{ri,7}==0,'all'))
-                            continue
+                    delete(poolh);
+                else
+                    for curr_sess=1:size(sums_all,1)
+                        [sess_loop_trl,sess_pstats]=bz.rings.rings_time_constant.per_sess_func(curr_sess,su_meta,sel_meta,sums_all,opt);
+                        if size(sess_loop_trl,1)>0
+                            ssloop_trl=[ssloop_trl;sess_loop_trl];
                         end
-                        if opt.compress && opt.odor_only && (any(ismember(rstats{ri,7},[7 8]),'all'))
-                            continue
-                        end
-
-                        ts_id=[];
-                        cids=rstats{ri,3};
-                        if ~all(reg_dict.isKey(cids),'all')
-                            continue
-                        end
-
-                        disp({sessid,ri});
-
-                        per_cid_spk_cnt=zeros(size(cids));
-                        for in_ring_pos=1:numel(cids) % TODO, 1:rsize
-                            one_ring_sel=spkID==cids(in_ring_pos);
-                            per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
-                            rawts=spkTS(one_ring_sel);
-
-                            ft_sel=strcmp(FT_SPIKE.label,num2str(cids(in_ring_pos)));
-                            ft_ts=FT_SPIKE.timestamp{ft_sel};
-                            ft_trl_time=FT_SPIKE.time{ft_sel};
-                            ft_trl=FT_SPIKE.trial{ft_sel};
-
-                            [tt,tspos]=ismember(ft_ts,rawts);
-                            ext_time=repmat(-realmax,numel(rawts),1);
-                            ext_time(tspos)=ft_trl_time;
-
-                            ext_trl=repmat(-realmax,numel(rawts),1);
-                            ext_trl(tspos)=ft_trl;
-
-                            ts_id=cat(1,ts_id,[rawts,... % 1
-                                repmat(cids(in_ring_pos),per_cid_spk_cnt(in_ring_pos),1),...  % 2
-                                ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos,...  % 3
-                                ext_time,...  % 4
-                                ext_trl]); % 5
-                        end
-                        ts_id=sortrows(ts_id,1);
-                        ring_stats=bz.rings.relax_tag(ts_id(:,[1 3]),rstats{ri,9});
-                        ts_id=[ts_id,full(ring_stats.tags)]; % join TS, ring tag % 6
-
-                        uidtag=sprintf('s%dr%d',sessid,ri);
-                        if strcmp(rstats{ri,8},'none')
-                            if opt.odor_only
-                                continue
-                            end
-                            if opt.compress
-                                % TODO: complete output codes
-                                % TODO: copied from olf code, WIP
-                                onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
-                                if isempty(onets)
-                                    continue
-                                end
-
-                                oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
-                                onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
-                                pref_samp="none";
-                                % no dur pref
-                               
-                                ssloop_trl=[ssloop_trl;cell2table({sessid,-1,pref_samp,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
-                                    'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
-                                %
-                            else
-                                d3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
-                                d6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
-                                % in-delay selection
-                                if opt.delay
-                                    tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>=1 & ts_id(:,4)<4) ...
-                                        | (ismember(ts_id(:,5),d6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
-                                    rsums=ts_id(tssel,:);
-                                elseif opt.iti
-                                    tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>8) ...
-                                        | (ismember(ts_id(:,5),d6) & ts_id(:,4)>11);
-                                    rsums=ts_id(tssel,:);
-                                end
-
-                                for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
-                                    if nnz(rsums(:,6)==ii)<=numel(cids)
-                                        rsums(rsums(:,6)==ii,6)=0;
-                                    end
-                                end
-
-                                if opt.remove_non_motif
-                                    rsums=rsums(rsums(:,6)>0,:);
-                                end
-                                %<<<<<<<<<<<<<<<<<<
-                                pstats.nonmem.(uidtag).ts_id=...
-                                    table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
-                                    'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
-
-                                pstats.nonmem.(uidtag).rstats=rstats(ri,[1:3,7:10]);
-                                pstats.nonmem.(uidtag).trials=trials;
-                            end
-                        else
-                            % in-delay selection
-                            if opt.compress
-                                % TODO: complete output codes
-                                onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
-                                oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
-                                onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
-                                % 3s 6s or both
-                                if all(ismember(rstats{ri,7},7:8))
-                                    pref_samp="s0";
-                                elseif all(ismember(rstats{ri,7},[1 2 5 7 8]),'all')
-                                    pref_samp="s1";
-                                elseif all(ismember(rstats{ri,7},[3 4 6 7 8]),'all')
-                                    pref_samp="s2";
-                                else % TODO: verify and remove if unnecessary
-                                    warning("Incongruent ring under congruent context")
-                                    keyboard()
-                                end
-                                if all(ismember(rstats{ri,7},[1 3 5 6 7]),'all') % 3s
-                                    pref_delay=3;
-                                elseif all(ismember(rstats{ri,7},[2 4 5 6 8]),'all') % 6s
-                                    pref_delay=6;
-                                else
-                                    warning("Incongruent ring under congruent context")
-                                    keyboard()
-                                end
-                                if ~isempty(onets)
-                                    ssloop_trl=[ssloop_trl;cell2table({sessid,pref_delay,pref_samp+"d"+pref_delay,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
-                                        'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
-                                end
-
-                            else
-                                [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
-                                if opt.delay
-                                    tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4)...
-                                        | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
-                                    rsums=ts_id(tssel,:);
-                                elseif opt.iti
-                                    tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)>8)...
-                                        | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)>11);
-                                    rsums=ts_id(tssel,:);
-                                end
-
-                                % remove trial-time cut-off loops
-                                for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
-                                    if nnz(rsums(:,6)==ii)<=numel(cids)
-                                        rsums(rsums(:,6)==ii,6)=0;
-                                    end
-                                end
-
-                                if opt.remove_non_motif
-                                    rsums=rsums(rsums(:,6)>0,:);
-                                end
-
-                                pstats.congru.(uidtag).ts_id=...
-                                    table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
-                                    'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
-                            end
-                            %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                            pstats.congru.(uidtag).rstats=rstats(ri,[1:3,7:10]);
-                            pstats.congru.(uidtag).trials=trials;
+                        if ~opt.compress
+                            error("unfinished")
                         end
                     end
                 end
@@ -285,6 +123,15 @@ classdef rings_time_constant <handle
                                     save(fullfile('binary','shufs',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame','opt')
                                 case 'Learning'
                                     save(fullfile('binary','shufs',sprintf('LN_ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame','opt')
+                                otherwise
+                                    keyboard()
+                            end
+                        elseif opt.shuf_trl
+                            switch opt.criteria
+                                case 'WT'
+                                    save(fullfile('binary','shufs',sprintf('ring_tag_shuftrl%d.mat',opt.shufidx)),'ssloop_trl','blame','opt')
+                                    % case 'Learning'
+                                    %     save(fullfile('binary','shufs',sprintf('LN_ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl','blame','opt')
                                 otherwise
                                     keyboard()
                             end
@@ -311,7 +158,6 @@ classdef rings_time_constant <handle
             end
         end
 
-
         function stats=plotStats(chain_replay,ring_replay,opt)
             arguments
                 chain_replay = []
@@ -323,7 +169,7 @@ classdef rings_time_constant <handle
             if isempty(chain_replay) || isempty(ring_replay)
                 load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');
             end
-            
+
             sess=union(chain_replay.session,ring_replay.session);
             if ~opt.skip_showcase
                 waveid=[3 6];
@@ -439,8 +285,7 @@ classdef rings_time_constant <handle
             % ylim([1e-3,1])
         end
 
-
-        %%
+        %
         function burst_spike_composite()
             dbfile=fullfile("bzdata","rings_wave_burst_iter_600.db");
             conn=sqlite(dbfile,"readonly");
@@ -541,6 +386,227 @@ classdef rings_time_constant <handle
             set(gca(),'YScale','log','XScale','log')
             ylim([1e-6,0.1])
             xlim([10,2000])
+        end
+
+        %% payload
+        function [ssloop_trl,pstats]=per_sess_func(curr_sess,su_meta,sel_meta,sums_all,opt)
+            ssloop_trl=[];
+            pstats=cell2struct({struct();struct()},{'congru','nonmem'});
+
+            sesscid=su_meta.allcid(su_meta.sess==curr_sess);
+            sesswaveid=sel_meta.wave_id(su_meta.sess==curr_sess);
+            sess_wave_map=containers.Map(num2cell(sesscid),num2cell(sesswaveid));
+            rstats=cell(0,10);
+            for rsize=3:5
+                one_rsize=sums_all{curr_sess,rsize-2};
+                if isempty(one_rsize),continue;end
+                for ridx=1:size(one_rsize,1)
+                    curr_waveid=cell2mat(sess_wave_map.values(num2cell(one_rsize(ridx,:))));
+
+                    [rwid,seltype]=bz.rings.ring_wave_type(curr_waveid,'odor_only',opt.odor_only);
+                    % if any(ismember(curr_waveid,7:8)) && strcmp(rwid,'congru')
+                    %     keyboard()
+                    % end
+                    if (~strcmp(rwid,'congru') && ~strcmp(rwid,'nonmem'))...
+                            || (opt.odor_only && strcmp(seltype,'dur'))
+                        continue
+                    end
+                    rstats=[rstats;{curr_sess,rsize.*100000+ridx,one_rsize(ridx,:),[],[],[],curr_waveid,seltype,rsize,rwid}];
+                    %  ////////////////^^^^^^^^^^\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+                    % {sessidx,ring_id,cids,per_cid_spk_cnt,ring_stats,coact_count./(ts_id(end,1)./30000)}
+                end
+            end
+            % end
+            rstats=rstats(cellfun(@(x) numel(unique(x)),rstats(:,3))==cell2mat(rstats(:,9)),:);
+            if size(rstats,1)<1
+                % TODO set up return variables
+                return
+            end
+
+            sessid=curr_sess;
+            susel=su_meta.sess==sessid & ~ismissing(su_meta.reg_tree(5,:).'); % removed any remaining white matter tagged su
+            reg_dict=dictionary(su_meta.allcid(susel),su_meta.reg_tree(5,susel).');
+            if opt.compress
+                [spkID,spkTS,trials,~,~,~]=ephys.getSPKID_TS(sessid,'keep_trial',false,'criteria',opt.criteria);
+            else
+                [spkID,spkTS,trials,~,~,FT_SPIKE]=ephys.getSPKID_TS(sessid,'keep_trial',true,'criteria',opt.criteria);
+            end
+
+            % rid=find(cell2mat(rstats(:,1))==sessid);
+            % for ri=reshape(rid,1,[])
+            for ri=1:size(rstats,1)
+                if opt.compress && (any(rstats{ri,7}==0,'all') && ~all(rstats{ri,7}==0,'all'))
+                    continue
+                end
+                if opt.compress && opt.odor_only && (any(ismember(rstats{ri,7},[7 8]),'all'))
+                    continue
+                end
+
+                ts_id=[];
+                cids=rstats{ri,3};
+                if ~all(reg_dict.isKey(cids),'all')
+                    continue
+                end
+                disp({sessid,ri});
+
+                per_cid_spk_cnt=zeros(size(cids));
+
+                rng(opt.shufidx,"simdTwister");
+
+                for in_ring_pos=1:numel(cids) % TODO, 1:rsize
+                    one_ring_sel=spkID==cids(in_ring_pos);
+                    per_cid_spk_cnt(in_ring_pos)=nnz(one_ring_sel);
+                    rawts=spkTS(one_ring_sel);
+
+                    if opt.compress
+                        if opt.shuf_trl && in_ring_pos>1
+                            rawts=bz.util.shuf_trl_ctrl(trials, rawts,"denovo",true);
+                        end
+
+                        ts_id=cat(1,ts_id,[rawts,... % 1
+                            repmat(cids(in_ring_pos),per_cid_spk_cnt(in_ring_pos),1),...  % 2
+                            ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos,...  % 3
+                            repmat(-realmax,numel(rawts),1),...  % 4
+                            repmat(-realmax,numel(rawts),1)]); % 5
+                    else
+                        ft_sel=strcmp(FT_SPIKE.label,num2str(cids(in_ring_pos)));
+                        ft_ts=FT_SPIKE.timestamp{ft_sel};
+                        ft_trl_time=FT_SPIKE.time{ft_sel};
+                        ft_trl=FT_SPIKE.trial{ft_sel};
+
+                        [~,tspos]=ismember(ft_ts,rawts);
+                        ext_time=repmat(-realmax,numel(rawts),1);
+                        ext_time(tspos)=ft_trl_time;
+
+                        ext_trl=repmat(-realmax,numel(rawts),1);
+                        ext_trl(tspos)=ft_trl;
+
+                        ts_id=cat(1,ts_id,[rawts,... % 1
+                            repmat(cids(in_ring_pos),per_cid_spk_cnt(in_ring_pos),1),...  % 2
+                            ones(per_cid_spk_cnt(in_ring_pos),1)*in_ring_pos,...  % 3
+                            ext_time,...  % 4
+                            ext_trl]); % 5
+                    end
+                end
+                ts_id=sortrows(ts_id,1);
+                ring_stats=bz.rings.relax_tag(ts_id(:,[1 3]),rstats{ri,9});
+                ts_id=[ts_id,full(ring_stats.tags)]; % join TS, ring tag % 6
+
+                uidtag=sprintf('s%dr%d',sessid,ri);
+                if strcmp(rstats{ri,8},'none')
+                    if opt.odor_only
+                        continue
+                    end
+                    if opt.compress
+                        % TODO: complete output codes
+                        % TODO: copied from olf code, WIP
+                        onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                        if isempty(onets)
+                            continue
+                        end
+
+                        oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                        onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
+                        pref_samp="none";
+                        % no dur pref
+
+                        ssloop_trl=[ssloop_trl;cell2table({sessid,-1,pref_samp,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
+                            'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
+                        %
+                    else
+                        d3=find(ismember(trials(:,5),[4 8]) & trials(:,8)==3 & all(trials(:,9:10)~=0,2));
+                        d6=find(ismember(trials(:,5),[4 8]) & trials(:,8)==6 & all(trials(:,9:10)~=0,2));
+                        % in-delay selection
+                        if opt.delay
+                            tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>=1 & ts_id(:,4)<4) ...
+                                | (ismember(ts_id(:,5),d6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
+                            rsums=ts_id(tssel,:);
+                        elseif opt.iti
+                            tssel=(ismember(ts_id(:,5),d3) & ts_id(:,4)>8) ...
+                                | (ismember(ts_id(:,5),d6) & ts_id(:,4)>11);
+                            rsums=ts_id(tssel,:);
+                        end
+
+                        for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
+                            if nnz(rsums(:,6)==ii)<=numel(cids)
+                                rsums(rsums(:,6)==ii,6)=0;
+                            end
+                        end
+
+                        if opt.remove_non_motif
+                            rsums=rsums(rsums(:,6)>0,:);
+                        end
+                        %<<<<<<<<<<<<<<<<<<
+                        pstats.nonmem.(uidtag).ts_id=...
+                            table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
+                            'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
+
+                        pstats.nonmem.(uidtag).rstats=rstats(ri,[1:3,7:10]);
+                        pstats.nonmem.(uidtag).trials=trials;
+                    end
+                else
+                    % in-delay selection
+                    if opt.compress
+                        % TODO: complete output codes
+                        onets=arrayfun(@(x) ts_id(ts_id(:,6)==x,1),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                        oneseq=arrayfun(@(x) ts_id(ts_id(:,6)==x,2),setdiff(unique(ts_id(:,6)),0),'UniformOutput',false);
+                        onemeta={rstats{ri,1},rstats{ri,3},numel(unique(reg_dict(cids)))>1};
+                        % 3s 6s or both
+                        if all(ismember(rstats{ri,7},7:8))
+                            pref_samp="s0";
+                        elseif all(ismember(rstats{ri,7},[1 2 5 7 8]),'all')
+                            pref_samp="s1";
+                        elseif all(ismember(rstats{ri,7},[3 4 6 7 8]),'all')
+                            pref_samp="s2";
+                        else % TODO: verify and remove if unnecessary
+                            warning("Incongruent ring under congruent context")
+                            keyboard()
+                        end
+                        if all(ismember(rstats{ri,7},[1 3 5 6 7]),'all') % 3s
+                            pref_delay=3;
+                        elseif all(ismember(rstats{ri,7},[2 4 5 6 8]),'all') % 6s
+                            pref_delay=6;
+                        else
+                            warning("Incongruent ring under congruent context")
+                            keyboard()
+                        end
+                        if ~isempty(onets)
+                            ssloop_trl=[ssloop_trl;cell2table({sessid,pref_delay,pref_samp+"d"+pref_delay,"s"+sessid+"r"+ri,onets,onemeta,[],oneseq},...
+                                'VariableNames',{'session','delay','wave','loop_id','ts','meta','ts_id','ts_seq'})];
+                        end
+
+                    else
+                        [pref3,pref6]=bz.rings.preferred_trials_rings(rstats{ri,7},trials);
+                        if opt.delay
+                            tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)<4)...
+                                | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)<7);
+                            rsums=ts_id(tssel,:);
+                        elseif opt.iti
+                            tssel=(ismember(ts_id(:,5),pref3) & ts_id(:,4)>=1 & ts_id(:,4)>8)...
+                                | (ismember(ts_id(:,5),pref6) & ts_id(:,4)>=1 & ts_id(:,4)>11);
+                            rsums=ts_id(tssel,:);
+                        end
+
+                        % remove trial-time cut-off loops
+                        for ii=reshape(setdiff(unique(rsums(:,6)),0),1,[])
+                            if nnz(rsums(:,6)==ii)<=numel(cids)
+                                rsums(rsums(:,6)==ii,6)=0;
+                            end
+                        end
+
+                        if opt.remove_non_motif
+                            rsums=rsums(rsums(:,6)>0,:);
+                        end
+
+                        pstats.congru.(uidtag).ts_id=...
+                            table(uint32(rsums(:,1)),uint16(rsums(:,2)),uint8(rsums(:,3)),rsums(:,4),uint8(rsums(:,5)),uint16(rsums(:,6)),...
+                            'VariableNames',["TS","CID","REL_POS","Time","Trial","Loop_tag"]);
+                    end
+                    %<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                    pstats.congru.(uidtag).rstats=rstats(ri,[1:3,7:10]);
+                    pstats.congru.(uidtag).trials=trials;
+                end
+            end
         end
     end
 end

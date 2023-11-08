@@ -303,7 +303,7 @@ rule gen_one_shuf_trl_chain_tag_file:
 		"binary/shufs/chain_tag_shuftrl{cidx,\d+}.mat"
 	threads: 52
 	shell:
-		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuftrl=true,shufidx={wildcards.cidx})"'
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuf_trl=true,shufidx={wildcards.cidx})"'
 
 
 rule gen_all_shuf_ring_tag_file:
@@ -315,10 +315,26 @@ rule gen_one_shuf_ring_tag_file:
 		"binary/rings_bz_vs_shuf.mat",
 		"binary/su_meta.mat",
 		"binary/wrs_mux_meta.mat"
+	threads: 52
 	output:
-		"binary/shufs/ring_tag_shuf{ridx}.mat"
+		"binary/shufs/ring_tag_shuf{ridx,\d+}.mat"
 	shell:
-		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(load_file=false,skip_save=false,compress=true,shuf=true,shufidx={wildcards.ridx})"'
+		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(load_file=false,skip_save=false,compress=true,shuf=true,shufidx={wildcards.ridx},poolsize={threads})"'
+
+rule gen_all_shuf_trl_ring_tag_file:
+	input:
+		expand("binary/shufs/ring_tag_shuftrl{ridx}.mat",ridx=list(range(1,101)))
+
+rule gen_one_shuf_trl_ring_tag_file:
+	input:
+		"binary/rings_bz_vs_shuf.mat",
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	threads: 52
+	output:
+		"binary/shufs/ring_tag_shuftrl{ridx,\d+}.mat"
+	shell:
+		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(load_file=false,skip_save=false,compress=true,shuf_trl=true,shufidx={wildcards.ridx},poolsize={threads})"'
 
 rule motif_freq_w_without_HIP:
 	input:

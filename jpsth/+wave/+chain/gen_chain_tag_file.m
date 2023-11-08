@@ -5,7 +5,7 @@ arguments
     opt.shuf (1,1) logical = false
     opt.shufidx = 1
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
-    opt.shuftrl (1,1) logical = false
+    opt.shuf_trl (1,1) logical = false
 end
 switch opt.criteria
     case 'WT'
@@ -53,7 +53,7 @@ else
             'extend_trial',true,'skip_ts_id',true,...
             'filename',fullfile('shufs',sprintf(shuf_fn,opt.shufidx)),'poolsize',opt.poolsize, ...
             'criteria',opt.criteria); % per-spk association
-    elseif opt.shuftrl
+    elseif opt.shuf_trl
         %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         chains_uf_all=wave.COM_chain_reg(su_meta,sel_meta,reg_com_maps,'cross_only',false,'criteria',opt.criteria);
         wave.chain_tag.tag(...
