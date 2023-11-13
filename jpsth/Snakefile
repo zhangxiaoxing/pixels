@@ -86,8 +86,9 @@ rule rings_tag_trl:
 		"binary/wrs_mux_meta.mat"
 	output:
 		"binary/rings_tag_trl.mat"
+	threads: 52
 	shell:
-		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(load_file=false,skip_save=false,compress=true,odor_only=true)"'
+		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(load_file=false,skip_save=false,compress=true,odor_only=true,poolsize={threads})"'
 
 rule SC_consistent_inconsistent:
 	input:
@@ -142,7 +143,7 @@ rule replay_shuf_stats:
 		"binary/shufs/chain_tag_shuf{sidx}.mat",
 		"binary/shufs/ring_tag_shuf{sidx}.mat"
 	output:
-		"binary/shufs/motif_replay_shuf{sidx}.mat"
+		"binary/shufs/motif_replay_shuf{sidx,\d+}.mat"
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf=true,shufidx={wildcards.sidx})"'
 
@@ -158,7 +159,7 @@ rule replay_shuf_trl_stats:
 	output:
 		"binary/shufs/motif_replay_shuftrl{sidx,\d+}.mat"
 	shell:
-		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuftrl=true,shufidx={wildcards.sidx})"'
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf_trl=true,shufidx={wildcards.sidx})"'
 
 rule delay_iti_motif_per_spike:
 	input:

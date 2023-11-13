@@ -364,5 +364,32 @@ else % plot bars for all motifs per session
     end
 
 end
+end
+
+% for temporary varification only
+% not part of regular pipeline
+function fh=plotShufBox(shufdata,mdm,ci,per_sess,opt) 
+grpidx=1;
+boxmat=[];
+for kkey=reshape(fieldnames(per_sess),1,[])
+    datamat=per_sess.(kkey{1});
+    datamat(:,2)=grpidx;
+    grpidx=grpidx+1;
+    shufmat=cell2mat({shufdata.(kkey{1})}.');
+    shufmat(:,2)=grpidx;
+    grpidx=grpidx+1;
+
+    boxmat=[boxmat;datamat;shufmat];
+end
+
+fh=figure('Position',[100,100,400,300]);
+hold on
+bh=swarmchart(boxmat(:,2),boxmat(:,1),9,'k','o','filled','MarkerFaceAlpha',0.25,'MarkerEdgeColor','none');
+set(gca(),'YScale','log')
+xlim([0.5,10.5])
+set(gca(),'XTick',[1.5:2:9.5],'XTickLabel',{'Delay','NP delay','ITI','Before task','After task'})
+ylabel('Combined unique motif spike frequency per session (Hz)')
 
 end
+
+
