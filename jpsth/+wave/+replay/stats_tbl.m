@@ -47,9 +47,9 @@ if isempty(sschain_trl)
                 keyboard();
         end        
     elseif opt.nonmem
-	    if strcmp(opt.criteria,'Learning')
-		error("Learning not ready")
-	    end
+        if strcmp(opt.criteria,'Learning')
+    		error("Learning not ready")
+        end
         fstr=load(fullfile('binary','chain_tag_nonmem_all_trl.mat'),'out');
         opt.var_len=false;
         [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
@@ -94,16 +94,17 @@ if isempty(ssloop_trl)
         switch opt.criteria
             case 'WT'
                 load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
+                sfn='motif_replay_ring_nonmem.mat';
             case 'Learning'
-		error("Not tested yet")
                 load(fullfile('binary','LN_rings_tag_trl.mat'),'ssloop_trl')
+                sfn='LN_motif_replay_ring_nonmem.mat';
             otherwise
                 keyboard();
         end
         opt.var_len=true;
         [ring_replay,loops_sums,loops_raw]=stats_one(ssloop_trl,trials_dict,opt);
         blame=vcs.blame();
-        save(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_raw','loops_sums','ring_replay','blame','opt','-v7.3');
+        save(fullfile('binary',sfn),'loops_raw','loops_sums','ring_replay','blame','opt','-v7.3');
     else
         switch opt.criteria
             case 'WT'
