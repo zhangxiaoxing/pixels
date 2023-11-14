@@ -11,6 +11,7 @@ arguments
     opt.shufidx=1:100
     opt.NOHIP=false;
     opt.HIP_only=false;
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
 if isempty(trials_dict)
@@ -20,12 +21,26 @@ end
 if opt.shuf
     shufdata=[];
     for ii=opt.shufidx
-        load(fullfile("binary","shufs","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
+        switch opt.criteria
+            case 'WT'
+                load(fullfile("binary","shufs","motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
+            case 'Learning'
+                load(fullfile("binary","shufs","LN_motif_replay_shuf"+ii+".mat"),'ring_replay','chain_replay');
+            otherwise
+                keyboard()
+        end
         composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
         [~,~,per_sess]=statsOne(composite_spk_per_sec,opt);
         shufdata=[shufdata;per_sess];
     end
-    load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');
+    switch opt.criteria
+        case 'WT'
+            load(fullfile('binary','motif_replay.mat'),'ring_replay','chain_replay');
+        case 'Learning'
+            load(fullfile('binary','LN_motif_replay.mat'),'ring_replay','chain_replay');
+        otherwise
+            keyboard()
+    end
     composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
     [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt);
     if false
@@ -41,6 +56,9 @@ if opt.shuf
 
     fh=plotShuf(shufdata,mdm,ci,per_sess,opt);
 elseif opt.shuf_trl
+    if ~strcmp(opt.criteria,'WT')
+        error("Unfinished")
+    end
     shufdata=[];
     for ii=opt.shufidx
         load(fullfile("binary","shufs","motif_replay_shuftrl"+ii+".mat"),'ring_replay','chain_replay');
@@ -53,11 +71,23 @@ elseif opt.shuf_trl
     [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt);
     fh=plotShuf(shufdata,mdm,ci,per_sess,opt);
 else
-    if isempty(ring_replay)
-        load(fullfile('binary','motif_replay.mat'),'ring_replay');
-    end
-    if isempty(chain_replay)
-        load(fullfile('binary','motif_replay.mat'),'chain_replay');
+    switch opt.criteria
+        case 'WT'
+            if isempty(ring_replay)
+                load(fullfile('binary','motif_replay.mat'),'ring_replay');
+            end
+            if isempty(chain_replay)
+                load(fullfile('binary','motif_replay.mat'),'chain_replay');
+            end
+        case 'Learning'
+            if isempty(ring_replay)
+                load(fullfile('binary','LN_motif_replay.mat'),'ring_replay');
+            end
+            if isempty(chain_replay)
+                load(fullfile('binary','LN_motif_replay.mat'),'chain_replay');
+            end
+        otherwise
+            keyboard()
     end
 
     composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt);
@@ -72,9 +102,15 @@ end
 end
 
 
-
 function composite_spk_per_sec=countOne(chain_replay,ring_replay,trials_dict,opt)
-load(fullfile('binary','su_meta.mat'),'su_meta');
+switch opt.criteria
+    case 'WT'
+        load(fullfile('binary','su_meta.mat'),'su_meta');
+    case 'Learning'
+        su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","Learning","load_file",false,"skip_stats",true);
+    otherwise
+        keyboard();
+end
 sps=30000;
 % per session
 composite_spk_per_sec=[];
@@ -215,9 +251,21 @@ end
 if ~opt.skip_save
     blame=vcs.blame();
     if opt.per_unit_motif
-        save(fullfile("binary","chains_loops_freq.mat"),"composite_spk_per_sec","blame");
+        switch opt.criteria
+            case 'WT'
+                save(fullfile("binary","chains_loops_freq.mat"),"composite_spk_per_sec","blame");
+            otherwise
+                error("Unfinished");
+        end
     else
-        save(fullfile("binary","delay_iti_motif_spike_per_sec.mat"),"composite_spk_per_sec","blame");
+        switch opt.criteria
+            case 'WT'
+                save(fullfile("binary","delay_iti_motif_spike_per_sec.mat"),"composite_spk_per_sec","blame");
+            case 'Learning'
+                save(fullfile("binary","LN_delay_iti_motif_spike_per_sec.mat"),"composite_spk_per_sec","blame");
+            otherwise
+                error("Unfinished")
+        end
     end
 end
 end
@@ -247,7 +295,14 @@ function plot_unit_motif(composite_spk_per_sec,opt)
     set(gca,'YScale','log','YLim',[1e-2,1e2],'XTick',[])
     ylabel('Motif spike rate (Hz, cross-motifs)')
     title('All motifs')
-    savefig(fh,fullfile("binary","chains_loops_freq.fig"))
+    switch opt.criteria
+        case 'WT'
+            savefig(fh,fullfile("binary","chains_loops_freq.fig"))
+        case 'Learning'
+            savefig(fh,fullfile("binary","LN_chains_loops_freq.fig"))
+        otherwise
+            error("Unfinished")
+    end
 end
 
 function [mdm,ci,per_sess]=statsOne(composite_spk_per_sec,opt)
@@ -297,9 +352,15 @@ if opt.nested % plot bars for nested loops
 
     title(sprintf('iti%.4f,np%.4f,out%.4f,itiiti%.4f',piti,pnp,pout,pnpiti));
     if ~opt.skip_save
-        savefig(fh,fullfile("binary","delay_iti_motif_spike_per_sec.fig"))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile("binary","delay_iti_motif_spike_per_sec.fig"))
+            case 'Learning'
+                savefig(fh,fullfile("binary","LN_delay_iti_motif_spike_per_sec.fig"))
+            otherwise
+                error("Unfinished")
+        end
     end
-
 else % plot bars for all motifs per session
     set(gca,'XTick',1:4,'XTickLabelRotation',90,'XTickLabel',{'Delay','ITI','Before','After'});
     xlim([0.25,4.75])
@@ -310,7 +371,14 @@ else % plot bars for all motifs per session
     ylim([0,5.25]);
     title(sprintf('iti%.4f,before%.4f,after%.4f',piti,pbefore,pafter));
     if ~opt.skip_save
-        savefig(fh,fullfile("binary","sess_motif_spike_per_sec.fig"))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile("binary","sess_motif_spike_per_sec.fig"))
+            case 'Learning'
+                savefig(fh,fullfile("binary","LN_sess_motif_spike_per_sec.fig"))
+            otherwise
+                error("Unfinished")
+        end
     end
 end
 end
@@ -341,11 +409,24 @@ if opt.nested % plot bars for nested loops
     title({sprintf('iti%.4f,np%.4f,out%.4f,itiiti%.4f',piti,pnp,pout,pnpiti); ...
         sprintf('z%.4f',pz)});
     if opt.shuf_trl
-        savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf_trl.fig"))
+        if ~opt.skip_save
+            switch opt.criteria
+                case 'WT'
+                    savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf_trl.fig"))
+                otherwise
+                    error("Unfinished")
+            end
+        end
     else
-        savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf.fig"))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile("binary","nested_motif_replay_spike_per_sec_w_shuf.fig"))
+            case 'Learning'
+                savefig(fh,fullfile("binary","LN_nested_motif_replay_spike_per_sec_w_shuf.fig"))
+            otherwise
+                error("Unfinished")
+        end
     end
-
 else % plot bars for all motifs per session
     set(gca,'XTick',1:5,'XTickLabelRotation',90,'XTickLabel',{'Delay','NP Delay','ITI','Before','After'});
     xlim([0.25,5.75])
@@ -358,11 +439,22 @@ else % plot bars for all motifs per session
     title({sprintf('iti%.4f,pnp%.4f,before%.4f,after%.4f',pnp,piti,pbefore,pafter); ...
         sprintf('z%.4f',pz)});
     if opt.shuf_trl
-        savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf_trl.fig"))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf_trl.fig"))
+            otherwise
+                error("Unfinished")
+        end
     else
-        savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf.fig"))
+        switch opt.criteria
+            case 'WT'
+                savefig(fh,fullfile("binary","sess_motif_spike_per_sec_w_shuf.fig"))
+            case 'Learning'
+                savefig(fh,fullfile("binary","LN_sess_motif_spike_per_sec_w_shuf.fig"))
+            otherwise
+                error("Unfinished")
+        end
     end
-
 end
 end
 

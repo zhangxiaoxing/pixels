@@ -1,13 +1,15 @@
 #snakemake -s Snake_learning --cluster "sbatch -p stor -c 8 --parsable -o .snakemake/slurm_logs/%j.out -e .snakemake/slurm_logs/%j.err" --max-jobs-per-second  0.01 --cluster-status ./cluster_status.sh -j 100 -pr gen_all_learning_coupling --config lastfile=40
 import glob
+# TODDO: remove self-reference
 def get_num_files():
 	return len(glob.glob('binary/SC/Learning_BZ_XCORR_duo_f*.mat'))
+
 
 config["lastfile"]=get_num_files()
 
 rule gen_all_learning_coupling:
 	input:
-		expand("binary/SC/Learning_BZ_XCORR_duo_f{fidx}.mat",fidx=list(range(1,config["lastfile"])))
+		expand("binary/SC/Learning_BZ_XCORR_duo_f{fidx}.mat",fidx=list(range(1,config["lastfile"]+1)))
 
 rule gen_one_learning_coupling:
 	input:
@@ -37,10 +39,10 @@ rule gen_ring_tag_file:
 	input:
 		"binary/LN_rings_bz_vs_shuf.mat"
 	output:
-		"binary/LN_ring_tag_trl.mat"
+		"binary/LN_rings_tag_trl.mat"
 	threads: 52 
 	shell:
-		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(poolsize={threads},load_file=false,skip_save=false,compress=true,shuf=false,'"criteria='Learning'"')"'
+		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(poolsize={threads},load_file=false,skip_save=false,odor_only=true,compress=true,shuf=false,'"criteria='Learning'"')"'
 
 rule gen_all_shuf_chain_tag_file:
 	input:
@@ -55,6 +57,7 @@ rule gen_one_shuf_chain_tag_file:
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},shuf=true,shufidx={wildcards.cidx}'",criteria='Learning'"')"'
 
+
 rule gen_all_shuf_ring_tag_file:
 	input:
 		expand("binary/shufs/LN_ring_tag_shuf{ridx}.mat",ridx=list(range(1,101)))
@@ -66,7 +69,7 @@ rule gen_one_shuf_ring_tag_file:
 		"binary/shufs/LN_ring_tag_shuf{ridx,\d+}.mat"
 	threads: 52 
 	shell:
-		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(poolsize={threads},load_file=false,skip_save=false,compress=true,shuf=true,shufidx={wildcards.ridx}'",criteria='Learning'"')"'
+		'matlab -noFigureWindows -batch "bz.rings.rings_time_constant.stats(poolsize={threads},odor_only=true,load_file=false,skip_save=false,compress=true,shuf=true,shufidx={wildcards.ridx}'",criteria='Learning'"')"'
 
 
 rule replay_stats:
@@ -87,12 +90,25 @@ rule replay_shuf_stats:
 		"binary/shufs/LN_chain_tag_shuf{sidx}.mat",
 		"binary/shufs/LN_ring_tag_shuf{sidx}.mat"
 	output:
-		"binary/shus/LN_motif_replay_shuf{sidx,\d+}.mat"
+		"binary/shufs/LN_motif_replay_shuf{sidx,\d+}.mat"
 	shell:
-		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf=true,shufidx={wildcards.sidx},criteria='"'Learning'"')"'
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,shuf=true,shufidx={wildcards.sidx},odor_only=true,criteria='"'Learning'"')"'
 
 
 
+rule plot_motif_combined_freq_replay:
+	input:
+		"binary/LN_motif_replay.mat",
+		expand("binary/shufs/LN_motif_replay_shuf{sidx}.mat",sidx=list(range(1,101)))
+	output:
+		"binary/LN_nested_motif_replay_spike_per_sec_w_shuf.fig",
+		"binary/LN_sess_motif_spike_per_sec_w_shuf.fig"
+	shell:
+		'''
+		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=false,criteria='Learning')"
+		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=true,criteria='Learning')"
+		'''
+ 
 # bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
 
 # wave.chain.chains_consist_incon(skip_save=false,shuf=true,criteria='Learning')
