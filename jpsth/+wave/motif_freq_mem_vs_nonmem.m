@@ -4,11 +4,18 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
 
-
 % TODO: Leanring nonmemory
 if strcmp(opt.type,'chain')
-    memstr=load(fullfile("binary","motif_replay.mat"),'chain_sums');
-    nmstr=load(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_sums');
+    switch opt.criteria
+        case 'WT'
+            memstr=load(fullfile("binary","motif_replay.mat"),'chain_sums');
+            nmstr=load(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_sums');
+        case 'Learning'
+            memstr=load(fullfile("binary","LN_motif_replay.mat"),'chain_sums');
+            nmstr=load(fullfile('binary','LN_motif_replay_chain_nonmem.mat'),'chain_sums');            
+        otherwise
+            error("unfinished")
+    end
     if false
         mvsnm.Memory=cell2struct(mat2cell(memstr.chain_sums([1 3 5 11 12],:),ones(5,1),size(memstr.chain_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
         mvsnm.Nonmemory=cell2struct(mat2cell(nmstr.chain_sums([1 1 2 4 5],:),ones(5,1),size(nmstr.chain_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
@@ -24,8 +31,16 @@ if strcmp(opt.type,'chain')
         memstr.chain_sums(12,:),nmstr.chain_sums(5,:)];
     ggn=[size(memstr.chain_sums,2),size(nmstr.chain_sums,2)];
 else
-    memstr=load(fullfile("binary","motif_replay.mat"),'loops_sums');
-    nmstr=load(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_sums');
+    switch opt.criteria
+        case 'WT'
+            memstr=load(fullfile("binary","motif_replay.mat"),'loops_sums');
+            nmstr=load(fullfile('binary','motif_replay_ring_nonmem.mat'),'loops_sums');
+        case 'Learning'
+            memstr=load(fullfile("binary","LN_motif_replay.mat"),'loops_sums');
+            nmstr=load(fullfile('binary','LN_motif_replay_ring_nonmem.mat'),'loops_sums');
+        otherwise
+            error("Unfinished")
+    end
     if false
         mvsnm.Memory=cell2struct(mat2cell(memstr.loops_sums([1 3 5 11 12],:),ones(5,1),size(memstr.loops_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
         mvsnm.Nonmemory=cell2struct(mat2cell(nmstr.loops_sums([1 1 2 4 5],:),ones(5,1),size(nmstr.loops_sums,2)),{'Preferred_delay','Nonpreferred_delay','ITI','Before_task','After_task'});
@@ -66,11 +81,15 @@ pp=[ranksum(cyy(cgg==1),cyy(cgg==2)),ranksum(cyy(cgg==3),cyy(cgg==4)),...
     ranksum(cyy(cgg==9),cyy(cgg==10))];
 
 subtitle(sprintf('%.4f,',pp));
-
-if strcmp(opt.type,'chain')
-    title('chains consis vs nonmem sample')
-    savefig(fh,fullfile('binary','motif_freq_chain_mem_vs_nonmem.fig'))
-else
-    title('loops consis vs nonmem sample')
-    savefig(fh,fullfile('binary','motif_freq_loops_mem_vs_nonmem.fig'))
+switch opt.criteria
+    case 'WT'
+        title([opt.type,'s consis vs nonmem sample'])
+        savefig(fh,fullfile('binary',['motif_freq_',opt.type,'_mem_vs_nonmem.fig']))
+    case 'Learning'
+        title(['LN_',opt.type,'s consis vs nonmem sample'])
+        savefig(fh,fullfile('binary',['LN_motif_freq_',opt.type,'_mem_vs_nonmem.fig']))
+    otherwise
+        error("unfinished")
 end
+
+

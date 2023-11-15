@@ -127,6 +127,21 @@ rule replay_stats_nonmem:
 
 	shell:
 		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,nonmem=true,'"criteria='Learning'"')"'
+
+rule motif_freq_mem_vs_nonmem:
+        input:
+                "binary/LN_motif_replay.mat",
+                "binary/LN_motif_replay_chain_nonmem.mat",
+                "binary/LN_motif_replay_ring_nonmem.mat"
+        output:
+                "binary/LN_motif_freq_chain_mem_vs_nonmem.fig",
+                "binary/LN_motif_freq_loops_mem_vs_nonmem.fig"
+        shell:
+                '''
+                matlab -noFigureWindows -batch "wave.motif_freq_mem_vs_nonmem(type='chain',criteria='Learning')"
+                matlab -noFigureWindows -batch "wave.motif_freq_mem_vs_nonmem(type='loop',criteria='Learning')"
+                '''
+
 # bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
 
 # wave.chain.chains_consist_incon(skip_save=false,shuf=true,criteria='Learning')
