@@ -15,7 +15,10 @@ arguments
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
     opt.odor_only (1,1) logical = true
 end
+% TODO: Learning nonmem
+
 assert(~(opt.cross_only && opt.within_only),"conflict selection")
+
 
 if isempty(trials_dict)
     switch opt.criteria
@@ -30,7 +33,6 @@ end
 
 if isempty(sschain_trl)
     if opt.shuf
-        % TODO: LN WIP
         switch opt.criteria
             case 'WT'
                 fstr=load(fullfile('binary','shufs',sprintf('chain_tag_shuf%d.mat',opt.shufidx)),'out');
@@ -40,6 +42,7 @@ if isempty(sschain_trl)
                 keyboard();
         end
     elseif opt.shuf_trl
+                % TODO: LN WIP
         switch opt.criteria
             case 'WT'
                 fstr=load(fullfile('binary','shufs',sprintf('chain_tag_shuftrl%d.mat',opt.shufidx)),'out');
@@ -47,14 +50,20 @@ if isempty(sschain_trl)
                 keyboard();
         end        
     elseif opt.nonmem
-        if strcmp(opt.criteria,'Learning')
-    		error("Learning not ready")
-        end
-        fstr=load(fullfile('binary','chain_tag_nonmem_all_trl.mat'),'out');
         opt.var_len=false;
-        [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
         blame=vcs.blame();
-        save(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_raw','chain_sums','chain_replay','-v7.3');
+        switch opt.criteria
+            case 'WT'
+                fstr=load(fullfile('binary','chain_tag_nonmem_all_trl.mat'),'out');
+                [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
+                save(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_raw','chain_sums','chain_replay','blame','opt','-v7.3');
+            case 'Learning'
+                fstr=load(fullfile('binary','LN_chain_tag_nonmem_all_trl.mat'),'out');
+                [chain_replay,chain_sums,chain_raw]=stats_one(fstr.out,trials_dict,opt);
+                save(fullfile('binary','LN_motif_replay_chain_nonmem.mat'),'chain_raw','chain_sums','chain_replay','blame','opt','-v7.3');
+            otherwise
+                error("Unfinished")
+        end
     else
         switch opt.criteria
             case 'WT'
@@ -75,6 +84,7 @@ end
 
 if isempty(ssloop_trl)
     if opt.shuf
+        % selective, shuffled data
         switch opt.criteria
             case 'WT'
                 load(fullfile('binary','shufs',sprintf('ring_tag_shuf%d.mat',opt.shufidx)),'ssloop_trl');
@@ -91,6 +101,7 @@ if isempty(ssloop_trl)
                 keyboard();
         end
     elseif opt.nonmem
+        % nonmemory, real data
         switch opt.criteria
             case 'WT'
                 load(fullfile('binary','rings_tag_trl.mat'),'ssloop_trl')
@@ -105,7 +116,9 @@ if isempty(ssloop_trl)
         [ring_replay,loops_sums,loops_raw]=stats_one(ssloop_trl,trials_dict,opt);
         blame=vcs.blame();
         save(fullfile('binary',sfn),'loops_raw','loops_sums','ring_replay','blame','opt','-v7.3');
+        quit(0);
     else
+        % selective, real data
         switch opt.criteria
             case 'WT'
                 if opt.odor_only

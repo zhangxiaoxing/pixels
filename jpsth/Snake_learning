@@ -35,6 +35,14 @@ rule gen_chain_tag_file:
 	shell:
 		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},'"criteria='Learning'"')"'
 
+rule gen_nonmem_chain_tag_file:
+	input:
+	output:
+		"binary/LN_chain_tag_nonmem_all_trl.mat"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "wave.chain.gen_chain_tag_file(poolsize={threads},nonmem=true,'"criteria='Learning'"')"'
+
 rule gen_ring_tag_file:
 	input:
 		"binary/LN_rings_bz_vs_shuf.mat"
@@ -109,6 +117,16 @@ rule plot_motif_combined_freq_replay:
 		matlab -noFigureWindows -batch "wave.replay.delay_vs_iti_motif_spike_per_sec(skip_save=false,shuf=true,nested=true,criteria='Learning')"
 		'''
  
+rule replay_stats_nonmem:
+	input:
+		"binary/LN_chain_tag_nonmem_all_trl.mat",
+		"binary/LN_rings_tag_trl.mat"
+	output:
+		"binary/LN_motif_replay_chain_nonmem.mat",
+		"binary/LN_motif_replay_ring_nonmem.mat"
+
+	shell:
+		'matlab -noFigureWindows -batch "wave.replay.stats_tbl(skip_save=false,nonmem=true,'"criteria='Learning'"')"'
 # bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
 
 # wave.chain.chains_consist_incon(skip_save=false,shuf=true,criteria='Learning')

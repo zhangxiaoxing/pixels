@@ -1,7 +1,11 @@
 function motif_freq_mem_vs_nonmem(opt)
 arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'chain','loop'})}= 'chain'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
+
+
+% TODO: Leanring nonmemory
 if strcmp(opt.type,'chain')
     memstr=load(fullfile("binary","motif_replay.mat"),'chain_sums');
     nmstr=load(fullfile('binary','motif_replay_chain_nonmem.mat'),'chain_sums');
