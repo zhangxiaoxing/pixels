@@ -97,7 +97,7 @@ if ~opt.skip_save
     end
 end
 
-if opt.shuf
+if opt.shuooof
     fwdcnt=nnz(chains_uf_all.cross_reg);
     wtncnt=nnz(~chains_uf_all.cross_reg);
     revcnt=nnz(chains_uf_rev_all.cross_reg);

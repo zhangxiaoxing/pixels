@@ -4,16 +4,27 @@ arguments
     sel_meta = []
     opt.burst (1,1) logical = false
     opt.repeats (1,1) double = 100
-    opt.denovo (1,1) logical = false
+    opt.denovo (1,1) logical = true
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.odor_only (1,1) logical
+    opt.poolsize (1,1) double = 2
 end
 %% appearance in spike sequence
-
 if isempty(sel_meta)
-    load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
-    sel_meta=wrs_mux_meta;
+    switch opt.criteria
+        case 'WT'
+            fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+            sel_meta=fstr.wrs_mux_meta;
+            clear fstr
+        case 'Learning'
+            sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+        case 'any'
+            keyboard()
+    end
 end
 
 if opt.burst
+    assert(strcmp(opt.criteria,'WT'),"Unfinished");
     % nonmem
     nonmem_keys=struct();
     for bi=[150,300,600]
@@ -48,10 +59,33 @@ if opt.burst
     end
     if opt.denovo
         sums_shuf=cell(opt.repeats,1);
-        for rpt=1:opt.repeats
-            sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt);
+        if opt.poolsize>1
+            poolh=parpool(opt.poolsize);
+            F=parallel.FevalFuture.empty(0,opt.repeats);
+            for rpt=1:opt.repeats
+                F(rpt)=parfeval(poolh,@bz.rings.rings_wave,1,sel_meta,'shufid',rpt,'odor_only',opt.odor_only,'criteria',opt.criteria);
+            end
+
+            while ~all([F.Read],'all')
+                try
+                    [pidx,oneshuf]=fetchNext(F);
+                    sums_shuf{pidx}=oneshuf;
+                    remain=find(~strcmp({F.State},'finished'));
+                    disp(remain);
+                catch ME
+                    blame=vcs.blame();
+                    fstate={F.State};
+                    save(fullfile('binary/ring_wave_freq_err.mat'),'fstate','ME','blame','opt');
+                    quit(34);
+                end
+            end
+        else
+            for rpt=1:opt.repeats
+                sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt,'odor_only',opt.odor_only,'criteria',opt.criteria);
+            end
         end
     else
+        assert(strcmp(opt.criteria,'WT'),"Unfinished");
         load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf')
     end
 
@@ -102,15 +136,40 @@ if opt.burst
     title('Burst rings occurrence')
 
 else % W/o burst
-    
     if opt.denovo
-        sums=bz.rings.rings_wave(sel_meta,'shufid',0);
         sums_shuf=cell(opt.repeats,1);
-        for rpt=1:opt.repeats
-            sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt);
+        if opt.poolsize>1
+            poolh=parpool(opt.poolsize);
+            F0=parfeval(poolh,@bz.rings.rings_wave,1,sel_meta,'shufid',0,'odor_only',opt.odor_only,'criteria',opt.criteria);
+            F=parallel.FevalFuture.empty(0,opt.repeats);
+            for rpt=1:opt.repeats
+                F(rpt)=parfeval(poolh,@bz.rings.rings_wave,1,sel_meta,'shufid',rpt,'odor_only',opt.odor_only,'criteria',opt.criteria);
+            end
+            sums=F0.fetchOutputs();
+            while ~all([F.Read],'all')
+                try
+                    [pidx,oneshuf]=fetchNext(F);
+                    sums_shuf{pidx}=oneshuf;
+                    remain=find(~strcmp({F.State},'finished'));
+                    disp(remain);
+                catch ME
+                    blame=vcs.blame();
+                    fstate={F.State};
+                    save(fullfile('binary/ring_wave_freq_err.mat'),'fstate','ME','blame','opt');
+                    quit(34);
+                end
+            end
+            delete(poolh)
+        else
+            sums=bz.rings.rings_wave(sel_meta,'shufid',0,'criteria',opt.criteria,'odor_only',opt.odor_only);
+            for rpt=1:opt.repeats
+                sums_shuf{rpt}=bz.rings.rings_wave(sel_meta,'shufid',rpt,'odor_only',opt.odor_only,'criteria',opt.criteria);
+            end
         end
     else
-        load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf','sums')
+        assert(strcmp(opt.criteria,'WT'),"Unfinished")
+        % probably outdated, needs varify
+        load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf','sums') 
     end
     wavetype=struct();
     wavetype_shuf=struct();
@@ -158,7 +217,14 @@ else % W/o burst
     % errorbar(1:4,mm,sems,'k.')
     ylabel('Z-Score')
     set(gca(),'XTick',1:3,'XTickLabel',{'Nonmem','Incongru.','Congru.'},'XTickLabelRotation',45)
-    savefig(fh,fullfile('binary','loop_occur_vs_shuf.fig'));
+    switch opt.criteria
+        case 'WT'
+            savefig(fh,fullfile('binary','loop_occur_vs_shuf.fig'));
+        case 'Learning'
+            savefig(fh,fullfile('binary','LN_loop_occur_vs_shuf.fig'));
+        otherwise
+            error("Unfinished")
+    end
 
     if false
         seltype=struct();

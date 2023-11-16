@@ -27,7 +27,7 @@ if isempty(out) || ~isequaln(opt,opt_)
             [out.o_pref_id6,out.p_olf6,out.class_fr6]=deal([]);
         end
         for sessid=sesskeys
-            disp(sessid);
+            if rem(sessid,10)==0, disp(sessid);end
             fpath=fullfile(homedir,replace(sessmap(sessid),("\"|"/"),filesep),"FR_All_1000.hdf5");
             fr=h5read(fpath,'/FR_All');
             trials=h5read(fpath,'/Trials');

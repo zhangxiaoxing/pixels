@@ -494,9 +494,9 @@ classdef rings_time_constant <handle
 
                 uidtag=sprintf('s%dr%d',sessid,ri);
                 if strcmp(rstats{ri,8},'none')
-                    if opt.odor_only
-                        continue
-                    end
+                    % if opt.odor_only
+                    %     continue
+                    % end
                     if opt.compress
                         % TODO: complete output codes
                         % TODO: copied from olf code, WIP

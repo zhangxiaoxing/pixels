@@ -1,4 +1,3 @@
-% deprecated wave definition
 % only evaluate SU-waveid, spike-time independent
 
 % nonmem,overlap,independent,within,cross,ringsize,session,cids,[nan]
@@ -6,11 +5,43 @@ function sums=rings_wave(sel_meta,opt)
 arguments
     sel_meta
     opt.shufid double {mustBeScalarOrEmpty} = 0
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.odor_only (1,1) logical
 end
-% persistent meta rings_shuf
-su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 
-fstr=load(fullfile('binary','rings_bz_vs_shuf.mat'));
+% persistent meta rings_shuf
+
+switch opt.criteria
+    case 'WT'
+        load(fullfile('binary','su_meta.mat'),'su_meta');
+    case 'Learning'
+        su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","Learning","load_file",false,"skip_stats",true);
+    case 'any'
+        error("Unfinished")
+end
+
+
+if isempty(sel_meta)
+    switch opt.criteria
+        case 'WT'
+            fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+            sel_meta=fstr.wrs_mux_meta;
+            clear fstr
+        case 'Learning'
+            sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+        case 'any'
+            error("Unfinished")
+    end
+end
+switch opt.criteria
+    case 'WT'
+        fstr=load(fullfile('binary','rings_bz_vs_shuf.mat'));
+    case 'Learning'
+        fstr=load(fullfile('binary','LN_rings_bz_vs_shuf.mat'));
+    otherwise
+        error("Unfinished");
+end
+
 if opt.shufid==0
     rings=fstr.rings;
 else
@@ -48,7 +79,7 @@ for sess=1:size(rings,1)
             else
                 reg_type='missing';
             end
-            [rwid,sel_type]=bz.rings.ring_wave_type(curr_waveid);
+            [rwid,sel_type]=bz.rings.ring_wave_type(curr_waveid,'odor_only',opt.odor_only);
             sums=[sums;{sess,rsidx+2,onesess(ridx,:),rwid,sel_type,curr_waveid,curr_reg,reg_type}];
         end
 %         within_sel=reg_sel & all(reg_tagged,2) & all(reg_tagged(:,2:end)==reg_tagged(:,1),2);

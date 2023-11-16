@@ -1,7 +1,7 @@
 function [out,sel]=ring_wave_type(in,opt)
 arguments
     in
-    opt.odor_only (1,1) logical = false
+    opt.odor_only (1,1) logical
 end
 if opt.odor_only
     if all(ismember(in,[1 5]),'all') ...

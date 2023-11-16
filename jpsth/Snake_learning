@@ -135,12 +135,34 @@ rule motif_freq_mem_vs_nonmem:
                 "binary/LN_motif_replay_ring_nonmem.mat"
         output:
                 "binary/LN_motif_freq_chain_mem_vs_nonmem.fig",
-                "binary/LN_motif_freq_loops_mem_vs_nonmem.fig"
+                "binary/LN_motif_freq_loop_mem_vs_nonmem.fig"
         shell:
                 '''
                 matlab -noFigureWindows -batch "wave.motif_freq_mem_vs_nonmem(type='chain',criteria='Learning')"
                 matlab -noFigureWindows -batch "wave.motif_freq_mem_vs_nonmem(type='loop',criteria='Learning')"
                 '''
+
+rule chain_consist_incon:
+	input:
+	output:
+		"binary/LN_chains_consist_incon.fig",
+		"binary/LN_chains_consist_incon_nonmem.fig"
+	threads: 52
+	shell:
+		'''
+		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,poolsize={threads},criteria='Learning')"
+		matlab -noFigureWindows -batch "wave.chain.chains_consist_incon(skip_save=false,shuf=true,non_mem=true,poolsize={threads},criteria='Learning')"
+		'''
+
+rule loops_occur_freq_w_shuf:
+	input:
+	output:
+		"binary/LN_loop_occur_vs_shuf.fig"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "bz.rings.ring_wave_freq(repeats=100,denovo=true,odor_only=true,poolsize={threads},'"criteria='Learning'"')"'
+		
+
 
 # bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
 

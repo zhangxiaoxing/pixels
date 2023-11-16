@@ -586,5 +586,16 @@ rule loop_occurrence_vs_shuf:
 	shell:
 		'matlab -noFigureWindows -batch "bz.rings.ring_wave_freq(denovo=true)"'
 
+rule loops_occur_freq_w_shuf:
+	input:
+		"binary/su_meta.mat",
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/loop_occur_vs_shuf.fig"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "bz.rings.ring_wave_freq(repeats=100,denovo=true,odor_only=true,poolsize={threads},'"criteria='WT'"')"'
+
+		
 # /+wave/+loop/motif_seq_activation
 # motif_replay_chain_nonmem
