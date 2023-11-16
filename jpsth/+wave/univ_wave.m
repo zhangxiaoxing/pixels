@@ -8,7 +8,7 @@ classdef univ_wave < handle
             delay=6;
             global_init;
             wrs_mux_meta=ephys.get_wrs_mux_meta();
-            com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',true);
+            com_map=wave.get_pct_com_map(wrs_mux_meta,'odor_only',true);
             [~,imdata]=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',delay);
             [imdata.s1n.s1iti,imdata.s1n.s2iti,imdata.s2n.s1iti,imdata.s2n.s2iti]=deal([]);
 
@@ -128,7 +128,7 @@ classdef univ_wave < handle
             delay=6;
             global_init;
             wrs_mux_meta=ephys.get_wrs_mux_meta();
-            com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',true);
+            com_map=wave.get_pct_com_map(wrs_mux_meta,'odor_only',true);
             [fh6,imdata]=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0.1,0.7],'gauss2d',true,'delay',delay);
             
             close(fh6.wave4);

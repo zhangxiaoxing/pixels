@@ -5,7 +5,7 @@ end
 global_init;
 sumeta=ephys.util.load_meta('skip_stats',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
+com_map=wave.get_pct_com_map(wrs_mux_meta);
 
 % function com_map2meta_like()
 pref2waveid=containers.Map({'s1d3','s1d6','s2d3','s2d6','olf_s1','olf_s2','dur_d3','dur_d6'},...

@@ -46,11 +46,8 @@ for fidx=1:numel(sums_conn_str)
         oneccg=sums_conn_str(fidx).ccg_sc;
         onecon=sums_conn_str(fidx).sig_con;
     end
-    %TODO nonmem,incongruent possible if relax criteria?
+    %nonmem,incongruent possible if relax criteria?
 
-    %     onecom=wave.get_pct_com_map(sel_meta,'onepath',sums_conn_str(fidx).folder,'curve',true); %per su center of mass, normalized FR
-    %     skey=fieldnames(onecom);
-    %     if isempty(skey), continue;end
     skey="s"+sessid;
     if ~isfield(su_com_map,skey)
         continue

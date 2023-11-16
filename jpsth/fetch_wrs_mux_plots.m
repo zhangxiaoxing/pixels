@@ -12,7 +12,7 @@ trials_dict=behav.get_trials_dict('skip_save',true);
 
 % map_cells: mixed_map,olf_map,dur_map
 % TODO: cross_thresh hold
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',true);
+com_map=wave.get_pct_com_map(wrs_mux_meta,'odor_only',true);
 %
 % <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 tcom3_maps=struct();
@@ -141,14 +141,14 @@ if false
     rpt=100;
     com_halfs=cell(rpt,2);
     for ii=1:rpt
-        [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'rnd_half',true);
+        [com_map_h1,com_map_h2]=wave.get_pct_com_map(wrs_mux_meta,'rnd_half',true);
         com_halfs(ii,:)={com_map_h1,com_map_h2};
     end
     blame=vcs.blame();
     save(sprintf('com_halfs_%d.mat',rpt),'com_halfs','blame')
 end
 if false
-    com_map_err=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'err',true);
+    com_map_err=wave.get_pct_com_map(wrs_mux_meta,'err',true);
     blame=vcs.blame();
     save('com_error.mat','com_map_err','blame');
 end

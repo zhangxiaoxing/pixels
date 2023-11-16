@@ -21,7 +21,7 @@ if ~opt.load_file
 
     su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
     wrs_mux_meta=ephys.get_wrs_mux_meta();
-    com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+    com_map=wave.get_pct_com_map(wrs_mux_meta,'early_smooth',false);
 
     rstats=cell(0,11);
     for rsize=3:5

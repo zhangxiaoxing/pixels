@@ -3,7 +3,7 @@ keyboard();
 global_init;
 meta=ephys.util.load_meta('skip_stats',true);
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true);
+com_map=wave.get_pct_com_map(wrs_mux_meta);
 
 %%
 fc_rate_mix_simple(wrs_mux_meta,'condense_plot',true)

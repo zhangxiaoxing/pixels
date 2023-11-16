@@ -7,7 +7,7 @@
 load(fullfile('binary','wrs_mux_meta.mat'),'wrs_mux_meta');
 load(fullfile('binary','su_meta.mat'),'su_meta');
 trials_dict=behav.get_trials_dict('skip_save',true);
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'odor_only',false);
+com_map=wave.get_pct_com_map(wrs_mux_meta,'odor_only',false);
 
 tcom3_maps=struct();
 tcom6_maps=struct();

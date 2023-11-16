@@ -2,7 +2,6 @@ function [com_str_,com_str_h2]=get_pct_com_map(sel_meta,opt)
 arguments
     sel_meta  (1,1) struct
     opt.one_sess (1,:) double = [] % process one session under the given non-empty path
-    opt.curve (1,1) logical = true % Norm. FR curve % always true as of 2023.08.08
     opt.rnd_half (1,1) logical = false % for bootstrap variance test
     opt.err (1,1) logical = false %u stats in error trials
     opt.one_SU_showcase (1,1) logical = false % for the TCOM-FC joint showcase
@@ -10,7 +9,7 @@ arguments
     opt.odor_only (1,1) logical = true % exclude duration-only neurons % Always true for the 2023 pipeline
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
 end
-assert(opt.curve,"/curve/ always true since Aug-2023")
+
 %TODO proper declaration
 persistent com_str opt_ pct_meta_
 assert(~(opt.rnd_half && opt.err), 'Unable to handle 2Fold CV and error trial in same run')

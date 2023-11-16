@@ -5,7 +5,7 @@ arguments
 end
 
 global_init;
-com_map=wave.get_pct_com_map(sel_meta,'curve',true,'odor_only',true,'criteria',opt.criteria);
+com_map=wave.get_pct_com_map(sel_meta,'odor_only',true,'criteria',opt.criteria);
 
 tcom3_maps=struct();
 tcom6_maps=struct();

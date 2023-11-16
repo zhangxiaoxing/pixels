@@ -25,7 +25,7 @@ bar(frac_mat,'grouped')
 set(gca,'XTick',1:numel(regs),'XTickLabel',regs);
 
 %%%%%%%%%%%% fraction vs anatomy
-com_map=wave.get_pct_com_map(ln_sel_meta,'curve',true,'odor_only',true,'criteria','Learning');
+com_map=wave.get_pct_com_map(ln_sel_meta,'odor_only',true,'criteria','Learning');
 
 fh3=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0,0.7],'gauss2d',true,'delay',3,'xlim',3);
 fh6=wave.plot_pct_wave(com_map,'comb_set',4,'flex_sort',true,'scale',[0,0.7],'gauss2d',true,'delay',6);

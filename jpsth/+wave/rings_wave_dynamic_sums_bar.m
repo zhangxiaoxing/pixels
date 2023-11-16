@@ -36,7 +36,7 @@ sumdata.FC=(qcmat(:,2)-250)./30; % #2 is peak TS, offset left half of symmatric 
 if false
     bump3=[];
     bump6=[];
-    com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',true,'early_smooth',false);
+    com_map=wave.get_pct_com_map(wrs_mux_meta,'early_smooth',false);
     for fn=reshape(fieldnames(com_map),1,[])
         for subfn=reshape(fieldnames(com_map.(fn{1})),1,[])
             if isfield(com_map.(fn{1}).(subfn{1}),'fwhm3')

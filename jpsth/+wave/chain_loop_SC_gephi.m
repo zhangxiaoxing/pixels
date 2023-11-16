@@ -7,7 +7,7 @@ sig=bz.load_sig_sums_conn_file('pair',false);
 su_meta=ephys.util.load_meta('skip_stats',true,'adjust_white_matter',true);
 greys=ephys.getGreyRegs('range','grey');
 wrs_mux_meta=ephys.get_wrs_mux_meta();
-com_map=wave.get_pct_com_map(wrs_mux_meta,'curve',false,'early_smooth',false);
+com_map=wave.get_pct_com_map(wrs_mux_meta,'early_smooth',false);
 
 
 load(fullfile('bzdata','sums_ring_stats_all.mat'));% 1X3

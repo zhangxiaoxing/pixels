@@ -12,7 +12,7 @@ for sess=opt.sess_id
     %     while true
     fs=sprintf('s%d',sess);
     if opt.multi_mod
-        [com_map_1h,com_map_2h]=wave.get_pct_com_map(sel_meta,'curve',true,'early_smooth',false,'rnd_half',true,'one_sess',102);
+        [com_map_1h,com_map_2h]=wave.get_pct_com_map(sel_meta,'early_smooth',false,'rnd_half',true,'one_sess',102);
         samp_key_S1=intersect(cell2mat(com_map_1h.(fs).olf_s1.com6.keys),cell2mat(com_map_2h.(fs).olf_s1.com6.keys));
         samp_key_S2=intersect(cell2mat(com_map_1h.(fs).olf_s2.com6.keys),cell2mat(com_map_2h.(fs).olf_s2.com6.keys));
         COMS1=cell2mat(com_map_1h.(fs).olf_s1.com6.values(num2cell(samp_key_S1)));
