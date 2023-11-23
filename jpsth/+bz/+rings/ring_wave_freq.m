@@ -1,5 +1,5 @@
 % calculate relative appearance frequence of rings vs shuffled control
-function ring_wave_freq(sel_meta,opt)
+function [fh,zscore,data_value,shuf_value]=ring_wave_freq(sel_meta,opt)
 arguments
     sel_meta = []
     opt.burst (1,1) logical = false
@@ -90,24 +90,24 @@ if opt.burst
     end
 
 
-    wavetype=struct();
+    data_value=struct();
     for bi=[150 300 600]
-        wavetype.nonmem.("B"+bi)=numel(unique(nonmem_keys.("B"+bi)));
-        wavetype.congru.("B"+bi)=numel(unique(congru_keys.("B"+bi)));
+        data_value.nonmem.("B"+bi)=numel(unique(nonmem_keys.("B"+bi)));
+        data_value.congru.("B"+bi)=numel(unique(congru_keys.("B"+bi)));
     end
 
-    wavetype.congru.shuf=cellfun(@(x) nnz(strcmp(x(:,4),'congru')), sums_shuf(1:opt.repeats));
-    wavetype.nonmem.shuf=cellfun(@(x) nnz(strcmp(x(:,4),'nonmem')), sums_shuf(1:opt.repeats));
+    data_value.congru.shuf=cellfun(@(x) nnz(strcmp(x(:,4),'congru')), sums_shuf(1:opt.repeats));
+    data_value.nonmem.shuf=cellfun(@(x) nnz(strcmp(x(:,4),'nonmem')), sums_shuf(1:opt.repeats));
     
     zscore=struct();
     for type={'congru','nonmem'}
 %         shuffmm=mean(wavetype.(type{1}).shuf);
 %         shufstd=std(wavetype.(type{1}).shuf);
-            [~,bootsam]=bootstrp(1000,[],wavetype.(type{1}).shuf);
-            shuffmm=mean(wavetype.(type{1}).shuf(bootsam));
-            shufstd=std(wavetype.(type{1}).shuf(bootsam));
+            [~,bootsam]=bootstrp(1000,[],data_value.(type{1}).shuf);
+            shuffmm=mean(data_value.(type{1}).shuf(bootsam));
+            shufstd=std(data_value.(type{1}).shuf(bootsam));
         for bi=[150 300 600]
-            zscore.(type{1}).("B"+bi)=(wavetype.(type{1}).("B"+bi)-shuffmm)./shufstd;
+            zscore.(type{1}).("B"+bi)=(data_value.(type{1}).("B"+bi)-shuffmm)./shufstd;
         end
     end
     zscoremat=[zscore.congru.B150;zscore.congru.B300;zscore.congru.B600;...
@@ -171,26 +171,26 @@ else % W/o burst
         % probably outdated, needs varify
         load(fullfile('bzdata','SS_loop_count_shuf.mat'),'sums_shuf','sums') 
     end
-    wavetype=struct();
-    wavetype_shuf=struct();
-    [wavetype_shuf.congru,wavetype_shuf.incongru,wavetype_shuf.nonmem]=deal([]);
+    data_value=struct();
+    shuf_value=struct();
+    [shuf_value.congru,shuf_value.incongru,shuf_value.nonmem]=deal([]);
     for type={'congru','incongru','nonmem'}
-        wavetype.(type{1})=nnz(strcmp(sums(:,4),type));
+        data_value.(type{1})=nnz(strcmp(sums(:,4),type));
         for rpt=1:opt.repeats
-            wavetype_shuf.(type{1})=[wavetype_shuf.(type{1}),nnz(strcmp(sums_shuf{rpt}(:,4),type))];
+            shuf_value.(type{1})=[shuf_value.(type{1}),nnz(strcmp(sums_shuf{rpt}(:,4),type))];
         end
     end
 
     zscore=struct();
     for type={'congru','incongru','nonmem'}
         % implementation of permutation+test
-        [~,bootsam]=bootstrp(1000,[],wavetype_shuf.(type{1}));
-        shuffmm=mean(wavetype_shuf.(type{1})(bootsam));
-        shufstd=std(wavetype_shuf.(type{1})(bootsam));
-        zscore.(type{1})=(wavetype.(type{1})-shuffmm)./shufstd;
+        [~,bootsam]=bootstrp(1000,[],shuf_value.(type{1}));
+        shuffmm=mean(shuf_value.(type{1})(bootsam));
+        shufstd=std(shuf_value.(type{1})(bootsam));
+        zscore.(type{1})=(data_value.(type{1})-shuffmm)./shufstd;
     end
     zscoremat=cell2mat(struct2cell(zscore));
-    zscoremm=arrayfun(@(x) mean(zscoremat(x,isfinite(zscoremat(x,:)))),1:size(zscoremat,1));
+    zscoremm=arrayfun(@(x) mean(zscoremat(x,isfinite(zscoremat(x,:)))),1:size(zscoremat,1)); % likely under estimate due to zeros in shuffled samples
     zscorestd=arrayfun(@(x) std(zscoremat(x,isfinite(zscoremat(x,:)))),1:size(zscoremat,1));
     zscoresem=zscorestd./sqrt(1000);
 
@@ -198,8 +198,8 @@ else % W/o burst
     ranksum(zscoremat(2,:),zscoremat(3,:))
 
     if false
-        loopcount=cell2struct({wavetype.nonmem;wavetype.incongru;wavetype.congru; ...
-            wavetype_shuf.nonmem;wavetype_shuf.incongru;wavetype_shuf.congru},...
+        loopcount=cell2struct({data_value.nonmem;data_value.incongru;data_value.congru; ...
+            shuf_value.nonmem;shuf_value.incongru;shuf_value.congru},...
             {'Nonmemory_observed','Incongruent_observed','Congrent_observed','Nonmemory_shuffled','Incongruent_shuffled','Congruent_shuffled'})
        fid=fopen(fullfile('binary','upload','F2L_loop_consistent_incosistent.json'),'w');
        fprintf(fid,jsonencode(loopcount));

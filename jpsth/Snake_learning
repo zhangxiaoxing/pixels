@@ -162,11 +162,49 @@ rule loops_occur_freq_w_shuf:
 	shell:
 		'matlab -noFigureWindows -batch "bz.rings.ring_wave_freq(repeats=100,denovo=true,odor_only=true,poolsize={threads},'"criteria='Learning'"')"'
 		
+rule fraction_memory_neuron_per_region:
+	input:
+	output:
+		"binary/LN_memory_su_region_dist.fig"
+	shell:
+		'matlab -noFigureWindows -batch "learn.frac_per_region"'
+		
+
+rule sc_occur_rate_vs_wt:
+	input:
+		"binary/wrs_mux_meta.mat"
+	output:
+		"binary/ln_wt_SC_occur_rate_diff_region.fig",
+		"binary/ln_wt_SC_occur_rate_same_region.fig"
+	shell:
+		'matlab -noFigureWindows -batch "learn.spike_coupling"'
+
+rule ln_wt_loop_occur_freq:
+	input:
+	output:
+		"binary/ln_wt_loop_occur_freq.fig"
+	threads: 52
+	shell:
+		'matlab -noFigureWindows -batch "learn.ln_wt_loop_occur_freq(poolsize={threads})"'
+
+rule ln_wt_motif_replay_mem_nonmem:
+	input:
+		"binary/LN_motif_replay.mat",
+		"binary/LN_motif_replay_chain_nonmem.mat",
+		"binary/LN_motif_replay_ring_nonmem.mat",
+		"binary/motif_replay.mat",
+		"binary/motif_replay_chain_nonmem.mat",
+		"binary/motif_replay_ring_nonmem.mat"
+	output:
+		"binary/ln_wt_motif_replay_mem_nonmem.fig"
+	shell:
+		'matlab -noFigureWindows -batch "learn.ln_wt_motif_replay_mem_nonmem()"'
+
+
 
 
 # bz.shuffle_conn_bz_alt('criteria','Learning','poolsize',2,'fn','LN_bz_shufs.mat','rpt',2)
 
-# wave.chain.chains_consist_incon(skip_save=false,shuf=true,criteria='Learning')
 # bz.rings.ring_list_bz_alt(poolsize=52,criteria="Learning")
 # wave.chain.sschain_time_const(skip_save=true,criteria='Learning')
 # wave.loop.ssloop_time_const(skip_save=true,criteria='Learning')

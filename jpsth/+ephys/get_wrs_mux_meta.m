@@ -1,7 +1,6 @@
 function out_=get_wrs_mux_meta(opt)
 arguments
     opt.permutation (1,1) logical = false
-    %     opt.merge_bin (1,1) logical = true
     opt.load_file (1,1) logical = true
     opt.save_file (1,1) logical = false
     opt.perm_repeat (1,1) double {mustBePositive,mustBeInteger} = 1000
@@ -11,6 +10,7 @@ arguments
     opt.plot_venn (1,1) logical = false
     opt.filename (1,:) char = 'wrs_mux_meta.mat'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.fdr (1,1) logical = false
 end
 
 persistent out opt_
@@ -122,6 +122,7 @@ if isempty(out) || ~isequaln(opt,opt_)
                 end
             end
         end
+
         m=any(out.p_mux<0.05,2);
         o=any(out.p_olf<0.05,2);
         d=any(out.p_dur<0.05,2);

@@ -1,4 +1,4 @@
-function fh=inter_wave_pct(sel_meta,opt)
+function [fh,counts]=inter_wave_pct(sel_meta,opt)
 arguments
     sel_meta = []
     opt.min_pair_per_session (1,1) double = 20
@@ -36,11 +36,11 @@ pair=bz.join_fc_waveid(pair,sel_meta.wave_id,'criteria',opt.criteria);
 % [samestats,sameci]=statsMixed(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session);
 % [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
 
-
+counts=struct();
 fh.fig=figure('Color','w','Position',[100,100,500,235]);
 tiledlayout(1,2)
-[fh.sameregax,same_types]=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
-[fh.crossregax,diff_types]=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
+[fh.sameregax,~,counts.same_count]=stats_congru(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
+[fh.crossregax,~,counts.diff_count]=stats_congru(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session,opt.per_sess,opt.asym_congru,opt.odor_only);
 sgtitle('same-reg, cross-reg')
 
 
@@ -282,7 +282,7 @@ end
 
 
 
-function [ax,types]=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru,odor_only)
+function [ax,types,counts]=stats_congru(sig_sel,pair_sel,sig,pair,min_pair_per_session,per_sess,asym_congru,odor_only)
 % [fromhat,tohat,fromsem,tosem]=deal(nan(5,1));
 
 nonmem_sig=pct.su_pairs.get_nonmem(sig.waveid);
@@ -295,6 +295,7 @@ incong_sig=pct.su_pairs.get_incongru(sig.waveid);
 incong_pair=pct.su_pairs.get_incongru(pair.waveid);
 types=cell2struct({nonmem_sig;nonmem_pair;congru_sig;congru_pair;incong_sig;incong_pair},...
     {'nm_sig','nm_pair','congru_sig','congru_pair','incong_sig','incong_pair'});
+
 
 if per_sess
     sig_nonmem=sig.sess(sig_sel & nonmem_sig);
@@ -329,20 +330,23 @@ if per_sess
 else
     sig_nonmem=nnz(sig_sel & nonmem_sig);
     pair_nonmem=nnz(pair_sel & nonmem_pair);
-    [nonmem_hat,nonmem_sem]=binofit(sig_nonmem,pair_nonmem);
+    [nonmem_hat,nonmem_sem]=lib.binosem(sig_nonmem,pair_nonmem);
 
     sig_congru=nnz(sig_sel & congru_sig);
     pair_congru=nnz(pair_sel & congru_pair);
-    [congru_hat,congru_sem]=binofit(sig_congru,pair_congru);
+    [congru_hat,congru_sem]=lib.binosem(sig_congru,pair_congru);
 
     sig_incong=nnz(sig_sel & incong_sig);
     pair_incong=nnz(pair_sel & incong_pair);
-    [incong_hat,incong_sem]=binofit(sig_incong,pair_incong);
+    [incong_hat,incong_sem]=lib.binosem(sig_incong,pair_incong);
 
     [~,~,p]=crosstab([zeros(pair_nonmem,1);ones(pair_congru,1);2.*ones(pair_incong,1)],...
     [(1:pair_nonmem)>sig_nonmem,(1:pair_congru)>sig_congru,(1:pair_incong)>sig_incong].');
 end
-
+counts=cell2struct({sig_nonmem;pair_nonmem;sig_incong;pair_incong;sig_congru;pair_congru;...
+    nonmem_hat;nonmem_sem;incong_hat;incong_sem;congru_hat;congru_sem},...
+    {'sig_nonmem','pair_nonmem','sig_incong','pair_incong','sig_congru','pair_congru',...
+    'nonmem_hat','nonmem_sem','incong_hat','incong_sem','congru_hat','congru_sem'});
 
 % fh=figure('Color','w','Position',[100,100,235,235]);
 ax=nexttile();
@@ -357,9 +361,7 @@ if per_sess
         'k.');
 else
 errorbar(1:3,[nonmem_hat,incong_hat,congru_hat],...
-    [nonmem_sem(1),incong_sem(1),congru_sem(1)]-[nonmem_hat,incong_hat,congru_hat],...
-    [nonmem_sem(2),incong_sem(2),congru_sem(2)]-[nonmem_hat,incong_hat,congru_hat],...
-    'k.');
+    [nonmem_sem,incong_sem,congru_sem],'k.')
 end
 yytick=get(gca(),'YTick');
 yyticklbl=100.*yytick;

@@ -1,4 +1,4 @@
-function motif_freq_mem_vs_nonmem(opt)
+function [fh,cyy,cgg]=motif_freq_mem_vs_nonmem(opt)
 arguments
     opt.type (1,:) char {mustBeMember(opt.type,{'chain','loop'})}= 'chain'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
