@@ -11,32 +11,35 @@ ephys.util.dependency("buz",false,"ft",true)
 sps=30000; %sample per second
 
 %% input from YCY's time-aligned spike file
-rootdir=ephys.util.getHomedir();
-flist=dir(fullfile(rootdir,'**','spike_info.hdf5'));
-for i=1:length(flist)
-    fprintf('=== %d of %d ===\n',i,length(flist))
-    if isfile(fullfile(flist(i).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
-        disp(strjoin({'skiped',flist(i).folder}));
+[~,homedir_all]=ephys.util.getHomedir();
+flist=[];
+for ii=1:numel(homedir_all)
+    flist=[flist;struct2table(dir(fullfile(homedir_all{ii},'**','spike_info.hdf5')))];
+end
+% flist=dir(fullfile(rootdir,'**','spike_info.hdf5'));
+for ii=1:height(flist)
+    fprintf('=== %d of %d ===\n',ii,height(flist))
+    if isfile(fullfile(flist.folder{ii},sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
+        disp(strjoin({'skiped',flist.folder{ii}}));
         continue
     end
     %% per session behavioral data
-    trials=h5read(fullfile(replace(flist(i).folder,'SPKINFO','META'),'events.hdf5'),'/trials')';
+    trials=h5read(fullfile(replace(flist(ii).folder,'SPKINFO','META'),'events.hdf5'),'/trials')';
     trials=behav.procPerf(trials,'mode','all');
     if isempty(trials), continue,  end
     %% select SUs with low contam rate, high FR and good waveform, for all probes
-    cstr=h5info(fullfile(flist(i).folder,flist(i).name));
-    fr_good=ephys.goodCid(replace(flist(i).folder,'SPKINFO','META')); % Good firing rate
-    fr_wf_good=ephys.waveform.goodWaveform(replace(flist(i).folder,'SPKINFO','WF'),'presel',fr_good); %Good waveform
+    cstr=h5info(fullfile(flist(ii).folder,flist(ii).name));
+    fr_good=ephys.goodCid(replace(flist(ii).folder,'SPKINFO','META')); % Good firing rate
+    fr_wf_good=ephys.waveform.goodWaveform(replace(flist(ii).folder,'SPKINFO','WF'),'presel',fr_good); %Good waveform
     if isempty(fr_wf_good)
-        disp(flist(i).folder)
-        keyboard()
-        continue
+        disp(flist(ii).folder)
+        warning("Missing waveform data");
     end
     spkID=[];spkTS=[];
     for prb=1:size(cstr.Groups,1)
         prbName=cstr.Groups(prb).Name;
-        spkID=cat(1,spkID,h5read(fullfile(flist(i).folder,flist(i).name),[prbName,'/clusters']));
-        spkTS=cat(1,spkTS,h5read(fullfile(flist(i).folder,flist(i).name),[prbName,'/times']));
+        spkID=cat(1,spkID,h5read(fullfile(flist(ii).folder,flist(ii).name),[prbName,'/clusters']));
+        spkTS=cat(1,spkTS,h5read(fullfile(flist(ii).folder,flist(ii).name),[prbName,'/times']));
     end
     susel=ismember(spkID,fr_good);
     spkID=double(spkID(susel));
@@ -65,7 +68,7 @@ for i=1:length(flist)
     FT_PSTH=ft_spike_psth(cfg, FT_SPIKE);
     %% export result as file
     if opt.writefile
-        FR_File=fullfile(flist(i).folder,sprintf('FR_All_%04d.hdf5',opt.binsize*1000));
+        FR_File=fullfile(flist(ii).folder,sprintf('FR_All_%4d.hdf5',opt.binsize*1000));
         if exist(FR_File,'file')
             delete(FR_File)
         end

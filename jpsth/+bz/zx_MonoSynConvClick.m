@@ -1,6 +1,6 @@
 function mono_res = zx_MonoSynConvClick (spikeIDs,spiketimes,varargin)
 % Adapted from English, Butzaki 2017
-% Adjusted synaptic latency upper bound to adapt for longer-distance
+% Optional adjust synaptic latency upper bound to adapt for longer-distance
 % couplings
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -283,13 +283,15 @@ for refcellID=1:max(IDindex)
 %         end
         
         %check which is bigger
-        if (any(sigud(prebins)) && sigpre)
-            %test if causal is bigger than anti causal
-            sig_con = [sig_con;cell2ID refcellID];
-        end
-        
-        if any(sig(postbins)) && sigpost
-            sig_con = [sig_con;refcellID cell2ID];
+        if ~(any(sigud(prebins)) && sigpre) && (any(sig(postbins)) && sigpost) % ensure asymmetry
+            if (any(sigud(prebins)) && sigpre)
+                %test if causal is bigger than anti causal
+                sig_con = [sig_con;cell2ID refcellID];
+            end
+
+            if any(sig(postbins)) && sigpost
+                sig_con = [sig_con;refcellID cell2ID];
+            end
         end
         
     end

@@ -1,22 +1,21 @@
-function homedir=getHomedir(opt)
+function [homedir,homedir_all]=getHomedir(opt)
 arguments
     opt.dtype (1,:) char {mustBeMember(opt.dtype,{'neupix','AIOPTO','MY'})}='neupix'
 end
 if strcmp(opt.dtype,'neupix') ||  strcmp(opt.dtype,'MY')
-    if ispc
-        if endsWith(pwd(),[filesep(),'jpsth'])
-            homedir = fullfile('..','..','neupix','SPKINFO');
-            [avail,attstr]=fileattrib(homedir);
-            if avail
-                homedir=attstr.Name;
-            else
-                keyboard();
-            end
-        else
-            keyboard();
-        end
-    elseif isunix
+    if endsWith(pwd(),[filesep(),'jpsth'])
         homedir = fullfile('..','..','neupix','SPKINFO');
+        dirall = struct2table(dir(fullfile('..','..','neupix','SPKINFO*')));
+        homedir_all = table2cell(rowfun(@(x,y) fullfile(x,y),dirall(:,["folder","name"])));
+        
+        [avail,attstr]=fileattrib(homedir);
+        if avail
+            homedir=attstr.Name;
+        else
+            error("Error listing data files")
+        end
+    else
+        error("Unexpected working dir")
     end
 else
     if ispc

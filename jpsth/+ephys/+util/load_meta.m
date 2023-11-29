@@ -10,6 +10,7 @@ arguments
     opt.save_file (1,1) logical = false
     opt.load_file (1,1) logical = false
     opt.filename (1,:) char = 'su_meta.mat'
+    opt.more_folder (1,1) logical = false
 end
 assert(opt.skip_stats,"stats have been relocated")
 persistent su_meta opt_
@@ -21,8 +22,16 @@ if isempty(su_meta) || ~isequaln(opt,opt_)
     if opt.load_file
         load(fullfile('binary',opt.filename),'su_meta');
     else
-        homedir=ephys.util.getHomedir();
-        fl=dir(fullfile(homedir,'**','FR_All_1000.hdf5'));
+        [homedir,homedir_all]=ephys.util.getHomedir();
+        if opt.more_folder
+            fl=[];
+            for ii=1:numel(homedir_all)
+                fl=[fl;struct2table(dir(fullfile(homedir_all{ii},'**','FR_All*.hdf5')))];
+            end
+            fl=fl(~contains(fl.name,'250'),:);
+        else
+            fl=dir(fullfile(homedir,'**','FR_All_1000.hdf5'));
+        end
         % [~,sidx]=sort({fl.folder}); sorted by default
         su_meta=cell2struct({cell(0);[];{};[]},{'allpath','allcid','reg_tree','sess'});
         wtsessidx=1;
