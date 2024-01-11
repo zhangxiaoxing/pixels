@@ -41,7 +41,7 @@ if __name__ == "__main__":  # Debuging entry. Import module when possible.
     print(os.getcwd())
     if os.path.exists("drift_metric.npy"):
         print("data exist")
-        system.exit(0)
+        sys.exit(0)
     if not os.path.exists("sync_trials.npy"):
         print("Missing data")
         sys.exit(103)

@@ -10,10 +10,10 @@ from readsync import readsync
 
 
 def parseGNGEvents(events):
-    '''
+    """
     for Go/Nogo task event parsing
-    '''
-    s1s = 30000 #sample per seconds
+    """
+    s1s = 30000  # sample per seconds
     trials = []
     lastTS = -300000
     lastCue = -1
@@ -22,9 +22,9 @@ def parseGNGEvents(events):
     cue = -1
 
     for eidx in range(len(events)):
-        cue = events[eidx][1] & 0x0C #bit mask S1, S2
-        cueTS = events[eidx][0] #Time stamp
-        if cue > 0 and cueTS > (lastTS + s1s): #update trial
+        cue = events[eidx][1] & 0x0C  # bit mask S1, S2
+        cueTS = events[eidx][0]  # Time stamp
+        if cue > 0 and cueTS > (lastTS + s1s):  # update trial
             if lastCue > 0:
                 trials.append([lastTS, lastCue, rsps])
                 rsps = -1
@@ -32,11 +32,11 @@ def parseGNGEvents(events):
             lastTS = cueTS
 
         if (
-                lastCue > 0
-                and rsps < 0
-                and events[eidx][0] >= lastTS + 30000
-                and events[eidx][0] < lastTS + 90000
-                and (events[eidx][1] & 0x03) > 0 #bit mask lick L/R
+            lastCue > 0
+            and rsps < 0
+            and events[eidx][0] >= lastTS + 30000
+            and events[eidx][0] < lastTS + 90000
+            and (events[eidx][1] & 0x03) > 0  # bit mask lick L/R
         ):
             rsps = events[eidx][1] & 0x03
 
@@ -59,8 +59,7 @@ def parseDPAEvents(events):
             add unresponsed trial
 
         reinit sample test response
-        assume current cue as sample
-"""
+        assume current cue as sample"""
     s1s = 30000
     trials = []
     lastTS = -300000 * 20
@@ -74,11 +73,13 @@ def parseDPAEvents(events):
     testTS = -1
 
     for eidx in range(len(events)):
-        cue = events[eidx][1] & 0x0C #bit mask S1, S2
-        cueTS = events[eidx][0] #Time stamp
+        cue = events[eidx][1] & 0x0C  # bit mask S1, S2
+        cueTS = events[eidx][0]  # Time stamp
         if cue > 0 and cueTS > lastTS + 1.1 * s1s and cueTS < lastTS + 2 * s1s:
             print("error processing evt idx ", eidx)
-        elif cue > 0 and cueTS > lastTS + s1s * 2 and cueTS < lastTS + s1s * 8: # following delay
+        elif (
+            cue > 0 and cueTS > lastTS + s1s * 2 and cueTS < lastTS + s1s * 8
+        ):  # following delay
             sample = lastCue
             sampleTS = lastTS
             test = cue
@@ -87,7 +88,7 @@ def parseDPAEvents(events):
             lastCue = cue
             lastTS = cueTS
 
-        elif cue > 0 and cueTS > lastTS + s1s * 8: #following ITI
+        elif cue > 0 and cueTS > lastTS + s1s * 8:  # following ITI
             if sample > 0 and test > 0:
                 trials.append(
                     [
@@ -109,11 +110,16 @@ def parseDPAEvents(events):
             lastCue = cue
             lastTS = cueTS
 
-        if (test > 0 and rsps < 0 and events[eidx][0] >= testTS + s1s and events[eidx][0] < lastTS + 2 * s1s and (
-                events[eidx][1] & 0x01) > 0): #response window
+        if (
+            test > 0
+            and rsps < 0
+            and events[eidx][0] >= testTS + s1s
+            and events[eidx][0] < lastTS + 2 * s1s
+            and (events[eidx][1] & 0x01) > 0
+        ):  # response window
             rsps = 1
 
-    if sample > 0 and test > 0: #pick up last trial
+    if sample > 0 and test > 0:  # pick up last trial
         trials.append(
             [
                 sampleTS,
@@ -130,14 +136,15 @@ def parseDPAEvents(events):
     return trials
 
 
-def getEvents():
-    syncs = np.load('sync_raw.npy') 
+def getEvents(path=""):
+    breakpoint()
+    syncs = np.load(os.path.join(path,"sync_raw.npy"))
     blockCount = 0
     ts = 0
     events = []
     pct = 0
     while ts < (len(syncs)):
-        currPct = ts * 100 // len(syncs) # pct for tracking progress
+        currPct = ts * 100 // len(syncs)  # pct for tracking progress
         if currPct > pct + 9:
             print(currPct)
             pct = currPct
@@ -146,17 +153,22 @@ def getEvents():
             blockCount += 1
             ts += 1
         else:
-            if blockCount < 34: #skip processed data
+            if blockCount < 34:  # skip processed data
                 ts += 1
             else:
-                blockCount = 0 # triggerd new block
-                state = [ts, 0, 0, 0, 0] # bit-masked behavior data from MCU, ref. 12F1572SyncEncoder
-                state[1] = 1 if np.sum(syncs[ts + 5: ts + 10]) > 128 else 0
-                state[2] = 1 if np.sum(syncs[ts + 10: ts + 14]) > 127 else 0
-                state[3] = 1 if np.sum(syncs[ts + 14: ts + 19]) > 128 else 0
-                state[4] = 1 if np.sum(syncs[ts + 19: ts + 24]) > 128 else 0
-                if (not events) or not np.array_equal(events[-1][1:], state[1:]): #skip contineous event
-                    events.append(state)
+                blockCount = 0  # triggerd new block
+                state = [
+                    ts,
+                    0,
+                    0,
+                    0,
+                    0,
+                ]  # bit-masked behavior data from MCU, ref. 12F1572SyncEncoder
+                state[1] = 1 if np.sum(syncs[ts + 5 : ts + 10]) > 128 else 0
+                state[2] = 1 if np.sum(syncs[ts + 10 : ts + 14]) > 127 else 0
+                state[3] = 1 if np.sum(syncs[ts + 14 : ts + 19]) > 128 else 0
+                state[4] = 1 if np.sum(syncs[ts + 19 : ts + 24]) > 128 else 0
+                events.append(state)
                 ts += 24
     events = np.array(events)
     return events
@@ -165,13 +177,15 @@ def getEvents():
 def writeEvents(events, trials):
     np.save("sync_events.npy", events)
     np.save("sync_trials.npy", trials)
+
+
 #    with h5py.File("events.hdf5", "w") as fw:
 #        evtDset = fw.create_dataset("events", data=np.array(events, dtype="i4"))
 #        tDset = fw.create_dataset("trials", data=np.array(trials, dtype="i4"))
 
 
 def filter_events(events):
-    '''
+    """
     if consecutive identical events interrupted by minimal noise, clean up the noise
 
     Parameters
@@ -183,11 +197,14 @@ def filter_events(events):
     -------
     output : [TS, bit-masked-type]
         cleaned events
+    """
+    if isinstance(events,list):
+        events=np.array(events)
 
-    '''
+
     lick_interval = 30000 * 0.05  # 50ms
     cue_interval = 30000 * 0.5
-    prev_idx = np.argmax(events[:, 1])
+    prev_idx = np.argmax(events[:, 1])  # first non-zero
     prev_TS = events[prev_idx, 0]
     for i in range(prev_idx + 1, events.shape[0]):
         if events[i, 1] == 1:
@@ -216,14 +233,76 @@ def filter_events(events):
                 events[prev_idx:i, 4] = 1
             prev_idx = i
             prev_TS = curr_TS
+
     events[:, 2] = 0
     output = []
     output.append([events[0, 0], events[0, 1] + events[0, 3] * 4 + events[0, 4] * 8])
     for i in range(1, events.shape[0]):
         val = events[i, 1] + events[i, 3] * 4 + events[i, 4] * 8
+
         if not val == output[-1][1]:
             output.append([events[i, 0], val])
     return output
+
+
+def filter_events_NG(events):
+    return None
+    """
+    filtered out noise
+    Parameters
+
+    ----------
+    events : [TS, bit-masked-type]
+        as exported from neuropixels binary data
+
+    Returns
+    -------
+    output : [TS, bit-masked-type]
+        cleaned events
+
+    """
+    if isinstance(events,list):
+        events=np.array(events)
+
+    lick_interval = 30000 * 0.05  # 50ms
+    cue_interval = 30000 * 0.5
+
+    edge1all = np.where(np.diff(np.hstack(([0], events[:, 1], [0]))) != 0)[0]
+    edge1on = edge1all[::2]
+    edge1off = edge1all[1::2]
+
+    edge3all = np.where(np.diff(np.hstack(([0], events[:, 3], [0]))) != 0)[0]
+    edge3on = edge3all[::2]
+    edge3off = edge3all[1::2]
+    edge3sel = np.ones((edge3on.shape[0], 1), dtype=bool)
+    for idx, evt in enumerate(edge3on[1:-1]):
+        # if
+        pass
+
+    edge4all = np.where(np.diff(np.hstack(([0], events[:, 4], [0]))) != 0)[0]
+    edge4on = edge4all[::2]
+    edge4off = edge4all[1::2]
+    edge4sel = np.ones((edge4on.shape[0]), dtype=bool)
+
+    for idx in range(1, edge4on.shape[0] - 1):
+        if (
+            (edge4off[idx] - edge4on[idx]) / (edge4off[idx] - edge4off[idx - 1]) < 0.5*30000
+            and (edge4off[idx] - edge4on[idx]) / (edge4on[idx + 1] - edge4on[idx]) < 0.5*30000
+            and (edge4off[idx] - edge4on[idx]) < 0.1*30000
+        ):
+            edge4sel[idx] = False
+
+    edge4on = edge4on[edge4sel]
+    edge4off = edge4off[edge4sel]
+    edge4sel = np.ones((edge4on.shape[0]), dtype=bool)
+
+    for idx in range(1, edge4on.shape[0] - 1):
+        if edge4on[idx]-edge4off[idx-1]<:
+            edge4sel[idx] = False
+# 
+
+
+
 
 
 def runsync():
@@ -234,18 +313,20 @@ def runsync():
     return trials
 
 
-if __name__ == "__main__": # Debuging entry. Import module when possible.
-    if os.path.exists('sync_trials.npy'):
+def old_main():
+    print(os.getcwd())
+    breakpoint()
+    if os.path.exists("sync_trials.npy"):
         print("data exist")
         sys.exit(0)
 
     if len(sys.argv) > 1:
         filename = sys.argv[1]
     else:
-        fl=glob.glob("*.ap.bin")
-        if len(fl)!= 1:
+        fl = glob.glob("*.ap.bin")
+        if len(fl) != 1:
             print("Unexpected .ap.bin file condition")
-            sys.exit(100);
+            sys.exit(100)
         filename = fl[0]
     print(f"Processing file: {filename}")
     readsync(filename)
@@ -256,3 +337,14 @@ if __name__ == "__main__": # Debuging entry. Import module when possible.
     writeEvents(events, trials)
 
 # with open('events.csv','w',newline='\r\n') as
+
+if __name__ == "__main__":  # Debuging entry. Import module when possible.
+    if "snakemake" in globals():
+        outf=snakemake.output[0]
+        if outf.endswith('sync_trials.npy'):
+            print(f"Processing file: {outf}")
+            events = getEvents(snakemake.wildcards[0])
+            breakpoint()
+            events = filter_events(events)
+            trials = parseDPAEvents(events)
+            writeEvents(events, trials)

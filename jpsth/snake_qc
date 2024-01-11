@@ -1,0 +1,55 @@
+# sync_raw -> sync_trials -> drift_metrics -> logistic_regress
+
+import glob, os
+
+root_dir='/home/zhangxx/npdata_out/'
+
+def get_sync_raw(wildcards):
+    fl=glob.glob(r'**/sync_raw.npy',root_dir=root_dir,recursive=True)
+    out=[os.path.join(root_dir,onepath.replace('sync_raw','sync_trials')) for onepath in fl]
+    return out[:3]
+
+def get_sess_dir(wildcards):
+    fl=glob.glob(r'**/*_imec?',root_dir=root_dir)
+    # TODO capture later learning batch with recursive=true
+    upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl])
+    out=[os.path.join(root_dir,onepath,"sess_spk_t_id.npy") for onepath in upath]
+    return out
+
+
+rule sync_trials:
+    input:
+        get_sync_raw
+
+
+rule aligned_spk_time:
+    input:
+        get_sess_dir
+
+
+rule raw2trials:
+    input:
+    output:
+        "{datapath}/sync_trials.npy"
+    conda:
+        "py312n"
+    script:
+        "../preprocess/sync.py"
+
+rule gen_aligned_spk_time:
+    input:
+    output:
+        "{datapath}/sess_spk_t_id.npy"
+    conda:
+        "py312n"
+    script:
+        "../preprocess/trials_sync_align.py"
+
+
+
+
+rule sync_raw:
+    output:
+        "{datapath}/sync_raw.npy"
+    run:
+        pass
