@@ -1,5 +1,6 @@
 import glob, re, os, warnings, json, sys
 import numpy as np
+import pandas as pd
 from scipy.stats import linregress
 
 sps = 30000
@@ -21,6 +22,7 @@ sps = 30000
 # sess_path = re.findall(r"^.*?_g\d" + os.sep, ref_trls_file)[0]
 sess_path = snakemake.wildcards[0]
 print("Processing " + sess_path)
+qcidx=pd.read_csv(os.path.join(sess_path,'su_id2reg.csv'),usecols=['index','coeff_idx'])
 
 # existing file preferably handled by snakemake
 # if os.path.isfile(os.path.join(sess_path, "sess_spk_t_id.npy")):
@@ -41,8 +43,21 @@ ref_spk_file = os.path.join(
 if not os.path.isfile(ref_spk_file):
     print("Missing file " + ref_spk_file)
     sys.exit(1)
-ref_spk_t = np.load(ref_spk_file) / sps
-ref_spk_id = np.load(ref_spk_file.replace("spike_times.npy", "spike_templates.npy"))
+# filter by qc coeffcient regression
+ref_range=np.logical_and((qcidx['index'].to_numpy()>=int(ref_idx)*10000), (qcidx['index'].to_numpy()<(int(ref_idx)+1)*10000))
+ref_qcidx=qcidx[ref_range]
+ref_coeff_arr=np.load(ref_trls_file.replace(r'sync_trials.',r'logistic_regress.'))
+qc_passed=[]
+for ii in range(ref_qcidx.shape[0]):
+    curr_qc_idx=ref_qcidx.iloc[ii]['coeff_idx']
+    if (curr_qc_idx < 0 and np.all(ref_coeff_arr[ii,:]>0.5)) \
+            or (curr_qc_idx >=0 and ref_coeff_arr[ii,curr_qc_idx]>0.5):# no region tag
+        qc_passed.append(ref_qcidx.iloc[ii]['index'])
+
+ref_spk_id = np.load(ref_spk_file.replace("spike_times.npy", "spike_clusters.npy"))
+qc_sel=np.isin(ref_spk_id,qc_passed)
+ref_spk_id=ref_spk_id[qc_sel]
+ref_spk_t = np.load(ref_spk_file)[qc_sel] / sps
 
 aligned_spk_t = np.column_stack((np.zeros(ref_spk_t.shape), ref_spk_t, ref_spk_id))
 raw_spk_t = np.column_stack((np.ones(ref_spk_t.shape), ref_spk_t, ref_spk_id))
@@ -56,16 +71,31 @@ if len(probes) > 1:
     goodmatch = True
     for probe in probes[1:]:
         curr_idx = next(re.finditer(r"(?<=imec)\d", probe))[0]
+        probe_range=np.logical_and((qcidx['index'].to_numpy()>=int(curr_idx)*10000), (qcidx['index'].to_numpy()<(int(curr_idx)+1)*10000))
+        curr_qcidx=qcidx[probe_range]
+
         curr_trls_file = probe
         curr_trls = np.load(curr_trls_file)
         curr_spk_file = os.path.join(
             curr_trls_file.replace("sync_trials.npy", "imec" + curr_idx + "_ks2"),
             "spike_times.npy",
         )
-        curr_spk_ts = np.load(curr_spk_file)
+
+        curr_coeff_arr=np.load(curr_trls_file.replace(r'sync_trials.',r'logistic_regress.'))
+        qc_passed=[]
+        for ii in range(curr_qcidx.shape[0]):
+            curr_qc_idx=curr_qcidx.iloc[ii]['coeff_idx']
+            if (curr_qc_idx < 0 and np.all(curr_coeff_arr[ii,:]>0.5)) \
+                    or (curr_qc_idx >=0 and curr_coeff_arr[ii,curr_qc_idx]>0.5):# no region tag
+                qc_passed.append(curr_qcidx.iloc[ii]['index'])
+
+        qc_passed=np.array(qc_passed)-int(curr_idx)*10000
         curr_spk_id = np.load(
-            curr_spk_file.replace("spike_times.npy", "spike_templates.npy")
-        )
+                curr_spk_file.replace("spike_times.npy", "spike_clusters.npy")
+            )
+        qc_sel=np.isin(curr_spk_id,qc_passed)
+        curr_spk_id =curr_spk_id [qc_sel]
+        curr_spk_ts = np.load(curr_spk_file)[qc_sel]
 
         probe_spk_t = curr_spk_ts / sps
         raw_spk_t = np.concatenate(

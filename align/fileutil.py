@@ -10,38 +10,33 @@ import os
 
 import numpy as np
 
-def get_miceid_date_imecno(path):
-    dateA = re.compile("((19|20)\\d\\d\\d\\d)\\D")
-    imecNo = re.compile("imec(\\d)")
-    miceId = re.compile("[M\\\\\\-_](\\d{2})[\\\\_\\-]")
+def get_miceid_date_imecno(one_probe):
+    datestr=re.findall(r"^\d{6,8}(?=\D)|(?<=\D)\d{6,8}(?=\D)",one_probe)[0]
+    if len(datestr)==6:
+        datestr="20"+datestr
+    imecNo = re.findall(r"(?<=imec)\d",one_probe)
+    miceId = re.findall(r"^\d{2,3}(?=\D)|(?<=\D)\d{2,3}(?=\D)",one_probe)
 
-    dateGrps = dateA.search(path)
-    imecGrps = imecNo.search(path)
-    miceGrps = miceId.search(path)
 
-    if dateGrps and imecGrps and miceGrps:
-        # print(miceGrps.group(1),', ',path)
-        return (miceGrps.group(1), dateGrps.group(1), imecGrps.group(1))
+    if datestr and imecNo and miceId:
+        return (miceId[0], datestr, imecNo[0])
     else:
-        print("unresolved path meta data: ", path)
+        print("unresolved path meta data: ", one_probe)
         input("press Enter to continue")
         return (None, None, None)
 
 
-def get_bsid_duration_who(path):
+def get_bsid_duration_who(ap_meta_path):
     bs_id = 0
     time_s = 0
-    files = os.listdir(path)
-    for f in files:
-        if f.endswith("ap.meta"):
-            with open(os.path.join(path, f), "r") as file:
-                for line in file:
-                    bs_id_grps = re.match("imDatBsc_sn=(\\d{1,3})", line)
-                    if bs_id_grps:
-                        bs_id = bs_id_grps.group(1)
-                    fs_grps = re.match("fileSizeBytes=(\\d+)", line)
-                    if fs_grps:
-                        time_s = int(fs_grps.group(1)) / 385 / 2 / 30000
+    with open(ap_meta_path, "r") as file:
+        for line in file:
+            bs_id_grps = re.match("imDatBsc_sn=(\\d{1,3})", line)
+            if bs_id_grps:
+                bs_id = bs_id_grps.group(1)
+            fs_grps = re.match("fileSizeBytes=(\\d+)", line)
+            if fs_grps:
+                time_s = int(fs_grps.group(1)) / 385 / 2 / 30000
 
     if bs_id == "350":
         who_did = "ZHA"
@@ -56,6 +51,7 @@ def get_bsid_duration_who(path):
 
 
 def get_root_path():
+    breakpoint()
     dpath = None
     if os.path.exists("/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"):
         dpath = "/gpfsdata/home/zhangxiaoxing/pixels/DataSum/"
