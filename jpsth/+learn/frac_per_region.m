@@ -22,16 +22,17 @@ for lnkey=reshape(ln_map.olf.keys,1,[])
 end
 
 fh=figure('Position',[100,100,1280,480]);
-bh=bar(frac_mat(:,[4,1]).*100,'grouped');
-set(gca,'XTick',1:numel(regs),'XTickLabel',regs);
-text(find(isnan(frac_mat(:,4))),repmat(10,nnz(isnan(frac_mat(:,4))),1),repmat('/',nnz(isnan(frac_mat(:,4))),1),'HorizontalAlignment','right')
-for pp=reshape(find(~isnan(frac_mat(:,6))),1,[])
-    if frac_mat(pp,7)<0.001
+finisel=find(isfinite(frac_mat(:,4)));
+bh=bar(frac_mat(finisel,[4,1]).*100,'grouped');
+set(gca,'XTick',1:numel(finisel),'XTickLabel',regs(finisel));
+% text(find(isnan(frac_mat(:,4))),repmat(10,nnz(isnan(frac_mat(:,4))),1),repmat('/',nnz(isnan(frac_mat(:,4))),1),'HorizontalAlignment','right')
+for pp=1:numel(finisel)
+    if frac_mat(finisel(pp),7)<0.001
         text(pp,85,'***','HorizontalAlignment','center')
-    elseif frac_mat(pp,7)>0.05
+    elseif frac_mat(finisel(pp),7)>0.05
         text(pp,85,'ns','HorizontalAlignment','center')
     else
-        text(pp,85,sprintf('%.4f',frac_mat(pp,7)),'HorizontalAlignment','center')
+        text(pp,85,sprintf('%.4f',frac_mat(finisel(pp),7)),'HorizontalAlignment','center')
     end
 end
 

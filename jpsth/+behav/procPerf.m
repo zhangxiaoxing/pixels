@@ -23,7 +23,7 @@ while i<=length(facSeq)
             end
         case 'Learning'
             good=facSeq(i-39:i,5)~=facSeq(i-39:i,6) & facSeq(i-39:i,7)>0; % borrow DNMS rule, as in SBCs
-            if nnz(good)>=15 % 75pct correct rate
+            if nnz(good)>=15 % 75pct engage
                 facSeq(i-39:i,9)=1;
             end
         otherwise

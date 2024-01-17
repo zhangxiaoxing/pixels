@@ -75,7 +75,7 @@ function mono_res = zx_MonoSynConvClick (spikeIDs,spiketimes,varargin)
 %set defaults
 binSize = .0004; %.4ms
 duration = .2; %200ms
-
+Fs=1/30000;
 
 epoch = [0 inf]; %whole session
 cells = unique(spikeIDs(:,1:2),'rows');
@@ -83,7 +83,7 @@ nCel = size(cells,1);
 conv_w = .010/binSize;  % 10ms window
 alpha = 0.001; %high frequency cut off, must be .001 for causal p-value matrix
 plotit = false;
-sorted = false;
+% sorted = false;
 negccg = false;
 if length(varargin) ==1 && iscell(varargin{1})
     varargin = varargin{1};
@@ -130,12 +130,15 @@ for i = 1:2:length(varargin)
                 error('Incorrect value for property ''plot''');
             end
             
-        case 'sorted'
-            sorted = varargin{i+1};
-            
+        % case 'sorted'
+        %     sorted = varargin{i+1};
+        % 
         case 'negccg'
             negccg = varargin{i+1};            
-            
+
+        case 'Fs'
+            Fs = varargin{i+1};            
+
         otherwise
             error(['Unknown property ''' num2str(varargin{i}) ''' (type ''help LoadBinary'' for details).']);
           
@@ -143,11 +146,11 @@ for i = 1:2:length(varargin)
     end
 end
 
-if ~sorted
-    %sort by spike times
-    [spiketimes,b] = sort(spiketimes);
-    spikeIDs = spikeIDs(b,:);
-end
+% if ~sorted
+%     %sort by spike times
+%     [spiketimes,b] = sort(spiketimes);
+%     spikeIDs = spikeIDs(b,:);
+% end
 
 %restrict by cells and epochs
 status = InIntervals(spiketimes,epoch);
@@ -163,7 +166,7 @@ completeIndex = spikeIDs(tet_idx,:);
 
 
 % Create CCGs (including autoCG) for all cells
-[ccgR1,tR] = CCG(spiketimes,spikeIDs(:,3),'binSize',binSize,'duration',duration);
+[ccgR1,tR] = CCG(spiketimes,spikeIDs(:,3),'binSize',binSize,'duration',duration,'Fs',Fs);
 
 ccgR = nan(size(ccgR1,1),nCel,nCel);
 ccgR(:,1:size(ccgR1,2),1:size(ccgR1,2)) = ccgR1;
@@ -239,8 +242,8 @@ for refcellID=1:max(IDindex)
         % Find if significant periods falls in monosynaptic window -9.2/+10
         % ms
         
-        prebins = round(length(cch)/2 - .0092/binSize):round(length(cch)/2);
-        postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .01/binSize);
+        prebins = round(length(cch)/2 - .0088/binSize):round(length(cch)/2);
+        postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .0096/binSize);
         cchud  = flipud(cch);
         sigud  = flipud(sig);
         sigpost=max(cch(postbins))>poissinv(1-alpha,max(cch(prebins)));
@@ -283,8 +286,8 @@ for refcellID=1:max(IDindex)
 %         end
         
         %check which is bigger
-        if ~(any(sigud(prebins)) && sigpre) && (any(sig(postbins)) && sigpost) % ensure asymmetry
-            if (any(sigud(prebins)) && sigpre)
+        if ~(any(sigud(postbins)) && sigpre) && (any(sig(postbins)) && sigpost) % ensure asymmetry
+            if (any(sigud(postbins)) && sigpre)
                 %test if causal is bigger than anti causal
                 sig_con = [sig_con;cell2ID refcellID];
             end

@@ -24,7 +24,7 @@ for ii=1:height(flist)
         continue
     end
     %% per session behavioral data
-    trials=h5read(fullfile(replace(flist(ii).folder,'SPKINFO','META'),'events.hdf5'),'/trials')';
+    trials=h5read(fullfile(replace(flist.folder{ii},'SPKINFO','META'),'events.hdf5'),'/trials')';
     trials=behav.procPerf(trials,'mode','all');
     if isempty(trials), continue,  end
     %% select SUs with low contam rate, high FR and good waveform, for all probes
