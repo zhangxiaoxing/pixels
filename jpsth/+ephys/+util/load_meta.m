@@ -52,24 +52,25 @@ if isempty(su_meta) || ~isequaln(opt,opt_)
                 continue
             end
             do=detectImportOptions(fullfile(fl(fi).folder,'su_id2reg.csv'));
-            do=setvartype(do,do.VariableNames,{'double','double','char','char','char','char','char','char'});
+            do=setvartype(do,do.VariableNames,{'double','double','char','double','char','char','char','char','char','char'});
             regtbl=readtable(fullfile(fl(fi).folder,'su_id2reg.csv'),do);
+            regsel=ismember(regtbl.index,suids);
             su_meta.allcid=[su_meta.allcid;suids];
             su_meta.sess=[su_meta.sess;repmat(wtsessidx,numel(suids),1)];
             wtsessidx=wtsessidx+1;
-            su_meta.reg_tree=[su_meta.reg_tree,table2cell(regtbl(:,3:8)).'];
-            pathsuffix=regexp(fl(fi).folder,'(?<=SPKINFO[\\/]).*','match','once');
+            su_meta.reg_tree=[su_meta.reg_tree,table2cell(regtbl(regsel,5:10)).'];
+            pathsuffix=fl(fi).folder;
             su_meta.allpath=[su_meta.allpath;repmat({pathsuffix},numel(suids),1)];
         end
         su_meta.allcid=uint16(su_meta.allcid);
         su_meta.sess=int32(su_meta.sess);
 
         if opt.adjust_white_matter
-            if strcmp(opt.criteria,'WT')
-                su_meta.reg_tree=ephys.get_adjusted_reg_tree('adjust_white_matter',opt.adjust_white_matter);
-            else
+            % if strcmp(opt.criteria,'WT')
+            %     su_meta.reg_tree=ephys.get_adjusted_reg_tree('adjust_white_matter',opt.adjust_white_matter);
+            % else
                 warning("Missing adjusted file, fall back to previous alignment")
-            end
+            % end
         end
 
         if opt.save_file

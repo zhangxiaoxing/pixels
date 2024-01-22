@@ -15,7 +15,7 @@ if ~isempty(gather_config)
         elseif strcmp(opt.criteria,'Learning')
             opt.fn='sums_conn_learning.mat';
         else
-            opt.fn='sums_conn_10.mat';
+            opt.fn='..\sums_conn.mat';
         end
     elseif gather_config.fc_win==20
         if opt.inhibit

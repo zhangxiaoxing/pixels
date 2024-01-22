@@ -5,7 +5,7 @@ wt_sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria
 ln_su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","Learning","load_file",false,"skip_stats",true);
 ln_sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
 
-[wt_map,wt_fh]=ephys.pct_reg_bars(wt_su_meta,wt_sel_meta,'xyscale',{'linear','linear'},'only_odor',true,'criteria','WT','skip_plot',true); % only need map_cells for tcom-frac corr
+[wt_map,wt_fh]=ephys.pct_reg_bars(wt_su_meta,wt_sel_meta,'xyscale',{'linear','linear'},'only_odor',true,'criteria','WT','skip_plot',false); % only need map_cells for tcom-frac corr
 [ln_map,ln_fh]=ephys.pct_reg_bars(ln_su_meta,ln_sel_meta,'xyscale',{'linear','linear'},'only_odor',true,'criteria','Learning','skip_plot',true); % only need map_cells for tcom-frac corr
 
 [sfrac,sidx]=sortrows(cell2mat(wt_map.olf.values.'),[-1,3]);

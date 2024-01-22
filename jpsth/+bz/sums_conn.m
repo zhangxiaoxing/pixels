@@ -1,5 +1,6 @@
-function sums_conn_str=sums_conn(opt)
+function sums_conn_str=sums_conn(su_meta,opt)
 arguments
+    su_meta
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive}= 2
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
@@ -15,7 +16,8 @@ if strcmp(opt.type,'neupix')
         fl=dir(fullfile('binary','SC','Learning_BZ_XCORR_duo_f*.mat'));
         sfn=fullfile('binary','sums_conn_learning.mat');
     else
-        fl=dir(fullfile('bzdata',sprintf('%s_BZ_XCORR_duo_f*.mat',opt.prefix)));
+        upath=unique(su_meta.allpath);
+        fl=fullfile(upath,'bz_corr.mat');
         if opt.inhibit
             sfn='sums_conn_inhibit.mat';
         else
@@ -34,8 +36,13 @@ if isunix
     end
     sums_conn_str=fetchOutputs(futures);
 elseif ispc
+    out_idx=1;
     for task_idx = 1:numel(fl)
-        sums_conn_str(task_idx) = sum_one(fl(task_idx)); % async significant functional coupling map->reduce
+         tmp = sum_one(fl{task_idx}); % async significant functional coupling map->reduce
+         if isfield(tmp,'sig_con') && ~isempty(tmp.sig_con)
+             sums_conn_str(out_idx)=tmp;
+             out_idx=out_idx+1;
+         end
     end
 end
 toc
@@ -44,17 +51,20 @@ end
 
 function out=sum_one(f)
 arguments
-    f (1,1) struct
+    f (1,:) char
 end
-
-fstr=load(fullfile(f.folder,f.name));
-suid=fstr.mono.completeIndex(:,2);
-out.sig_con=suid(fstr.mono.sig_con);
-out.folder=fstr.folder;
+out=struct();
+fstr=load(f);
+if ~isfield(fstr,'all_probe_ccg')
+    return
+end
+suid=fstr.all_probe_ccg.completeIndex(:,2);
+out.sig_con=suid(fstr.all_probe_ccg.sig_con);
+out.folder=regexp(f,'.*(?=[\\/]bz_corr.mat)','match','once');
 out.ccg_sc=[];
-sigccg=cell2mat(arrayfun(@(x) fstr.mono.ccgR(:,fstr.mono.sig_con(x,1),fstr.mono.sig_con(x,2)),...
-    1:size(fstr.mono.sig_con,1),'UniformOutput',false));
-for i=1:size(fstr.mono.sig_con,1)
+sigccg=cell2mat(arrayfun(@(x) fstr.all_probe_ccg.ccgR(:,fstr.all_probe_ccg.sig_con(x,1),fstr.all_probe_ccg.sig_con(x,2)),...
+    1:size(fstr.all_probe_ccg.sig_con,1),'UniformOutput',false));
+for i=1:size(fstr.all_probe_ccg.sig_con,1)
     out.qc(i,:)=bz.good_ccg(sigccg(:,i));
     out.ccg_sc=[out.ccg_sc;sigccg(:,i).'];
 end

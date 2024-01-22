@@ -4,8 +4,8 @@ arguments
 end
 if strcmp(opt.dtype,'neupix') ||  strcmp(opt.dtype,'MY')
     if endsWith(pwd(),[filesep(),'jpsth'])
-        homedir = fullfile('..','..','neupix','SPKINFO');
-        dirall = struct2table(dir(fullfile('..','..','neupix','SPKINFO*')));
+        homedir = fullfile('..','..','neupix','npdata_out');
+        dirall = struct2table(dir(fullfile('..','..','neupix','npdata_out*')));
         homedir_all = table2cell(rowfun(@(x,y) fullfile(x,y),dirall(:,["folder","name"])));
         
         [avail,attstr]=fileattrib(homedir);
