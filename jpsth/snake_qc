@@ -4,7 +4,7 @@ import glob, os
 
 root_dir='/home/zhangxx/npdata_out/'
 
-def get_sync_raw(wildcards):
+def sync_trials_out(wildcards):
     fl=glob.glob(r'**/sync_raw.npy',root_dir=root_dir,recursive=True)
     out=[os.path.join(root_dir,onepath.replace('sync_raw','sync_trials')) for onepath in fl]
     return out[:3]
@@ -16,10 +16,49 @@ def get_sess_dir(wildcards):
     out=[os.path.join(root_dir,onepath,"sess_spk_t_id.npy") for onepath in upath]
     return out
 
+def get_per_sess_bz_xcorr(wildcards):
+    fl=glob.glob(r'**/sess_spk_t_id.npy',root_dir=root_dir)
+    # TODO capture later learning batch with recursive=true
+    upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl])
+    out=[os.path.join(root_dir,onepath,"bz_corr.mat") for onepath in upath]
+    return out
+
+def get_LN2_sync_events(wildcards):
+    fl=glob.glob(r'**/sync_raw.npy',root_dir=os.path.join(root_dir,'LN2'),recursive=True)
+    out=[os.path.join(root_dir,'LN2',onepath.replace('sync_raw.npy','sync_events_5.npy'))  for onepath in fl]
+    return out
+
+def get_LN2_sync_trials(wildcards):
+    fl=glob.glob(r'**/sync_events_5.npy',root_dir=os.path.join(root_dir,'LN2'),recursive=True)
+    out=[os.path.join(root_dir,'LN2',onepath.replace('sync_events_5.npy','sync_trials.npy'))  for onepath in fl]
+    return out
+
+rule all_LN2_sync_events:
+    input:
+        get_LN2_sync_events
+
+rule all_LN2_sync_trials:
+    input:
+        get_LN2_sync_trials
+
+rule LN2_sync_events:
+    output:
+        "{datapath}/sync_events_5.npy"
+    shell:
+        '''
+        matlab -noFigureWindows -batch "addpath('/home/zhangxx/code/pixels/preprocess/');silly_sync('{wildcards.datapath}')"
+        '''
+         
+
+
+rule all_sess_xcorr_bz:
+    input:
+        get_per_sess_bz_xcorr
+
 
 rule sync_trials:
     input:
-        get_sync_raw
+        sync_trials_out
 
 
 rule aligned_spk_time:
@@ -29,6 +68,7 @@ rule aligned_spk_time:
 
 rule raw2trials:
     input:
+        "{datapath}/sync_raw.npy"
     output:
         "{datapath}/sync_trials.npy"
     conda:
@@ -45,8 +85,14 @@ rule gen_aligned_spk_time:
     script:
         "../preprocess/trials_sync_align.py"
 
-
-
+rule per_sess_bz_xcorr:
+    input:
+    output:
+        "{datapath}/bz_corr.mat"
+    shell:
+        '''
+        matlab -noFigureWindows -batch "bz.per_sess_bz_corr('{wildcards.datapath}')"
+        '''
 
 rule sync_raw:
     output:

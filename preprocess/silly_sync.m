@@ -1,12 +1,11 @@
 function silly_sync(dpath)
 display(dpath)
-cd(dpath)
 if ispc
     addpath(fullfile("k:","Lib","npy-matlab","npy-matlab"))
 elseif isunix
     addpath('/home/zhangxx/code/npy-matlab/npy-matlab')
 end
-sr=readNPY('sync_raw.npy');
+sr=readNPY(fullfile(dpath,'sync_raw.npy'));
 
 % 158us=4.74sp or 153us=4.59sp per signal bit, 9.18 or 9.33 sp for
 % consecutive bits
@@ -68,6 +67,7 @@ while true
     end
 end
 evta=transpose(cell2mat(transpose(cell(evts.toArray()))));
-writeNPY(evta,'sync_events.npy');
+writeNPY(evta,fullfile(dpath,'sync_events_5.npy'));
+
 end
 
