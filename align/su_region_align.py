@@ -12,6 +12,7 @@ This script is responsible for generating the su_id2reg.csv which is further use
 import os, sys, re, glob, csv
 import numpy as np
 import pandas as pd
+# sys.path.append('/home/zhangxx/code/pixels/align')
 import fileutil as futil
 import parsetree as parsetree
 
@@ -50,6 +51,15 @@ def matchDepth(depth, depthL, date, mice_id, imec_no): # depth to brain-region-l
     return ('unlabeled',unlabeledRecord)
 
 
+def getTrackRegionLN21(regionL, mice_id, date, imecNo): # all regions along a probe
+    depthL = regionL.loc[
+        (regionL["mouse_id"] == mice_id)
+        & (regionL["implanting_date"] == date)
+        & (regionL["imec"] == imecNo),
+        ["acronym", "distance2tipLow", "distance2tipHigh"],
+    ]
+    return depthL
+
 def getTrackRegion(regionL, mice_id, date, imecNo, who_did): # all regions along a probe
     depthL = regionL.loc[
         (regionL["mouse_id"] == mice_id)
@@ -60,20 +70,37 @@ def getTrackRegion(regionL, mice_id, date, imecNo, who_did): # all regions along
     return depthL
 
 
-def getRegionList(): # file interface
-    site_file = r"/home/zhangxx/npdata/IHC00/NP_tracks_revisedNew.csv"
-    regionL = pd.read_csv(site_file).astype(
-        {"mouse_id": "str", "implanting_date": "str"}
-    )[
-        [
-            "mouse_id",
-            "implanting_date",
-            "side",
-            "acronym",
-            "distance2tipHigh",
-            "distance2tipLow",
+def getRegionList(batch='WT'): # file interface
+    if batch not in ('WT','LN21'):
+        raise ValueError(f'Unknown experiment batch {batch}')
+    if batch=='WT':
+        site_file = r"/home/zhangxx/npdata/IHC00/NP_tracks_revisedNew.csv"
+        regionL = pd.read_csv(site_file).astype(
+            {"mouse_id": "str", "implanting_date": "str"}
+        )[
+            [
+                "mouse_id",
+                "implanting_date",
+                "side",
+                "acronym",
+                "distance2tipHigh",
+                "distance2tipLow",
+            ]
         ]
-    ]
+    else:
+        site_file = r"/home/zhangxx/npdata/IHC00/learning_tracks_new.CSV"
+        regionL = pd.read_csv(site_file).astype(
+                {"mouse_id": "str", "implanting_date": "str", "imec":"str"}
+        )[
+            [
+                "mouse_id",
+                "implanting_date",
+                "imec",
+                "acronym",
+                "distance2tipHigh",
+                "distance2tipLow",
+            ]
+        ]
 
     return regionL
 
@@ -103,12 +130,17 @@ def reg2coeff(tree_str):
         return (-1,'NONE')
 
 
-def align_onefolder(unit_info,probe_path,regionL,offset): # processing one session
-        ap_meta_path=glob.glob(probe_path[:-21]+"*.ap.meta")[0]
-        (bs_id, time_s, who_did) = futil.get_bsid_duration_who(ap_meta_path) # base station id for lab records comparison
+def align_onefolder(unit_info,probe_path,regionL): # processing one session
         (mice_id, date, imec_no) = futil.get_miceid_date_imecno(probe_path) # meta data extracted from path and file tag
         if mice_id and date and imec_no:
-            depthL = getTrackRegion(regionL, mice_id, date, imec_no, who_did) # per probe brain regions
+            offset=int(imec_no)*10000
+            if 'LN2' in probe_path:
+                depthL = getTrackRegionLN21(regionL, mice_id, date, imec_no) # per probe brain regions
+            else:
+                ap_meta_path=glob.glob(probe_path[:-21]+"*.ap.meta")[0]
+                (bs_id, time_s, who_did) = futil.get_bsid_duration_who(ap_meta_path) # base station id for lab records comparison
+                depthL = getTrackRegion(regionL, mice_id, date, imec_no, who_did) # per probe brain regions
+
             su_region_corr = []
 
             dep_path=probe_path.replace('metrics.csv','channel_positions.npy')
@@ -118,7 +150,6 @@ def align_onefolder(unit_info,probe_path,regionL,offset): # processing one sessi
             unit_depth=np.array([dep_lut[np.where(map_lut==one_chan)[0],1] for one_chan in unit_info.peak_channel])
 
             unlabeled=[]
-
             ### sequentially match su ids with brain region tree
             for idx,one_su in unit_info.iterrows():
                 depth = dep_lut[np.where(map_lut==one_su.peak_channel)[0],1]
@@ -140,38 +171,46 @@ def align_onefolder(unit_info,probe_path,regionL,offset): # processing one sessi
             return([],[])
 
 ### traverse all folder
-def gen_align_files():
-    regionL = getRegionList()
-    unlabeledRecord = []
-    all_path=glob.glob(r'/home/zhangxx/npdata_out/*/*_imec?/')
-    sess_path=[re.findall(r'(^.*/)(.*?_imec[0123])/',one_path)[0][0] for one_path in all_path]
+def gen_align_files(path):
+#    unlabeledRecord = []
+#    all_path=glob.glob(r'/home/zhangxx/npdata_out/**/*_imec?/',recursive=True)
+#    sess_path=[re.findall(r'(^.*/)(.*?_imec[0-9])/',one_path)[0][0] for one_path in all_path]
 
-    for path in sess_path:
+#    for path in sess_path:
 #         if os.path.exists(os.path.join(path, 'su_id2reg.csv')):
 #             continue
-        su_region_corr = []
-        metrics_path=sorted(glob.glob('*/imec?_ks2/metrics.csv',root_dir=path))
-        for one_probe in metrics_path:
-            probe_path=os.path.join(path,one_probe)
-            print(probe_path)
-            metrics_df=pd.read_csv(probe_path)
-            unit_info=metrics_df[["cluster_id","peak_channel"]]
-            probe_idx=int(re.findall(r'(?<=imec)\d(?=\D)',one_probe)[0])
-            (su_region,unlabeled)=align_onefolder(unit_info,probe_path,regionL,probe_idx*10000)
-            su_region_corr.extend(su_region)
-            unlabeledRecord.extend(unlabeled)
+#        if 'wyt' in path:
+#            continue
+    su_region_corr = []
+    metrics_path=sorted(glob.glob('*/imec?_ks2/metrics.csv',root_dir=path))
+    for one_probe in metrics_path:
+        probe_path=os.path.join(path,one_probe)
+        print(probe_path)
+        metrics_df=pd.read_csv(probe_path)
+        unit_info=metrics_df[["cluster_id","peak_channel"]]
+        if 'LN2' in path:
+            regionL = getRegionList('LN21')
+        else:
+            regionL = getRegionList('WT')
 
-        if su_region_corr: # result export to file
-            tbl = pd.DataFrame(su_region_corr,
-                               columns=['index','coeff_idx','coeff_type','depth','d3','d4','d5','d6','d7','d8']).set_index('index')[:]
-            tbl.to_csv(os.path.join(path, 'su_id2reg.csv'), header=True)
+        (su_region,unlabeled)=align_onefolder(unit_info,probe_path,regionL)
+        su_region_corr.extend(su_region)
+#        unlabeledRecord.extend(unlabeled)
 
-    unlabeledRecord=list(filter(None, unlabeledRecord))
-    
-    with open("unlabeled.csv", "w", newline="") as f: # Incomplete data, developers only.
-        writer = csv.writer(f)
-        writer.writerows(unlabeledRecord)
+    if su_region_corr: # result export to file
+        tbl = pd.DataFrame(su_region_corr,
+                           columns=['index','coeff_idx','coeff_type','depth','d3','d4','d5','d6','d7','d8']).set_index('index')[:]
+        tbl.to_csv(os.path.join(path, 'su_id2reg.csv'), header=True)
 
+#    unlabeledRecord=list(filter(None, unlabeledRecord))
+#    
+#    with open("unlabeled.csv", "w", newline="") as f: # Incomplete data, developers only.
+#        writer = csv.writer(f)
+#        writer.writerows(unlabeledRecord)
+#
 
 if __name__=="__main__":
-    gen_align_files()
+    if "snakemake" in globals():
+        datapath=snakemake.wildcards[0]
+        print(f"Processing path: {datapath}")
+        gen_align_files(datapath)

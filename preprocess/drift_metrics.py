@@ -19,27 +19,27 @@ def drift_metric(SpkID, SpkTS, trials, suids):
     return drift_array
 
 
-def load_data():
-    trials = np.load("sync_trials.npy")
+def load_data(path="."):
+    trials = np.load(os.path.join(path,"sync_trials.npy"))
     if trials.shape[0] < 80:
         print("Unexpected trials format")
         sys.exit(102)
-    ks2dirs = glob.glob(r"imec?_ks2" + os.sep)
+    ks2dirs = glob.glob(r"imec?_ks2" + os.sep,root_dir=path)
     if len(ks2dirs) != 1:
-        print("Unexpected imecx_ks2 folder condition")
+        print("Unexpected imec_ks2 folder condition")
         sys.exit(101)
-    SpkTS = np.load(os.path.join(ks2dirs[0], "spike_times.npy"))
-    SpkID = np.load(os.path.join(ks2dirs[0], "spike_clusters.npy"))
+    SpkTS = np.load(os.path.join(path,ks2dirs[0], "spike_times.npy"))
+    SpkID = np.load(os.path.join(path,ks2dirs[0], "spike_clusters.npy"))
 
-    metric_tbl = pd.read_csv(os.path.join(ks2dirs[0], "metrics.csv"))
+    metric_tbl = pd.read_csv(os.path.join(path,ks2dirs[0], "metrics.csv"))
     suids = metric_tbl["cluster_id"].to_numpy()
 
     return SpkTS, SpkID, trials, suids
 
-
-if __name__ == "__main__":  # Debuging entry. Import module when possible.
+def old_main():
+# if __name__ == "__main__":  # Debuging entry. Import module when possible.
     print(os.getcwd())
-    if os.path.exists("drift_metric.npy"):
+    if os.path.exists("drift_metrics.npy"):
         print("data exist")
         sys.exit(0)
     if not os.path.exists("sync_trials.npy"):
@@ -47,4 +47,16 @@ if __name__ == "__main__":  # Debuging entry. Import module when possible.
         sys.exit(103)
     (SpkTS, SpkID, trials, suids) = load_data()
     drift_metric_arr = drift_metric(SpkID, SpkTS, trials, suids)
-    np.save("drift_metric.npy", drift_metric_arr)
+    np.save("drift_metrics.npy", drift_metric_arr)
+
+if __name__ == "__main__": 
+    if "snakemake" in globals():
+        outf=snakemake.output[0]
+        print(f"Processing file: {outf}")
+        if not os.path.exists(os.path.join(snakemake.wildcards[0],"sync_trials.npy")):
+            print("Missing data")
+            sys.exit(103)
+        (SpkTS, SpkID, trials, suids) = load_data(snakemake.wildcards[0])
+        drift_metric_arr = drift_metric(SpkID, SpkTS, trials, suids)
+        np.save(os.path.join(snakemake.wildcards[0],"drift_metrics.npy"), drift_metric_arr)
+

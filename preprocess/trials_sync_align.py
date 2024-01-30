@@ -22,7 +22,11 @@ sps = 30000
 # sess_path = re.findall(r"^.*?_g\d" + os.sep, ref_trls_file)[0]
 sess_path = snakemake.wildcards[0]
 print("Processing " + sess_path)
-qcidx=pd.read_csv(os.path.join(sess_path,'su_id2reg.csv'),usecols=['index','coeff_idx'])
+suidregfile=os.path.join(sess_path,'su_id2reg.csv')
+if not os.path.isfile(suidregfile):
+    print("Missing file " + suidregfile)
+    sys.exit(108)
+qcidx=pd.read_csv(suidregfile,usecols=['index','coeff_idx'])
 
 # existing file preferably handled by snakemake
 # if os.path.isfile(os.path.join(sess_path, "sess_spk_t_id.npy")):
@@ -42,11 +46,17 @@ ref_spk_file = os.path.join(
 )
 if not os.path.isfile(ref_spk_file):
     print("Missing file " + ref_spk_file)
-    sys.exit(1)
+    sys.exit(106)
+
+regress_file=ref_trls_file.replace(r'sync_trials.npy',r'logistic_regress.npy')
+if not os.path.isfile(regress_file):
+    print("Missing file " + regress_file)
+    sys.exit(107)
+
 # filter by qc coeffcient regression
 ref_range=np.logical_and((qcidx['index'].to_numpy()>=int(ref_idx)*10000), (qcidx['index'].to_numpy()<(int(ref_idx)+1)*10000))
 ref_qcidx=qcidx[ref_range]
-ref_coeff_arr=np.load(ref_trls_file.replace(r'sync_trials.',r'logistic_regress.'))
+ref_coeff_arr=np.load(regress_file)
 qc_passed=[]
 for ii in range(ref_qcidx.shape[0]):
     curr_qc_idx=ref_qcidx.iloc[ii]['coeff_idx']
@@ -60,7 +70,7 @@ ref_spk_id=ref_spk_id[qc_sel]
 ref_spk_t = np.load(ref_spk_file)[qc_sel] / sps
 
 aligned_spk_t = np.column_stack((np.zeros(ref_spk_t.shape), ref_spk_t, ref_spk_id))
-raw_spk_t = np.column_stack((np.ones(ref_spk_t.shape), ref_spk_t, ref_spk_id))
+raw_spk_t = np.column_stack((np.full(ref_spk_t.shape,int(ref_idx)), ref_spk_t, ref_spk_id))
 
 trls_match = np.ones((ref_trls.shape[0], 1))
 trls_idx = np.full((ref_trls.shape[0], 1), ref_idx, dtype=float)

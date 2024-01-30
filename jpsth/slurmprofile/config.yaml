@@ -1,0 +1,10 @@
+executor:
+    cluster-generic
+cluster-generic-submit-cmd:
+   "sbatch -p stor,dev -c 26 --parsable -o .snakemake/slurm_logs/%j.out -e .snakemake/slurm_logs/%j.err"
+max-jobs-per-second:
+   1
+cluster-generic-status-cmd:
+   "/home/zhangxx/code/pixels/jpsth/cluster_status.sh"
+jobs:
+   200

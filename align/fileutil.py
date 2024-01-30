@@ -5,9 +5,7 @@ Created on Thu Mar 11 09:51:12 2021
 @author: Libra
 """
 
-import re
-import os
-
+import os, sys, re
 import numpy as np
 
 def get_miceid_date_imecno(one_probe):
@@ -22,7 +20,8 @@ def get_miceid_date_imecno(one_probe):
         return (miceId[0], datestr, imecNo[0])
     else:
         print("unresolved path meta data: ", one_probe)
-        input("press Enter to continue")
+        # input("press Enter to continue")
+        sys.exit(105)
         return (None, None, None)
 
 
@@ -45,8 +44,8 @@ def get_bsid_duration_who(ap_meta_path):
     else:
         who_did = "UNKNOWN"
         print("Unknown BS id!")
-        input("press Enter to continue")
-
+        # input("press Enter to continue")
+        sys.exit(105)
     return (bs_id, time_s, who_did)
 
 

@@ -137,7 +137,7 @@ def parseGNGEvents(events):
 #     return trials
 
 
-def getEvents(path=""):
+def getEvents(path="."):
     syncs = np.load(os.path.join(path,"sync_raw.npy"))
     blockCount = 0
     ts = 0
@@ -175,7 +175,7 @@ def getEvents(path=""):
     return events
 
 
-def writeEvents(events, trials,path=""):
+def writeEvents(events, trials,path="."):
     np.save(os.path.join(path,"sync_events.npy"), events)
     np.save(os.path.join(path,"sync_trials.npy"), trials)
 
@@ -400,7 +400,7 @@ def runsync():
     return trials
 
 
-def old_main():
+def old_main(): # Debuging entry. Import module when possible.
     print(os.getcwd())
     breakpoint()
     if os.path.exists("sync_trials.npy"):
@@ -423,18 +423,17 @@ def old_main():
     trials = parseDPAEvents(events)
     writeEvents(events, trials)
 
-# with open('events.csv','w',newline='\r\n') as
 
-if __name__ == "__main__":  # Debuging entry. Import module when possible.
+if __name__ == "__main__": 
     if "snakemake" in globals():
         outf=snakemake.output[0]
-        if outf.endswith('sync_trials.npy'):
-            print(f"Processing file: {outf}")
-            if 'LN2' in snakemake.wildcards[0]:
-                events = np.load(os.path.join(snakemake.wildcards[0],'sync_events_5.npy')).astype(np.int32)
-                trials = events2trials(events,sync_type='xd')
-                writeEvents(events, trials,snakemake.wildcards[0])
-            else:
-                events = getEvents(snakemake.wildcards[0]).astype(np.int32)
-                trials = events2trials(events,sync_type='zx')
-                writeEvents(events, trials,snakemake.wildcards[0])
+        #if outf.endswith('sync_trials.npy'):
+        print(f"Processing file: {outf}")
+        if 'LN2' in snakemake.wildcards[0]:
+            events = np.load(os.path.join(snakemake.wildcards[0],'sync_events_5.npy')).astype(np.int32)
+            trials = events2trials(events,sync_type='xd')
+            writeEvents(events, trials,snakemake.wildcards[0])
+        else:
+            events = getEvents(snakemake.wildcards[0]).astype(np.int32)
+            trials = events2trials(events,sync_type='zx')
+            writeEvents(events, trials,snakemake.wildcards[0])

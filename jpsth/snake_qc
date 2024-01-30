@@ -7,19 +7,18 @@ root_dir='/home/zhangxx/npdata_out/'
 def sync_trials_out(wildcards):
     fl=glob.glob(r'**/sync_raw.npy',root_dir=root_dir,recursive=True)
     out=[os.path.join(root_dir,onepath.replace('sync_raw','sync_trials')) for onepath in fl]
-    return out[:3]
+    return out
 
-def get_sess_dir(wildcards):
-    fl=glob.glob(r'**/*_imec?',root_dir=root_dir)
+def per_sess_spkts(wildcards):
+    fl=glob.glob(r'**/*_imec?',root_dir=root_dir,recursive=True)
     # TODO capture later learning batch with recursive=true
     upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl])
     out=[os.path.join(root_dir,onepath,"sess_spk_t_id.npy") for onepath in upath]
     return out
 
 def get_per_sess_bz_xcorr(wildcards):
-    fl=glob.glob(r'**/sess_spk_t_id.npy',root_dir=root_dir)
-    # TODO capture later learning batch with recursive=true
-    upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl])
+    fl=glob.glob(r'**/sess_spk_t_id.npy',root_dir=root_dir,recursive=True)
+    upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl if 'wyt' not in onepath])
     out=[os.path.join(root_dir,onepath,"bz_corr.mat") for onepath in upath]
     return out
 
@@ -33,6 +32,34 @@ def get_LN2_sync_trials(wildcards):
     out=[os.path.join(root_dir,'LN2',onepath.replace('sync_events_5.npy','sync_trials.npy'))  for onepath in fl]
     return out
 
+def get_drift_metric_flist(wildcards):
+    fl=glob.glob(r'**/sync_trials.npy',root_dir=root_dir,recursive=True)
+    out=[os.path.join(root_dir,onepath.replace('sync_trials.npy','drift_metrics.npy'))  for onepath in fl]
+    return out
+
+def get_suid_reg_map(wildcards):
+    fl=glob.glob(r'**/drift_metrics.npy',root_dir=root_dir,recursive=True)
+    out=[os.path.join(root_dir,re.findall(f'.*_g[0-9](?={os.sep})',onepath)[0],'su_id2reg.csv')  for onepath in fl]
+    return out
+
+def get_qc_regress(wildcards):
+    fl=glob.glob(r'**/drift_metrics.npy',root_dir=root_dir,recursive=True)
+    out=[os.path.join(root_dir,onepath.replace('drift_metrics.npy','logistic_regress.npy')) for onepath in fl]
+    return out
+
+rule all_qc_regress:
+    input:
+        get_qc_regress
+
+rule qc_regress:
+    output:
+        "{datapath}/logistic_regress.npy"
+    conda:
+        "py312n"
+    script:
+        "../preprocess/regress.py"
+
+
 rule all_LN2_sync_events:
     input:
         get_LN2_sync_events
@@ -41,6 +68,31 @@ rule all_LN2_sync_trials:
     input:
         get_LN2_sync_trials
 
+rule all_drift_metric:
+    input:
+        get_drift_metric_flist
+
+rule all_suid_reg_map:
+    input:
+        get_suid_reg_map
+
+rule suid_reg_map:
+    output:
+        "{datapath}/su_id2reg.csv"
+    conda:
+        "py312n"
+    script:
+        "../align/su_region_align.py"
+
+rule drift_metric:
+    output:
+        "{datapath}/drift_metrics.npy"
+    conda:
+        "py312n"
+    script:
+        "../preprocess/drift_metrics.py"
+
+
 rule LN2_sync_events:
     output:
         "{datapath}/sync_events_5.npy"
@@ -48,22 +100,20 @@ rule LN2_sync_events:
         '''
         matlab -noFigureWindows -batch "addpath('/home/zhangxx/code/pixels/preprocess/');silly_sync('{wildcards.datapath}')"
         '''
-         
-
 
 rule all_sess_xcorr_bz:
     input:
         get_per_sess_bz_xcorr
 
 
-rule sync_trials:
+rule all_sync_trials:
     input:
         sync_trials_out
 
 
 rule aligned_spk_time:
     input:
-        get_sess_dir
+        per_sess_spkts
 
 
 rule raw2trials:
@@ -94,8 +144,8 @@ rule per_sess_bz_xcorr:
         matlab -noFigureWindows -batch "bz.per_sess_bz_corr('{wildcards.datapath}')"
         '''
 
-rule sync_raw:
-    output:
-        "{datapath}/sync_raw.npy"
-    run:
-        pass
+# rule sync_raw:
+#     output:
+#         "{datapath}/sync_raw.npy"
+#     run:
+#         pass
