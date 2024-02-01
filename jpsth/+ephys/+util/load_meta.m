@@ -2,8 +2,8 @@
 
 function su_meta_=load_meta(opt)
 arguments
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix'})}='neupix'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
     % opt.n_bin (1,1) double {mustBeInteger,mustBePositive} = 3
     opt.skip_stats (1,1) logical = true
     opt.adjust_white_matter (1,1) logical = true
@@ -38,14 +38,15 @@ if isempty(su_meta) || ~isequaln(opt,opt_)
         for fi=1:numel(fl)
             suids=h5read(fullfile(fl(fi).folder,fl(fi).name),'/SU_id');
             if isempty(suids)
-                keyboard
+                keyboard()
             end
             trials=h5read(fullfile(fl(fi).folder,fl(fi).name),'/Trials');
-            if strcmp(opt.criteria,'Learning')
+            if ismember(opt.criteria,{'Learning','Naive'})
                 ltrials=behav.procPerf(trials,"criteria","Learning");
             end
             if (strcmp(opt.criteria,'WT') && sum(trials(:,9))<40)...
-                    || (strcmp(opt.criteria,'Learning') && (sum(trials(:,9))>=40 || sum(ltrials(:,9))<40))
+                    || (strcmp(opt.criteria,'Learning') && (sum(trials(:,9))>=40 || sum(ltrials(:,9))<40)) ...
+                    || (strcmp(opt.criteria,'Naive') && (sum(trials(:,9))>=40 || sum(ltrials(:,9))>=40))
                 continue
             end
             if exist(fullfile(fl(fi).folder,'su_id2reg.csv'),'file')~=2

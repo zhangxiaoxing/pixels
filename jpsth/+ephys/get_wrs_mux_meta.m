@@ -9,7 +9,7 @@ arguments
     opt.tag_ext6s_mem (1,1) logical = false
     opt.plot_venn (1,1) logical = false
     opt.filename (1,:) char = 'wrs_mux_meta.mat'
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
     opt.fdr (1,1) logical = false
 end
 
@@ -20,7 +20,6 @@ if isempty(out) || ~isequaln(opt,opt_)
         out=wrs_mux_meta;
     else
         [~,~,sessmap]=ephys.sessid2path(0,'criteria',opt.criteria);
-        homedir=ephys.util.getHomedir();
         sesskeys=cell2mat(sessmap.keys());
         [out.m_pref_id,out.o_pref_id,out.d_pref_id,out.p_mux,out.p_olf,out.p_dur,out.class_fr]=deal([]);
         if opt.extend6s
@@ -31,6 +30,10 @@ if isempty(out) || ~isequaln(opt,opt_)
             fpath=fullfile(replace(sessmap(sessid),("\"|"/"),filesep),"FR_All_1000.hdf5");
             fr=h5read(fpath,'/FR_All');
             trials=h5read(fpath,'/Trials');
+            if ~all(ismember(trials(:,9:10),0:1),'all')
+                keyboard()
+                continue
+            end
             switch opt.criteria % TODO : pending refactoring
                 case 'WT'
                     s2sel=trials(:,9)~=0 & trials(:,10)~=0 & trials(:,5)==8;
@@ -45,6 +48,13 @@ if isempty(out) || ~isequaln(opt,opt_)
 
                     d3sel=trials(:,9)~=0 & trials(:,8)==3;
                     d6sel=trials(:,9)~=0 & trials(:,8)==6;
+                case 'Naive'
+                    trials=behav.procPerf(trials,'criteria','Learning');
+                    s2sel=trials(:,5)==8;
+                    s1sel=trials(:,5)==4;
+                    d3sel=trials(:,8)==3;
+                    d6sel=trials(:,8)==6;
+
                 otherwise
                     warning("Unfinished code path")
                     keyboard()
@@ -81,7 +91,7 @@ if isempty(out) || ~isequaln(opt,opt_)
                     mpref_id(bin-4)=binmpref;
                     opref_id(bin-4)=binopref;
                     dpref_id(bin-4)=bindpref;
-
+                    
                     ppmux(bin-4)=max(arrayfun(@(x) ranksum(class_cell{binmpref},class_cell{x}),otherid));
                     % determine monomodal
                     ppolf(bin-4)=ranksum(cell2mat(class_cell(1:2).'),cell2mat(class_cell(3:4).'));

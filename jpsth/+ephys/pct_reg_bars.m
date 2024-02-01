@@ -11,17 +11,22 @@ arguments
     opt.skip_export (1,1) logical = true
     opt.skip_dur (1,1) logical = false
     opt.only_odor (1,1) logical = true
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
+    opt.min_reg_count (1,1) double =100
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-ureg=ephys.getGreyRegs('range',opt.range,'criteria',opt.criteria);
+uregsel=ismember(su_meta.reg_tree(1,:),{'CH','BS'}) & ~ismissing(su_meta.reg_tree(5,:));
+ureg=unique(su_meta.reg_tree(5,uregsel));
+
 sums=[];
 
 for reg=reshape(ureg,1,[])
     regsel=strcmp(su_meta.reg_tree(5,:),reg).';
     cnt=nnz(regsel);
-
+    if cnt<opt.min_reg_count
+        continue
+    end
     mixed_cnt=nnz(regsel & ismember(sel_meta.wave_id,1:4));
     olf_cnt=nnz(regsel & ismember(sel_meta.wave_id,5:6));
     dur_cnt=nnz(regsel & ismember(sel_meta.wave_id,7:8));

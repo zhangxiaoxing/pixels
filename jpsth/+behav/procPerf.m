@@ -14,21 +14,20 @@ end
 facSeq(:,9)=0;
 i=40;
 while i<=length(facSeq)
-    switch opt.criteria
-        case 'WT'
-            good=xor(facSeq(i-39:i,5)==facSeq(i-39:i,6) , facSeq(i-39:i,7)>0); % borrow DNMS rule, as in SBCs
-            facSeq(i-39:i,10)=good;   % col9->well-train, col10->correct response
-            if nnz(good)>=30 % 75pct correct rate
-                facSeq(i-39:i,9)=1;
-            end
-        case 'Learning'
-            good=facSeq(i-39:i,5)~=facSeq(i-39:i,6) & facSeq(i-39:i,7)>0; % borrow DNMS rule, as in SBCs
-            if nnz(good)>=15 % 75pct engage
-                facSeq(i-39:i,9)=1;
-            end
-        otherwise
-            warning("Unfinished code path")
-            keyboard()
+    if strcmp(opt.criteria,'WT')
+        good=xor(facSeq(i-39:i,5)==facSeq(i-39:i,6) , facSeq(i-39:i,7)>0); % borrow DNMS rule, as in SBCs
+        facSeq(i-39:i,10)=good;   % col9->well-train, col10->correct response
+        if nnz(good)>=30 % 75pct correct rate
+            facSeq(i-39:i,9)=1;
+        end
+    elseif ismember(opt.criteria,{'Learning','Naive'})
+        good=facSeq(i-39:i,5)~=facSeq(i-39:i,6) & facSeq(i-39:i,7)>0; % borrow DNMS rule, as in SBCs
+        if nnz(good)>=15 % 75pct engage
+            facSeq(i-39:i,9)=1;
+        end
+    else
+        warning("Unfinished code path")
+        keyboard()
     end
     i=i+1;
 end

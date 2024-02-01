@@ -3,7 +3,7 @@ arguments
     fc
     waveid
     opt.pct_mat (1,1) logical = false
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
 end
     meta=ephys.util.load_meta('skip_stats',true,'load_file',false,'criteria',opt.criteria);
     usess=unique(fc.sess);

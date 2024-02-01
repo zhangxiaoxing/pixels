@@ -1,4 +1,5 @@
-function pixFlatFR(opt)
+% TODO: can be managed by snakemake for better performance
+function unmatched=pixFlatFR(opt)
 arguments
     opt.binsize (1,1) double = 1.0
     opt.writefile (1,1) logical = false
@@ -18,7 +19,7 @@ for ii=1:numel(homedir_all)
     flist=[flist;struct2table(dir(fullfile(homedir_all{ii},'**','sess_spk_t_id.npy')))];
 end
 % flist=dir(fullfile(rootdir,'**','spike_info.hdf5'));
-unmatched=0;
+unmatched=cell(0);
 for ii=1:height(flist)
     fprintf('=== %d of %d ===\n',ii,height(flist))
     if isfile(fullfile(flist.folder{ii},sprintf('FR_All_%4d.hdf5',opt.binsize*1000))) && ~opt.overwrite
@@ -34,7 +35,14 @@ for ii=1:height(flist)
     if isempty(spks), continue; end
     if all(spks(:,1)==0) && any(spks(:,3)>9999) % aligned
         ref_prb=trials(1,1);
-        aligned=all(cell2mat(transpose(accumarray(trials(:,1)+1,trials(:,2),[],@(x) {x}))),2);
+        prb_cell=transpose(accumarray(trials(:,1)+1,trials(:,2),[],@(x) {x}));
+        trial_cnt=cellfun(@(x) numel(x),prb_cell);
+        if numel(unique(trial_cnt))>1
+            unmatched=[unmatched;flist.folder{ii}];
+            warning("Trials do not match")
+            continue
+        end
+        aligned=all(cell2mat(prb_cell),2);
         trials=trials(intersect(find(trials(:,1)==ref_prb),find(aligned)),3:10);
         trials=behav.procPerf(trials,'mode','all');
         suids=unique(spks(:,3));
@@ -77,7 +85,7 @@ for ii=1:height(flist)
             keyboard()% for devp
         end
     else
-        unmatched=unmatched+1;
+        unmatched=[unmatched;flist.folder{ii}];
         warning("Trials do not match")
     end
 end

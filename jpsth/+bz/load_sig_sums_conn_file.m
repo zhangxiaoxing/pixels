@@ -5,7 +5,7 @@ arguments
         {mustBeMember(opt.fn,{'sums_conn_20win.mat','sums_conn_10.mat'})}
     opt.inhibit (1,1) logical = false
     opt.override (1,1) logical = false
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
 end
 global gather_config
 if ~isempty(gather_config)
@@ -14,15 +14,17 @@ if ~isempty(gather_config)
             opt.fn='sums_conn_inhib_10.mat';
         elseif strcmp(opt.criteria,'Learning')
             opt.fn='sums_conn_learning.mat';
+        elseif strcmp(opt.criteria,'Naive')
+            opt.fn='sums_conn_naive.mat';
         else
-            opt.fn='..\sums_conn.mat';
+            opt.fn='sums_conn.mat';
         end
     elseif gather_config.fc_win==20
-        if opt.inhibit
+        % if opt.inhibit
             error("Data not ready");
-        else
-            opt.fn='sums_conn_20win.mat';
-        end
+        % else
+        %     opt.fn='sums_conn_20win.mat';
+        % end
     else
         error('Unsupported FC window')
     end

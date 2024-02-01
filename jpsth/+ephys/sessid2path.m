@@ -1,8 +1,8 @@
 function [out,homedir,map_]=sessid2path(sessid,opt)
 arguments
     sessid (1,1) double {mustBeInteger}
-    opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.type (1,:) char {mustBeMember(opt.type,{'neupix'})}='neupix'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
 end
 homedir='';
 persistent opt_ map

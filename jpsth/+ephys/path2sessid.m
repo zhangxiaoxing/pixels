@@ -2,7 +2,7 @@ function [out,map_]=path2sessid(path,opt)
 arguments
     path (1,:) char
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO','MY'})}='neupix'
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
 end
 persistent opt_ map
 path=replace(path,("\"|"/"),filesep());
@@ -11,7 +11,7 @@ if contains(path,'SPKINFO')
 end
 if isempty(map) || ~isequaln(opt,opt_)
     if strcmp(opt.type,'neupix')
-        if ismember(opt.criteria,{'WT','Learning'})
+        if ismember(opt.criteria,{'WT','Learning','Naive'})
             su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,'load_file',false,'criteria',opt.criteria);
         else
             error("Unfinished");

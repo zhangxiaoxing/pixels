@@ -1,24 +1,24 @@
 function [fh,counts]=inter_wave_pct(sel_meta,opt)
 arguments
-    sel_meta = []
+    sel_meta
     opt.min_pair_per_session (1,1) double = 20
     opt.per_sess (1,1) logical = false
     opt.inhibit (1,1) logical = false
     opt.asym_congru (1,1) logical = false
     opt.odor_only (1,1) logical = true
     opt.skip_save (1,1) logical = true
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
 end
 
-if isempty(sel_meta)
-    if strcmp(opt.criteria,'WT')
-        fstr=load(fullfile('binary','wrs_mux_meta.mat'));
-        sel_meta=fstr.wrs_mux_meta;
-        clear fstr
-    elseif strcmp(opt.criteria,'Learning')
-        sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
-    end
-end
+% if isempty(sel_meta)
+%     if strcmp(opt.criteria,'WT')
+%         fstr=load(fullfile('binary','wrs_mux_meta.mat'));
+%         sel_meta=fstr.wrs_mux_meta;
+%         clear fstr
+%     elseif strcmp(opt.criteria,'Learning')
+%         sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
+%     end
+% end
 
 % persistent sig pair
 global_init;

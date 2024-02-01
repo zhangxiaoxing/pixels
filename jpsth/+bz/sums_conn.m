@@ -3,8 +3,7 @@ arguments
     su_meta
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive}= 2
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
-    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','any'})} = 'WT'
-    opt.prefix (1,:) char = 'BZWT'
+    opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
     opt.inhibit (1,1) logical = false
 end
 pool = gcp('nocreate');
@@ -12,21 +11,23 @@ if isunix && isempty(pool)
     pool=parpool(opt.poolsize);
 end
 if strcmp(opt.type,'neupix')
+    upath=unique(su_meta.allpath);
+    fl=fullfile(upath,'bz_corr.mat');
     if strcmp(opt.criteria,'Learning')
-        fl=dir(fullfile('binary','SC','Learning_BZ_XCORR_duo_f*.mat'));
         sfn=fullfile('binary','sums_conn_learning.mat');
+    elseif strcmp(opt.criteria,'Naive')
+        sfn=fullfile('binary','sums_conn_naive.mat');
     else
-        upath=unique(su_meta.allpath);
-        fl=fullfile(upath,'bz_corr.mat');
         if opt.inhibit
             sfn='sums_conn_inhibit.mat';
         else
-            sfn='sums_conn.mat';
+            sfn=fullfile('binary','sums_conn.mat');
         end
     end
 else
-    fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));
-    sfn='aiopto_sums_conn.mat';
+    % fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));
+    % sfn='aiopto_sums_conn.mat';
+    keyboard();
 end
 tic
 if isunix
@@ -39,6 +40,9 @@ elseif ispc
     out_idx=1;
     for task_idx = 1:numel(fl)
          tmp = sum_one(fl{task_idx}); % async significant functional coupling map->reduce
+         if rem(task_idx,10)==0
+             disp(task_idx)
+         end
          if isfield(tmp,'sig_con') && ~isempty(tmp.sig_con)
              sums_conn_str(out_idx)=tmp;
              out_idx=out_idx+1;
@@ -46,7 +50,8 @@ elseif ispc
     end
 end
 toc
-save(sfn,'sums_conn_str')
+blame=vcs.blame();
+save(sfn,'sums_conn_str','blame')
 end
 
 function out=sum_one(f)
