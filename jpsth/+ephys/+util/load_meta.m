@@ -63,7 +63,7 @@ if isempty(su_meta) || ~isequaln(opt,opt_)
             pathsuffix=fl(fi).folder;
             su_meta.allpath=[su_meta.allpath;repmat({pathsuffix},numel(suids),1)];
         end
-        su_meta.allcid=uint16(su_meta.allcid);
+        su_meta.allcid=int32(su_meta.allcid);
         su_meta.sess=int32(su_meta.sess);
 
         if opt.adjust_white_matter
