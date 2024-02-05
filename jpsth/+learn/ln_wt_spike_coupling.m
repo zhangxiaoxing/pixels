@@ -1,7 +1,7 @@
 if ~exist('count_wt','var') || ~exist('count_ln','var') || ~exist('count_nv','var')
-    wt_sel_meta=ephys.get_wrs_mux_meta('load_file',true,'save_file',false,'criteria','WT','extend6s',true);
-    ln_sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Learning','extend6s',true);
-    nv_sel_meta=ephys.get_wrs_mux_meta('load_file',false,'save_file',false,'criteria','Naive','extend6s',true);
+    wt_sel_meta=ephys.get_a2_meta('load_file',false,'save_file',false,'criteria','WT');
+    ln_sel_meta=ephys.get_a2_meta('load_file',false,'save_file',false,'criteria','Learning');
+    nv_sel_meta=ephys.get_a2_meta('load_file',false,'save_file',false,'criteria','Naive');
 
 
     [fh_wt,count_wt]=bz.inter_wave_pct(wt_sel_meta,'odor_only',true); %congru vs incongru vs nonmem bar lot
@@ -39,9 +39,9 @@ for regtype=["same_count","diff_count"]
         end
         title(seltype);
         if contains(regtype,"same")
-            ylim([0,1.5]);
+            ylim([0,2]);
         else
-            ylim([0,0.6])
+            ylim([0,0.75])
         end
     end
     currtag=replace(regtype,"_count","-region");
