@@ -8,6 +8,8 @@ arguments
     opt.odor_only (1,1) logical = true
     opt.skip_save (1,1) logical = true
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
+    opt.per_region (1,1) logical = false
+    opt.region (1,:) char = ''
 end
 
 % if isempty(sel_meta)
@@ -30,11 +32,23 @@ sig=bz.join_fc_waveid(sig,sel_meta.wave_id,'criteria',opt.criteria);
 pair=bz.join_fc_waveid(pair,sel_meta.wave_id,'criteria',opt.criteria);
 
 %>>>>>>>>>>>>>>>>>>Skip hierarchy>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-[sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
-[pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
-% 
-% [samestats,sameci]=statsMixed(sig_same(:,5),pair_same(:,5),sig,pair,opt.min_pair_per_session);
-% [diffstats,diffci]=statsMixed(sig_diff(:,5),pair_diff(:,5),sig,pair,opt.min_pair_per_session );
+if opt.per_region
+    if isempty(opt.region)
+        error("Missing brain region");
+    end
+    idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
+    regid=idmap.reg2ccfid(opt.region);
+    [sig_same,sig_diff]=deal(false(size(sig.sess,1),6));
+    [pair_same,pair_diff]=deal(false(size(pair.sess,1),6));
+    sig_same(:,5)=all(any(sig.reg==regid,2),3);
+    sig_diff(:,5)=any(any(sig.reg==regid,2),3) & ~sig_same(:,5);
+    pair_same(:,5)=all(any(pair.reg==regid,2),3);
+    pair_diff(:,5)=any(any(pair.reg==regid,2),3) & ~pair_same(:,5);
+else
+    [sig_diff,sig_same,~,~]=bz.util.diff_at_level(sig.reg,'hierarchy',false);
+    [pair_diff,pair_same,~,~]=bz.util.diff_at_level(pair.reg,'hierarchy',false);
+end
+
 
 counts=struct();
 fh.fig=figure('Color','w','Position',[100,100,500,235]);

@@ -1,3 +1,6 @@
+% TODO: check to skip repeated initialization
+% TODO: clean up obsolete parameters
+
 global gather_config
 gather_config=struct();
 gather_config.fc_win=10;

@@ -111,6 +111,8 @@ end
 % sample 100 for session > 200 su
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+global_init;
+
 SAMP_SU=100;
 MIN_SESS_CNT=200;
 PER_SESS_RPT=5;
@@ -119,36 +121,53 @@ critset={'WT','Learning','Naive'};
 outtbl=table('Size',[0,4],'VariableTypes',{'categorical','int32','int32','cell'});
 usess=intersect(unique(wt_su_meta.sess), unique(wt_sig.sess));
 % TODO: investigate sessions with su but no SC
+wt_su_meta=ephys.util.load_meta("save_file",false,"adjust_white_matter",true,"criteria","WT","load_file",false,"skip_stats",true);
+wt_sel_meta=ephys.get_a2_meta('load_file',false,'save_file',false,'criteria','WT');
+wt_sig=bz.load_sig_sums_conn_file('pair',false,'inhibit',false,'criteria','WT');
 
 for sidx=reshape(usess,1,[])
     if rem(sidx,10)==0
         disp("WT "+num2str(sidx))
     end
-    sesssel=wt_su_meta.sess==sidx;
-    cnt=nnz(sesssel);
+    sess_sel=wt_su_meta.sess==sidx;
+    s1sel=sess_sel & wt_sel_meta.wave_id==5;
+    s2sel=sess_sel & wt_sel_meta.wave_id==6;
+    nmsel=sess_sel & wt_sel_meta.wave_id==0;
+
+    s1lbl=arrayfun(@(x) num2str(x),wt_su_meta.allcid(s1sel),'UniformOutput',false);
+    s2lbl=arrayfun(@(x) num2str(x),wt_su_meta.allcid(s2sel),'UniformOutput',false);
+    nmlbl=arrayfun(@(x) num2str(x),wt_su_meta.allcid(nmsel),'UniformOutput',false);
+
+    cnt=nnz(sess_sel);
     if cnt>MIN_SESS_CNT
         for rpt=1:PER_SESS_RPT
-            samp_su=randsample(wt_su_meta.allcid(sesssel),SAMP_SU,false);
+            samp_su=randsample(wt_su_meta.allcid(sess_sel),SAMP_SU,false);
             sig_sel=wt_sig.sess==sidx;
             sesssig=wt_sig.suid(sig_sel,:);
             samp_sig_sel=all(ismember(sesssig,samp_su),2);
             gh=digraph(string(sesssig(samp_sig_sel,1)),string(sesssig(samp_sig_sel,2)));
             [~,binsize]=gh.conncomp('Type','weak');
+            % add non-mem congruent stats
+            s1subg=gh.subgraph(intersect(gh.Nodes.Name,s1lbl));
+            s2subg=gh.subgraph(intersect(gh.Nodes.Name,s2lbl));
+            nmsubg=gh.subgraph(intersect(gh.Nodes.Name,nmlbl));
+
             outtbl=[outtbl;cell2table({categorical({'WT'},critset),sidx,rpt,{binsize}})];
         end
     end
 end
+
 
 usess=intersect(unique(ln_su_meta.sess), unique(ln_sig.sess));
 for sidx=reshape(usess,1,[])
     if rem(sidx,10)==0
         disp("Learning "+num2str(sidx))
     end
-    sesssel=ln_su_meta.sess==sidx;
-    cnt=nnz(sesssel);
+    sess_sel=ln_su_meta.sess==sidx;
+    cnt=nnz(sess_sel);
     if cnt>MIN_SESS_CNT
         for rpt=1:PER_SESS_RPT
-            samp_su=randsample(ln_su_meta.allcid(sesssel),SAMP_SU,false);
+            samp_su=randsample(ln_su_meta.allcid(sess_sel),SAMP_SU,false);
             sig_sel=ln_sig.sess==sidx;
             sesssig=ln_sig.suid(sig_sel,:);
             samp_sig_sel=all(ismember(sesssig,samp_su),2);
@@ -164,11 +183,11 @@ for sidx=reshape(usess,1,[])
     if rem(sidx,10)==0
         disp("Naive "+num2str(sidx))
     end
-    sesssel=nv_su_meta.sess==sidx;
-    cnt=nnz(sesssel);
+    sess_sel=nv_su_meta.sess==sidx;
+    cnt=nnz(sess_sel);
     if cnt>MIN_SESS_CNT
         for rpt=1:PER_SESS_RPT
-            samp_su=randsample(nv_su_meta.allcid(sesssel),SAMP_SU,false);
+            samp_su=randsample(nv_su_meta.allcid(sess_sel),SAMP_SU,false);
             sig_sel=nv_sig.sess==sidx;
             sesssig=nv_sig.suid(sig_sel,:);
             samp_sig_sel=all(ismember(sesssig,samp_su),2);

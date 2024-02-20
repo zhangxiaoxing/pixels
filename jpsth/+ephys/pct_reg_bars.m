@@ -3,9 +3,9 @@ arguments
     su_meta
     sel_meta
     opt.skip_plot (1,1) logical = false % return map_cell data for GLM etc.
-    opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
-    opt.stats_type (1,:) char = "percentile"
-    opt.data_type (1,:) char = "mixed-olf-dur"
+    % opt.range (1,:) char {mustBeMember(opt.range,{'grey','CH','CTX'})} = 'grey'
+    % opt.stats_type (1,:) char = "percentile"
+    % opt.data_type (1,:) char = "mixed-olf-dur"
     opt.skip_error_bar (1,1) logical = true
     opt.xyscale (1,2) cell = {'Linear','Linear'}
     opt.skip_export (1,1) logical = true
@@ -13,16 +13,22 @@ arguments
     opt.only_odor (1,1) logical = true
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
     opt.min_reg_count (1,1) double =100
+    opt.area_set (1,1) logical = true
 end
 
 idmap=load(fullfile('..','align','reg_ccfid_map.mat'));
-uregsel=ismember(su_meta.reg_tree(1,:),{'CH','BS'}) & ~ismissing(su_meta.reg_tree(5,:));
-ureg=unique(su_meta.reg_tree(5,uregsel));
-
+if opt.area_set
+    areatbl=readtable('../allensdk/mouse_areas_3.csv');
+    ureg=areatbl.acronym;
+else
+    uregsel=ismember(su_meta.reg_tree(1,:),{'CH','BS'}) & ~ismissing(su_meta.reg_tree(5,:));
+    ureg=unique(su_meta.reg_tree(5,uregsel));
+end
 sums=[];
 
 for reg=reshape(ureg,1,[])
-    regsel=strcmp(su_meta.reg_tree(5,:),reg).';
+
+    regsel=any(strcmp(su_meta.reg_tree,reg),1).';
     cnt=nnz(regsel);
     if cnt<opt.min_reg_count
         continue
@@ -33,7 +39,7 @@ for reg=reshape(ureg,1,[])
     legends={'Mixed modality','Olfactory only','Duration only'};
 
     grp=idmap.reg2tree(reg{1});
-    sums=[sums;idmap.reg2ccfid(grp{6}),idmap.reg2ccfid(reg{1}),cnt,mixed_cnt,olf_cnt,dur_cnt];
+    sums=[sums;idmap.reg2ccfid(grp{end-1}),idmap.reg2ccfid(reg{1}),cnt,mixed_cnt,olf_cnt,dur_cnt];
     %=================1LVL6======================2LVL7==========3=========4======5======6=
 end
 
@@ -194,13 +200,13 @@ if ~opt.only_odor
     %%======================
     th=nexttile(4);
     tbl=cell(0);
-    if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
-        tbl=[tbl;'Stats';opt.stats_type];
-    end
-    if isfield(opt,'data_type') && ~isempty(opt.data_type)
-        tbl=[tbl;'Data';opt.data_type];
-    end
-    tbl=[tbl;'Range';opt.range];
+    % if isfield(opt,'stats_type') && ~isempty(opt.stats_type)
+    %     tbl=[tbl;'Stats';opt.stats_type];
+    % end
+    % if isfield(opt,'data_type') && ~isempty(opt.data_type)
+    %     tbl=[tbl;'Data';opt.data_type];
+    % end
+    % tbl=[tbl;'Range';opt.range];
     ephys.util.figtable(fh,th,tbl)
 else
     th=nexttile(4);

@@ -13,6 +13,27 @@ nv_sel_meta=ephys.get_a2_meta('load_file',false,'save_file',false,'criteria','Na
 [ln_map,ln_fh]=ephys.pct_reg_bars(ln_su_meta,ln_sel_meta,'xyscale',{'linear','linear'},'only_odor',true,'criteria','Learning','skip_plot',true); % only need map_cells for tcom-frac corr
 [nv_map,nv_fh]=ephys.pct_reg_bars(nv_su_meta,nv_sel_meta,'xyscale',{'linear','linear'},'only_odor',true,'criteria','Naive','skip_plot',true); % only need map_cells for tcom-frac corr
 end
+
+%% %%%%%%%%%%%%%%%%
+% Brainwide
+%%%%%%%%%%%%%%%%%%%%% 
+bw_data=[nnz(ismember(nv_sel_meta.wave_id,5:6)),nnz(nv_sel_meta.wave_id==0);...
+nnz(ismember(ln_sel_meta.wave_id,5:6)),nnz(ln_sel_meta.wave_id==0);...
+nnz(ismember(wt_sel_meta.wave_id,5:6)),nnz(wt_sel_meta.wave_id==0)];
+figure();
+bar(diag(bw_data(:,1)./bw_data(:,2)).*100,'stacked')
+set(gca(),'XTickLabel',{'Naive','Learning','Welltrained'});
+ylabel('Fraction of selective neuron (%)')
+[tbl,chi2s,p]=crosstab([ones(sum(bw_data(1,:)),1);2*ones(sum(bw_data(2,:)),1);3*ones(sum(bw_data(3,:)),1)],...
+    [1:sum(bw_data(1,:))>bw_data(1,1),...
+    1:sum(bw_data(2,:))>bw_data(2,1),...
+    1:sum(bw_data(3,:))>bw_data(3,1)]);
+title("p = "+num2str(p,4))
+
+
+%% %%%%%%%%%%%%%%%%%
+% Per region
+%%%%%%%%%%%%%%%%%%%
 [sfrac,sidx]=sortrows(cell2mat(wt_map.olf.values.'),[-1,3]);
 regs=subsref(wt_map.olf.keys,substruct('()',{sidx}));
 frac_mat=[sfrac,nan(size(sfrac)+[0,3])];
