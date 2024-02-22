@@ -187,7 +187,7 @@ for refcellID=1:max(IDindex)
     for cell2ID= refcellID+1:max(IDindex)
         
         cch=ccgR(:,refcellID,cell2ID);			% extract corresponding cross-correlation histogram vector
-        % bz's upstream code differs process due to same-shanke limitation
+        % bz's upstream code differs process due to same-shank limitation
         % neuropixels/kilosort seems not troubled by this?
         
         
@@ -246,13 +246,20 @@ for refcellID=1:max(IDindex)
         postbins = round(length(cch)/2 + .0008/binSize):round(length(cch)/2 + .0096/binSize);
         cchud  = flipud(cch);
         sigud  = flipud(sig);
-        sigpost=max(cch(postbins))>poissinv(1-alpha,max(cch(prebins)));
-        sigpre=max(cchud(postbins))>poissinv(1-alpha,max(cchud(prebins)));
-        
-        %define likelihood of being a connection
-        pvals_causal = 1 - poisscdf( max(cch(postbins)) - 1, max(cch(prebins) )) - poisspdf( max(cch(postbins)), max(cch(prebins)  )) * 0.5;
-        pvals_causalud = 1 - poisscdf( max(cchud(postbins)) - 1, max(cchud(prebins) )) - poisspdf( max(cchud(postbins)), max(cchud(prebins)  )) * 0.5;
-        
+        if negccg
+            sigpost=min(cch(postbins))<poissinv(1-alpha,min(cch(prebins)));
+            sigpre=min(cchud(postbins))<poissinv(1-alpha,min(cchud(prebins)));
+            % TODO: unfinished causal test update
+            pvals_causal = poisscdf( max(cch(postbins)) - 1, max(cch(prebins) )) + poisspdf( max(cch(postbins)), max(cch(prebins))) * 0.5;
+            pvals_causalud = poisscdf( max(cchud(postbins)) - 1, max(cchud(prebins) )) + poisspdf( max(cchud(postbins)), max(cchud(prebins))) * 0.5;
+        else
+            sigpost=max(cch(postbins))>poissinv(1-alpha,max(cch(prebins)));
+            sigpre=max(cchud(postbins))>poissinv(1-alpha,max(cchud(prebins)));
+            %define likelihood of being a connection
+            pvals_causal = 1 - poisscdf( max(cch(postbins)) - 1, max(cch(prebins) )) - poisspdf( max(cch(postbins)), max(cch(prebins))) * 0.5;
+            pvals_causalud = 1 - poisscdf( max(cchud(postbins)) - 1, max(cchud(prebins) )) - poisspdf( max(cchud(postbins)), max(cchud(prebins))) * 0.5;
+        end
+      
         %can go negative for very small p-val - beyond comp. sig. dig
         
         if pvals_causalud<0
