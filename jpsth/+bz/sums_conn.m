@@ -4,7 +4,7 @@ arguments
     opt.poolsize (1,1) double {mustBeInteger,mustBePositive}= 2
     opt.type (1,:) char {mustBeMember(opt.type,{'neupix','AIOPTO'})}='neupix'
     opt.criteria (1,:) char {mustBeMember(opt.criteria,{'Learning','WT','Naive','any'})} = 'WT'
-    opt.inhibit (1,1) logical = false
+    opt.negccg (1,1) logical = false
 end
 pool = gcp('nocreate');
 if isunix && isempty(pool)
@@ -18,28 +18,29 @@ if strcmp(opt.type,'neupix')
     elseif strcmp(opt.criteria,'Naive')
         sfn=fullfile('binary','sums_conn_naive.mat');
     else
-        if opt.inhibit
-            sfn='sums_conn_inhibit.mat';
-        else
-            sfn=fullfile('binary','sums_conn.mat');
-        end
+        sfn=fullfile('binary','sums_conn.mat');
     end
+
+	if opt.negccg
+		fl=replace(fl,'.mat','_negccg.mat');
+		sfn=replace(sfn,'.mat','_negccg.mat');
+	end
 else
     % fl=dir(fullfile('K:','neupix','AIOPTO','BZPART','BZ_XCORR_duo_f*.mat'));
     % sfn='aiopto_sums_conn.mat';
     keyboard();
 end
 tic
-if isunix
+if isunix && opt.poolsize>1
     futures=parallel.FevalFuture.empty(numel(fl),0);
     for task_idx = 1:numel(fl)
         futures(task_idx) = parfeval(pool,@sum_one,1,fl(task_idx)); % async significant functional coupling map->reduce
     end
-    sums_conn_str=fetchOutputs(futures);
-elseif ispc
+    sums_conn_str=fetchOutputs(futures,'UniformOutput',false);
+else
     out_idx=1;
     for task_idx = 1:numel(fl)
-         tmp = sum_one(fl{task_idx}); % async significant functional coupling map->reduce
+         tmp = sum_one(fl{task_idx}); % async significant functional coupling map-reduce
          if rem(task_idx,10)==0
              disp(task_idx)
          end
@@ -51,7 +52,7 @@ elseif ispc
 end
 toc
 blame=vcs.blame();
-save(sfn,'sums_conn_str','blame')
+save(sfn,'sums_conn_str','blame','-v7.3')
 end
 
 function out=sum_one(f)
@@ -66,6 +67,8 @@ end
 suid=fstr.all_probe_ccg.completeIndex(:,2);
 out.sig_con=suid(fstr.all_probe_ccg.sig_con);
 out.folder=regexp(f,'.*(?=[\\/]bz_corr.mat)','match','once');
+out.Pval=fstr.all_probe_ccg.Pval;
+out.Pcausal=fstr.all_probe_ccg.Pcausal;
 out.ccg_sc=[];
 sigccg=cell2mat(arrayfun(@(x) fstr.all_probe_ccg.ccgR(:,fstr.all_probe_ccg.sig_con(x,1),fstr.all_probe_ccg.sig_con(x,2)),...
     1:size(fstr.all_probe_ccg.sig_con,1),'UniformOutput',false));

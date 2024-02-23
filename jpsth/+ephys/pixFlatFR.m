@@ -7,7 +7,11 @@ arguments
     opt.two_point_align (1,1) logical = false
 end
 %% external lib dependency
-addpath(fullfile("..","..","Lib","npy-matlab","npy-matlab"))
+if isunix
+	addpath(fullfile("/","home","zhangxx","code","npy-matlab","npy-matlab"))
+else
+	addpath(fullfile("..","..","Lib","npy-matlab","npy-matlab"))
+end
 ephys.util.dependency("buz",false,"ft",true)
 %% constant
 sps=30000; %sample per second

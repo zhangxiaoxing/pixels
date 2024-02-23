@@ -292,18 +292,14 @@ for refcellID=1:max(IDindex)
 %             end
 %         end
         
-        %check which is bigger
-        if ~(any(sigud(postbins)) && sigpre) && (any(sig(postbins)) && sigpost) % ensure asymmetry
-            if (any(sigud(postbins)) && sigpre)
-                %test if causal is bigger than anti causal
-                sig_con = [sig_con;cell2ID refcellID];
-            end
-
-            if any(sig(postbins)) && sigpost
-                sig_con = [sig_con;refcellID cell2ID];
-            end
+        if (any(sigud(postbins)) && sigpre)
+		sig_con = [sig_con;cell2ID refcellID];
         end
-        
+    
+        if any(sig(postbins)) && sigpost
+		sig_con = [sig_con;refcellID cell2ID];
+        end
+            
     end
     
 end

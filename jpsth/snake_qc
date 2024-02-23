@@ -11,15 +11,23 @@ def sync_trials_out(wildcards):
 
 def per_sess_spkts(wildcards):
     fl=glob.glob(r'**/*_imec?',root_dir=root_dir,recursive=True)
-    # TODO capture later learning batch with recursive=true
-    upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl])
+    upath=set([re.findall(r'^.*'+os.sep, onepath)[0] for onepath in fl])
     out=[os.path.join(root_dir,onepath,"sess_spk_t_id.npy") for onepath in upath]
+    # breakpoint()
     return out
 
 def get_per_sess_bz_xcorr(wildcards):
     fl=glob.glob(r'**/sess_spk_t_id.npy',root_dir=root_dir,recursive=True)
-    upath=set([re.findall(r'^.*?'+os.sep, onepath)[0] for onepath in fl if 'wyt' not in onepath])
+    upath=set([re.findall(r'^.*'+os.sep, onepath)[0] for onepath in fl if 'wyt' not in onepath])
     out=[os.path.join(root_dir,onepath,"bz_corr.mat") for onepath in upath]
+    # breakpoint()
+    return out
+
+def get_per_sess_bz_xcorr_negccg(wildcards):
+    fl=glob.glob(r'**/sess_spk_t_id.npy',root_dir=root_dir,recursive=True)
+    upath=set([re.findall(r'^.*'+os.sep, onepath)[0] for onepath in fl if 'wyt' not in onepath])
+    out=[os.path.join(root_dir,onepath,"bz_corr_negccg.mat") for onepath in upath]
+    # breakpoint()
     return out
 
 def get_LN2_sync_events(wildcards):
@@ -101,9 +109,13 @@ rule LN2_sync_events:
         matlab -noFigureWindows -batch "addpath('/home/zhangxx/code/pixels/preprocess/');silly_sync('{wildcards.datapath}')"
         '''
 
-rule all_sess_xcorr_bz:
+rule all_sess_bz_xcorr:
     input:
         get_per_sess_bz_xcorr
+
+rule all_sess_bz_xcorr_negccg:
+    input:
+        get_per_sess_bz_xcorr_negccg
 
 
 rule all_sync_trials:
@@ -134,6 +146,15 @@ rule gen_aligned_spk_time:
         "py312n"
     script:
         "../preprocess/trials_sync_align.py"
+
+rule per_sess_bz_xcorr_negccg:
+    input:
+    output:
+        "{datapath}/bz_corr_negccg.mat"
+    shell:
+        '''
+        matlab -noFigureWindows -batch "bz.per_sess_bz_corr('{wildcards.datapath}',true)"
+        '''
 
 rule per_sess_bz_xcorr:
     input:
